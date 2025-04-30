@@ -1,19 +1,16 @@
 ﻿using System.Collections.Immutable;
 using Basic.Reference.Assemblies;
-using FlameCsv.Attributes;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen.Tests;
 
-public static class EnumGenTests
+[Collection(typeof(MetadataCollection))]
+public class EnumGenTests(MetadataFixture fixture)
 {
-    private static MetadataReference CoreAssembly { get; } =
-        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location);
-
     [Fact]
-    public static void Test_EnumGenerator()
+    public void Test_EnumGenerator()
     {
         var compilation = CSharpCompilation.Create(
             nameof(Test_EnumGenerator),
@@ -33,7 +30,7 @@ public static class EnumGenTests
                     """,
                     cancellationToken: TestContext.Current.CancellationToken)
             ],
-            [CoreAssembly, ..Net90.References.All],
+            [fixture.FlameCsvCore, .. Net90.References.All],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
         Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));

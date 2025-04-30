@@ -29,6 +29,8 @@ public static class ExtensionTests
 
     [Fact]
     [SuppressMessage("ReSharper", "UseCollectionExpression")]
+    [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "Testing collection expression initialization")]
+    [SuppressMessage("Style", "IDE0303:Simplify collection initialization", Justification = "Testing collection expression initialization")]
     public static void Test_EquatableArray()
     {
         Assert.Equal(EquatableArray<int>.Empty, EquatableArray<int>.Empty);
