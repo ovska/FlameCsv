@@ -13,7 +13,7 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyncEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ICsvBufferReader<T> _reader;
+    private readonly ReaderFactory<T> _reader;
     private readonly CsvOptions<T> _options;
     private readonly CsvTypeMap<T, TValue> _typeMap;
     private CsvExceptionHandler<T>? _exceptionHandler;
@@ -22,31 +22,33 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyn
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvTypeMapEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
-        : this(CsvBufferReader.Create(csv), options, typeMap)
-    {
-    }
+        : this(CsvBufferReader.Create(csv), options, typeMap) { }
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
     public CsvTypeMapEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
-        : this(CsvBufferReader.Create(in csv), options, typeMap)
-    {
-    }
+        : this(CsvBufferReader.Create(in csv), options, typeMap) { }
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
-    public CsvTypeMapEnumerable(
-        ICsvBufferReader<T> reader,
-        CsvOptions<T> options,
-        CsvTypeMap<T, TValue> typeMap)
+    public CsvTypeMapEnumerable(ICsvBufferReader<T> reader, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);
         _typeMap = typeMap;
-        _reader = reader;
+        _reader = new(reader);
+        _options = options;
+    }
+
+    internal CsvTypeMapEnumerable(ReaderFactory<T> factory, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(typeMap);
+        _typeMap = typeMap;
+        _reader = factory;
         _options = options;
     }
 
@@ -59,9 +61,9 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyn
     [MustDisposeResource]
     public CsvTypeMapEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _reader)
+        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _reader.Create(false))
         {
-            ExceptionHandler = _exceptionHandler
+            ExceptionHandler = _exceptionHandler,
         };
     }
 
@@ -69,9 +71,9 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyn
     [MustDisposeResource]
     public CsvTypeMapEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _reader, cancellationToken)
+        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _reader.Create(true), cancellationToken)
         {
-            ExceptionHandler = _exceptionHandler
+            ExceptionHandler = _exceptionHandler,
         };
     }
 

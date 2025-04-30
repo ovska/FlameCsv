@@ -573,7 +573,7 @@ static partial class CsvWriter
     /// Writes the values as CSV records to a string using the type map.
     /// </summary>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="builder">Optional builder to write the CSV to.</param>
     /// <returns>
@@ -605,7 +605,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
@@ -637,7 +637,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
@@ -672,7 +672,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
@@ -701,7 +701,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
@@ -730,7 +730,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
@@ -773,7 +773,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
@@ -811,7 +811,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="pipe">Pipe to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
@@ -847,7 +847,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
@@ -893,7 +893,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
@@ -938,7 +938,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="textWriter">Writer to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
@@ -981,7 +981,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="stream">Stream to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
@@ -1019,7 +1019,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="pipe">Pipe to write the CSV to</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
     /// <returns>Task representing the asynchronous writing operation</returns>
@@ -1055,7 +1055,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <param name="cancellationToken">Token to cancel the writing operation</param>
@@ -1101,7 +1101,7 @@ static partial class CsvWriter
     /// </summary>
     /// <param name="path">Path of the destination file. Existing files are overwritten</param>
     /// <param name="values">Values to write</param>
-    /// <param name="typeMap">Type map to use for writing</param>
+    /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="encoding">Encoding to pass to the inner <see cref="StreamWriter"/></param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>

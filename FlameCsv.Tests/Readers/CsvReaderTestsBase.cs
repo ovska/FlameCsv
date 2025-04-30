@@ -99,8 +99,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
         {
             IEnumerable<Obj> enumerable = sourceGen
-                ? CsvReader.Read(sequence, TypeMap, options)
-                : CsvReader.Read<T, Obj>(sequence, options);
+                ? new CsvTypeMapEnumerable<T, Obj>(in sequence, options, TypeMap)
+                : new CsvValueEnumerable<T, Obj>(in sequence, options);
 
             if (parallel) enumerable = WrapParallel(enumerable);
 
