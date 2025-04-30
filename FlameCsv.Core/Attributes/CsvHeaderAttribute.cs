@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Runtime.InteropServices;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 
 namespace FlameCsv.Attributes;
 
@@ -24,13 +22,29 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
     /// <summary>
     /// Header value used when reading or writing CSV.
     /// </summary>
-    public string Value { get; }
+    public string Value
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = value;
+        }
+    }
 
     /// <summary>
     /// Additional values that can be used to match the header when reading CSV.
     /// <see cref="Value"/> is always used when writing.
     /// </summary>
-    public ImmutableArray<string> Aliases { get; }
+    public string[] Aliases
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = value;
+        }
+    } = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.
@@ -48,6 +62,16 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
         }
 
         Value = value;
-        Aliases = ImmutableCollectionsMarshal.AsImmutableArray(aliases);
+        Aliases = aliases;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.
+    /// </summary>
+    /// <param name="value">Header value used when reading or writing CSV.</param>
+    public CsvHeaderAttribute(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        Value = value;
     }
 }
