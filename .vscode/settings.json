@@ -49,6 +49,8 @@
         ".vs": true,
         ".idea": true,
         "FlameCsv.Fuzzing/Testcases/**": true,
+        "docs/_site/**": true,
+        "docs/api/**": true,
     },
     "files.exclude": {
         "**/.git": true,
@@ -63,6 +65,8 @@
         "ExternalAnnotations": true,
         "FlameCsv.sln.DotSettings": true,
         "FlameCsv.sln.DotSettings.user": true,
+        "docs/_site/**": true,
+        "docs/api/**": true,
     },
     "csharp.debug.justMyCode": true,
     "dotnet.enableXamlTools": true,
