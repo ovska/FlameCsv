@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
@@ -15,7 +14,7 @@ public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
 {
     /// <summary>
     /// Type name of the provider to use for string pooling. The class should have a public static property or a
-    /// parameterless method named <see cref="ProviderName"/> that returns a <see cref="StringPool"/> instance.
+    /// parameterless method named <see cref="MemberName"/> that returns a <see cref="StringPool"/> instance.
     /// </summary>
     [DAM(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicMethods)]
     public Type? ProviderType { get; init; }
@@ -23,7 +22,7 @@ public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
     /// <summary>
     /// Property or method name of the provider to use for string pooling.
     /// </summary>
-    public string? ProviderName { get; init; }
+    public string? MemberName { get; init; }
 
     /// <inheritdoc />
     protected override bool TryCreateConverterOrFactory<T>(
@@ -39,19 +38,31 @@ public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
 
         StringPool? configured = null;
 
-        if (ProviderType is not null && ProviderName is not null)
+        if (ProviderType is not null && MemberName is not null)
         {
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy;
-
+            if (ProviderType is null || MemberName is null)
+            {
+                throw new CsvConfigurationException(
+                    $"Both {nameof(ProviderType)} and {nameof(MemberName)} must be set to use a custom provider.");
+            }
+            
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
+            
             MethodInfo provider =
-                ProviderType.GetProperty(ProviderName, flags)?.GetMethod ??
-                ProviderType.GetMethod(ProviderName, flags) ??
-                throw new CsvConfigurationException($"The provider type {ProviderType} does not have a property or method named {ProviderName}.");
+                ProviderType.GetProperty(MemberName, flags)?.GetMethod ??
+                ProviderType.GetMethod(MemberName, flags) ??
+                throw new CsvConfigurationException($"The provider type {ProviderType} does not have a property or method named {MemberName}.");
+
+            if (provider.GetParameters().Length != 0)
+            {
+                throw new CsvConfigurationException(
+                    $"The provider {ProviderType}.{MemberName}() must be a parameterless method.");
+            }
 
             if (provider.ReturnType != typeof(StringPool))
             {
                 throw new CsvConfigurationException(
-                    $"The provider {ProviderType}.{ProviderName} must return a {nameof(StringPool)}.");
+                    $"The provider {ProviderType}.{MemberName} must return a {nameof(StringPool)}.");
             }
 
             configured = (StringPool?)provider.Invoke(null, null);
