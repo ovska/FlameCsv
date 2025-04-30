@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text.Unicode;
 
 namespace FlameCsv.IO;
@@ -10,6 +11,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     private int _count;
     private int _offset;
     private bool _endOfStream;
+    private bool _preambleRead;
 
     public Utf8StreamReader(Stream stream, MemoryPool<char>? memoryPool, in CsvIOOptions options)
         : base(memoryPool ?? MemoryPool<char>.Shared, in options)
@@ -39,6 +41,11 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
 
             ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
             Span<char> charSpan = bufferSpan.Slice(totalCharsWritten);
+
+            if (!_preambleRead)
+            {
+                ReadPreamble(ref byteSpan);
+            }
 
             OperationStatus status = Utf8.ToUtf16(
                 byteSpan,
@@ -129,6 +136,11 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
             Span<char> charSpan = buffer.Span.Slice(totalCharsWritten);
 
+            if (!_preambleRead)
+            {
+                ReadPreamble(ref byteSpan);
+            }
+
             OperationStatus status = Utf8.ToUtf16(
                 byteSpan,
                 charSpan,
@@ -196,6 +208,18 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         }
 
         return totalCharsWritten;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void ReadPreamble(ref ReadOnlySpan<byte> byteSpan)
+    {
+        if (byteSpan is [0xEF, 0xBB, 0xBF, ..])
+        {
+            byteSpan = byteSpan[3..];
+            _offset += 3;
+        }
+
+        _preambleRead = true;
     }
 
     public override bool TryReset()
