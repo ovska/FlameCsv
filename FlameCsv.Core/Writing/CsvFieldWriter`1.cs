@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Writing.Escaping;
@@ -16,7 +17,8 @@ namespace FlameCsv.Writing;
 /// This type must be disposed to release rented memory.
 /// </remarks>
 [MustDisposeResource]
-public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvFieldWriter<T> : IDisposable
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// The <see cref="ICsvBufferWriter{T}"/> this instance writes to.
@@ -30,7 +32,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
 
     private readonly T _delimiter;
     private readonly T _quote;
-    private readonly NewlineBuffer<T> _newline;
+    private readonly bool _isCRLF;
     private readonly T? _escape;
     private readonly SearchValues<T> _needsQuoting;
     private readonly CsvFieldQuoting _fieldQuoting;
@@ -56,7 +58,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
         _delimiter = dialect.Delimiter;
         _quote = dialect.Quote;
         _escape = dialect.Escape;
-        _newline = dialect.Newline;
+        _isCRLF = dialect.Newline.IsCRLF();
         _needsQuoting = dialect.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
@@ -198,10 +200,19 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
     {
-        Span<T> destination = Writer.GetSpan(_newline.Length);
-        if (_newline.Length == 2) destination[1] = _newline.Second;
-        destination[0] = _newline.First;
-        Writer.Advance(_newline.Length);
+        if (_isCRLF)
+        {
+            Span<T> destination = Writer.GetSpan(2);
+            destination[0] = T.CreateTruncating('\r');
+            destination[1] = T.CreateTruncating('\n');
+            Writer.Advance(2);
+        }
+        else
+        {
+            Span<T> destination = Writer.GetSpan(1);
+            destination[0] = T.CreateTruncating('\n');
+            Writer.Advance(1);
+        }
     }
 
     /// <summary>
@@ -227,10 +238,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable where T : unmanaged, IBin
     /// </summary>
     /// <returns>True if the writer was advanced</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void EscapeAndAdvance<TEscaper>(
-        in TEscaper escaper,
-        Span<T> destination,
-        int tokensWritten)
+    private void EscapeAndAdvance<TEscaper>(in TEscaper escaper, Span<T> destination, int tokensWritten)
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
         if (_fieldQuoting is CsvFieldQuoting.Never)
@@ -330,6 +338,7 @@ file static class InvalidTokensWritten
     public static void Throw(object source, int tokensWritten, int destinationLength)
     {
         throw new InvalidOperationException(
-            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}.");
+            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}."
+        );
     }
 }

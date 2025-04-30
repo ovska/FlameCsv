@@ -12,14 +12,15 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 {
     [Theory, MemberData(nameof(Args))]
     public void Objects_Sync(
-        string newline,
+        CsvNewline newline,
         bool header,
         char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool? guarded)
+        bool? guarded
+    )
     {
         using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
         var options = new CsvOptions<char>
@@ -44,15 +45,12 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
                     options,
-                    new() { BufferSize = bufferSize });
+                    new() { BufferSize = bufferSize }
+                );
             }
             else
             {
-                CsvWriter.WriteToString(
-                    TestDataGenerator.Objects.Value,
-                    ObjCharTypeMap.Default,
-                    options,
-                    output);
+                CsvWriter.WriteToString(TestDataGenerator.Objects.Value, ObjCharTypeMap.Default, options, output);
             }
         }
         else
@@ -63,32 +61,32 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     options,
-                    new() { BufferSize = bufferSize });
+                    new() { BufferSize = bufferSize }
+                );
             }
             else
             {
-                CsvWriter.WriteToString(
-                    TestDataGenerator.Objects.Value,
-                    options,
-                    output);
+                CsvWriter.WriteToString(TestDataGenerator.Objects.Value, options, output);
             }
         }
 
-        Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
+        Validate(output, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
     }
 
     [Theory, MemberData(nameof(Args))]
     public async Task Objects_Async(
-        string newline,
+        CsvNewline newline,
         bool header,
         char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool? guarded)
+        bool? guarded
+    )
     {
-        if (outputType) return;
+        if (outputType)
+            return;
 
         using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
         var options = new CsvOptions<char>
@@ -112,7 +110,8 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 ObjCharTypeMap.Default,
                 options,
                 new() { BufferSize = bufferSize },
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken
+            );
         }
         else
         {
@@ -121,18 +120,14 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 options,
                 new() { BufferSize = bufferSize },
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken
+            );
         }
 
-        Validate(output, escape.HasValue, newline == "\r\n", header, quoting);
+        Validate(output, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
     }
 
-    private static void Validate(
-        StringBuilder sb,
-        bool escapeMode,
-        bool crlf,
-        bool header,
-        CsvFieldQuoting quoting)
+    private static void Validate(StringBuilder sb, bool escapeMode, bool crlf, bool header, CsvFieldQuoting quoting)
     {
         var enumerator = sb.GetChunks();
         Assert.True(enumerator.MoveNext());
@@ -166,7 +161,8 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 Assert.Equal(0, index);
                 Assert.Equal(
                     quoting == CsvFieldQuoting.Always ? TestDataGenerator.HeaderQuoted : TestDataGenerator.Header,
-                    line);
+                    line
+                );
                 headerRead = true;
                 continue;
             }

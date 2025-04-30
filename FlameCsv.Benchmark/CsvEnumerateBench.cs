@@ -12,26 +12,27 @@ namespace FlameCsv.Benchmark;
 // [BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvEnumerateBench
 {
-    [Params(true, false)] public bool AltData { get; set; }
-    [Params(true, false)] public bool CRLF { get; set; }
+    [Params(true, false)]
+    public bool AltData { get; set; }
+
+    [Params(true, false)]
+    public bool CRLF { get; set; }
 
     [GlobalSetup]
     public void Setup()
     {
         string path = AltData ? @"Comparisons/Data/65K_Records_Data.csv" : @"Comparisons/Data/SampleCSVFile_556kb.csv";
 
-        _string = File
-            .ReadAllText(path, Encoding.UTF8)
-            .ReplaceLineEndings(CRLF ? "\r\n" : "\n");
+        _string = File.ReadAllText(path, Encoding.UTF8).ReplaceLineEndings(CRLF ? "\r\n" : "\n");
 
         _byteArray = Encoding.UTF8.GetBytes(_string);
         _byteSeq = new ReadOnlySequence<byte>(_byteArray);
         _charSeq = new ReadOnlySequence<char>(_string.AsMemory());
 
-        _optionsByteLF = new() { Newline = "\n" };
-        _optionsCharLF = new() { Newline = "\n" };
-        _optionsByteCRLF = new() { Newline = "\r\n" };
-        _optionsCharCRLF = new() { Newline = "\r\n" };
+        _optionsByteLF = new() { Newline = CsvNewline.LF };
+        _optionsCharLF = new() { Newline = CsvNewline.LF };
+        _optionsByteCRLF = new() { Newline = CsvNewline.CRLF };
+        _optionsCharCRLF = new() { Newline = CsvNewline.CRLF };
     }
 
     private byte[] _byteArray = [];
@@ -74,14 +75,15 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Sep_byte()
     {
-        using var reader = Sep.Reader(
-                o => o with
+        using var reader = Sep.Reader(o =>
+                o with
                 {
                     Sep = new Sep(','),
                     CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
                     HasHeader = false,
                     Unescape = true,
-                })
+                }
+            )
             .From(_byteArray);
 
         foreach (var row in reader)
@@ -96,14 +98,15 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Sep_char()
     {
-        using var reader = Sep.Reader(
-                o => o with
+        using var reader = Sep.Reader(o =>
+                o with
                 {
                     Sep = new Sep(','),
                     CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
                     HasHeader = false, // omit header overhead
                     Unescape = true,
-                })
+                }
+            )
             .FromText(_string);
 
         foreach (var row in reader)
@@ -150,7 +153,11 @@ public class CsvEnumerateBench
 
     private readonly struct Invoker : ICsvParallelTryInvoke<byte, object?>
     {
-        public bool TryInvoke(scoped ref CsvFieldsRef<byte> fields, in CsvParallelState state, [MaybeNullWhen(false)] out object? result)
+        public bool TryInvoke(
+            scoped ref CsvFieldsRef<byte> fields,
+            in CsvParallelState state,
+            [MaybeNullWhen(false)] out object? result
+        )
         {
             for (int i = 0; i < fields.FieldCount; i++)
             {

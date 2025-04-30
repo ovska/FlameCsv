@@ -34,8 +34,7 @@ namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
 [SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect, TNewline newlineImpl)
-    : CsvPartialTokenizer<T>
+internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline<T, TVector>
     where TVector : struct, ISimdVector<T, TVector>
@@ -54,24 +53,26 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
 
         // search space of T is set to 1 vector less, possibly leaving space for a newline token so we don't need
         // to do bounds checks in the loops
-        scoped ref T first = ref MemoryMarshal.GetReference(data);
+        scoped ref T first =
+            ref MemoryMarshal.GetReference(data);
         nuint runningIndex = (uint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
         // search space of Meta is set to vector length from actual so we don't need to do bounds checks in the loops
-        scoped ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
+        scoped ref Meta currentMeta =
+            ref MemoryMarshal.GetReference(metaBuffer);
         scoped ref readonly Meta metaEnd = ref Unsafe.Add(
             ref MemoryMarshal.GetReference(metaBuffer),
-            metaBuffer.Length - (TVector.Count * 2)); // the worst case: data ends in Vector.Count delimiters
+            metaBuffer.Length - (TVector.Count * 2)
+        ); // the worst case: data ends in Vector.Count delimiters
 
         // load the constants into registers
         T quote = dialect.Quote;
-        TNewline newline = newlineImpl;
         TVector delimiterVec = TVector.Create(dialect.Delimiter);
         TVector quoteVec = TVector.Create(dialect.Quote);
-        newline.Load(out TVector newline1, out TVector newline2);
+        TNewline.Load(out TVector newline1, out TVector newline2);
         uint quotesConsumed = 0;
 
         TVector nextVector = TVector.LoadUnaligned(in first, runningIndex);
@@ -100,7 +101,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
             // only delimiters
             if (maskDelimiter == maskAny)
             {
-                if (quotesConsumed != 0) goto TrySkipQuoted;
+                if (quotesConsumed != 0)
+                    goto TrySkipQuoted;
                 currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
                 goto ContinueRead;
             }
@@ -110,7 +112,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
             // only newlines or delimiters
             if (maskNewlineOrDelimiter == maskAny)
             {
-                if (quotesConsumed != 0) goto TrySkipQuoted;
+                if (quotesConsumed != 0)
+                    goto TrySkipQuoted;
 
                 if (maskDelimiter != 0)
                 {
@@ -136,8 +139,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
                             ref first,
                             ref runningIndex,
                             ref currentMeta,
-                            in newline,
-                            ref nextVector);
+                            ref nextVector
+                        );
                         goto ContinueRead;
                     }
                 }
@@ -147,8 +150,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
                     ref first,
                     ref runningIndex,
                     ref currentMeta,
-                    in newline,
-                    ref nextVector);
+                    ref nextVector
+                );
                 goto ContinueRead;
             }
 
@@ -159,12 +162,12 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
                 ref runningIndex,
                 ref currentMeta,
                 quote,
-                in newline,
                 ref quotesConsumed,
-                ref nextVector);
+                ref nextVector
+            );
             goto ContinueRead;
 
-        TrySkipQuoted:
+            TrySkipQuoted:
             // there are unresolved quotes but the current vector had none
             Debug.Assert(hasQuote == TVector.Zero);
 
@@ -183,23 +186,20 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
                 ref first,
                 ref runningIndex,
                 ref currentMeta,
-                in newline,
                 ref quotesConsumed,
-                ref nextVector);
+                ref nextVector
+            );
 
-        ContinueRead:
+            ContinueRead:
             runningIndex += (nuint)TVector.Count;
         }
 
-        return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta) /
-            Unsafe.SizeOf<Meta>();
+        return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta)
+            / Unsafe.SizeOf<Meta>();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseDelimiters(
-        nuint mask,
-        nuint runningIndex,
-        ref Meta currentMeta)
+    private static ref Meta ParseDelimiters(nuint mask, nuint runningIndex, ref Meta currentMeta)
     {
         do
         {
@@ -218,8 +218,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
         scoped ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        scoped ref readonly TNewline newline,
-        ref TVector nextVector)
+        ref TVector nextVector
+    )
     {
         do
         {
@@ -228,7 +228,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
 
             // no need to call IsNewline(), the mask contains only newlines
             // this whole method should be exceedingly rare anyways
-            bool isMultitoken = newline.IsMultitoken(ref Unsafe.Add(ref first, runningIndex + (nuint)offset));
+            bool isMultitoken = TNewline.IsMultitoken(ref Unsafe.Add(ref first, runningIndex + (nuint)offset));
 
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -258,8 +258,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
         scoped ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        scoped ref readonly TNewline newline,
-        ref TVector nextVector)
+        ref TVector nextVector
+    )
     {
         int offset;
         bool isEOL;
@@ -271,7 +271,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
 
             // this can only return false for pathological data, e.g. \r followed by \r or comma
             // use an inverse condition so the branch predictor is happy on the first call
-            isEOL = newline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken);
+            isEOL = TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken);
 
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -303,9 +303,9 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
         T quote,
-        scoped ref readonly TNewline newline,
         scoped ref uint quotesConsumed,
-        ref TVector nextVector)
+        ref TVector nextVector
+    )
     {
         do
         {
@@ -323,9 +323,10 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
                 continue;
             }
 
-            bool isEOL = newline.IsNewline(
+            bool isEOL = TNewline.IsNewline(
                 ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                out bool isMultitoken);
+                out bool isMultitoken
+            );
 
             currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -355,18 +356,19 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect,
         ref T first,
         scoped ref nuint runningIndex,
         ref Meta currentMeta,
-        scoped ref readonly TNewline newline,
         scoped ref uint quotesConsumed,
-        ref TVector nextVector)
+        ref TVector nextVector
+    )
     {
         do
         {
             int offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            bool isEOL = newline.IsNewline(
+            bool isEOL = TNewline.IsNewline(
                 ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                out bool isMultitoken);
+                out bool isMultitoken
+            );
 
             currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);

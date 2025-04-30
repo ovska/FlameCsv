@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -37,28 +36,17 @@ public partial class CsvOptions<T>
             Quote = T.CreateChecked(_quote),
             Escape = _escape.HasValue ? T.CreateChecked(_escape.Value) : null,
             Trimming = _trimming,
-            Newline = _newline switch
-            {
-                [char f] => new NewlineBuffer<T>(T.CreateChecked(f)),
-                [char f, char s] => new NewlineBuffer<T>(T.CreateChecked(f), T.CreateChecked(s)),
-                _ => InvalidNewline(),
-            },
+            Newline = _newline,
         };
 
         result.Validate();
         _dialect = result;
         return ref Nullable.GetValueRefOrDefaultRef(in _dialect);
-
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        NewlineBuffer<T> InvalidNewline()
-        {
-            throw new UnreachableException("Invalid newline: " + _newline);
-        }
     }
 
     private char _delimiter = ',';
     private char _quote = '"';
-    private string _newline = "\r\n";
+    private CsvNewline _newline = CsvNewline.CRLF;
     private char? _escape;
     private CsvFieldTrimming _trimming;
 
@@ -119,25 +107,12 @@ public partial class CsvOptions<T>
     /// If the newline is 2 characters long, either of the characters is allowed as a record delimiter,
     /// e.g., the default value can read CSV with only <c>LF</c> newlines.
     /// </remarks>
-    public string Newline
+    public CsvNewline Newline
     {
         get => _newline;
         set
         {
-            ArgumentException.ThrowIfNullOrEmpty(value);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(value.Length, 2);
-
-            ArgumentOutOfRangeException.ThrowIfZero(value[0]);
-            ArgumentOutOfRangeException.ThrowIfEqual(value[0], ' ');
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(value[0], 127);
-
-            if (value.Length == 2)
-            {
-                ArgumentOutOfRangeException.ThrowIfZero(value[1]);
-                ArgumentOutOfRangeException.ThrowIfEqual(value[1], ' ');
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(value[1], 127);
-            }
-
+            ArgumentOutOfRangeException.ThrowIfGreaterThan((byte)value, (byte)CsvNewline.Platform, nameof(value));
             this.SetValue(ref _newline, value);
         }
     }

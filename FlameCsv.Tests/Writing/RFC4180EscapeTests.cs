@@ -1,14 +1,11 @@
+using FlameCsv.Extensions;
 using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;
 
 file static class EscapeExt
 {
-    public static readonly CsvOptions<char> Options = new()
-    {
-        Delimiter = ',',
-        Quote = '|',
-    };
+    public static readonly CsvOptions<char> Options = new() { Delimiter = ',', Quote = '|' };
 
     public static bool MustBeQuoted(this RFC4180Escaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
     {
@@ -66,9 +63,7 @@ public static class RFC4180EscapeTests
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
-        Assert.Equal(
-            $"|{input.Replace("|", "||")}|",
-            sharedBuffer.ToString());
+        Assert.Equal($"|{input.Replace("|", "||")}|", sharedBuffer.ToString());
     }
 
     [Theory]
@@ -92,9 +87,7 @@ public static class RFC4180EscapeTests
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
-        Assert.Equal(
-            $"|{input.Replace("|", "||")}|",
-            sharedBuffer.ToString());
+        Assert.Equal($"|{input.Replace("|", "||")}|", sharedBuffer.ToString());
     }
 
     private static readonly (int? quoteCount, string data)[] _needsEscapingData =
@@ -112,13 +105,19 @@ public static class RFC4180EscapeTests
         (3, "||\r\n test |"),
     ];
 
-    public static TheoryData<string, int?, string> NeedsEscapingData()
+    public static TheoryData<CsvNewline, int?, string> NeedsEscapingData()
     {
-        var values = from x in _needsEscapingData
-                     from newline in new[] { "\r\n", "\n" }
-                     select new { newline, x.quoteCount, x.data };
+        var values =
+            from x in _needsEscapingData
+            from newline in new[] { CsvNewline.CRLF, CsvNewline.LF }
+            select new
+            {
+                newline,
+                x.quoteCount,
+                x.data,
+            };
 
-        var theory = new TheoryData<string, int?, string>();
+        var theory = new TheoryData<CsvNewline, int?, string>();
 
         foreach (var x in values)
         {
@@ -129,10 +128,10 @@ public static class RFC4180EscapeTests
     }
 
     [Theory, MemberData(nameof(NeedsEscapingData))]
-    public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
+    public static void Should_Check_Needs_Escaping(CsvNewline newline, int? quotes, string input)
     {
         var options = new CsvOptions<char> { Quote = '|', Newline = newline };
-        input = input.Replace("\r\n", newline);
+        input = input.Replace("\r\n", newline.AsString());
 
         bool needsQuoting = input.AsSpan().ContainsAny(options.Dialect.NeedsQuoting);
 

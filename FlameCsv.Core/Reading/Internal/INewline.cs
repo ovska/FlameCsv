@@ -1,13 +1,13 @@
 ﻿using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
-using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
 
 /// <summary>
 /// Interface to provide high-performance generic handling for variable length newlines.
 /// </summary>
-internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
+internal interface INewline<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns the length of the newline sequence.
@@ -24,8 +24,7 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     /// Determines if the specified value is part of a two-token newline sequence.
     /// </summary>
     /// <remarks>For single token newlines, always returns false</remarks>
-    [Pure]
-    bool IsMultitoken(ref T value);
+    static abstract bool IsMultitoken(ref T value);
 
     /// <summary>
     /// Determines if the specified value represents a delimiter or a newline.
@@ -34,14 +33,12 @@ internal interface INewline<T> where T : unmanaged, IBinaryInteger<T>
     /// <param name="isMultitoken">When true, whether the next token was part of the newline as well.</param>
     /// <returns>True if the value represents a newline instead of a delimiter.</returns>
     /// <remarks>For single token newlines, always returns true</remarks>
-    [Pure]
-    bool IsNewline(ref T value, out bool isMultitoken);
+    static abstract bool IsNewline(ref T value, out bool isMultitoken);
 
-    /// <summary>The first token in the newline.</summary>
-    T First { [Pure] get; }
-
-    /// <summary>The second token in the newline, or <see cref="First"/> if length is 1.</summary>
-    T Second { [Pure] get; }
+    /// <summary>
+    /// Determines if the specified value represents any newline character.
+    /// </summary>
+    static abstract bool IsNewline(T value);
 }
 
 /// <inheritdoc/>
@@ -52,8 +49,7 @@ internal interface INewline<T, TVector> : INewline<T>
     /// <summary>
     /// Loads the newline vectors.
     /// </summary>
-    [Pure]
-    void Load(out TVector v0, out TVector v1);
+    static abstract void Load(out TVector v0, out TVector v1);
 
     /// <summary>
     /// Checks if the input vector contains a newline.
@@ -62,7 +58,7 @@ internal interface INewline<T, TVector> : INewline<T>
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVector>
+internal readonly struct NewlineParserOne<T, TVector> : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -76,27 +72,29 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsMultitoken(ref T value)
+    public static bool IsMultitoken(ref T value)
     {
         // single token newlines are never multitoken
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsNewline(ref T value, out bool isMultitoken)
+    public static bool IsNewline(ref T value, out bool isMultitoken)
     {
         // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
         isMultitoken = false;
-        return value == first;
+        return value == T.CreateTruncating('\n');
     }
 
-    public T First => first;
-    public T Second => first;
+    public static bool IsNewline(T value)
+    {
+        return value == T.CreateTruncating('\n');
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Load(out TVector v0, out TVector v1)
+    public static void Load(out TVector v0, out TVector v1)
     {
-        v0 = TVector.Create(first);
+        v0 = TVector.Create((byte)'\n');
         Unsafe.SkipInit(out v1);
     }
 
@@ -108,7 +106,7 @@ internal readonly struct NewlineParserOne<T, TVector>(T first) : INewline<T, TVe
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewline<T, TVector>
+internal readonly struct NewlineParserTwo<T, TVector> : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -120,20 +118,23 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => 1;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsMultitoken(ref T value)
+    public static bool IsMultitoken(ref T value)
     {
         // only \r\n is considered a multitoken newline, other combinations e.g. \n\n are two distinct newlines
-        return value == first && Unsafe.Add(ref value, 1) == second;
+        return value == T.CreateTruncating('\r') && Unsafe.Add(ref value, 1) == T.CreateTruncating('\n');
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsNewline(ref T value, out bool isMultitoken)
+    public static bool IsNewline(ref T value, out bool isMultitoken)
     {
-        if (value == first || value == second)
+        T cr = T.CreateTruncating('\r');
+        T lf = T.CreateTruncating('\n');
+
+        if (value == cr || value == lf)
         {
-            isMultitoken = value == first && Unsafe.Add(ref value, 1) == second;
+            isMultitoken = value == cr && Unsafe.Add(ref value, 1) == lf;
             return true;
         }
 
@@ -141,13 +142,15 @@ internal readonly struct NewlineParserTwo<T, TVector>(T first, T second) : INewl
         return false;
     }
 
-    public T First => first;
-    public T Second => second;
-
-    public void Load(out TVector v0, out TVector v1)
+    public static bool IsNewline(T value)
     {
-        v0 = TVector.Create(first);
-        v1 = TVector.Create(second);
+        return value == T.CreateTruncating('\r') || value == T.CreateTruncating('\n');
+    }
+
+    public static void Load(out TVector v0, out TVector v1)
+    {
+        v0 = TVector.Create((byte)'\r');
+        v1 = TVector.Create((byte)'\n');
     }
 
     public static TVector HasNewline(TVector input, TVector v0, TVector v1)

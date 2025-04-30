@@ -9,7 +9,8 @@ public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>
 public class GuardedMemoryManagerByteTests : GuardedMemoryManagerTestsBase<byte>;
 
 [SupportedOSPlatform("windows")]
-public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
+public abstract class GuardedMemoryManagerTestsBase<T>
+    where T : unmanaged
 {
     [Theory, MemberData(nameof(AllocationData))]
     public void Should_Allocate_Guarded_Memory(bool fromEnd, int size)
@@ -17,7 +18,8 @@ public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Only Windows is supported.");
         Assert.SkipUnless(
             Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy") == "1",
-            "COMPlus_legacyCorruptedStateExceptionsPolicy must be set to 1.");
+            "COMPlus_legacyCorruptedStateExceptionsPolicy must be set to 1."
+        );
 
         Assert.Equal(4096, Environment.SystemPageSize);
 
@@ -57,10 +59,10 @@ public abstract class GuardedMemoryManagerTestsBase<T> where T : unmanaged
             var data = new TheoryData<bool, int>();
 
             foreach (var fromEnd in GlobalData.Booleans)
-                foreach (var size in (int[])[32, 64, 1024, 4096, 4096 * 2])
-                {
-                    data.Add(fromEnd, size);
-                }
+            foreach (var size in (int[])[32, 64, 1024, 4096, 4096 * 2])
+            {
+                data.Add(fromEnd, size);
+            }
 
             return data;
         }

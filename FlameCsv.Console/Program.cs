@@ -17,13 +17,14 @@ namespace FlameCsv.Console
 {
     public static class Program
     {
-        private static readonly CsvOptions<byte> _options = new() { Newline = "\n" };
-        private static readonly CsvOptions<char> _optionsC = new() { Newline = "\n" };
+        private static readonly CsvOptions<byte> _options = new() { Newline = CsvNewline.LF };
+        private static readonly CsvOptions<char> _optionsC = new() { Newline = CsvNewline.LF };
 
         static async Task Main([NotNull] string[] args)
         {
             FileInfo file = new(
-                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv");
+                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv"
+            );
 
             using var mmf = MemoryMappedFile.CreateFromFile(file.FullName, FileMode.Open);
 
@@ -39,11 +40,7 @@ namespace FlameCsv.Console
                     MeasureProfiler.StartCollectingData();
                 }
 
-                var parser = new CsvReader<byte>(
-                    _options,
-                    CsvBufferReader.Create(
-                        stream,
-                        MemoryPool<byte>.Shared));
+                var parser = new CsvReader<byte>(_options, CsvBufferReader.Create(stream, MemoryPool<byte>.Shared));
                 // var parser = CsvParser.Create(_options, new PipeReaderWrapper(PipeReader.Create(stream, new(bufferSize: 1024*16))));
 
                 await foreach (var r in parser.ParseRecordsAsync())
@@ -57,12 +54,17 @@ namespace FlameCsv.Console
         }
 
 #pragma warning disable IL2026
-        private static Lazy<Entry[]> _entries = new(() => CsvReader
-            .Read<Entry>(
-                File.ReadAllBytes(
-                    "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"),
-                new() { HasHeader = false })
-            .ToArray());
+        private static Lazy<Entry[]> _entries = new(
+            () =>
+                CsvReader
+                    .Read<Entry>(
+                        File.ReadAllBytes(
+                            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"
+                        ),
+                        new() { HasHeader = false }
+                    )
+                    .ToArray()
+        );
 #pragma warning restore IL2026
     }
 
@@ -74,7 +76,9 @@ namespace FlameCsv.Console
         public DayOfWeek DOF { get; set; }
         public int Id { get; set; }
         public string? Name { get; set; }
-        [CsvHeader("Enabled")] public bool IsEnabled { get; set; }
+
+        [CsvHeader("Enabled")]
+        public bool IsEnabled { get; set; }
 
         [CsvConverter<SpanTextConverter<long>>]
         public long? Age { get; set; }
@@ -82,16 +86,35 @@ namespace FlameCsv.Console
 
     public sealed class Entry
     {
-        [CsvIndex(0)] public int Index { get; set; }
-        [CsvIndex(1)] public string? Name { get; set; }
-        [CsvIndex(2)] public string? Contact { get; set; }
-        [CsvIndex(3)] public int Count { get; set; }
-        [CsvIndex(4)] public double Latitude { get; set; }
-        [CsvIndex(5)] public double Longitude { get; set; }
-        [CsvIndex(6)] public double Height { get; set; }
-        [CsvIndex(7)] public string? Location { get; set; }
-        [CsvIndex(8)] public string? Category { get; set; }
-        [CsvIndex(9)] public double? Popularity { get; set; }
+        [CsvIndex(0)]
+        public int Index { get; set; }
+
+        [CsvIndex(1)]
+        public string? Name { get; set; }
+
+        [CsvIndex(2)]
+        public string? Contact { get; set; }
+
+        [CsvIndex(3)]
+        public int Count { get; set; }
+
+        [CsvIndex(4)]
+        public double Latitude { get; set; }
+
+        [CsvIndex(5)]
+        public double Longitude { get; set; }
+
+        [CsvIndex(6)]
+        public double Height { get; set; }
+
+        [CsvIndex(7)]
+        public string? Location { get; set; }
+
+        [CsvIndex(8)]
+        public string? Category { get; set; }
+
+        [CsvIndex(9)]
+        public double? Popularity { get; set; }
     }
 
     [CsvTypeMap<byte, Entry>]
