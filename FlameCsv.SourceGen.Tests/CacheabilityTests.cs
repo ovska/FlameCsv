@@ -99,6 +99,11 @@ public class TypeMapTests(MetadataFixture fixture)
             {
                 return true;
             }
+            
+            if (Nullable.GetUnderlyingType(type) is Type underlyingType)
+            {
+                return AssertEquatable(underlyingType, handled);
+            }
 
             if (!type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
             {

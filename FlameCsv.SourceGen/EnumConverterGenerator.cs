@@ -56,7 +56,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             static (context, tuple) => Execute(in tuple.model, context));
     }
 
-    private static void Execute(in EnumModel model, SourceProductionContext context)
+    private static void Execute(ref readonly EnumModel model, SourceProductionContext context)
     {
         context.CancellationToken.ThrowIfCancellationRequested();
 
@@ -281,7 +281,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             {
                 if (!model.HasFlagsAttribute)
                 {
-                    WriteFormatMethod(model, numbers: true, writer, context.CancellationToken);
+                    WriteFormatMethod(in model, numbers: true, writer, context.CancellationToken);
                 }
                 else
                 {
@@ -299,7 +299,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
             using (writer.WriteBlock())
             {
-                WriteFormatMethod(model, numbers: false, writer, context.CancellationToken);
+                WriteFormatMethod(in model, numbers: false, writer, context.CancellationToken);
             }
         }
 
@@ -317,7 +317,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
     }
 
     private static void WriteDefinedCheck(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
     {
@@ -363,7 +363,7 @@ public partial class EnumConverterGenerator : IIncrementalGenerator
     }
 
     private static void WriteStrategyGenerics(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
     {

@@ -298,7 +298,7 @@ public class ModelTests(MetadataFixture fixture)
 
                 if (model is not null)
                 {
-                    list.Add(model);
+                    list.Add(model.Value);
                 }
             }
 
@@ -397,7 +397,7 @@ public class ModelTests(MetadataFixture fixture)
             }
 
             Assert.NotNull(model);
-            models.Add(model);
+            models.Add(model.Value);
         }
 
         Assert.Equal(6, models.Count);
@@ -662,7 +662,7 @@ public class ModelTests(MetadataFixture fixture)
         {
             var model = PropertyModel.TryCreate(symbols.TokenType, property, in symbols, ref collector);
             Assert.NotNull(model);
-            models.Add(model);
+            models.Add(model.Value);
         }
 
         IEnumerable<(string nameof, BuiltinConvertable status)> expected =

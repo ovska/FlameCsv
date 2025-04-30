@@ -39,7 +39,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor RefConstructorParameter = new(
         id: "FLAMESG103",
         title: "Invalid constructor parameter ref kind",
-        messageFormat: "Cannot generate reading code: {0} had a constructor parameter with invalid ref kind {1}: {2}",
+        messageFormat: "Cannot generate reading code: {0} had a constructor parameter with invalid kind: {1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -144,7 +144,7 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor EnumUnsupportedToken = new(
         id: "FLAMESG501",
-        title: "Token type not supported",
+        title: "Cannot generate enum converter: Token type not supported",
         messageFormat: "{0} is not a supported token type (must be char or byte)",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
@@ -154,7 +154,7 @@ internal static class Descriptors
         id: "FLAMESG502",
         title: "Invalid explicit enum name",
         messageFormat:
-        "Explicit enum name \"{0}\" for {1}.{2} is not supported: value must not be empty, and must not start with a digit, plus, or minus",
+        "Cannot generate enum converter: Explicit enum name \"{0}\" for {1}.{2} is not supported: value must not be empty, and must not start with a digit, plus, or minus",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

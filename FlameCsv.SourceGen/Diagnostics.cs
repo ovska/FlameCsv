@@ -51,9 +51,9 @@ internal static class Diagnostics
     {
         return Diagnostic.Create(
             descriptor: Descriptors.RefConstructorParameter,
-            location: GetLocation(parameter, constructor),
+            location: parameter.GetFullLocation() ?? GetLocation(constructor, parameter),
             additionalLocations: constructor?.Locations.Where(l => l.IsInSource),
-            messageArgs: [type.ToDisplayString(), parameter.RefKind, parameter.ToDisplayString()]);
+            messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
     }
 
     public static Diagnostic RefLikeConstructorParameter(
@@ -63,7 +63,7 @@ internal static class Diagnostics
     {
         return Diagnostic.Create(
             descriptor: Descriptors.RefLikeConstructorParameter,
-            location: GetLocation(parameter, constructor, type),
+            location: parameter.GetFullLocation() ?? GetLocation(parameter, constructor, type),
             additionalLocations: constructor?.Locations.Where(l => l.IsInSource),
             messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
     }
@@ -114,7 +114,7 @@ internal static class Diagnostics
     {
         return Diagnostic.Create(
             descriptor: Descriptors.IgnoredParameterWithoutDefaultValue,
-            location: GetLocation(parameter, parameter.ContainingSymbol, targetType),
+            location: parameter.GetFullLocation() ?? GetLocation(parameter, parameter.ContainingSymbol, targetType),
             messageArgs: [parameter.ToDisplayString(), targetType.ToDisplayString()]);
     }
 
@@ -282,5 +282,14 @@ internal static class Diagnostics
                 }
             }
         }
+    }
+
+    private static Location? GetFullLocation(this IParameterSymbol symbol)
+    {
+        return symbol.DeclaringSyntaxReferences
+            .Select(r => r.GetSyntax())
+            .OfType<ParameterSyntax>()
+            .Select(s => s.GetLocation())
+            .FirstOrDefault();
     }
 }

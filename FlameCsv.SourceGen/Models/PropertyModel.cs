@@ -2,7 +2,7 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
+internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
     /// Property/field name, including a possible interface name, e.g. "ISomething_Prop"
@@ -75,8 +75,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// </summary>
     public required BuiltinConvertable Convertability { get; init; }
 
-    public int CompareTo(PropertyModel other)
-        => (other.Order ?? 0).CompareTo(Order ?? 0); // reverse sort so higher order is first
+    public int CompareTo(PropertyModel other) => (Order ?? 0).CompareTo(other.Order ?? 0);
 
     public void WriteId(IndentedTextWriter writer)
     {
@@ -192,5 +191,5 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         };
     }
 
-    public bool Equals(IMemberModel? other) => Equals(other as PropertyModel);
+    public bool Equals(IMemberModel? other) => other is PropertyModel model && Equals(model);
 }

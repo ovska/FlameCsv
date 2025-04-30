@@ -74,20 +74,20 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(
             typeMapDiagnostics.Select(static (tuple, _) => tuple.typeMap).WithTrackingName("FlameCsv_TypeMap"),
-            static (context, source) => Execute(source, context));
+            static (context, source) => Execute(in source, context));
     }
 
-    private static void Execute(TypeMapModel typeMap, SourceProductionContext context)
+    private static void Execute(ref readonly TypeMapModel typeMap, SourceProductionContext context)
     {
         if (!typeMap.CanGenerateCode) return;
 
         string sourceName = GlobalConstants.GetFileName(typeMap.TypeMap.Name, typeMap.WrappingTypes);
 
-        context.AddSource(sourceName, CreateTypeMap(typeMap, context.CancellationToken));
+        context.AddSource(sourceName, CreateTypeMap(in typeMap, context.CancellationToken));
     }
 
     private static SourceText CreateTypeMap(
-        TypeMapModel typeMap,
+        ref readonly TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -121,10 +121,10 @@ public partial class TypeMapGenerator : IIncrementalGenerator
 
         using (writer.WriteBlock())
         {
-            WriteDefaultInstance(writer, typeMap);
-            WriteIndexes(writer, typeMap);
-            GetReadCode(writer, typeMap, cancellationToken);
-            GetWriteCode(writer, typeMap, cancellationToken);
+            WriteDefaultInstance(writer, in typeMap);
+            WriteIndexes(writer, in typeMap);
+            GetReadCode(writer, in typeMap, cancellationToken);
+            GetWriteCode(writer, in typeMap, cancellationToken);
         }
 
         foreach (var nestedType in typeMap.WrappingTypes)
@@ -138,7 +138,7 @@ public partial class TypeMapGenerator : IIncrementalGenerator
         return SourceText.From(writer.ToString(), Encoding.UTF8);
     }
 
-    private static void WriteIndexes(IndentedTextWriter writer, TypeMapModel typeMap)
+    private static void WriteIndexes(IndentedTextWriter writer, ref readonly TypeMapModel typeMap)
     {
         // start from 1 so uninitialized members are zero and fail as expected
         int index = 1;

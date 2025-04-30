@@ -7,7 +7,7 @@ public partial class TypeMapGenerator
 {
     private static void GetWriteCode(
         IndentedTextWriter writer,
-        TypeMapModel typeMap,
+        ref readonly TypeMapModel typeMap,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
