@@ -11,11 +11,15 @@
         "editor.bracketPairColorization.enabled": true,
         "files.trimTrailingWhitespace": false,
         "editor.trimAutoWhitespace": false,
-        "editor.defaultFormatter": "ms-dotnettools.csharp",
+        //"editor.defaultFormatter": "ms-dotnettools.csharp",
         // "editor.codeActionsOnSave": {
         //     "source.fixAll": "explicit",
         //     "source.organizeImports": "explicit",
         // }
+        "editor.defaultFormatter": "csharpier.csharpier-vscode",
+    },
+    "[xml]": {
+        "editor.defaultFormatter": "csharpier.csharpier-vscode",
     },
     "files.trimTrailingWhitespace": false,
     "editor.trimAutoWhitespace": false,
