@@ -18,14 +18,15 @@ public static class CsvFieldWritingExtensions
     /// <param name="format">The format to use.</param>
     /// <param name="formatProvider">The format provider to use.</param>
     /// <remarks>
-    /// Does not write a trailing delimiter.<br/>
+    /// Does not write a trailing delimiter or newline.<br/>
     /// Null values are not written, use <see cref="CsvFieldWriter{T}.WriteField{TValue}"/> instead.
     /// </remarks>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<char> writer,
         T value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider = null
+    )
         where T : ISpanFormattable
     {
         // JITed out for value types
@@ -50,7 +51,8 @@ public static class CsvFieldWritingExtensions
         ref readonly this CsvFieldWriter<byte> writer,
         T value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider = null
+    )
         where T : ISpanFormattable
     {
         // JITed out for value types
@@ -63,6 +65,7 @@ public static class CsvFieldWritingExtensions
         Span<byte> destination = writer.Writer.GetSpan();
         int bytesWritten;
 
+        // for common values like ints the other branch is JITted out
         if (value is IUtf8SpanFormattable formattable)
         {
             while (!formattable.TryFormat(destination, out bytesWritten, format, formatProvider))
@@ -79,7 +82,6 @@ public static class CsvFieldWritingExtensions
             {
                 destination = writer.Writer.GetSpan(destination.Length * 2);
             }
-
         }
 
         writer.EscapeAndAdvanceExternal(destination, bytesWritten);
@@ -90,7 +92,8 @@ public static class CsvFieldWritingExtensions
         ref readonly this CsvFieldWriter<char> writer,
         T? value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider = null
+    )
         where T : struct, ISpanFormattable
     {
         if (value is not null)
@@ -104,7 +107,8 @@ public static class CsvFieldWritingExtensions
         ref readonly this CsvFieldWriter<byte> writer,
         T? value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null)
+        IFormatProvider? formatProvider = null
+    )
         where T : struct, ISpanFormattable
     {
         if (value is not null)

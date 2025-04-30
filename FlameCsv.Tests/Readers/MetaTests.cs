@@ -9,7 +9,8 @@ public static class MetaTests
     public sealed class MetaTheoryData : TheoryData<int, uint, uint, bool>;
 
     public static MetaTheoryData MetaData /* heh */
-        => new()
+        =>
+        new()
         {
             { 0, 0, 0, false },
             { 5, 0, 0, false },
@@ -29,9 +30,8 @@ public static class MetaTests
     [MemberData(nameof(MetaData))]
     public static void Should_Handle_Special_And_Flags(int end, uint quoteCount, uint escapeCount, bool isEOL)
     {
-        Meta meta = escapeCount == 0
-            ? Meta.RFC(end, quoteCount, isEOL, 2)
-            : Meta.Unix(end, quoteCount, escapeCount, isEOL, 2);
+        Meta meta =
+            escapeCount == 0 ? Meta.RFC(end, quoteCount, isEOL, 2) : Meta.Unix(end, quoteCount, escapeCount, isEOL, 2);
 
         Assert.Equal(end, meta.End);
         Assert.Equal(isEOL, meta.IsEOL);
@@ -67,8 +67,8 @@ public static class MetaTests
         }
     }
 
-    public static TheoryData<uint, uint> InvalidMetaData
-        => new()
+    public static TheoryData<uint, uint> InvalidMetaData =>
+        new()
         {
             { 0, 1 },
             { 0, 3 },
@@ -173,11 +173,12 @@ public static class MetaTests
             Meta meta = metaBuffer[i];
 
             ReadOnlySpan<char> field = meta.GetField(
-                in CsvOptions<char>.Default.Dialect,
+                new Dialect<char>(CsvOptions<char>.Default),
                 start,
                 ref MemoryMarshal.GetReference(data.AsSpan()),
                 [],
-                null!);
+                null!
+            );
             Assert.Equal(expected[i], field.ToString());
 
             start = meta.NextStart;
@@ -212,8 +213,8 @@ public static class MetaTests
         }
     }
 
-    public static TheoryData<bool[], int> NewlineData
-        => new()
+    public static TheoryData<bool[], int> NewlineData =>
+        new()
         {
             { [true], 1 },
             { [true, false], 1 },
@@ -223,9 +224,9 @@ public static class MetaTests
             { R(false, 16).Concat(R(true, 1)).ToArray(), 17 },
             { R(false, 15).Concat(R(true, 15)).ToArray(), 16 },
             { R(false, 16).ToArray(), -1 },
-            { [..R(false, 5), true, ..R(false, 128)], 6 },
-            { [..R(false, 32), true, ..R(false, 128)], 33 },
-            { [..R(false, 129), true, ..R(false, 128)], 130 },
+            { [.. R(false, 5), true, .. R(false, 128)], 6 },
+            { [.. R(false, 32), true, .. R(false, 128)], 33 },
+            { [.. R(false, 129), true, .. R(false, 128)], 130 },
         };
 
     private static IEnumerable<bool> R(bool value, int count) => Enumerable.Repeat(value, count);

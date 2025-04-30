@@ -25,8 +25,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     public CsvOptions<T> Options { get; }
 
-    internal readonly CsvDialect<T> _dialect;
-
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
@@ -82,7 +80,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         options.MakeReadOnly();
 
         Options = options;
-        _dialect = options.Dialect;
         _metaBuffer = new MetaBuffer();
         _reader = reader;
         _skipBOM = typeof(T) == typeof(byte);
@@ -90,8 +87,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
         _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
-        _simdTokenizer = CsvTokenizer.CreateSimd(in _dialect);
-        _scalarTokenizer = CsvTokenizer.Create(in _dialect);
+        _simdTokenizer = CsvTokenizer.CreateSimd(options);
+        _scalarTokenizer = CsvTokenizer.Create(options);
     }
 
     /// <summary>
