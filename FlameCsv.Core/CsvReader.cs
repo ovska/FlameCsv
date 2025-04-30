@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using JetBrains.Annotations;
 
@@ -21,6 +22,16 @@ public static partial class CsvReader
             ioOptions.BufferSize,
             FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
         );
+    }
+
+    private static StreamBufferReader GetFileBufferReader(
+        string path,
+        bool isAsync,
+        MemoryPool<byte> memoryPool,
+        CsvIOOptions ioOptions
+    )
+    {
+        return new StreamBufferReader(GetFileStream(path, isAsync, in ioOptions), memoryPool, in ioOptions);
     }
 
     private static ICsvBufferReader<char> GetFileBufferReader(
@@ -54,20 +65,43 @@ public static partial class CsvReader
         }
         catch
         {
-            try
-            {
-                if (isAsync)
-                {
-                    stream.DisposeAsync().AsTask().GetAwaiter().GetResult();
-                }
-                else
-                {
-                    stream.Dispose();
-                }
-            }
-            catch { }
-
+            // exception before we returned control to the caller
+            stream.Dispose();
             throw;
         }
+    }
+}
+
+internal readonly struct ReaderFactory<T>
+    where T : unmanaged
+{
+    private readonly ICsvBufferReader<T>? _value;
+    private readonly Func<bool, ICsvBufferReader<T>>? _factory;
+
+    public ReaderFactory(ICsvBufferReader<T> value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
+    public ReaderFactory(Func<bool, ICsvBufferReader<T>> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        _factory = factory;
+    }
+
+    public ICsvBufferReader<T> Create(bool isAsync)
+    {
+        if (_value is not null)
+        {
+            return _value;
+        }
+
+        if (_factory is null)
+        {
+            Throw.Unreachable("ReaderFactory<T> is not initialized");
+        }
+
+        return _factory(isAsync);
     }
 }

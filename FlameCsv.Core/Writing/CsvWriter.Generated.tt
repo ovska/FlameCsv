@@ -48,15 +48,15 @@ static partial class CsvWriter
             : "options.TypeBinder.GetDematerializer<TValue>()";
 
         string typeMapByte = sourceGen
-            ? "\n        CsvTypeMap<byte, TValue> typeMap,"
+            ? "\r\n        CsvTypeMap<byte, TValue> typeMap,"
             : "";
 
         string typeMapChar = sourceGen
-            ? "\n        CsvTypeMap<char, TValue> typeMap,"
+            ? "\r\n        CsvTypeMap<char, TValue> typeMap,"
             : "";
 
         string typeMapDocs = sourceGen
-            ? "\n    /// <param name=\"typeMap\">Type map to use for writing</param>"
+            ? "\r\n    /// <param name=\"typeMap\">Type map used to bind the CSV data</param>"
             : "";
 #>
     /// <summary>

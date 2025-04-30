@@ -14,11 +14,10 @@ namespace FlameCsv.Enumeration;
 /// This type does not support <see cref="Parallel"/> or most LINQ operators.
 /// </remarks>
 [PublicAPI]
-public sealed class CsvRecordEnumerable<T>
-    : IEnumerable<CsvValueRecord<T>>, IAsyncEnumerable<CsvValueRecord<T>>
+public sealed class CsvRecordEnumerable<T> : IEnumerable<CsvValueRecord<T>>, IAsyncEnumerable<CsvValueRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ICsvBufferReader<T> _reader;
+    private readonly ReaderFactory<T> _reader;
     private readonly CsvOptions<T> _options;
 
     /// <summary>
@@ -27,7 +26,7 @@ public sealed class CsvRecordEnumerable<T>
     public CsvRecordEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _reader = CsvBufferReader.Create(csv);
+        _reader = new(CsvBufferReader.Create(csv));
         _options = options;
     }
 
@@ -37,7 +36,7 @@ public sealed class CsvRecordEnumerable<T>
     public CsvRecordEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        _reader = CsvBufferReader.Create(in csv);
+        _reader = new(CsvBufferReader.Create(in csv));
         _options = options;
     }
 
@@ -48,7 +47,14 @@ public sealed class CsvRecordEnumerable<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(options);
-        _reader = reader;
+        _reader = new(reader);
+        _options = options;
+    }
+
+    internal CsvRecordEnumerable(ReaderFactory<T> factory, CsvOptions<T> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _reader = factory;
         _options = options;
     }
 
@@ -56,14 +62,14 @@ public sealed class CsvRecordEnumerable<T>
     [MustDisposeResource]
     public CsvRecordEnumerator<T> GetEnumerator()
     {
-        return new CsvRecordEnumerator<T>(_options, _reader);
+        return new CsvRecordEnumerator<T>(_options, _reader.Create(false));
     }
 
     /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
     [MustDisposeResource]
     public CsvRecordEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return GetEnumerator();
+        return new CsvRecordEnumerator<T>(_options, _reader.Create(true), cancellationToken);
     }
 
     /// <summary>
@@ -79,7 +85,8 @@ public sealed class CsvRecordEnumerable<T>
 
     /// <inheritdoc cref="Preserve"/>
     public async IAsyncEnumerable<CsvRecord<T>> PreserveAsync(
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
     {
         var enumerator = GetAsyncEnumerator(cancellationToken);
 
@@ -100,6 +107,6 @@ public sealed class CsvRecordEnumerable<T>
 
     [MustDisposeResource]
     IAsyncEnumerator<CsvValueRecord<T>> IAsyncEnumerable<CsvValueRecord<T>>.GetAsyncEnumerator(
-        CancellationToken cancellationToken)
-        => GetAsyncEnumerator(cancellationToken);
+        CancellationToken cancellationToken
+    ) => GetAsyncEnumerator(cancellationToken);
 }

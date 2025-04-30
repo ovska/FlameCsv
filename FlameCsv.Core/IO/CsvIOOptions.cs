@@ -55,16 +55,26 @@ public readonly record struct CsvIOOptions
     }
 
     /// <summary>
-    /// Gets or sets the minimum buffer size when reading.
+    /// Gets or sets the minimum available data size when reading.
     /// If unset or set to -1, the default will be used (<see cref="MinimumBufferSize"/> / 2).<br/>
     /// This value will be clamped to be at minimum <see cref="MinimumBufferSize"/> / 2.
     /// </summary>
+    /// <remarks>
+    /// This threshold determines when more data should be read from the source.
+    /// If less than MinimumReadSize bytes are available in the buffer, and more data is available from the source,
+    /// more data will be read.
+    /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if the value is less than 1 and not equal to -1.
     /// </exception>
     public int MinimumReadSize
     {
-        get => Math.Min(_minimumReadSize ?? DefaultMinimumReadSize, (_bufferSize ?? DefaultBufferSize) / 2);
+        get
+        {
+            int effectiveMinimumReadSize = _minimumReadSize ?? DefaultMinimumReadSize;
+            int maxAllowedReadSize = (_bufferSize ?? DefaultBufferSize) / 2;
+            return Math.Min(effectiveMinimumReadSize, maxAllowedReadSize);
+        }
         init
         {
             if (value == -1)
@@ -96,14 +106,20 @@ public readonly record struct CsvIOOptions
 
 internal static class IOExtensions
 {
-    public static CsvIOOptions ForFileIO(in this CsvIOOptions options)
+    /// <summary>
+    /// Returns the options with file I/O specific settings applied.<br/>
+    /// This will set <see cref="CsvIOOptions.LeaveOpen"/> to <c>false</c> and
+    /// set the <see cref="CsvIOOptions.BufferSize"/> to
+    /// <see cref="CsvIOOptions.DefaultFileBufferSize"/> if the user has not set a custom buffer size.
+    /// </summary>
+    public static CsvIOOptions ForFileIO(in this CsvIOOptions ioOptions)
     {
         // never leave library-created file streams open
         // use large buffer size for file I/O if no user overridden buffer size
-        return options with
+        return ioOptions with
         {
             LeaveOpen = false,
-            BufferSize = options.HasCustomBufferSize ? options.BufferSize : CsvIOOptions.DefaultFileBufferSize,
+            BufferSize = ioOptions.HasCustomBufferSize ? ioOptions.BufferSize : CsvIOOptions.DefaultFileBufferSize,
         };
     }
 }
