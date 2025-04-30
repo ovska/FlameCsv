@@ -30,7 +30,7 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
             if (bytes.IsEmpty)
             {
-                break;
+                continue;
             }
 
             _stream.Write(bytes.Span);
@@ -71,7 +71,7 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
             if (bytes.IsEmpty)
             {
-                break;
+                continue;
             }
 
             await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);

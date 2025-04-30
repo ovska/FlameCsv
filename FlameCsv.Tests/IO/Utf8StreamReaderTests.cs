@@ -7,9 +7,7 @@ namespace FlameCsv.Tests.IO;
 
 public class Utf8StreamReaderTests
 {
-    private static Utf8StreamReader CreateReader(
-        string content,
-        int bufferSize = 1024)
+    private static Utf8StreamReader CreateReader(string content, int bufferSize = 1024)
     {
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
         var options = new CsvIOOptions { BufferSize = bufferSize };
@@ -465,6 +463,20 @@ public class Utf8StreamReaderTests
         Assert.Equal(content, new string(charBuffer, 0, totalCharsRead2));
         Assert.Equal(0, await reader.ReadAsyncCore(charBuffer)); // End of stream again
     }
+
+    [Fact]
+    public void Should_Skip_Utf8_BOM()
+    {
+        // UTF-8 BOM: EF BB BF
+        byte[] bomBytes = Encoding.UTF8.GetPreamble();
+        var stream = new MemoryStream(bomBytes.Concat(Encoding.UTF8.GetBytes("TestData")).ToArray());
+        var options = new CsvIOOptions { BufferSize = 1024 };
+        using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        var charBuffer = new char[10];
+        int charsRead = reader.ReadCore(charBuffer);
+        Assert.Equal(8, charsRead); // "TestData" length
+        Assert.Equal("TestData", new string(charBuffer, 0, charsRead));
+    }
 }
 
 file static class Extensions
@@ -472,7 +484,6 @@ file static class Extensions
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ReadCore")]
     public static extern int ReadCore(this Utf8StreamReader reader, Memory<char> buffer);
 
-    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ReadAsyncCore")]
     public static ValueTask<int> ReadAsyncCore(this Utf8StreamReader reader, Memory<char> buffer)
     {
         return ReadAsyncCoreImpl(reader, buffer, TestContext.Current.CancellationToken);
@@ -482,5 +493,6 @@ file static class Extensions
     private static extern ValueTask<int> ReadAsyncCoreImpl(
         Utf8StreamReader reader,
         Memory<char> buffer,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken
+    );
 }
