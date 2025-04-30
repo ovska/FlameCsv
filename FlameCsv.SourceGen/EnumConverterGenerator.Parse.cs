@@ -7,7 +7,7 @@ namespace FlameCsv.SourceGen;
 public partial class EnumConverterGenerator
 {
     private static void WriteParseMethod(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
     {
@@ -77,7 +77,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteNumberCheck(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken)
     {
@@ -186,7 +186,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteSwitch(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
         CancellationToken cancellationToken)
@@ -232,7 +232,7 @@ public partial class EnumConverterGenerator
                         }
                         else if (lengthGroup.All(e => e.Name.IsAscii()))
                         {
-                            WriteStringMatchByte(model, writer, ignoreCase, lengthGroup, cancellationToken);
+                            WriteStringMatchByte(in model, writer, ignoreCase, lengthGroup, cancellationToken);
                         }
                         else if (lengthGroup.All(
                                      g => g.Name.ToLowerInvariant() == g.Name && g.Name.ToUpperInvariant() == g.Name))
@@ -293,7 +293,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteStringMatchChar(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
@@ -420,7 +420,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteStringMatchByteAsciiOrdinal(
-        in EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         IGrouping<int, Entry> entriesByLength,
         CancellationToken cancellationToken,
@@ -512,7 +512,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteStringMatchByte(
-        EnumModel model,
+        ref readonly EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
@@ -522,12 +522,14 @@ public partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteStringMatchByte));
 
+        string enumTypeFullName = model.EnumType.FullyQualifiedName;
+
         List<Entry> outerEntries = PooledList<Entry>.Acquire();
         outerEntries.AddRange(entriesByLength);
         WriteNestedAsciiSwitch(0, outerEntries);
         PooledList<Entry>.Release(outerEntries);
         writer.WriteLine("break;");
-
+        
         void WriteNestedAsciiSwitch(int depth, List<Entry> entries)
         {
             bool isMaxDepth = depth == (entriesByLength.Key) - 1;
@@ -588,7 +590,7 @@ public partial class EnumConverterGenerator
                     writer.WriteLine(")");
                     using (writer.WriteBlock())
                     {
-                        writer.WriteLine($"value = {model.EnumType.FullyQualifiedName}.{entry.MemberName};");
+                        writer.WriteLine($"value = {enumTypeFullName}.{entry.MemberName};");
                         writer.WriteLine("return true;");
                     }
 
@@ -773,7 +775,7 @@ public partial class EnumConverterGenerator
     }
 
     private static void WriteSwitchOverMask(
-        in EnumModel model,
+        ref readonly EnumModel model,
         int offset,
         IndentedTextWriter writer,
         IEnumerable<(string name, BigInteger value)> values,

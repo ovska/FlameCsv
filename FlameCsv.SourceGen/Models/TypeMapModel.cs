@@ -3,7 +3,7 @@ using FlameCsv.SourceGen.Helpers;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal sealed record TypeMapModel
+internal readonly record struct TypeMapModel
 {
     /// <summary>
     /// TypeRef to the TypeMap object
@@ -256,7 +256,7 @@ internal sealed record TypeMapModel
 
                 if (property is not null)
                 {
-                    properties.Add(property);
+                    properties.Add(property.Value);
                 }
             }
 
@@ -268,24 +268,9 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        IMemberModel[] allMembersArray = [..Parameters.AsSpan(), ..Properties.AsSpan()];
+        IMemberModel[] allMembersArray = [.. Parameters.AsSpan(), .. Properties.AsSpan()];
 
-        Array.Sort(
-            allMembersArray,
-            static (b1, b2) =>
-            {
-                int cmp = (b1.Order ?? 0).CompareTo(b2.Order ?? 0);
-                if (cmp == 0) cmp = b1.IsIgnored.CompareTo(b2.IsIgnored);
-                if (cmp == 0) cmp = (b2 is ParameterModel).CompareTo(b1 is ParameterModel);
-                if (cmp == 0) cmp = b2.IsRequired.CompareTo(b1.IsRequired);
-                if (cmp == 0)
-                {
-                    cmp = (b1 is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null })
-                        .CompareTo(b2 is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null });
-                }
-
-                return cmp;
-            });
+        Array.Sort(allMembersArray, MemberModelComparison.Value);
 
         AllMembers = new EquatableArray<IMemberModel>(ImmutableCollectionsMarshal.AsImmutableArray(allMembersArray));
 
@@ -311,4 +296,23 @@ internal sealed record TypeMapModel
         IgnoredIndexes = ignoredHeaders;
         Proxy = proxy;
     }
+}
+
+file static class MemberModelComparison
+{
+    public static readonly Comparison<IMemberModel> Value =
+        static (x, y) =>
+        {
+            int cmp = (x.Order ?? 0).CompareTo(y.Order ?? 0);
+            if (cmp == 0) cmp = x.IsIgnored.CompareTo(y.IsIgnored);
+            if (cmp == 0) cmp = (y is ParameterModel).CompareTo(x is ParameterModel);
+            if (cmp == 0) cmp = x.IsRequired.CompareTo(y.IsRequired);
+            if (cmp == 0)
+            {
+                cmp = (x is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null })
+                    .CompareTo(y is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null });
+            }
+
+            return cmp;
+        };
 }

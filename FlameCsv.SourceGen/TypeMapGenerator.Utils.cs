@@ -85,7 +85,7 @@ public partial class TypeMapGenerator
 
     internal static SortedDictionary<int, IMemberModel?>? TryGetIndexBindings(
         bool write,
-        TypeMapModel model,
+        ref readonly TypeMapModel model,
         ref AnalysisCollector collector)
     {
         SortedDictionary<int, IMemberModel?>? dict = null;
@@ -150,7 +150,7 @@ public partial class TypeMapGenerator
         return dict;
     }
 
-    private static void WriteDefaultInstance(IndentedTextWriter writer, TypeMapModel typeMap)
+    private static void WriteDefaultInstance(IndentedTextWriter writer, ref readonly TypeMapModel typeMap)
     {
         writer.WriteLine("/// <summary>");
         writer.WriteLine("/// Returns a thread-safe instance of the typemap with default options.");
