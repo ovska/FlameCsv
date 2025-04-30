@@ -3,6 +3,8 @@ global using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttri
 global using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 global using System.Numerics;
 
+[assembly: CLSCompliant(true)]
+
 [assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(FlameCsv.Utilities.HotReloadService))]
 
 [assembly:

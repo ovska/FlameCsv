@@ -75,6 +75,11 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         }
         else if (symbols.IsIgnoredIndexesAttribute(attrSymbol))
         {
+            if (attribute.ConstructorArguments.IsDefaultOrEmpty)
+            {
+                return null;
+            }
+            
             foreach (var value in attribute.ConstructorArguments[0].Values)
             {
                 if (value is { Kind: TypedConstantKind.Primitive, Value: int ignoredIndex and >= 0 })

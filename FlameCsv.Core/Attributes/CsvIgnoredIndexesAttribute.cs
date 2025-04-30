@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Runtime.InteropServices;
-using JetBrains.Annotations;
+﻿using JetBrains.Annotations;
 
 namespace FlameCsv.Attributes;
 
@@ -17,7 +15,15 @@ public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
     /// <summary>
     /// Indexes to ignore when reading CSV, and to leave empty when writing.
     /// </summary>
-    public ImmutableArray<int> Value { get; }
+    public int[] Value
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = value;
+        }
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvIgnoredIndexesAttribute"/> class.
@@ -33,6 +39,14 @@ public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
             ArgumentOutOfRangeException.ThrowIfNegative(indexes[i]);
         }
 
-        Value = ImmutableCollectionsMarshal.AsImmutableArray(indexes);
+        Value = indexes;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvIgnoredIndexesAttribute"/> class.
+    /// </summary>
+    public CsvIgnoredIndexesAttribute()
+    {
+        Value = [];
     }
 }
