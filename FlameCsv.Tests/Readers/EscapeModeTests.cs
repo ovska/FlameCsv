@@ -7,9 +7,7 @@ namespace FlameCsv.Tests.Readers;
 
 file static class Extensions
 {
-    public static List<List<string>> Read(
-        in this ReadOnlySequence<char> input,
-        CsvOptions<char> options)
+    public static List<List<string>> Read(in this ReadOnlySequence<char> input, CsvOptions<char> options)
     {
         List<List<string>> records = [];
 
@@ -47,7 +45,14 @@ public static class EscapeModeTests
     [InlineData("\" test \"", " test ")]
     public static void Should_Trim_Fields(string input, string expected)
     {
-        var fields = input.Read(new CsvOptions<char> { Escape = '^', Quote = '"', Trimming = CsvFieldTrimming.Both });
+        var fields = input.Read(
+            new CsvOptions<char>
+            {
+                Escape = '^',
+                Quote = '"',
+                Trimming = CsvFieldTrimming.Both,
+            }
+        );
         Assert.Single(fields.SelectMany(x => x));
         Assert.Equal(expected, fields[0][0]);
     }
@@ -81,7 +86,9 @@ public static class EscapeModeTests
         using var pool = new ReturnTrackingArrayMemoryPool<char>();
         var options = new CsvOptions<char>
         {
-            Escape = '^', Quote = '\'', MemoryPool = pool,
+            Escape = '^',
+            Quote = '\'',
+            MemoryPool = pool,
         };
 
         var actual = input.Read(options);
@@ -98,9 +105,15 @@ public static class EscapeModeTests
         var last = first.Append(end.AsMemory());
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
 
-        var result = seq.Read(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
+        var result = seq.Read(new CsvOptions<char> { Newline = CsvNewline.CRLF, Escape = '^' });
         // Assert.Equal(2, result.Count);
-        Assert.Equal([["xyz"], ["abc"]], result);
+        Assert.Equal(
+            [
+                ["xyz"],
+                ["abc"],
+            ],
+            result
+        );
     }
 
     [Fact]
@@ -110,7 +123,7 @@ public static class EscapeModeTests
         var pt2 = new string('b', 4096);
         var hugefield = $"\"{pt1}^\"{pt2}\"\r\n";
 
-        var result = hugefield.Read(new CsvOptions<char> { Escape = '^', Newline = "\r\n" });
+        var result = hugefield.Read(new CsvOptions<char> { Escape = '^', Newline = CsvNewline.CRLF });
         Assert.Single(result);
         Assert.Equal([pt1 + '"' + pt2], result[0]);
     }
@@ -132,19 +145,17 @@ public static class EscapeModeTests
         var last = joined.Chunk(segmentSize).Aggregate(first, (prev, segment) => prev.Append(segment.AsMemory()));
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
-        var result = seq.Read(new CsvOptions<char> { Newline = "\r\n", Escape = '^' });
+        var result = seq.Read(new CsvOptions<char> { Newline = CsvNewline.CRLF, Escape = '^' });
         Assert.Equal(lines, result.Select(r => r[0]));
     }
 
     [Theory]
-    [InlineData(data: ["\r\n", new[] { "abc", "\r\n", "xyz" }])]
-    [InlineData(data: ["\n", new[] { "abc", "\n", "xyz" }])]
-    public static void Should_Find_Segment_With_Only_Newline(string newline, string[] segments)
+    [InlineData(data: [CsvNewline.CRLF, new[] { "abc", "\r\n", "xyz" }])]
+    [InlineData(data: [CsvNewline.LF, new[] { "abc", "\n", "xyz" }])]
+    public static void Should_Find_Segment_With_Only_Newline(CsvNewline newline, string[] segments)
     {
         var first = new MemorySegment<char>(segments[0].AsMemory());
-        var last = first
-            .Append(segments[1].AsMemory())
-            .Append(segments[2].AsMemory());
+        var last = first.Append(segments[1].AsMemory()).Append(segments[2].AsMemory());
 
         var seq = new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
         var result = seq.Read(new CsvOptions<char> { Newline = newline, Escape = '^' });
@@ -160,11 +171,17 @@ public static class EscapeModeTests
         int emptyFrequency,
         string fullLine,
         string noNewline,
-        bool? guardedMemory)
+        bool? guardedMemory
+    )
     {
         using MemoryPool<char> pool = ReturnTrackingMemoryPool<char>.Create(guardedMemory);
 
-        var options = new CsvOptions<char> { Escape = '^', Quote = '\'', MemoryPool = pool };
+        var options = new CsvOptions<char>
+        {
+            Escape = '^',
+            Quote = '\'',
+            MemoryPool = pool,
+        };
 
         var fullMem = fullLine.AsMemory();
         var noNewlineMem = noNewline.AsMemory();
@@ -184,7 +201,10 @@ public static class EscapeModeTests
     {
         ReadOnlySpan<string> escapeData =
         [
-            "'Test,Es^,caped,Es^\r\ncaped'\r\n", "'^,^'^\r'\r\n", "'^^'\r\n", "'A^,B^'^C^\r^\n'\r\n",
+            "'Test,Es^,caped,Es^\r\ncaped'\r\n",
+            "'^,^'^\r'\r\n",
+            "'^^'\r\n",
+            "'A^,B^'^C^\r^\n'\r\n",
         ];
 
         var data = new TheoryData<int, int, string, string, bool?>();

@@ -61,7 +61,12 @@ public class RFC4180ModeTests
     {
         string data = $"field1,field2,{input}";
         var result = data.Read(CsvOptions<char>.Default);
-        Assert.Equal([["field1", "field2", expected]], result);
+        Assert.Equal(
+            [
+                ["field1", "field2", expected],
+            ],
+            result
+        );
     }
 
     [Fact]
@@ -81,7 +86,7 @@ public class RFC4180ModeTests
         var pt2 = new string('b', 4096);
         var hugefield = $"\"{pt1}\"\"{pt2}\"\r\n";
 
-        var result = hugefield.Read(new CsvOptions<char> { Newline = "\r\n" });
+        var result = hugefield.Read(new CsvOptions<char> { Newline = CsvNewline.CRLF });
         Assert.Single(result);
         Assert.Equal([pt1 + '"' + pt2], result[0]);
     }

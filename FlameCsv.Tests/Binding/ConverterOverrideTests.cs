@@ -28,11 +28,7 @@ public static class ConverterOverrideTests
     public static void Should_Use_Custom_Converter()
     {
         const string data = "Dollars\n\"$ 8,042.15\"\n$ 123.45\n";
-        var options = new CsvOptions<char>
-        {
-            HasHeader = true,
-            Newline = "\n",
-        };
+        var options = new CsvOptions<char> { HasHeader = true, Newline = CsvNewline.LF };
         var objs = CsvReader.Read<TestObj>(data, options).ToList();
         Assert.Equal(2, objs.Count);
         Assert.Equal(8042.15, objs[0].Dollars);

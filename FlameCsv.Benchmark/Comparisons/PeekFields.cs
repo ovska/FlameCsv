@@ -14,7 +14,7 @@ public partial class PeekFields
 {
     private static readonly byte[] _data = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
 
-    private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = "\n" };
+    private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = CsvNewline.LF };
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
     {
@@ -48,7 +48,8 @@ public partial class PeekFields
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(enumerator.Current[11], out double result),
-                true);
+                true
+            );
 
             sum += result;
         }
@@ -59,14 +60,15 @@ public partial class PeekFields
     [Benchmark]
     public void _Sep()
     {
-        using var reader = Sep.Reader(
-        o => o with
-        {
-            Sep = new Sep(','),
-            CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-            HasHeader = true,
-        })
-        .From(_data);
+        using var reader = Sep.Reader(o =>
+                o with
+                {
+                    Sep = new Sep(','),
+                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    HasHeader = true,
+                }
+            )
+            .From(_data);
 
         double sum = 0;
 
@@ -74,7 +76,8 @@ public partial class PeekFields
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(row[11].Span, out double result),
-                true);
+                true
+            );
 
             sum += result;
         }
@@ -94,7 +97,8 @@ public partial class PeekFields
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(csv.GetFieldSpan(11), out double result),
-                true);
+                true
+            );
 
             sum += result;
         }
@@ -117,7 +121,8 @@ public partial class PeekFields
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
                 csFastFloat.FastDoubleParser.TryParseDouble(csv.GetField(11), out double result),
-                true);
+                true
+            );
 
             sum += result;
         }

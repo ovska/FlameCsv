@@ -12,6 +12,41 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
+    /// <summary>
+    /// Returns either "\n" or "\r\n" depending on the newline type.
+    /// </summary>
+    public static string AsString(this CsvNewline newline)
+    {
+        return newline switch
+        {
+            CsvNewline.LF => "\n",
+            CsvNewline.Platform => Environment.NewLine,
+            _ => "\r\n",
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsCRLF(this CsvNewline newline)
+    {
+        return newline is CsvNewline.CRLF || (newline is CsvNewline.Platform && Environment.NewLine == "\r\n");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetTokens<T>(this CsvNewline newline, out T first, out T second)
+        where T : IBinaryInteger<T>
+    {
+        second = T.CreateTruncating('\n');
+
+        if (newline.IsCRLF())
+        {
+            first = T.CreateTruncating('\r');
+            return 2;
+        }
+
+        first = T.CreateTruncating('\n');
+        return 1;
+    }
+
     public static string JoinValues(ReadOnlySpan<string> values)
     {
         // should never happen
@@ -35,8 +70,8 @@ internal static class UtilityExtensions
         return sb.ToString();
     }
 
-    public static string AsPrintableString<T>(this Span<T> value) where T : unmanaged, IBinaryInteger<T>
-        => AsPrintableString((ReadOnlySpan<T>)value);
+    public static string AsPrintableString<T>(this Span<T> value)
+        where T : unmanaged, IBinaryInteger<T> => AsPrintableString((ReadOnlySpan<T>)value);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
@@ -77,7 +112,8 @@ internal static class UtilityExtensions
     {
         return MemoryMarshal.CreateReadOnlySpan(
             ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(segment.Array!), segment.Offset),
-            segment.Count);
+            segment.Count
+        );
     }
 
     public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)
@@ -108,8 +144,10 @@ internal static class UtilityExtensions
             return data;
 
         // strings are immutable and safe to return as-is
-        if (typeof(T) == typeof(char) &&
-            MemoryMarshal.TryGetString((ReadOnlyMemory<char>)(object)data, out _, out _, out _))
+        if (
+            typeof(T) == typeof(char)
+            && MemoryMarshal.TryGetString((ReadOnlyMemory<char>)(object)data, out _, out _, out _)
+        )
         {
             return data;
         }
@@ -117,12 +155,14 @@ internal static class UtilityExtensions
         return data.ToArray();
     }
 
-    public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters) where T : class
+    public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters)
+        where T : class
     {
         try
         {
-            var instance = Activator.CreateInstance(type, parameters) ??
-                throw new InvalidOperationException($"Instance of {type.FullName} could not be created");
+            var instance =
+                Activator.CreateInstance(type, parameters)
+                ?? throw new InvalidOperationException($"Instance of {type.FullName} could not be created");
             return (T)instance;
         }
         catch (Exception e)
@@ -134,8 +174,10 @@ internal static class UtilityExtensions
                     typeof(T).FullName,
                     type.FullName,
                     parameters.Length,
-                    string.Join(", ", parameters.Select(o => o?.GetType().FullName ?? "<null>"))),
-                innerException: e);
+                    string.Join(", ", parameters.Select(o => o?.GetType().FullName ?? "<null>"))
+                ),
+                innerException: e
+            );
         }
     }
 }
