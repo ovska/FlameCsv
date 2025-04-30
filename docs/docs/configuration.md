@@ -177,3 +177,16 @@ Further reading: @"architecture".
 ### Custom binding
 
 If you don't want to use the built-in @"FlameCsv.Binding.CsvReflectionBinder`1" (attribute configuration), set @"FlameCsv.CsvOptions`1.TypeBinder?displayProperty=nameWithType" property to your custom implementation implementing @"FlameCsv.Binding.ICsvTypeBinder`1".
+
+### Global options
+
+For very specialized cases, you can configure the number of buffered fields when parsing, and whether caching is used
+(headers, reflection generated code, typemap materializers, etc.) by using the static @"FlameCsv.FlameCsvGlobalOptions" class.
+You must modify the properties before using the library, and mutation afterwards will throw an exception.
+
+```cs
+// tiny perf boost for one-shot CLI use
+FlameCsvGlobalOptions.CachingDisabled = true;
+
+ReadData(stream);
+```
