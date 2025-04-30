@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Buffers;
+using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
@@ -13,45 +14,65 @@ namespace FlameCsv;
 [PublicAPI]
 public static partial class CsvWriter
 {
-    /// <summary>
-    /// Default buffer size for writing CSV data to a file (32 KiB).
-    /// </summary>
-    public const int DefaultFileStreamBufferSize = 32 * 1024;
-
-    private static StreamWriter GetFileStreamWriter(
-        string path,
-        Encoding? encoding,
-        bool isAsync,
-        in CsvIOOptions ioOptions = default)
+    private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions)
     {
-        // we use a bigger default buffer size for file I/O
-        int bufferSize = ioOptions.HasCustomBufferSize
-            ? ioOptions.BufferSize
-            : DefaultFileStreamBufferSize;
-
-        return new StreamWriter(GetFileStream(path, isAsync, in ioOptions), encoding, bufferSize, leaveOpen: false);
-    }
-
-    private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions = default)
-    {
-        // we use a bigger default buffer size for file I/O
-        int bufferSize = ioOptions.HasCustomBufferSize
-            ? ioOptions.BufferSize
-            : DefaultFileStreamBufferSize;
-
         return new FileStream(
             path,
             FileMode.Create,
             FileAccess.Write,
             FileShare.None,
-            bufferSize,
-            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None));
+            ioOptions.BufferSize,
+            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
+        );
+    }
+
+    private static ICsvBufferWriter<char> GetFileBufferWriter(
+        string path,
+        Encoding? encoding,
+        bool isAsync,
+        MemoryPool<char> memoryPool,
+        CsvIOOptions ioOptions
+    )
+    {
+        FileStream stream = GetFileStream(path, isAsync, in ioOptions);
+
+        try
+        {
+            if (encoding is null || encoding == Encoding.UTF8 || encoding == Encoding.ASCII)
+            {
+                return new Utf8StreamWriter(stream, memoryPool, in ioOptions);
+            }
+
+            return new TextBufferWriter(
+                new StreamWriter(stream, encoding, ioOptions.BufferSize, leaveOpen: false),
+                memoryPool ?? MemoryPool<char>.Shared,
+                ioOptions
+            );
+        }
+        catch
+        {
+            try
+            {
+                if (isAsync)
+                {
+                    stream.DisposeAsync().AsTask().GetAwaiter().GetResult();
+                }
+                else
+                {
+                    stream.Dispose();
+                }
+            }
+            catch { }
+
+            throw;
+        }
     }
 
     private static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
         CsvFieldWriter<T> writer,
-        IDematerializer<T, TValue> dematerializer)
+        IDematerializer<T, TValue> dematerializer
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;
@@ -91,7 +112,8 @@ public static partial class CsvWriter
         IEnumerable<TValue> values,
         CsvFieldWriter<T> writer,
         IDematerializer<T, TValue> dematerializer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;
@@ -133,7 +155,8 @@ public static partial class CsvWriter
         IAsyncEnumerable<TValue> values,
         CsvFieldWriter<T> writer,
         IDematerializer<T, TValue> dematerializer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;

@@ -59,7 +59,8 @@ public static class CsvBufferReader
 
     /// <inheritdoc cref="Create(string?)"/>
     [OverloadResolutionPriority(-1)]
-    public static ICsvBufferReader<T> Create<T>(ReadOnlyMemory<T> csv) where T : unmanaged
+    public static ICsvBufferReader<T> Create<T>(ReadOnlyMemory<T> csv)
+        where T : unmanaged
     {
         if (csv.IsEmpty)
         {
@@ -73,7 +74,8 @@ public static class CsvBufferReader
     public static ICsvBufferReader<char> Create(
         in ReadOnlySequence<char> csv,
         MemoryPool<char>? memoryPool = null,
-        CsvIOOptions options = default)
+        CsvIOOptions options = default
+    )
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -98,7 +100,8 @@ public static class CsvBufferReader
     public static ICsvBufferReader<byte> Create(
         in ReadOnlySequence<byte> csv,
         MemoryPool<byte>? memoryPool = null,
-        CsvIOOptions options = default)
+        CsvIOOptions options = default
+    )
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -113,7 +116,9 @@ public static class CsvBufferReader
     public static ICsvBufferReader<T> Create<T>(
         in ReadOnlySequence<T> csv,
         MemoryPool<T>? memoryPool = null,
-        CsvIOOptions options = default) where T : unmanaged
+        CsvIOOptions options = default
+    )
+        where T : unmanaged
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -137,20 +142,24 @@ public static class CsvBufferReader
     public static ICsvBufferReader<byte> Create(
         Stream stream,
         MemoryPool<byte>? memoryPool = null,
-        CsvIOOptions options = default)
+        CsvIOOptions options = default
+    )
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
 
-        if (!options.NoDirectBufferAccess &&
-            stream is MemoryStream { Position: var position and < int.MaxValue } memoryStream &&
-            memoryStream.TryGetBuffer(out ArraySegment<byte> buffer))
+        if (
+            !options.NoDirectBufferAccess
+            && stream is MemoryStream { Position: var position and < int.MaxValue } memoryStream
+            && memoryStream.TryGetBuffer(out ArraySegment<byte> buffer)
+        )
         {
             return new ConstantBufferReader<byte>(
                 buffer.AsMemory(start: (int)position),
                 options.LeaveOpen,
                 stream,
-                static (stream, advanced) => ((MemoryStream)stream!).Seek(advanced, SeekOrigin.Current));
+                static (stream, advanced) => ((MemoryStream)stream!).Seek(advanced, SeekOrigin.Current)
+            );
         }
 
         return new StreamBufferReader(stream, memoryPool ?? MemoryPool<byte>.Shared, in options);
@@ -170,7 +179,8 @@ public static class CsvBufferReader
     public static ICsvBufferReader<char> Create(
         TextReader reader,
         MemoryPool<char>? memoryPool = null,
-        CsvIOOptions options = default)
+        CsvIOOptions options = default
+    )
     {
         ArgumentNullException.ThrowIfNull(reader);
 
@@ -187,7 +197,8 @@ public static class CsvBufferReader
                     content.AsMemory(start: PositionRef(stringReader)),
                     options.LeaveOpen,
                     reader,
-                    static (reader, advanced) => PositionRef((StringReader)reader!) += advanced);
+                    static (reader, advanced) => PositionRef((StringReader)reader!) += advanced
+                );
             }
 
             // throw ODE
@@ -220,7 +231,8 @@ public static class CsvBufferReader
         Stream stream,
         Encoding? encoding = null,
         MemoryPool<char>? memoryPool = null,
-        CsvIOOptions options = default)
+        CsvIOOptions options = default
+    )
     {
         ArgumentNullException.ThrowIfNull(stream);
         Guard.CanRead(stream);
@@ -233,6 +245,7 @@ public static class CsvBufferReader
         return new TextBufferReader(
             new StreamReader(stream, encoding, bufferSize: options.BufferSize, leaveOpen: options.LeaveOpen),
             memoryPool ?? MemoryPool<char>.Shared,
-            in options);
+            in options
+        );
     }
 }

@@ -11,8 +11,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     private int _offset;
     private bool _endOfStream;
 
-    public Utf8StreamReader(Stream stream, MemoryPool<char> memoryPool, in CsvIOOptions options)
-        : base(memoryPool, in options)
+    public Utf8StreamReader(Stream stream, MemoryPool<char>? memoryPool, in CsvIOOptions options)
+        : base(memoryPool ?? MemoryPool<char>.Shared, in options)
     {
         _stream = stream;
         _buffer = ArrayPool<byte>.Shared.Rent(options.BufferSize);
@@ -46,7 +46,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 out int bytesConsumed,
                 out int charsWritten,
                 replaceInvalidSequences: true,
-                isFinalBlock: _endOfStream);
+                isFinalBlock: _endOfStream
+            );
 
             _offset += bytesConsumed;
             totalCharsWritten += charsWritten;
@@ -72,7 +73,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
 
                 _offset = 0;
 
-                if (_endOfStream) break;
+                if (_endOfStream)
+                    break;
 
                 int bytesRead = _stream.Read(_buffer, _count, _buffer.Length - _count);
 
@@ -133,7 +135,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 out int bytesConsumed,
                 out int charsWritten,
                 replaceInvalidSequences: true,
-                isFinalBlock: _endOfStream);
+                isFinalBlock: _endOfStream
+            );
 
             _offset += bytesConsumed;
             totalCharsWritten += charsWritten;
@@ -159,7 +162,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
 
                 _offset = 0;
 
-                if (_endOfStream) break;
+                if (_endOfStream)
+                    break;
 
                 int bytesRead = await _stream
                     .ReadAsync(_buffer.AsMemory(_count), cancellationToken)
