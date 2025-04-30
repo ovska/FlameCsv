@@ -1,19 +1,19 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using Basic.Reference.Assemblies;
-using FlameCsv.Attributes;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen.Tests;
 
-public class TypeMapTests
+[Collection(typeof(MetadataCollection))]
+public class TypeMapTests(MetadataFixture fixture)
 {
-    private static readonly MetadataReference[] _metadataReferences =
+    private readonly MetadataReference[] _metadataReferences =
     [
         Net90.References.SystemRuntime,
-        MetadataReference.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location),
+        fixture.FlameCsvCore,
     ];
 
     [Fact]
