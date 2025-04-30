@@ -29,7 +29,7 @@ namespace FlameCsv.Reading.Internal;
  * - BitHacks.FindQuoteMask and zero out bits between quotes -> parsing is too fast, the extra instructions are not worth it
  *
  * Still to do:
- * - Loading comparisons from the vector instead of original data
+ * - Loading comparisons from the vector instead of original data (maybe not possible due to newline boundaries?)
  */
 
 [SkipLocalsInit]
@@ -61,12 +61,13 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect)
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
         // search space of Meta is set to vector length from actual so we don't need to do bounds checks in the loops
+        // ensure the worst case doesn't read past the end (data ends in Vector.Count delimiters)
         scoped ref Meta currentMeta =
             ref MemoryMarshal.GetReference(metaBuffer);
         scoped ref readonly Meta metaEnd = ref Unsafe.Add(
             ref MemoryMarshal.GetReference(metaBuffer),
             metaBuffer.Length - (TVector.Count * 2)
-        ); // the worst case: data ends in Vector.Count delimiters
+        );
 
         // load the constants into registers
         T quote = dialect.Quote;
@@ -239,7 +240,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect)
                 mask &= (mask - 1);
 
                 // Branch predictor expects forward branches to be NOT taken (common case)
-                // Vector boundary crossing is very rare (e.g. 1/32 or 1/64)
+                // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
                 if (offset == TVector.Count - 1)
                 {
                     // do not reorder
@@ -270,7 +271,6 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect)
             mask &= (mask - 1); // clear lowest bit
 
             // this can only return false for pathological data, e.g. \r followed by \r or comma
-            // use an inverse condition so the branch predictor is happy on the first call
             isEOL = TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken);
 
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.GetLength(isMultitoken));
@@ -285,7 +285,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvDialect<T> dialect)
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
         // Branch predictor expects forward branches to be NOT taken (common case)
-        // Vector boundary crossing is very rare (e.g. 1/32 or 1/64)
+        // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
         if (TNewline.OffsetFromEnd != 0 && isEOL && offset == TVector.Count - 1)
         {
             // do not reorder

@@ -38,17 +38,17 @@ public class TokenizationBench
         Newline = CsvNewline.LF,
     };
 
-    private readonly SimdTokenizer<char, NewlineParserOne<char, Vec128Char>, Vec128Char> _t128 = new(_dialectChar);
+    private readonly SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char> _t128 = new(_dialectChar);
 
-    private readonly SimdTokenizer<char, NewlineParserOne<char, Vec256Char>, Vec256Char> _t256 = new(_dialectChar);
+    private readonly SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char> _t256 = new(_dialectChar);
 
-    private readonly SimdTokenizer<char, NewlineParserOne<char, Vec512Char>, Vec512Char> _t512 = new(_dialectChar);
+    private readonly SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char> _t512 = new(_dialectChar);
 
-    private readonly SimdTokenizer<byte, NewlineParserOne<byte, Vec128Byte>, Vec128Byte> _t128b = new(_dialectByte);
+    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte> _t128b = new(_dialectByte);
 
-    private readonly SimdTokenizer<byte, NewlineParserOne<byte, Vec256Byte>, Vec256Byte> _t256b = new(_dialectByte);
+    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte> _t256b = new(_dialectByte);
 
-    private readonly SimdTokenizer<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte> _t512b = new(_dialectByte);
+    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte> _t512b = new(_dialectByte);
 
     [Benchmark(Baseline = true)]
     public int V128()

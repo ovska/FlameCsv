@@ -58,7 +58,7 @@ internal interface INewline<T, TVector> : INewline<T>
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserOne<T, TVector> : INewline<T, TVector>
+internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -83,7 +83,14 @@ internal readonly struct NewlineParserOne<T, TVector> : INewline<T, TVector>
     {
         // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
         isMultitoken = false;
-        return value == T.CreateTruncating('\n');
+
+        // compared to T.CreateTruncating this type check produces 13 vs 16 bytes of code for byte (char unchanged at 14)
+        return Unsafe.SizeOf<T>() switch
+        {
+            sizeof(byte) => Unsafe.As<T, byte>(ref value) == '\n',
+            sizeof(char) => Unsafe.As<T, char>(ref value) == '\n',
+            _ => throw new NotSupportedException(),
+        };
     }
 
     public static bool IsNewline(T value)
@@ -106,7 +113,7 @@ internal readonly struct NewlineParserOne<T, TVector> : INewline<T, TVector>
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineParserTwo<T, TVector> : INewline<T, TVector>
+internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
     where TVector : struct, ISimdVector<T, TVector>
 {
@@ -123,22 +130,52 @@ internal readonly struct NewlineParserTwo<T, TVector> : INewline<T, TVector>
     public static bool IsMultitoken(ref T value)
     {
         // only \r\n is considered a multitoken newline, other combinations e.g. \n\n are two distinct newlines
-        return value == T.CreateTruncating('\r') && Unsafe.Add(ref value, 1) == T.CreateTruncating('\n');
+
+        // compared to T.CreateTruncating, this type check produces 20 bytes of code for byte.
+        // no difference for char at 26, but we'll leave it in case something changes in a future .NET update
+        if (Unsafe.SizeOf<T>() is sizeof(byte))
+        {
+            return Unsafe.As<T, byte>(ref value) == '\r' && Unsafe.Add(ref Unsafe.As<T, byte>(ref value), 1) == '\n';
+        }
+
+        if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            return Unsafe.As<T, char>(ref value) == '\r' && Unsafe.Add(ref Unsafe.As<T, char>(ref value), 1) == '\n';
+        }
+
+        throw new NotSupportedException();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNewline(ref T value, out bool isMultitoken)
     {
-        T cr = T.CreateTruncating('\r');
-        T lf = T.CreateTruncating('\n');
-
-        if (value == cr || value == lf)
+        // this type check produces less ASM code than simple generics: 42 vs 50 for byte, 43 vs 50 for char
+        if (Unsafe.SizeOf<T>() is sizeof(byte))
         {
-            isMultitoken = value == cr && Unsafe.Add(ref value, 1) == lf;
-            return true;
+            ref byte v = ref Unsafe.As<T, byte>(ref value);
+
+            if (v == '\r' || v == '\n')
+            {
+                isMultitoken = v == '\r' && Unsafe.Add(ref v, 1) == '\n';
+                return true;
+            }
+        }
+        else if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            ref char v = ref Unsafe.As<T, char>(ref value);
+
+            if (v == '\r' || v == '\n')
+            {
+                isMultitoken = v == '\r' && Unsafe.Add(ref v, 1) == '\n';
+                return true;
+            }
+        }
+        else
+        {
+            throw new NotSupportedException();
         }
 
-        isMultitoken = false;
+        Unsafe.SkipInit(out isMultitoken); // shave off 2-3 bytes, this is never checked if returned false
         return false;
     }
 
@@ -147,12 +184,14 @@ internal readonly struct NewlineParserTwo<T, TVector> : INewline<T, TVector>
         return value == T.CreateTruncating('\r') || value == T.CreateTruncating('\n');
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Load(out TVector v0, out TVector v1)
     {
         v0 = TVector.Create((byte)'\r');
         v1 = TVector.Create((byte)'\n');
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TVector HasNewline(TVector input, TVector v0, TVector v1)
     {
         return TVector.Equals(input, v0) | TVector.Equals(input, v1);
