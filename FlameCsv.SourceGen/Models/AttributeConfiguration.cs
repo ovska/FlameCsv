@@ -75,12 +75,18 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         }
         else if (symbols.IsIgnoredIndexesAttribute(attrSymbol))
         {
-            if (attribute.ConstructorArguments.IsDefaultOrEmpty)
+            ImmutableArray<TypedConstant> indexes = [];
+
+            if (attribute.ConstructorArguments.Length > 0)
             {
-                return null;
+                indexes = attribute.ConstructorArguments[0].Values;
             }
-            
-            foreach (var value in attribute.ConstructorArguments[0].Values)
+            else if (attribute.TryGetNamedArgument("Value", out var value))
+            {
+                indexes = value.Values;
+            }
+
+            foreach (var value in indexes)
             {
                 if (value is { Kind: TypedConstantKind.Primitive, Value: int ignoredIndex and >= 0 })
                 {
@@ -113,7 +119,7 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
             Order = order,
             Index = index,
             HeaderName = headerName,
-            Aliases = aliases,
+            Aliases = aliases.IsDefault ? [] : aliases,
         };
 
         string? ParseMemberName()
@@ -181,15 +187,22 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         out string? headerName,
         out ImmutableArray<TypedConstant> aliases)
     {
-        headerName = null;
         aliases = default;
 
-        headerName = attribute.ConstructorArguments[0].Value?.ToString();
+        headerName = attribute.ConstructorArguments is [TypedConstant value, ..]
+         ? value.Value?.ToString()
+         : attribute.TryGetNamedArgument("Value", out value) ? value.Value?.ToString() : null;
 
         if (attribute.ConstructorArguments.Length > 1 &&
-            attribute.ConstructorArguments[1] is { Kind: TypedConstantKind.Array, Values: { Length: > 0 } values })
+            attribute.ConstructorArguments[1] is { Kind: TypedConstantKind.Array } arr)
         {
-            aliases = values;
+            aliases = arr.Values;
+        }
+        else if (
+            attribute.TryGetNamedArgument("Aliases", out var aliasesArg) &&
+            aliasesArg.Kind == TypedConstantKind.Array)
+        {
+            aliases = aliasesArg.Values;
         }
     }
 
