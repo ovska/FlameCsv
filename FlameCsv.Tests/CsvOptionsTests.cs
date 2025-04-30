@@ -161,8 +161,8 @@ public class CsvOptionsTests
         var options = CsvOptions<char>.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n", options.Newline);
-        Assert.Equal(NewlineBuffer<char>.CRLF, options.Dialect.Newline);
+        Assert.Equal(CsvNewline.CRLF, options.Newline);
+        Assert.Equal(CsvNewline.CRLF, options.Dialect.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true", out var bValue));
@@ -187,8 +187,8 @@ public class CsvOptionsTests
         var options = CsvOptions<byte>.Default;
         Assert.True(options.IsReadOnly);
 
-        Assert.Equal("\r\n", options.Newline);
-        Assert.Equal(NewlineBuffer<byte>.CRLF, options.Dialect.Newline);
+        Assert.Equal(CsvNewline.CRLF, options.Newline);
+        Assert.Equal(CsvNewline.CRLF, options.Dialect.Newline);
 
         var boolParser = options.GetConverter<bool>();
         Assert.True(boolParser.TryParse("true"u8, out var bValue));
@@ -216,7 +216,7 @@ public class CsvOptionsTests
         Run(o => o.Delimiter = ',');
         Run(o => o.Quote = '"');
         Run(o => o.Escape = null);
-        Run(o => o.Newline = "\r");
+        Run(o => o.Newline = CsvNewline.Platform);
         Run(o => o.Trimming = CsvFieldTrimming.Leading);
         Run(o => o.RecordCallback = null);
         Run(o => o.NullTokens[typeof(int)] = "");

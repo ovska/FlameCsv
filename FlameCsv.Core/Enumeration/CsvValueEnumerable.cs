@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Collections;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
 using JetBrains.Annotations;
 

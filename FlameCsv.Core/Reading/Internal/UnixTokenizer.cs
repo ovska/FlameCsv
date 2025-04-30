@@ -1,14 +1,25 @@
 ﻿using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal class UnixTokenizer<T>(ref readonly CsvDialect<T> dialect) : CsvTokenizer<T>
+internal class UnixTokenizer<T> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly T _delimiter = dialect.Delimiter;
-    private readonly T _quote = dialect.Quote;
-    private readonly T _escape = dialect.Escape!.Value;
-    private readonly NewlineBuffer<T> _newline = dialect.Newline;
+    private readonly T _delimiter;
+    private readonly T _quote;
+    private readonly T _escape;
+    private readonly T _newlineFirst;
+    private readonly T _newlineSecond;
+    private readonly int _newlineLength;
+
+    public UnixTokenizer(ref readonly CsvDialect<T> dialect)
+    {
+        _delimiter = dialect.Delimiter;
+        _quote = dialect.Quote;
+        _escape = dialect.Escape!.Value;
+        _newlineLength = dialect.Newline.GetTokens(out _newlineFirst, out _newlineSecond);
+    }
 
     public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
     {
@@ -47,16 +58,14 @@ internal class UnixTokenizer<T>(ref readonly CsvDialect<T> dialect) : CsvTokeniz
                 goto Continue;
             }
 
-            if (current == _delimiter || current == _newline.First || current == _newline.Second)
+            if (current == _delimiter || current == _newlineFirst || current == _newlineSecond)
             {
                 bool isEOL = current != _delimiter;
-                int newlineLength = _newline.Length;
+                int newlineLength = _newlineLength;
 
                 if (isEOL && newlineLength == 2)
                 {
-                    if (index + 1 < data.Length &&
-                        current == _newline.First &&
-                        data[index + 1] == _newline.Second)
+                    if (index + 1 < data.Length && current == _newlineFirst && data[index + 1] == _newlineSecond)
                     {
                         newlineLength = 2;
                     }
@@ -74,7 +83,7 @@ internal class UnixTokenizer<T>(ref readonly CsvDialect<T> dialect) : CsvTokeniz
                 continue;
             }
 
-        Continue:
+            Continue:
             index++;
         }
 
@@ -90,7 +99,8 @@ internal class UnixTokenizer<T>(ref readonly CsvDialect<T> dialect) : CsvTokeniz
                 quotesConsumed,
                 escapesConsumed,
                 isEOL: true,
-                newlineLength: 0);
+                newlineLength: 0
+            );
         }
 
         return metaIndex;

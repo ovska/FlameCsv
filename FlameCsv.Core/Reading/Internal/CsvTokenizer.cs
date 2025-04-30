@@ -1,9 +1,10 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal abstract class CsvPartialTokenizer<T> where T : unmanaged, IBinaryInteger<T>
+internal abstract class CsvPartialTokenizer<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Number of characters deemed
@@ -17,13 +18,11 @@ internal abstract class CsvPartialTokenizer<T> where T : unmanaged, IBinaryInteg
     /// <param name="data">Data to read from</param>
     /// <param name="startIndex">Start index in the data</param>
     /// <returns>Number of fields parsed to <paramref name="metaBuffer"/></returns>
-    public abstract int Tokenize(
-        Span<Meta> metaBuffer,
-        ReadOnlySpan<T> data,
-        int startIndex);
+    public abstract int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex);
 }
 
-internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
+internal abstract class CsvTokenizer<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Reads fields from the data into <paramref name="metaBuffer"/> until the end of the data is reached.
@@ -36,11 +35,7 @@ internal abstract class CsvTokenizer<T> where T : unmanaged, IBinaryInteger<T>
     /// <exception cref="NotSupportedException">
     /// Thrown if the implementation does not support reading to the end of the data.
     /// </exception>
-    public virtual int Tokenize(
-        Span<Meta> metaBuffer,
-        ReadOnlySpan<T> data,
-        int startIndex,
-        bool readToEnd)
+    public virtual int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
     {
         throw new NotSupportedException();
     }
@@ -81,14 +76,9 @@ internal static class CsvTokenizer
             return new UnixTokenizer<T>(in dialect);
         }
 
-        var nl = dialect.Newline;
-
-        return nl.Length switch
-        {
-            1 => new ScalarTokenizer<T, NewlineParserOne<T, NoOpVector<T>>>(dialect, new(nl.First)),
-            2 => new ScalarTokenizer<T, NewlineParserTwo<T, NoOpVector<T>>>(dialect, new(nl.First, nl.Second)),
-            _ => throw new UnreachableException($"Unsupported newline length: {nl.Length}.")
-        };
+        return dialect.Newline.IsCRLF()
+            ? new ScalarTokenizer<T, NewlineParserTwo<T, NoOpVector<T>>>(dialect)
+            : new ScalarTokenizer<T, NewlineParserOne<T, NoOpVector<T>>>(dialect);
     }
 }
 
@@ -100,54 +90,24 @@ file static class ForChar
         // on x86 with AVX512, 256 is faster in all cases except 3% slower on dense non-quoted data
         // and up to 6% slower on dense or quoted data
 
-        // use if-else to reduce JITted code size if multiple SIMD types are supported
+        // use "else" instead of just "if" to reduce JITted code size if multiple SIMD types are supported
         if (Vec256Char.IsSupported)
         {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<char, NewlineParserTwo<char, Vec256Char>, Vec256Char>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
+            return dialect.Newline.IsCRLF()
+                ? new SimdTokenizer<char, NewlineParserTwo<char, Vec256Char>, Vec256Char>(dialect)
+                : new SimdTokenizer<char, NewlineParserOne<char, Vec256Char>, Vec256Char>(dialect);
         }
         else if (Vec512Char.IsSupported)
         {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<char, NewlineParserOne<char, Vec512Char>, Vec512Char>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<char, NewlineParserTwo<char, Vec512Char>, Vec512Char>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
+            return dialect.Newline.IsCRLF()
+                ? new SimdTokenizer<char, NewlineParserTwo<char, Vec512Char>, Vec512Char>(dialect)
+                : new SimdTokenizer<char, NewlineParserOne<char, Vec512Char>, Vec512Char>(dialect);
         }
         else if (Vec128Char.IsSupported)
         {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<char, NewlineParserOne<char, Vec128Char>, Vec128Char>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<char, NewlineParserTwo<char, Vec128Char>, Vec128Char>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
+            return dialect.Newline.IsCRLF()
+                ? new SimdTokenizer<char, NewlineParserTwo<char, Vec128Char>, Vec128Char>(dialect)
+                : new SimdTokenizer<char, NewlineParserOne<char, Vec128Char>, Vec128Char>(dialect);
         }
 
         return null;
@@ -163,51 +123,21 @@ file static class ForByte
         // use if-else to reduce JITted code size if multiple SIMD types are supported
         if (Vec256Byte.IsSupported)
         {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<byte, NewlineParserOne<byte, Vec256Byte>, Vec256Byte>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<byte, NewlineParserTwo<byte, Vec256Byte>, Vec256Byte>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
+            return dialect.Newline.IsCRLF()
+                ? new SimdTokenizer<byte, NewlineParserTwo<byte, Vec256Byte>, Vec256Byte>(dialect)
+                : new SimdTokenizer<byte, NewlineParserOne<byte, Vec256Byte>, Vec256Byte>(dialect);
         }
         else if (Vec512Byte.IsSupported)
         {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<byte, NewlineParserTwo<byte, Vec512Byte>, Vec512Byte>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
+            return dialect.Newline.IsCRLF()
+                ? new SimdTokenizer<byte, NewlineParserTwo<byte, Vec512Byte>, Vec512Byte>(dialect)
+                : new SimdTokenizer<byte, NewlineParserOne<byte, Vec512Byte>, Vec512Byte>(dialect);
         }
         else if (Vec128Byte.IsSupported)
         {
-            if (dialect.Newline.Length == 1)
-            {
-                return new SimdTokenizer<byte, NewlineParserOne<byte, Vec128Byte>, Vec128Byte>(
-                    dialect,
-                    new(dialect.Newline.First));
-            }
-
-            if (dialect.Newline.Length == 2)
-            {
-                return new SimdTokenizer<byte, NewlineParserTwo<byte, Vec128Byte>, Vec128Byte>(
-                    dialect,
-                    new(dialect.Newline.First, dialect.Newline.Second));
-            }
+            return dialect.Newline.IsCRLF()
+                ? new SimdTokenizer<byte, NewlineParserTwo<byte, Vec128Byte>, Vec128Byte>(dialect)
+                : new SimdTokenizer<byte, NewlineParserOne<byte, Vec128Byte>, Vec128Byte>(dialect);
         }
 
         return null;

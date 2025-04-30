@@ -1,4 +1,5 @@
-﻿using FlameCsv.Writing.Escaping;
+﻿using FlameCsv.Extensions;
+using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -6,7 +7,9 @@ file static class EscapeExt
 {
     public static readonly CsvOptions<char> Options = new()
     {
-        Delimiter = ',', Quote = '|', Escape = '^',
+        Delimiter = ',',
+        Quote = '|',
+        Escape = '^',
     };
 
     public static bool MustBeQuoted(this UnixEscaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
@@ -24,8 +27,10 @@ file static class EscapeExt
 
 public static class UnixEscapeTests
 {
-    private static readonly UnixEscaper<char> _escaper
-        = new(quote: EscapeExt.Options.Quote, escape: EscapeExt.Options.Escape!.Value);
+    private static readonly UnixEscaper<char> _escaper = new(
+        quote: EscapeExt.Options.Quote,
+        escape: EscapeExt.Options.Escape!.Value
+    );
 
     [Theory]
     [InlineData("", "||")]
@@ -108,14 +113,19 @@ public static class UnixEscapeTests
         (3, "||\r\n test |"),
     ];
 
-    public static TheoryData<string, int?, string> NeedsEscapingData()
+    public static TheoryData<CsvNewline, int?, string> NeedsEscapingData()
     {
         var values =
             from x in _needsEscapingData
-            from newline in new[] { "\r\n", "\n" }
-            select new { newline, x.quoteCount, x.data };
+            from newline in new[] { CsvNewline.CRLF, CsvNewline.LF }
+            select new
+            {
+                newline,
+                x.quoteCount,
+                x.data,
+            };
 
-        var theory = new TheoryData<string, int?, string>();
+        var theory = new TheoryData<CsvNewline, int?, string>();
 
         foreach (var x in values)
         {
@@ -126,10 +136,15 @@ public static class UnixEscapeTests
     }
 
     [Theory, MemberData(nameof(NeedsEscapingData))]
-    public static void Should_Check_Needs_Escaping(string newline, int? quotes, string input)
+    public static void Should_Check_Needs_Escaping(CsvNewline newline, int? quotes, string input)
     {
-        var options = new CsvOptions<char> { Quote = '|', Escape = '^', Newline = newline };
-        input = input.Replace("\r\n", newline);
+        var options = new CsvOptions<char>
+        {
+            Quote = '|',
+            Escape = '^',
+            Newline = newline,
+        };
+        input = input.Replace("\r\n", newline.AsString());
 
         bool needsQuoting = input.AsSpan().ContainsAny(options.Dialect.NeedsQuoting);
 

@@ -11,43 +11,30 @@ using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Readers;
 
-public enum NewlineToken
-{
-    CRLF,
-    LF,
-}
-
 public abstract class CsvReaderTestsBase
 {
     protected static readonly int[] _bufferSizes = [-1, 256, 512, 1024];
 
-    public sealed class SyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool, bool?>;
+    public sealed class SyncData : TheoryData<CsvNewline, bool, bool, int, Mode, bool, bool, bool?>;
 
-    public sealed class AsyncData : TheoryData<NewlineToken, bool, bool, int, Mode, bool, bool, bool?>;
+    public sealed class AsyncData : TheoryData<CsvNewline, bool, bool, int, Mode, bool, bool, bool?>;
 
     public static SyncData SyncParams
     {
         get
         {
             var data =
-                from crlf in GlobalData.Enum<NewlineToken>()
+                from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
                 from writeHeader in GlobalData.Booleans
                 from writeTrailingNewline in GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
-                from parallel in (bool[]) [false] //GlobalData.Booleans
+                from parallel in (bool[])[false] //GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
                 where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
-                select (crlf,
-                    writeHeader,
-                    writeTrailingNewline,
-                    bufferSize,
-                    escaping,
-                    parallel,
-                    sourceGen,
-                    guarded);
-            return [..data];
+                select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
+            return [.. data];
         }
     }
 
@@ -56,18 +43,18 @@ public abstract class CsvReaderTestsBase
         get
         {
             var data =
-                from crlf in GlobalData.Enum<NewlineToken>()
+                from crlf in GlobalData.Enum<CsvNewline>()
                 from writeHeader in GlobalData.Booleans
                 from writeTrailingNewline in GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
-                from parallel in (bool[]) [false] // GlobalData.Booleans
+                from parallel in (bool[])[false] // GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
                 where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
                 select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
 
-            return [..data];
+            return [.. data];
         }
     }
 }
@@ -75,7 +62,8 @@ public abstract class CsvReaderTestsBase
 /// <summary>
 /// A spray-and-pray tests of different APIs using various options and CSV features.
 /// </summary>
-public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
+    where T : unmanaged, IBinaryInteger<T>
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
@@ -83,14 +71,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Objects_Sync(
-        NewlineToken newline,
+        CsvNewline newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         Mode escaping,
         bool parallel,
         bool sourceGen,
-        bool? guarded)
+        bool? guarded
+    )
     {
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         CsvOptions<T> options = GetOptions(newline, header, escaping, pool);
@@ -102,7 +91,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                 ? new CsvTypeMapEnumerable<T, Obj>(in sequence, options, TypeMap)
                 : new CsvValueEnumerable<T, Obj>(in sequence, options);
 
-            if (parallel) enumerable = WrapParallel(enumerable);
+            if (parallel)
+                enumerable = WrapParallel(enumerable);
 
             await Validate(SyncAsyncEnumerable.Create(enumerable), escaping);
         }
@@ -110,14 +100,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
     [Theory, MemberData(nameof(SyncParams))]
     public async Task Records_Sync(
-        NewlineToken newline,
+        CsvNewline newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         Mode escaping,
         bool parallel,
         bool sourceGen,
-        bool? guarded)
+        bool? guarded
+    )
     {
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
@@ -141,14 +132,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
     [Theory, MemberData(nameof(AsyncParams))]
     public async Task Objects_Async(
-        NewlineToken newline,
+        CsvNewline newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         Mode escaping,
         bool parallel,
         bool sourceGen,
-        bool? guarded)
+        bool? guarded
+    )
     {
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
@@ -166,7 +158,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                 ? new CsvTypeMapEnumerable<T, Obj>(reader, options, TypeMap)
                 : new CsvValueEnumerable<T, Obj>(reader, options);
 
-            if (parallel) source = WrapParallelAsync(source);
+            if (parallel)
+                source = WrapParallelAsync(source);
 
             await foreach (var obj in source.WithTestContext())
             {
@@ -177,14 +170,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
 
     [Theory, MemberData(nameof(AsyncParams))]
     public async Task Records_Async(
-        NewlineToken newline,
+        CsvNewline newline,
         bool header,
         bool trailingLF,
         int bufferSize,
         Mode escaping,
         bool parallel,
         bool sourceGen,
-        bool? guarded)
+        bool? guarded
+    )
     {
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         await Validate(Enumerate(), escaping);
@@ -229,14 +223,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         CsvOptions<T> options,
         bool sourceGen,
         bool hasHeader,
-        NewlineToken newline,
+        CsvNewline newline,
         bool parallel,
-        bool isAsync)
+        bool isAsync
+    )
     {
         int index = 0;
         long tokenPosition = 0;
 
-        int newlineLength = newline == NewlineToken.LF ? 1 : 2;
+        int newlineLength = newline == CsvNewline.LF ? 1 : 2;
 
         if (hasHeader)
         {
@@ -257,11 +252,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                     (record, _) =>
                     {
                         var obj = Core(record);
-                        lock (items) items.Add(obj);
+                        lock (items)
+                            items.Add(obj);
                         return default;
                     },
                     options,
-                    new ParallelOptions { CancellationToken = cts.Token });
+                    new ParallelOptions { CancellationToken = cts.Token }
+                );
             }
             else
             {
@@ -270,10 +267,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                     record =>
                     {
                         var obj = Core(record);
-                        lock (items) items.Add(obj);
+                        lock (items)
+                            items.Add(obj);
                     },
                     options,
-                    new ParallelOptions { CancellationToken = cts.Token });
+                    new ParallelOptions { CancellationToken = cts.Token }
+                );
             }
 
             items.Sort((a, b) => a.Id.CompareTo(b.Id));
@@ -295,10 +294,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
                 {
                     items.Add(Core(record));
 
-                    if (record.GetField(0).ToString() == "818")
-                    {
-
-                    }
+                    if (record.GetField(0).ToString() == "818") { }
                 }
             }
         }
@@ -333,13 +329,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         }
     }
 
-    protected static CsvOptions<T> GetOptions(NewlineToken newline, bool header, Mode escaping, MemoryPool<T> pool)
+    protected static CsvOptions<T> GetOptions(CsvNewline newline, bool header, Mode escaping, MemoryPool<T> pool)
     {
         return new CsvOptions<T>
         {
             Formats = { [typeof(DateTime)] = "O" },
             Escape = escaping == Mode.Escape ? '^' : null,
-            Newline = newline == NewlineToken.LF ? "\n" : "\r\n",
+            Newline = newline,
             HasHeader = header,
             MemoryPool = pool,
 #if false
@@ -356,8 +352,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
         };
     }
 
-    protected static IEnumerable<Obj> WrapParallel(IEnumerable<Obj> enumerable)
-        => enumerable
+    protected static IEnumerable<Obj> WrapParallel(IEnumerable<Obj> enumerable) =>
+        enumerable
             .AsParallel()
             .AsOrdered()
             .WithMergeOptions(ParallelMergeOptions.NotBuffered)
@@ -375,8 +371,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase where T : unman
             {
                 bag.Enqueue(obj);
                 return default;
-            });
+            }
+        );
 
-        foreach (var obj in bag.OrderBy(o => o.Id)) yield return obj;
+        foreach (var obj in bag.OrderBy(o => o.Id))
+            yield return obj;
     }
 }

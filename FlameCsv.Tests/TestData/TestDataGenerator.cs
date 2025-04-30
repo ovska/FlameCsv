@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using FlameCsv.Attributes;
-using FlameCsv.Tests.Readers;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using Utf8StringInterpolation;
 using U8 = Utf8StringInterpolation.Utf8String;
@@ -18,20 +18,29 @@ public partial class ObjByteTypeMap;
 
 public class Obj : IEquatable<Obj>
 {
-    [CsvIndex(0)] public int Id { get; set; }
-    [CsvIndex(1)] public string? Name { get; set; }
-    [CsvIndex(2)] public bool IsEnabled { get; set; }
-    [CsvIndex(3)] public DateTimeOffset LastLogin { get; set; }
-    [CsvIndex(4)] public Guid Token { get; set; }
+    [CsvIndex(0)]
+    public int Id { get; set; }
+
+    [CsvIndex(1)]
+    public string? Name { get; set; }
+
+    [CsvIndex(2)]
+    public bool IsEnabled { get; set; }
+
+    [CsvIndex(3)]
+    public DateTimeOffset LastLogin { get; set; }
+
+    [CsvIndex(4)]
+    public Guid Token { get; set; }
 
     public bool Equals(Obj? other)
     {
-        return other is not null &&
-            Id.Equals(other.Id) &&
-            StringComparer.Ordinal.Equals(Name, other.Name) &&
-            IsEnabled.Equals(other.IsEnabled) &&
-            LastLogin.Equals(other.LastLogin) &&
-            Token.Equals(other.Token);
+        return other is not null
+            && Id.Equals(other.Id)
+            && StringComparer.Ordinal.Equals(Name, other.Name)
+            && IsEnabled.Equals(other.IsEnabled)
+            && LastLogin.Equals(other.LastLogin)
+            && Token.Equals(other.Token);
     }
 
     public override string ToString()
@@ -83,17 +92,14 @@ internal static class TestDataGenerator
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<char>>> _chars = [];
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<byte>>> _bytes = [];
 
-    private readonly record struct Key(
-        string Newline,
-        bool WriteHeader,
-        bool TrailingNewline,
-        Mode Escaping);
+    private readonly record struct Key(string Newline, bool WriteHeader, bool TrailingNewline, Mode Escaping);
 
     public static ReadOnlyMemory<T> Generate<T>(
-        NewlineToken newLineToken,
+        CsvNewline newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
-        Mode escaping)
+        Mode escaping
+    )
     {
         if (typeof(T) == typeof(char))
             return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, writeTrailingNewline, escaping);
@@ -105,167 +111,169 @@ internal static class TestDataGenerator
     }
 
     public static ReadOnlyMemory<char> GenerateText(
-        NewlineToken newLineToken,
+        CsvNewline newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
-        Mode escaping)
+        Mode escaping
+    )
     {
-        string newLine = newLineToken == NewlineToken.LF ? "\n" : "\r\n";
+        string newLine = newLineToken.AsString();
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _chars.GetOrAdd(
             key,
-            static key => new Lazy<ReadOnlyMemory<char>>(
-                () =>
+            static key => new Lazy<ReadOnlyMemory<char>>(() =>
+            {
+                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
+
+                var writer = new StringBuilder(capacity: RequiredCapacity);
+
+                if (writeHeader)
                 {
-                    (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
+                    writer.Append(Header);
+                    writer.Append(newLine);
+                }
 
-                    var writer = new StringBuilder(capacity: RequiredCapacity);
+                CancellationToken token = TestContext.Current.CancellationToken;
 
-                    if (writeHeader)
-                    {
-                        writer.Append(Header);
-                        writer.Append(newLine);
-                    }
+                for (int i = 0; i < 1_000; i++)
+                {
+                    token.ThrowIfCancellationRequested();
 
-                    CancellationToken token = TestContext.Current.CancellationToken;
-
-                    for (int i = 0; i < 1_000; i++)
-                    {
-                        token.ThrowIfCancellationRequested();
-
-                        if (i != 0)
-                            writer.Append(newLine);
-
-                        if (escaping != Mode.None)
-                        {
-                            writer.Append($"\"{i}\"");
-                        }
-                        else
-                        {
-                            writer.Append(i);
-                        }
-
-                        writer.Append(',');
-
-                        if (escaping == Mode.Escape)
-                        {
-                            writer.Append($"\"Name^\"{i}\"");
-                        }
-                        else if (escaping == Mode.RFC)
-                        {
-                            writer.Append($"\"Name\"\"{i}\"");
-                        }
-                        else
-                        {
-                            writer.Append($"Name-{i}");
-                        }
-
-                        writer.Append(',');
-                        writer.Append(i % 2 == 0 ? "true" : "false");
-                        writer.Append(',');
-                        writer.Append($"{DateTimeOffset.UnixEpoch.AddDays(i):O}");
-                        writer.Append(',');
-                        writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
-                    }
-
-                    if (writeTrailingNewline)
+                    if (i != 0)
                         writer.Append(newLine);
 
-                    if (writer.Capacity != RequiredCapacity)
-                        throw new UnreachableException(writer.Capacity.ToString());
-
-                    var enumerator = writer.GetChunks();
-
-                    if (enumerator.MoveNext())
+                    if (escaping != Mode.None)
                     {
-                        var result = enumerator.Current;
-
-                        if (!enumerator.MoveNext())
-                        {
-                            return result;
-                        }
+                        writer.Append($"\"{i}\"");
+                    }
+                    else
+                    {
+                        writer.Append(i);
                     }
 
-                    throw new UnreachableException();
-                }));
+                    writer.Append(',');
+
+                    if (escaping == Mode.Escape)
+                    {
+                        writer.Append($"\"Name^\"{i}\"");
+                    }
+                    else if (escaping == Mode.RFC)
+                    {
+                        writer.Append($"\"Name\"\"{i}\"");
+                    }
+                    else
+                    {
+                        writer.Append($"Name-{i}");
+                    }
+
+                    writer.Append(',');
+                    writer.Append(i % 2 == 0 ? "true" : "false");
+                    writer.Append(',');
+                    writer.Append($"{DateTimeOffset.UnixEpoch.AddDays(i):O}");
+                    writer.Append(',');
+                    writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
+                }
+
+                if (writeTrailingNewline)
+                    writer.Append(newLine);
+
+                if (writer.Capacity != RequiredCapacity)
+                    throw new UnreachableException(writer.Capacity.ToString());
+
+                var enumerator = writer.GetChunks();
+
+                if (enumerator.MoveNext())
+                {
+                    var result = enumerator.Current;
+
+                    if (!enumerator.MoveNext())
+                    {
+                        return result;
+                    }
+                }
+
+                throw new UnreachableException();
+            })
+        );
 
         return chars.Value;
     }
 
     public static ReadOnlyMemory<byte> GenerateBytes(
-        NewlineToken newLineToken,
+        CsvNewline newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
-        Mode escaping)
+        Mode escaping
+    )
     {
-        string newLine = newLineToken == NewlineToken.LF ? "\n" : "\r\n";
+        string newLine = newLineToken.AsString();
         var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
         var chars = _bytes.GetOrAdd(
             key,
-            static key => new Lazy<ReadOnlyMemory<byte>>(
-                () =>
+            static key => new Lazy<ReadOnlyMemory<byte>>(() =>
+            {
+                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
+
+                var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
+                var writer = U8.CreateWriter(innerWriter);
+
+                if (writeHeader)
                 {
-                    (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
+                    writer.Append(Header);
+                    writer.Append(newLine);
+                }
 
-                    var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
-                    var writer = U8.CreateWriter(innerWriter);
+                CancellationToken token = TestContext.Current.CancellationToken;
 
-                    if (writeHeader)
-                    {
-                        writer.Append(Header);
-                        writer.Append(newLine);
-                    }
+                for (int i = 0; i < 1_000; i++)
+                {
+                    token.ThrowIfCancellationRequested();
 
-                    CancellationToken token = TestContext.Current.CancellationToken;
-
-                    for (int i = 0; i < 1_000; i++)
-                    {
-                        token.ThrowIfCancellationRequested();
-
-                        if (i != 0)
-                            writer.Append(newLine);
-
-                        if (escaping != Mode.None)
-                        {
-                            writer.AppendFormat($"\"{i}\"");
-                        }
-                        else
-                        {
-                            writer.AppendFormatted(i);
-                        }
-
-                        writer.Append(',');
-
-                        if (escaping == Mode.Escape)
-                        {
-                            writer.AppendFormat($"\"Name^\"{i}\"");
-                        }
-                        else if (escaping == Mode.RFC)
-                        {
-                            writer.AppendFormat($"\"Name\"\"{i}\"");
-                        }
-                        else
-                        {
-                            writer.AppendFormat($"Name-{i}");
-                        }
-
-                        writer.Append(',');
-                        writer.Append(i % 2 == 0 ? "true" : "false");
-                        writer.Append(',');
-                        writer.AppendFormatted(DateTimeOffset.UnixEpoch.AddDays(i), format: "O");
-                        writer.Append(',');
-                        writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
-                    }
-
-                    if (writeTrailingNewline)
+                    if (i != 0)
                         writer.Append(newLine);
 
-                    if (innerWriter.Capacity != RequiredCapacity)
-                        throw new UnreachableException(innerWriter.Capacity.ToString());
+                    if (escaping != Mode.None)
+                    {
+                        writer.AppendFormat($"\"{i}\"");
+                    }
+                    else
+                    {
+                        writer.AppendFormatted(i);
+                    }
 
-                    writer.Dispose();
-                    return innerWriter.WrittenMemory;
-                }));
+                    writer.Append(',');
+
+                    if (escaping == Mode.Escape)
+                    {
+                        writer.AppendFormat($"\"Name^\"{i}\"");
+                    }
+                    else if (escaping == Mode.RFC)
+                    {
+                        writer.AppendFormat($"\"Name\"\"{i}\"");
+                    }
+                    else
+                    {
+                        writer.AppendFormat($"Name-{i}");
+                    }
+
+                    writer.Append(',');
+                    writer.Append(i % 2 == 0 ? "true" : "false");
+                    writer.Append(',');
+                    writer.AppendFormatted(DateTimeOffset.UnixEpoch.AddDays(i), format: "O");
+                    writer.Append(',');
+                    writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
+                }
+
+                if (writeTrailingNewline)
+                    writer.Append(newLine);
+
+                if (innerWriter.Capacity != RequiredCapacity)
+                    throw new UnreachableException(innerWriter.Capacity.ToString());
+
+                writer.Dispose();
+                return innerWriter.WrittenMemory;
+            })
+        );
 
         return chars.Value;
     }
@@ -285,10 +293,12 @@ internal static class TestDataGenerator
                         LastLogin = DateTimeOffset.UnixEpoch,
                         Token = new Guid(i, 0, 0, GuidBytes),
                         Name = $" Name'{i}",
-                    });
+                    }
+                );
             }
 
             return list;
         },
-        LazyThreadSafetyMode.ExecutionAndPublication);
+        LazyThreadSafetyMode.ExecutionAndPublication
+    );
 }

@@ -13,14 +13,15 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 {
     [Theory, MemberData(nameof(Args))]
     public void Objects_Sync(
-        string newline,
+        CsvNewline newline,
         bool header,
         char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool? guarded)
+        bool? guarded
+    )
     {
         if (outputType)
         {
@@ -49,33 +50,31 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 ObjByteTypeMap.Default,
                 options,
-                new() { BufferSize = bufferSize });
+                new() { BufferSize = bufferSize }
+            );
         }
         else
         {
             // pipes dont support synchronous writing
-            CsvWriter.Write(
-                output,
-                TestDataGenerator.Objects.Value,
-                options,
-                new() { BufferSize = bufferSize });
+            CsvWriter.Write(output, TestDataGenerator.Objects.Value, options, new() { BufferSize = bufferSize });
         }
 
         Assert.True(output.TryGetBuffer(out var buffer));
 
-        Validate(buffer, escape.HasValue, newline == "\r\n", header, quoting);
+        Validate(buffer, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
     }
 
     [Theory, MemberData(nameof(Args))]
     public async Task Objects_Async(
-        string newline,
+        CsvNewline newline,
         bool header,
         char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool? guarded)
+        bool? guarded
+    )
     {
         using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
         var options = new CsvOptions<byte>
@@ -100,7 +99,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
                     options,
-                    TestContext.Current.CancellationToken);
+                    TestContext.Current.CancellationToken
+                );
             }
             else
             {
@@ -110,7 +110,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     ObjByteTypeMap.Default,
                     options,
                     new() { BufferSize = bufferSize },
-                    cancellationToken: TestContext.Current.CancellationToken);
+                    cancellationToken: TestContext.Current.CancellationToken
+                );
             }
         }
         else
@@ -121,7 +122,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     PipeWriter.Create(output),
                     TestDataGenerator.Objects.Value,
                     options,
-                    TestContext.Current.CancellationToken);
+                    TestContext.Current.CancellationToken
+                );
             }
             else
             {
@@ -130,13 +132,14 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     options,
                     new() { BufferSize = bufferSize },
-                    cancellationToken: TestContext.Current.CancellationToken);
+                    cancellationToken: TestContext.Current.CancellationToken
+                );
             }
         }
 
         Assert.True(output.TryGetBuffer(out var buffer));
 
-        Validate(buffer, escape.HasValue, newline == "\r\n", header, quoting);
+        Validate(buffer, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
     }
 
     private static void Validate(
@@ -144,7 +147,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool escapeMode,
         bool crlf,
         bool header,
-        CsvFieldQuoting quoting)
+        CsvFieldQuoting quoting
+    )
     {
         bool headerRead = false;
         int index = 0;
@@ -168,10 +172,9 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 Assert.Equal(0, index);
                 Assert.Equal(
-                    quoting == CsvFieldQuoting.Always
-                        ? TestDataGenerator.HeaderQuotedU8
-                        : TestDataGenerator.HeaderU8,
-                    line);
+                    quoting == CsvFieldQuoting.Always ? TestDataGenerator.HeaderQuotedU8 : TestDataGenerator.HeaderU8,
+                    line
+                );
                 headerRead = true;
                 continue;
             }
@@ -221,7 +224,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                         break;
                     default:
                         throw new XunitException(
-                            $"Invalid column count on line {index}: {Encoding.UTF8.GetString(line)}");
+                            $"Invalid column count on line {index}: {Encoding.UTF8.GetString(line)}"
+                        );
                 }
             }
 

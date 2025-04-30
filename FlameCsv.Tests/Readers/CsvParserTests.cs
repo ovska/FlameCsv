@@ -10,21 +10,20 @@ namespace FlameCsv.Tests.Readers;
 
 public class CsvReaderTests
 {
-    private const string Data =
-        """"
+    private const string Data = """"
         1,Alice,true,1.0,"Helsinki, Finland"
         2,Bob,false,2.0,"Stockholm, Sweden"
         3,"Jason ""The Great""",true,3.0,"Oslo, Norway"
 
         """";
 
-    public static TheoryData<NewlineToken, Mode, bool> ReadLineData
+    public static TheoryData<CsvNewline, Mode, bool> ReadLineData
     {
         get
         {
-            var data = new TheoryData<NewlineToken, Mode, bool>();
-            foreach (var newline in GlobalData.Enum<NewlineToken>())
-            foreach (var mode in (Mode[]) [Mode.RFC, Mode.Escape])
+            var data = new TheoryData<CsvNewline, Mode, bool>();
+            foreach (var newline in GlobalData.Enum<CsvNewline>())
+            foreach (var mode in (Mode[])[Mode.RFC, Mode.Escape])
             foreach (var trailingNewline in GlobalData.Booleans)
             {
                 data.Add(newline, mode, trailingNewline);
@@ -36,9 +35,9 @@ public class CsvReaderTests
 
     [Theory]
     [MemberData(nameof(ReadLineData))]
-    public void Should_Read_Lines(NewlineToken newline, Mode mode, bool trailingNewline)
+    public void Should_Read_Lines(CsvNewline newline, Mode mode, bool trailingNewline)
     {
-        string nlt = newline == NewlineToken.LF ? "\n" : "\r\n";
+        string nlt = newline == CsvNewline.LF ? "\n" : "\r\n";
         string data = Data.ReplaceLineEndings(nlt);
 
         if (!trailingNewline)
@@ -54,7 +53,8 @@ public class CsvReaderTests
                 """,
                 """
                 ^"The Great^"
-                """);
+                """
+            );
         }
 
         string[] expected =
@@ -77,17 +77,9 @@ public class CsvReaderTests
         ];
 
         var parser = new CsvReader<char>(
-            new CsvOptions<char>
-            {
-                Newline = newline switch
-                {
-                    NewlineToken.LF => "\n",
-                    NewlineToken.CRLF => "\r\n",
-                    _ => null!,
-                },
-                Escape = mode == Mode.Escape ? '^' : null,
-            },
-            CsvBufferReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64)));
+            new CsvOptions<char> { Newline = newline, Escape = mode == Mode.Escape ? '^' : null },
+            CsvBufferReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64))
+        );
 
         using var enumerator = parser.ParseRecords().GetEnumerator();
 
@@ -109,18 +101,17 @@ public class CsvReaderTests
     [Theory, InlineData(true), InlineData(false)]
     public void Should_Handle_Empty_Lines(bool crlf)
     {
-        const string data =
-            """
+        const string data = """
             1,2,3
 
             4,5,6
 
             """;
 
-        string newline = crlf ? "\r\n" : "\n";
         var parser = new CsvReader<char>(
-            new CsvOptions<char> { Newline = newline },
-            new ReadOnlySequence<char>(data.ReplaceLineEndings(newline).AsMemory()));
+            new CsvOptions<char> { Newline = crlf ? CsvNewline.CRLF : CsvNewline.LF },
+            new ReadOnlySequence<char>(data.ReplaceLineEndings(crlf ? "\r\n" : "\n").AsMemory())
+        );
 
         using var enumerator = parser.ParseRecords().GetEnumerator();
 
@@ -148,10 +139,8 @@ public class CsvReaderTests
                 """u8.ToArray();
 
         await using var reader = CsvBufferReader.Create(
-            new StreamReader(
-                new MemoryStream(data),
-                Encoding.UTF8,
-                bufferSize: data.Length - 1));
+            new StreamReader(new MemoryStream(data), Encoding.UTF8, bufferSize: data.Length - 1)
+        );
 
         CsvReadResult<char> result = await reader.ReadAsync(TestContext.Current.CancellationToken);
 

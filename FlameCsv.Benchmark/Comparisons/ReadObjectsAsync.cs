@@ -14,7 +14,9 @@ public class ReadObjectsAsync
 
     private static readonly CsvOptions<char> _flameCsvOptions = new()
     {
-        HasHeader = true, Newline = "\n", Converters = { new FloatTextParser(), }
+        HasHeader = true,
+        Newline = CsvNewline.LF,
+        Converters = { new FloatTextParser() },
     };
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
@@ -49,8 +51,13 @@ public class ReadObjectsAsync
     {
         using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
         await using var pipe = CsvBufferReader.Create(reader);
-        await foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(pipe, _flameCsvOptions, EntryTypeMap.Default)
-                           .ConfigureAwait(false))
+        await foreach (
+            var entry in new CsvTypeMapEnumerable<char, Entry>(
+                pipe,
+                _flameCsvOptions,
+                EntryTypeMap.Default
+            ).ConfigureAwait(false)
+        )
         {
             _ = entry;
         }

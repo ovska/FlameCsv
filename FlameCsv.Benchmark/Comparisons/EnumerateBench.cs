@@ -13,10 +13,13 @@ namespace FlameCsv.Benchmark.Comparisons;
 [MemoryDiagnoser]
 public class EnumerateBench
 {
-    [Params(false, true)] public bool ReadFields { get; set; }
-    [Params(false, true)] public bool Async { get; set; }
+    [Params(false, true)]
+    public bool ReadFields { get; set; }
 
-    private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = "\n" };
+    [Params(false, true)]
+    public bool Async { get; set; }
+
+    private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = CsvNewline.LF };
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
     {
@@ -41,7 +44,8 @@ public class EnumerateBench
 
         var parser = new CsvReader<byte>(
             _flameCsvOptions,
-            CsvBufferReader.Create(GetStream(), options: new() { NoDirectBufferAccess = true }));
+            CsvBufferReader.Create(GetStream(), options: new() { NoDirectBufferAccess = true })
+        );
 
         if (Async)
         {
@@ -74,14 +78,15 @@ public class EnumerateBench
     [Benchmark]
     public async Task _Sep()
     {
-        using var reader = Sep
-            .Reader(o => o with
-            {
-                Sep = new Sep(','),
-                CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-                HasHeader = true,
-                Unescape = false,
-            })
+        using var reader = Sep.Reader(o =>
+                o with
+                {
+                    Sep = new Sep(','),
+                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    HasHeader = true,
+                    Unescape = false,
+                }
+            )
             .From(GetReader());
 
         bool readFields = ReadFields;
@@ -187,6 +192,7 @@ public class EnumerateBench
     }
 
     private Stream GetStream() => new MemoryStream(_data, 0, _data.Length, writable: false, publiclyVisible: false);
+
     private TextReader GetReader() => new StreamReader(GetStream(), Encoding.UTF8);
 
     private readonly byte[] _data;
