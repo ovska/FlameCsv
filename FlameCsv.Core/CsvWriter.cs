@@ -51,19 +51,8 @@ public static partial class CsvWriter
         }
         catch
         {
-            try
-            {
-                if (isAsync)
-                {
-                    stream.DisposeAsync().AsTask().GetAwaiter().GetResult();
-                }
-                else
-                {
-                    stream.Dispose();
-                }
-            }
-            catch { }
-
+            // exception before we returned control to the caller
+            stream.Dispose();
             throw;
         }
     }
