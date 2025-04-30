@@ -54,12 +54,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         Writer = writer;
         Options = options;
 
-        ref readonly CsvDialect<T> dialect = ref options.Dialect;
-        _delimiter = dialect.Delimiter;
-        _quote = dialect.Quote;
-        _escape = dialect.Escape;
-        _isCRLF = dialect.Newline.IsCRLF();
-        _needsQuoting = dialect.NeedsQuoting;
+        _delimiter = T.CreateTruncating(options.Delimiter);
+        _quote = T.CreateTruncating(options.Quote);
+        _escape = options.Escape.HasValue ? T.CreateTruncating(options.Escape.Value) : null;
+        _isCRLF = options.Newline.IsCRLF();
+        _needsQuoting = options.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
         _rfc4180Escaper = new RFC4180Escaper<T>(quote: _quote);

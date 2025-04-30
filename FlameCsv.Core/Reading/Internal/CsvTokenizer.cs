@@ -43,7 +43,7 @@ internal abstract class CsvTokenizer<T>
 
 internal static class CsvTokenizer
 {
-    public static CsvPartialTokenizer<T>? CreateSimd<T>(ref readonly CsvDialect<T> dialect)
+    public static CsvPartialTokenizer<T>? CreateSimd<T>(CsvOptions<T> dialect)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (dialect.Escape.HasValue)
@@ -55,36 +55,34 @@ internal static class CsvTokenizer
 
         if (typeof(T) == typeof(byte))
         {
-            ref var dialectByte = ref Unsafe.As<CsvDialect<T>, CsvDialect<byte>>(ref Unsafe.AsRef(in dialect));
-            result = ForByte.CreateSimd(in dialectByte);
+            result = ForByte.CreateSimd((CsvOptions<byte>)(object)dialect);
         }
 
         if (typeof(T) == typeof(char))
         {
-            ref var dialectChar = ref Unsafe.As<CsvDialect<T>, CsvDialect<char>>(ref Unsafe.AsRef(in dialect));
-            result = ForChar.CreateSimd(in dialectChar);
+            result = ForChar.CreateSimd((CsvOptions<char>)(object)dialect);
         }
 
         return result as CsvPartialTokenizer<T>;
     }
 
-    public static CsvTokenizer<T> Create<T>(ref readonly CsvDialect<T> dialect)
+    public static CsvTokenizer<T> Create<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (dialect.Escape.HasValue)
+        if (options.Escape.HasValue)
         {
-            return new UnixTokenizer<T>(in dialect);
+            return new UnixTokenizer<T>(options);
         }
 
-        return dialect.Newline.IsCRLF()
-            ? new ScalarTokenizer<T, NewlineCRLF<T, NoOpVector<T>>>(dialect)
-            : new ScalarTokenizer<T, NewlineLF<T, NoOpVector<T>>>(dialect);
+        return options.Newline.IsCRLF()
+            ? new ScalarTokenizer<T, NewlineCRLF<T, NoOpVector<T>>>(options)
+            : new ScalarTokenizer<T, NewlineLF<T, NoOpVector<T>>>(options);
     }
 }
 
 file static class ForChar
 {
-    public static CsvPartialTokenizer<char>? CreateSimd(ref readonly CsvDialect<char> dialect)
+    public static CsvPartialTokenizer<char>? CreateSimd(CsvOptions<char> options)
     {
         // TODO: benchmark 256 vs 512 on non-x86 platforms; RuntimeInformation.ProcessArchitecture is X86 or X64.. etc
         // on x86 with AVX512, 256 is faster in all cases except 3% slower on dense non-quoted data
@@ -93,21 +91,21 @@ file static class ForChar
         // use "else" instead of just "if" to reduce JITted code size if multiple SIMD types are supported
         if (Vec256Char.IsSupported)
         {
-            return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineCRLF<char, Vec256Char>, Vec256Char>(dialect)
-                : new SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char>(dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<char, NewlineCRLF<char, Vec256Char>, Vec256Char>(options)
+                : new SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char>(options);
         }
         else if (Vec512Char.IsSupported)
         {
-            return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineCRLF<char, Vec512Char>, Vec512Char>(dialect)
-                : new SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char>(dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<char, NewlineCRLF<char, Vec512Char>, Vec512Char>(options)
+                : new SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char>(options);
         }
         else if (Vec128Char.IsSupported)
         {
-            return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineCRLF<char, Vec128Char>, Vec128Char>(dialect)
-                : new SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char>(dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<char, NewlineCRLF<char, Vec128Char>, Vec128Char>(options)
+                : new SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char>(options);
         }
 
         return null;
@@ -116,28 +114,28 @@ file static class ForChar
 
 file static class ForByte
 {
-    public static CsvPartialTokenizer<byte>? CreateSimd(ref readonly CsvDialect<byte> dialect)
+    public static CsvPartialTokenizer<byte>? CreateSimd(CsvOptions<byte> options)
     {
         // TODO: benchmark 256 vs 512 on non-x86 platforms
 
         // use if-else to reduce JITted code size if multiple SIMD types are supported
         if (Vec256Byte.IsSupported)
         {
-            return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec256Byte>, Vec256Byte>(dialect)
-                : new SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte>(dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec256Byte>, Vec256Byte>(options)
+                : new SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte>(options);
         }
         else if (Vec512Byte.IsSupported)
         {
-            return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec512Byte>, Vec512Byte>(dialect)
-                : new SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte>(dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec512Byte>, Vec512Byte>(options)
+                : new SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte>(options);
         }
         else if (Vec128Byte.IsSupported)
         {
-            return dialect.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec128Byte>, Vec128Byte>(dialect)
-                : new SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte>(dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec128Byte>, Vec128Byte>(options)
+                : new SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte>(options);
         }
 
         return null;

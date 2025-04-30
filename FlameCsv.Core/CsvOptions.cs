@@ -123,9 +123,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     {
         if (!IsReadOnly)
         {
-            _ = InitializeDialectCore();
-
-            // set to readonly only after the dialect has been validated
+            Validate();
             IsReadOnly = true;
         }
     }

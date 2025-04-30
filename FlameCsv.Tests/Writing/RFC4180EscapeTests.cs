@@ -9,7 +9,7 @@ file static class EscapeExt
 
     public static bool MustBeQuoted(this RFC4180Escaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
     {
-        if (field.IndexOfAny(Options.Dialect.NeedsQuoting) >= 0)
+        if (field.IndexOfAny(Options.NeedsQuoting) >= 0)
         {
             specialCount = escaper.CountEscapable(field);
             return true;
@@ -133,7 +133,7 @@ public static class RFC4180EscapeTests
         var options = new CsvOptions<char> { Quote = '|', Newline = newline };
         input = input.Replace("\r\n", newline.AsString());
 
-        bool needsQuoting = input.AsSpan().ContainsAny(options.Dialect.NeedsQuoting);
+        bool needsQuoting = input.AsSpan().ContainsAny(options.NeedsQuoting);
 
         if (!quotes.HasValue)
         {

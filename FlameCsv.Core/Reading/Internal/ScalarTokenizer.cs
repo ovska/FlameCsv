@@ -6,11 +6,13 @@ using System.Runtime.InteropServices;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-[SuppressMessage("ReSharper", "InlineTemporaryVariable")]
-internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect) : CsvTokenizer<T>
+internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : INewline<T>
 {
+    private readonly T _quote = T.CreateTruncating(options.Quote);
+    private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
     {
@@ -19,8 +21,8 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvDialect<T> dialect) : CsvT
             return 0;
         }
 
-        T quote = dialect.Quote;
-        T delimiter = dialect.Delimiter;
+        T quote = _quote;
+        T delimiter = _delimiter;
 
         ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = (uint)startIndex;

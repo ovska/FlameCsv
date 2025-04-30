@@ -24,17 +24,17 @@ public class TokenizationBench
     private string CharData => Alt ? _chars1 : _chars0;
     private byte[] ByteData => Alt ? _bytes1 : _bytes0;
 
-    private static readonly CsvDialect<char> _dialectChar = new CsvDialect<char>
+    private static readonly CsvOptions<char> _dialectChar = new CsvOptions<char>
     {
         Delimiter = ',',
         Quote = '"',
         Newline = CsvNewline.LF,
     };
 
-    private static readonly CsvDialect<byte> _dialectByte = new CsvDialect<byte>
+    private static readonly CsvOptions<byte> _dialectByte = new CsvOptions<byte>
     {
-        Delimiter = (byte)',',
-        Quote = (byte)'"',
+        Delimiter = ',',
+        Quote = '"',
         Newline = CsvNewline.LF,
     };
 
