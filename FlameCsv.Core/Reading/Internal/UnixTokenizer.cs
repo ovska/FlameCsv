@@ -89,7 +89,7 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
 
         if (readToEnd && inEscape)
         {
-            ThrowLeftInEscape();
+            ThrowHelper.ThrowLeftInEscape();
         }
 
         if (readToEnd && index == data.Length && metaIndex < metaBuffer.Length)
@@ -105,8 +105,11 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
 
         return metaIndex;
     }
+}
 
-    private static void ThrowLeftInEscape()
+file static class ThrowHelper
+{
+    public static void ThrowLeftInEscape()
     {
         throw new CsvFormatException("The final field ended in an escape token.");
     }
