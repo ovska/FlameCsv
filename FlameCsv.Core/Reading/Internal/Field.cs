@@ -81,6 +81,14 @@ internal readonly struct Field
         get => _specialCount & ~IsEscapeFlag;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Deconstruct(out int start, out int length)
+    {
+        start = Start;
+        length = Length;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void GetRawSpan(out int start, out int length)
     {
         // Check bit 31 (NeedsProcessingFlag) and bytes 6-7 (_specialCount)
@@ -94,6 +102,16 @@ internal readonly struct Field
             start -= 1;
             length += 2;
         }
+    }
+
+    public override string ToString()
+    {
+        if (Unsafe.BitCast<Field, ulong>(this) == 0)
+        {
+            return "{ Uninitialized }";
+        }
+
+        return $"{{ Start: {Start}, Length: {Length}, SpecialCount: {SpecialCount}, NeedsProcessing: {NeedsProcessing}, IsEscape: {IsEscape} }}";
     }
 }
 

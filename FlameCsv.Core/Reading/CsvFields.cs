@@ -38,7 +38,7 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     /// <remarks>
     /// Contains one extra field at start denoting the start index inf <see cref="Data"/>.
     /// </remarks>
-    internal ReadOnlySpan<Meta> Fields
+    internal ReadOnlySpan<Field> Fields
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _fieldMeta.AsSpanUnsafe();
