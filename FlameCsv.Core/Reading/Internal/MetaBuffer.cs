@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
+using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -16,26 +18,21 @@ internal sealed class MetaBuffer : IDisposable
     /// </summary>
     private Meta[] _array;
 
-    /// <summary>
-    /// Number of fields that have been consumed from the buffer.
-    /// </summary>
-    private int _index;
-
-    /// <summary>
-    /// Number of fields that have been parsed to the buffer.
-    /// </summary>
-    private int _count;
+    private int _metaCount;
 
     /// <summary>
     /// Realized fields.
     /// </summary>
-    private ListBuilder<Field> _fields; // don't make me readonly
+    private Field[] _fields;
 
     /// <summary>
     /// List of realized records. The indexes point to <see cref="_fields"/>.
     /// </summary>
     private ListBuilder<FieldRange> _records; // don't make me readonly
 
+    /// <summary>
+    /// Index of the cursor in pre-parsed records.
+    /// </summary>
     private int _recordIndex = 0;
 
     public MetaBuffer()
@@ -44,10 +41,8 @@ internal sealed class MetaBuffer : IDisposable
 
         _array = ArrayPool<Meta>.Shared.Rent(capacity);
         _array[0] = Meta.StartOfData;
-        _index = 0;
-        _count = 0;
 
-        _fields = new ListBuilder<Field>(capacity);
+        _fields = ArrayPool<Field>.Shared.Rent(capacity);
         _records = new ListBuilder<FieldRange>(capacity / 8);
         _recordIndex = 0;
     }
@@ -60,8 +55,8 @@ internal sealed class MetaBuffer : IDisposable
     public Span<Meta> GetUnreadBuffer(out int startIndex)
     {
         ObjectDisposedException.ThrowIf(_array.Length == 0, this);
-        startIndex = _array[_count].NextStart;
-        return _array.AsSpan(start: _count + 1);
+        startIndex = _array[_metaCount].NextStart;
+        return _array.AsSpan(start: _metaCount + 1);
     }
 
     /// <summary>
@@ -71,9 +66,9 @@ internal sealed class MetaBuffer : IDisposable
     public int SetFieldsRead(int count)
     {
         Debug.Assert(count >= 0);
-        Debug.Assert((_count + count) < _array.Length);
-        _count += count;
-        return _array[_count].NextStart;
+        Debug.Assert((_metaCount + count) < _array.Length);
+        _metaCount += count;
+        return _array[_metaCount].NextStart;
     }
 
     /// <summary>
@@ -82,7 +77,7 @@ internal sealed class MetaBuffer : IDisposable
     /// <returns></returns>
     public void EnsureCapacity()
     {
-        if (_count >= (_array.Length * 15 / 16))
+        if (_metaCount >= (_array.Length * 15 / 16))
         {
             ArrayPool<Meta>.Shared.Resize(ref _array, _array.Length * 2);
         }
@@ -96,7 +91,7 @@ internal sealed class MetaBuffer : IDisposable
     public int Reset()
     {
         // nothing yet
-        if (_index == 0 || _count == 0)
+        if (_recordIndex == 0 || _metaCount == 0)
         {
             return 0;
         }
@@ -104,13 +99,25 @@ internal sealed class MetaBuffer : IDisposable
         return ResetCore();
     }
 
+    private int GetConsumedMetaCount()
+    {
+        FieldRange lastRecord = _records.AsSpan()[_recordIndex - 1];
+        return lastRecord.Start + lastRecord.Length;
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private int ResetCore()
     {
-        Meta lastRead = _array[_index];
+        Debug.Assert(_recordIndex > 0);
+
+        // get the last record read, and get the end index of the final field in it.
+        // we can fetch the original Meta struct from the array using the index (offset by 1)
+        int index = GetConsumedMetaCount() + 1;
+
+        Meta lastRead = _array[index];
         int offset = lastRead.NextStart;
 
-        Span<Meta> buffer = _array.AsSpan(start: 1 + _index, length: _count - _index);
+        Span<Meta> buffer = _array.AsSpan(start: 1 + index, length: _metaCount - index);
 
         foreach (ref var meta in buffer)
         {
@@ -131,14 +138,12 @@ internal sealed class MetaBuffer : IDisposable
 
         buffer.CopyTo(_array.AsSpan(1));
 
-        _count -= _index;
-        _index = 0;
+        _metaCount -= index;
 
         Debug.Assert(_array[0] == Meta.StartOfData);
         Debug.Assert(lastRead.IsEOL);
-        Debug.Assert(_count >= 0);
+        Debug.Assert(_metaCount >= 0);
 
-        _fields.Reset();
         _records.Reset();
 
         return offset;
@@ -158,7 +163,7 @@ internal sealed class MetaBuffer : IDisposable
             FieldRange range = records[_recordIndex++];
             fields = new FieldSegment
             {
-                array = _fields.UnsafeGetArray(),
+                array = _fields,
                 offset = range.Start,
                 count = range.Length,
             };
@@ -171,29 +176,27 @@ internal sealed class MetaBuffer : IDisposable
 
     public void Initialize()
     {
-        _index = 0;
-        _count = 0;
+        _metaCount = 0;
         ArrayPool<Meta>.Shared.EnsureCapacity(ref _array, FlameCsvGlobalOptions.ReadAheadCount);
         _array[0] = Meta.StartOfData;
 
-        _fields.Reset();
+        ArrayPool<Field>.Shared.EnsureCapacity(ref _fields, FlameCsvGlobalOptions.ReadAheadCount);
+
+        _recordIndex = 0;
         _records.Reset();
     }
 
     public void Dispose()
     {
-        _index = 0;
-        _count = 0;
+        _metaCount = 0;
+        _recordIndex = 0;
 
-        Meta[] local = _array;
+        ArrayPool<Meta>.Shared.Return(_array);
         _array = [];
 
-        if (local.Length > 0)
-        {
-            ArrayPool<Meta>.Shared.Return(local);
-        }
+        ArrayPool<Field>.Shared.Return(_fields);
+        _fields = [];
 
-        _fields.Dispose();
         _records.Dispose();
     }
 
@@ -247,10 +250,20 @@ internal sealed class MetaBuffer : IDisposable
 
     internal ref Meta[] UnsafeGetArrayRef() => ref _array;
 
-    private string DebuggerDisplay =>
-        _array.Length == 0
-            ? "{ Empty }"
-            : $"{{ {_count} read, {_count - _index} available, range: [{_array[_index].NextStart}..{_array[_count].NextStart}] }}";
+    private string DebuggerDisplay
+    {
+        get
+        {
+            if (_array.Length == 0)
+            {
+                return "{ Empty }";
+            }
+
+            int consumed = GetConsumedMetaCount();
+
+            return $"{{ {_metaCount} read, {_metaCount - consumed} available, range: [{_array[consumed].NextStart}..{_array[_metaCount].NextStart}] }}";
+        }
+    }
 
     public override string ToString() => DebuggerDisplay;
 
@@ -264,9 +277,97 @@ internal sealed class MetaBuffer : IDisposable
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public Meta[] Items =>
-            _buffer._array.Length == 0
-                ? []
-                : _buffer._array.AsSpan(Math.Max(1, _buffer._index), _buffer._count).ToArray();
+        public Meta[] Items
+        {
+            get
+            {
+                Meta[] array = _buffer._array;
+
+                if (array.Length == 0)
+                {
+                    return [];
+                }
+
+                return array.AsSpan(Math.Max(1, _buffer.GetConsumedMetaCount()), _buffer._metaCount).ToArray();
+            }
+        }
+    }
+
+    public void Process<T, TTrimmer>(ReadOnlySpan<T> data, T quote)
+        where T : unmanaged, IBinaryInteger<T>
+        where TTrimmer : struct, ITrimmer
+    {
+        int fieldCount = _metaCount;
+
+        ref Meta meta = ref MemoryMarshal.GetArrayDataReference(_array);
+        ref Field field = ref MemoryMarshal.GetArrayDataReference(_fields);
+        ref T first = ref MemoryMarshal.GetReference(data);
+
+        nint metaIndex = 1;
+        nint fieldIndex = 0;
+        nint recordStart = 0;
+
+        int start = meta.NextStart;
+
+        while (metaIndex <= fieldCount)
+        {
+            Meta current = Unsafe.Add(ref meta, metaIndex);
+            int length = current.End - start;
+
+            // Safety check for length
+            if ((uint)length > ushort.MaxValue)
+            {
+                Throw.Argument("Field length exceeds maximum allowed", "");
+            }
+
+            int specialCount = (int)current.SpecialCount;
+            bool isEscape = current.IsEscape;
+
+            // Safety check for special count
+            if (specialCount > Field.MaxSpecialCount)
+            {
+                // TODO: better exception
+                Throw.Argument("Special count exceeds maximum allowed", "");
+            }
+
+            ReadOnlySpan<T> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, start), length);
+            TTrimmer.Trim(ref span);
+
+            if (current.HasControlCharacters)
+            {
+                if (Unsafe.Add(ref first, start) != quote || Unsafe.Add(ref first, start + length - 1) != quote)
+                {
+                    IndexOfUnescaper.Invalid(span, in current);
+                }
+
+                start++;
+                length -= 2;
+
+                Unsafe.Add(ref field, fieldIndex) = new Field(
+                    start,
+                    (ushort)length,
+                    (ushort)specialCount,
+                    isEscape,
+                    needsProcessing: isEscape || specialCount != 2
+                );
+            }
+            else
+            {
+                Unsafe.Add(ref field, fieldIndex) = new Field(start, (ushort)length);
+            }
+
+            start = current.NextStart;
+            metaIndex++;
+            fieldIndex++;
+
+            if (current.IsEOL)
+            {
+                _records.Push(new FieldRange((int)recordStart, (int)(fieldIndex - recordStart)));
+                recordStart = fieldIndex;
+            }
+        }
+
+        Debug.Assert(metaIndex <= _array.Length);
+        Debug.Assert(fieldIndex <= _fields.Length);
     }
 }
