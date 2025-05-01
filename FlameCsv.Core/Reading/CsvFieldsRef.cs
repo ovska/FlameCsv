@@ -19,10 +19,9 @@ namespace FlameCsv.Reading;
 public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Dialect<T> _dialect;
+    private readonly CsvReader<T> _reader;
     private readonly ref T _data;
     private readonly Span<T> _unescapeBuffer;
-    private readonly Allocator<T> _allocator;
     private readonly ref Meta _firstMeta;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -31,8 +30,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
         CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = new Dialect<T>(reader.Options);
-        _allocator = reader._unescapeAllocator;
+        _reader = reader;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
         FieldCount = fieldMeta.Length - 1;
@@ -41,16 +39,14 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(
-        Dialect<T> dialect,
-        Allocator<T> allocator,
+        CsvReader<T> reader,
         ref T data,
         ref Meta fieldsRef,
         int fieldsLength,
         Span<T> unescapeBuffer
     )
     {
-        _dialect = dialect;
-        _allocator = allocator;
+        _reader = reader;
         _data = ref data;
         _firstMeta = ref fieldsRef;
         FieldCount = fieldsLength - 1;
@@ -72,8 +68,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
         CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = new Dialect<T>(reader.Options);
-        _allocator = allocator;
+        _reader = reader;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);
         FieldCount = fieldMeta.Length - 1;
@@ -101,7 +96,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
 
             ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
             int start = Unsafe.Add(ref _firstMeta, index).NextStart;
-            return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, _allocator);
+            return meta.GetField(_reader._dialect, start, ref _data, _unescapeBuffer, _reader._unescapeAllocator);
         }
     }
 
@@ -154,7 +149,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
 
         ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
         int start = Unsafe.Add(ref _firstMeta, index).NextStart;
-        return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, allocator: null);
+        return meta.GetField(_reader._dialect, start, ref _data, _unescapeBuffer, allocator: null);
     }
 
     /// <inheritdoc cref="CsvFields{T}.Record"/>
@@ -218,7 +213,6 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     {
         if (
             FieldCount == 0
-            || Unsafe.IsNullRef(in _dialect)
             || Unsafe.IsNullRef(in _data)
             || Unsafe.IsNullRef(in _firstMeta)
         )

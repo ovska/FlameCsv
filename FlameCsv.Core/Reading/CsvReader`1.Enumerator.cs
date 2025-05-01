@@ -94,22 +94,16 @@ partial class CsvReader<T>
 
         private ref T _data;
 
-        private readonly Dialect<T> _dialect;
-        private readonly Allocator<T> _allocator;
-
         internal Enumerator(CsvReader<T> reader)
         {
             _reader = reader;
-            _allocator = reader._unescapeAllocator;
-            _dialect = new Dialect<T>(reader.Options);
         }
 
         /// <summary>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvFieldsRef<T> Current =>
-            new(_dialect, _allocator, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan<T>());
+        public CsvFieldsRef<T> Current => new(_reader, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan<T>());
 
         /// <summary>
         /// Attempts to read the next record.

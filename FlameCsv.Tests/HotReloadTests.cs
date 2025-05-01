@@ -14,7 +14,7 @@ public static class HotReloadTests
     [Fact]
     public static void Should_Clear_Caches_On_Hot_Reload()
     {
-        if (!MetadataUpdater.IsSupported) return;
+        Assert.SkipUnless(MetadataUpdater.IsSupported, "Hot reload is not supported.");
 
         // options
         var o = new CsvOptions<char>();

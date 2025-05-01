@@ -136,7 +136,8 @@ internal sealed class MetaBuffer : IDisposable
 
         ref ulong meta = ref Unsafe.Add(
             ref Unsafe.As<Meta, ulong>(ref MemoryMarshal.GetArrayDataReference(_array)),
-            _index + 1);
+            _index + 1
+        );
 
         int end = _count - _index;
         int unrolledEnd = end - 8;
@@ -206,10 +207,12 @@ internal sealed class MetaBuffer : IDisposable
         // ran out of data
         return false;
 
-    Found:
+        Found:
         Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
         {
-            array = _array, count = pos + 1, offset = _index,
+            array = _array,
+            count = pos + 1,
+            offset = _index,
         };
 
         _index += pos;
@@ -254,7 +257,12 @@ internal sealed class MetaBuffer : IDisposable
             }
 
             var array = new Meta[4];
-            var segment = new MetaSegment { array = array, offset = 1, count = 2 };
+            var segment = new MetaSegment
+            {
+                array = array,
+                offset = 1,
+                count = 2,
+            };
             var cast = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref segment);
             Debug.Assert(cast.Array == array);
             Debug.Assert(cast.Offset == 1);
@@ -262,12 +270,13 @@ internal sealed class MetaBuffer : IDisposable
         }
 #endif
     }
+
     // ReSharper restore NotAccessedField.Local
 
     internal ref Meta[] UnsafeGetArrayRef() => ref _array;
 
-    private string DebuggerDisplay
-        => _array.Length == 0
+    private string DebuggerDisplay =>
+        _array.Length == 0
             ? "{ Empty }"
             : $"{{ {_count} read, {_count - _index} available, range: [{_array[_index].NextStart}..{_array[_count].NextStart}] }}";
 
@@ -283,8 +292,8 @@ internal sealed class MetaBuffer : IDisposable
         }
 
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public Meta[] Items
-            => _buffer._array.Length == 0
+        public Meta[] Items =>
+            _buffer._array.Length == 0
                 ? []
                 : _buffer._array.AsSpan(Math.Max(1, _buffer._index), _buffer._count).ToArray();
     }

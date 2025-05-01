@@ -56,6 +56,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// Current state of the parser.
     /// </summary>
     private State _state;
+    
+    internal readonly Dialect<T> _dialect;
 
     /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
     public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv)
@@ -84,6 +86,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         _reader = reader;
         _skipBOM = typeof(T) == typeof(byte);
         _state = State.Initialized;
+        _dialect = new Dialect<T>(options);
 
         _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
