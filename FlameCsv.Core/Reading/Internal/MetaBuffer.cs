@@ -26,12 +26,30 @@ internal sealed class MetaBuffer : IDisposable
     /// </summary>
     private int _count;
 
+    /// <summary>
+    /// Realized fields.
+    /// </summary>
+    private ListBuilder<Field> _fields; // don't make me readonly
+
+    /// <summary>
+    /// List of realized records. The indexes point to <see cref="_fields"/>.
+    /// </summary>
+    private ListBuilder<FieldRange> _records; // don't make me readonly
+
+    private int _recordIndex = 0;
+
     public MetaBuffer()
     {
-        _array = ArrayPool<Meta>.Shared.Rent(FlameCsvGlobalOptions.ReadAheadCount);
+        int capacity = FlameCsvGlobalOptions.ReadAheadCount;
+
+        _array = ArrayPool<Meta>.Shared.Rent(capacity);
         _array[0] = Meta.StartOfData;
         _index = 0;
         _count = 0;
+
+        _fields = new ListBuilder<Field>(capacity);
+        _records = new ListBuilder<FieldRange>(capacity / 8);
+        _recordIndex = 0;
     }
 
     /// <summary>
@@ -120,6 +138,9 @@ internal sealed class MetaBuffer : IDisposable
         Debug.Assert(lastRead.IsEOL);
         Debug.Assert(_count >= 0);
 
+        _fields.Reset();
+        _records.Reset();
+
         return offset;
     }
 
@@ -128,95 +149,24 @@ internal sealed class MetaBuffer : IDisposable
     /// </summary>
     /// <param name="fields">Fields in the record</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPop(out ArraySegment<Meta> fields)
+    public bool TryPop(out ArraySegment<Field> fields)
     {
-        Unsafe.SkipInit(out fields);
+        ReadOnlySpan<FieldRange> records = _records.AsSpan();
 
-        const ulong mask = 1UL << 31;
-
-        ref ulong meta = ref Unsafe.Add(
-            ref Unsafe.As<Meta, ulong>(ref MemoryMarshal.GetArrayDataReference(_array)),
-            _index + 1
-        );
-
-        int end = _count - _index;
-        int unrolledEnd = end - 8;
-        int pos = 0;
-
-        while (pos < unrolledEnd)
+        if (_recordIndex < records.Length)
         {
-            if ((Unsafe.Add(ref meta, pos) & mask) != 0)
+            FieldRange range = records[_recordIndex++];
+            fields = new FieldSegment
             {
-                pos += 1;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 1) & mask) != 0)
-            {
-                pos += 2;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 2) & mask) != 0)
-            {
-                pos += 3;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 3) & mask) != 0)
-            {
-                pos += 4;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 4) & mask) != 0)
-            {
-                pos += 5;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 5) & mask) != 0)
-            {
-                pos += 6;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 6) & mask) != 0)
-            {
-                pos += 7;
-                goto Found;
-            }
-
-            if ((Unsafe.Add(ref meta, pos + 7) & mask) != 0)
-            {
-                pos += 8;
-                goto Found;
-            }
-
-            pos += 8;
+                array = _fields.UnsafeGetArray(),
+                offset = range.Start,
+                count = range.Length,
+            };
+            return true;
         }
 
-        while (pos < end)
-        {
-            if ((Unsafe.Add(ref meta, pos++) & mask) != 0)
-            {
-                goto Found;
-            }
-        }
-
-        // ran out of data
+        fields = default;
         return false;
-
-        Found:
-        Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
-        {
-            array = _array,
-            count = pos + 1,
-            offset = _index,
-        };
-
-        _index += pos;
-        return true;
     }
 
     public void Initialize()
@@ -225,6 +175,9 @@ internal sealed class MetaBuffer : IDisposable
         _count = 0;
         ArrayPool<Meta>.Shared.EnsureCapacity(ref _array, FlameCsvGlobalOptions.ReadAheadCount);
         _array[0] = Meta.StartOfData;
+
+        _fields.Reset();
+        _records.Reset();
     }
 
     public void Dispose()
@@ -239,39 +192,58 @@ internal sealed class MetaBuffer : IDisposable
         {
             ArrayPool<Meta>.Shared.Return(local);
         }
+
+        _fields.Dispose();
+        _records.Dispose();
     }
 
-    // ReSharper disable NotAccessedField.Local
-    private struct MetaSegment
+    private readonly struct FieldRange
     {
-        public Meta[]? array;
+        public int Start { get; }
+        public int Length { get; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public FieldRange(int start, int length)
+        {
+            Start = start;
+            Length = length;
+        }
+    }
+
+    private struct FieldSegment
+    {
+        public Field[]? array;
         public int offset;
         public int count;
 
-#if DEBUG
-        static MetaSegment()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static implicit operator ArraySegment<Field>(FieldSegment segment)
         {
-            if (Unsafe.SizeOf<MetaSegment>() != Unsafe.SizeOf<ArraySegment<Meta>>())
+            return Unsafe.As<FieldSegment, ArraySegment<Field>>(ref segment);
+        }
+
+#if DEBUG
+        static FieldSegment()
+        {
+            if (Unsafe.SizeOf<FieldSegment>() != Unsafe.SizeOf<ArraySegment<Field>>())
             {
                 throw new InvalidOperationException("MetaSegment has unexpected size");
             }
 
-            var array = new Meta[4];
-            var segment = new MetaSegment
+            var array = new Field[4];
+            var segment = new FieldSegment
             {
                 array = array,
                 offset = 1,
                 count = 2,
             };
-            var cast = Unsafe.As<MetaSegment, ArraySegment<Meta>>(ref segment);
+            var cast = Unsafe.As<FieldSegment, ArraySegment<Field>>(ref segment);
             Debug.Assert(cast.Array == array);
             Debug.Assert(cast.Offset == 1);
             Debug.Assert(cast.Count == 2);
         }
 #endif
     }
-
-    // ReSharper restore NotAccessedField.Local
 
     internal ref Meta[] UnsafeGetArrayRef() => ref _array;
 

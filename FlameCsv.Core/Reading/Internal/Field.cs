@@ -1,7 +1,5 @@
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Reading.Internal;
@@ -99,93 +97,10 @@ internal readonly struct Field
     }
 }
 
-[SkipLocalsInit]
-internal struct ListBuilder<T> : IDisposable
-    where T : struct
-{
-    private T[] _array;
-    private int _count;
-
-    public readonly int Count
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _count;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ListBuilder(int capacity = 512)
-    {
-        _array = ArrayPool<T>.Shared.Rent(capacity);
-        _count = 0;
-    }
-
-    /// <summary>
-    /// Allocates <paramref name="count"/> elements in the array and returns a span to write to.
-    /// </summary>
-    public Span<T> ResetAndGetCapacitySpan(int count)
-    {
-        _count = count;
-
-        if ((uint)_count > (uint)_array.Length)
-        {
-            int newSize = Math.Max(_array.Length * 2, _count);
-            ArrayPool<T>.Shared.Resize(ref _array, newSize);
-        }
-
-        return new Span<T>(_array, 0, _count);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Reset() => _count = 0;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ReadOnlySpan<T> AsSpan() => MemoryMarshal.CreateReadOnlySpan(ref _array[0], _count);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ref T UnsafeGetRef(out int count)
-    {
-        count = _count;
-        return ref MemoryMarshal.GetArrayDataReference(_array);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Push(T item)
-    {
-        if ((uint)_count >= (uint)_array.Length)
-        {
-            PushWithResize(item);
-        }
-        else
-        {
-            _array[_count++] = item;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void PushWithResize(T item)
-    {
-        int newSize = Math.Max(_array.Length * 2, _count + 1);
-        ArrayPool<T>.Shared.Resize(ref _array, newSize);
-        _array[_count++] = item;
-    }
-
-    public void Dispose()
-    {
-        if (_array.Length > 0)
-        {
-            ArrayPool<T>.Shared.Return(_array);
-            _array = [];
-        }
-    }
-}
-
 internal sealed class FieldStack : IDisposable
 {
     private ListBuilder<Range> _records;
     private ListBuilder<Field> _fields;
-
-    private int _currentStart;
-    private int _currentLength;
 
     public FieldStack(int capacity = 512)
     {
@@ -196,8 +111,6 @@ internal sealed class FieldStack : IDisposable
     {
         _fields.Reset();
         _records.Reset();
-        _currentStart = 0;
-        _currentLength = 0;
     }
 
     public ReadOnlySpan<Range> Records
