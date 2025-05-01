@@ -14,7 +14,7 @@ namespace FlameCsv.Reading.Internal;
 internal readonly struct Field
 {
     internal const int MaxSpecialCount = 0x7FFF; // Maximum value for special count (15 bits)
-    
+
     // Constants for bit masks
     private const int NeedsProcessingFlag = unchecked((int)0x80000000);
     private const int IsEscapeFlag = unchecked((int)0x8000);
@@ -28,16 +28,22 @@ internal readonly struct Field
     [FieldOffset(6)]
     private readonly ushort _specialCount; // 15 bits for count, 1 bit for isEscape
 
-    // Constructor for regular fields
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Field(int start, ushort length)
     {
-        _startAndFlag = start & ~NeedsProcessingFlag; // Clear flag bit
+        _startAndFlag = start;
         _length = length;
         _specialCount = 0;
     }
 
-    // Constructor for fields with control characters
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Field(int start, ushort length, ushort specialCount, bool needsProcessing)
+    {
+        _startAndFlag = start | (needsProcessing ? NeedsProcessingFlag : 0);
+        _length = length;
+        _specialCount = specialCount;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Field(int start, ushort length, ushort specialCount, bool isEscape, bool needsProcessing)
     {
@@ -47,19 +53,50 @@ internal readonly struct Field
     }
 
     // Properties for data access
-    public int Start => _startAndFlag & ~NeedsProcessingFlag;
+    public int Start
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _startAndFlag & ~NeedsProcessingFlag;
+    }
 
-    public int Length => _length;
+    public int Length
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _length;
+    }
 
-    public bool NeedsProcessing => (_startAndFlag & NeedsProcessingFlag) != 0;
+    public bool NeedsProcessing
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (_startAndFlag & NeedsProcessingFlag) != 0;
+    }
 
-    public bool IsEscape => (_specialCount & IsEscapeFlag) != 0;
+    public bool IsEscape
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (_specialCount & IsEscapeFlag) != 0;
+    }
 
-    public int SpecialCount => _specialCount & ~IsEscapeFlag;
+    public int SpecialCount
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _specialCount & ~IsEscapeFlag;
+    }
 
-    public int QuoteCount => IsEscape ? 2 : SpecialCount;
+    public void GetRawSpan(out int start, out int length)
+    {
+        // Check bit 31 (NeedsProcessingFlag) and bytes 6-7 (_specialCount)
+        const ulong mask = (1UL << 31) | (0xFFFFUL << 48); // won't work on Big Endian
 
-    public int EscapeCount => IsEscape ? SpecialCount : 0;
+        start = Start;
+        length = Length;
+
+        if ((Unsafe.BitCast<Field, ulong>(this) & mask) != 0)
+        {
+            start -= 1;
+            length += 2;
+        }
+    }
 }
 
 [SkipLocalsInit]
