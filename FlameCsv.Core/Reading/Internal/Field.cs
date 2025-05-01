@@ -2,84 +2,64 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Reading.Internal;
 
 /// <summary>
 /// Represents a field in the CSV data.
 /// </summary>
+[StructLayout(LayoutKind.Explicit, Size = 8)]
 [SkipLocalsInit]
 internal readonly struct Field
 {
-    private readonly int _startAndFlag;
-    private readonly int _length;
+    internal const int MaxSpecialCount = 0x7FFF; // Maximum value for special count (15 bits)
+    
+    // Constants for bit masks
+    private const int NeedsProcessingFlag = unchecked((int)0x80000000);
+    private const int IsEscapeFlag = unchecked((int)0x8000);
 
+    [FieldOffset(0)]
+    private readonly int _startAndFlag; // 31 bits for start, 1 bit for needsProcessing
+
+    [FieldOffset(4)]
+    private readonly ushort _length; // 16 bits for length (up to 65,535)
+
+    [FieldOffset(6)]
+    private readonly ushort _specialCount; // 15 bits for count, 1 bit for isEscape
+
+    // Constructor for regular fields
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Field(int start, int length)
+    public Field(int start, ushort length)
     {
-        _startAndFlag = start;
+        _startAndFlag = start & ~NeedsProcessingFlag; // Clear flag bit
         _length = length;
+        _specialCount = 0;
     }
 
+    // Constructor for fields with control characters
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Field(int start, int length, bool needsProcessing)
+    public Field(int start, ushort length, ushort specialCount, bool isEscape, bool needsProcessing)
     {
-        _startAndFlag = start | (needsProcessing ? Flag : 0);
+        _startAndFlag = start | (needsProcessing ? NeedsProcessingFlag : 0);
         _length = length;
+        _specialCount = (ushort)(specialCount | (isEscape ? IsEscapeFlag : 0));
     }
 
-    private const int Flag = unchecked((int)0x80000000);
+    // Properties for data access
+    public int Start => _startAndFlag & ~NeedsProcessingFlag;
 
-    /// <summary>
-    /// Returns the start position of the field in the source data,
-    /// or the start position of the field after trimming wrapping quotes if <see cref="NeedsProcessing"/> is <c>false</c>.
-    /// </summary>
-    public int Start
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _startAndFlag & ~Flag;
-    }
+    public int Length => _length;
 
-    /// <summary>
-    /// Returns the length of the field,
-    /// or length of the field after trimming wrapping quotes if <see cref="NeedsProcessing"/> is <c>false</c>.
-    /// </summary>
-    public int Length
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _length;
-    }
+    public bool NeedsProcessing => (_startAndFlag & NeedsProcessingFlag) != 0;
 
-    /// <summary>
-    /// Returns <c>true</c> if the field needs processing.
-    /// The field can be constructed from the source data directly if returns <c>false</c>.
-    /// </summary>
-    public bool NeedsProcessing
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (_startAndFlag & Flag) != 0;
-    }
-}
+    public bool IsEscape => (_specialCount & IsEscapeFlag) != 0;
 
-[SkipLocalsInit]
-internal readonly struct FieldMetadata
-{
-    public required int Start { get; init; }
-    public required int Length { get; init; }
-    public int QuoteCount { get; init; }
-    public int EscapeCount { get; init; }
+    public int SpecialCount => _specialCount & ~IsEscapeFlag;
 
-    public bool NeedsUnescaping
-    {
-        // needs unescaping if quote count is not 0 or 2, or there are escapes
-        get => ((QuoteCount & ~2) | EscapeCount) != 0;
-    }
+    public int QuoteCount => IsEscape ? 2 : SpecialCount;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Field AsField()
-    {
-        return new Field(Start, Length, NeedsUnescaping);
-    }
+    public int EscapeCount => IsEscape ? SpecialCount : 0;
 }
 
 [SkipLocalsInit]
@@ -103,17 +83,19 @@ internal struct ListBuilder<T> : IDisposable
     }
 
     /// <summary>
-    /// Allocates <paramref name="capacity"/> elements in the array and returns a span to write to.
+    /// Allocates <paramref name="count"/> elements in the array and returns a span to write to.
     /// </summary>
-    public Span<T> ResetAndGetCapacitySpan(int capacity)
+    public Span<T> ResetAndGetCapacitySpan(int count)
     {
-        if ((uint)capacity > (uint)_array.Length)
+        _count = count;
+
+        if ((uint)_count > (uint)_array.Length)
         {
-            int newSize = Math.Max(_array.Length * 2, capacity);
+            int newSize = Math.Max(_array.Length * 2, _count);
             ArrayPool<T>.Shared.Resize(ref _array, newSize);
         }
 
-        return new Span<T>(_array, 0, capacity);
+        return new Span<T>(_array, 0, _count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -164,7 +146,6 @@ internal sealed class FieldStack : IDisposable
 {
     private ListBuilder<Range> _records;
     private ListBuilder<Field> _fields;
-    private ListBuilder<FieldMetadata> _fieldMetas;
 
     private int _currentStart;
     private int _currentLength;
@@ -172,13 +153,11 @@ internal sealed class FieldStack : IDisposable
     public FieldStack(int capacity = 512)
     {
         _fields = new ListBuilder<Field>(capacity);
-        _fieldMetas = new ListBuilder<FieldMetadata>(capacity);
     }
 
     public void Reset()
     {
         _fields.Reset();
-        _fieldMetas.Reset();
         _records.Reset();
         _currentStart = 0;
         _currentLength = 0;
@@ -196,42 +175,77 @@ internal sealed class FieldStack : IDisposable
         get => _fields.AsSpan();
     }
 
-    public ReadOnlySpan<FieldMetadata> FieldMetas
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fieldMetas.AsSpan();
-    }
-
-    public void Process(ReadOnlySpan<Meta> fields)
+    public void Process<T, TTrimmer>(ReadOnlySpan<Meta> fields, ReadOnlySpan<T> data, T quote)
+        where T : unmanaged, IBinaryInteger<T>
+        where TTrimmer : struct, ITrimmer
     {
         if (fields.IsEmpty)
             return;
 
         int fieldCount = fields.Length - 1;
-
         Span<Field> fieldSpan = _fields.ResetAndGetCapacitySpan(fieldCount);
-        Span<FieldMetadata> fieldMetaSpan = _fieldMetas.ResetAndGetCapacitySpan(fieldCount);
 
         ref Meta meta = ref MemoryMarshal.GetReference(fields);
         ref Field field = ref MemoryMarshal.GetReference(fieldSpan);
-        ref FieldMetadata fieldMeta = ref MemoryMarshal.GetReference(fieldMetaSpan);
-    }
+        ref T first = ref MemoryMarshal.GetReference(data);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Push(FieldMetadata fieldMeta, bool isEOL)
-    {
-        _fields.Push(fieldMeta.AsField());
-        _fieldMetas.Push(fieldMeta);
+        nint metaIndex = 1;
+        nint fieldIndex = 0;
+        nint recordStart = 0;
 
-        if (isEOL)
+        int start = meta.NextStart;
+
+        while (metaIndex <= fieldCount)
         {
-            _records.Push(new Range(_currentStart, _currentLength));
-            _currentStart += fieldMeta.Start;
-            _currentLength = 0;
-        }
-        else
-        {
-            _currentLength += fieldMeta.Length;
+            Meta current = Unsafe.Add(ref meta, metaIndex);
+            int length = current.End - start;
+
+            // Safety check for length
+            if ((uint)length > ushort.MaxValue)
+                ThrowHelper.ThrowArgumentOutOfRange("Field length exceeds maximum allowed");
+
+            int specialCount = (int)current.SpecialCount;
+            bool isEscape = current.IsEscape;
+
+            // Safety check for special count
+            if (specialCount > Field.MaxSpecialCount)
+                ThrowHelper.ThrowArgumentOutOfRange("Special count exceeds maximum allowed");
+
+            ReadOnlySpan<T> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, start), length);
+            TTrimmer.Trim(ref span);
+
+            if (current.HasControlCharacters)
+            {
+                if (Unsafe.Add(ref first, start) != quote || Unsafe.Add(ref first, start + length - 1) != quote)
+                {
+                    IndexOfUnescaper.Invalid(span, in current);
+                }
+
+                start++;
+                length -= 2;
+
+                Unsafe.Add(ref field, fieldIndex) = new Field(
+                    start,
+                    (ushort)length,
+                    (ushort)specialCount,
+                    isEscape,
+                    needsProcessing: isEscape || specialCount != 2
+                );
+            }
+            else
+            {
+                Unsafe.Add(ref field, fieldIndex) = new Field(start, (ushort)length);
+            }
+
+            start = current.NextStart;
+            metaIndex++;
+            fieldIndex++;
+
+            if (current.IsEOL)
+            {
+                _records.Push(new Range((int)recordStart, (int)fieldIndex));
+                recordStart = fieldIndex;
+            }
         }
     }
 
@@ -239,7 +253,14 @@ internal sealed class FieldStack : IDisposable
     public void Dispose()
     {
         _fields.Dispose();
-        _fieldMetas.Dispose();
         _records.Dispose();
+    }
+}
+
+file static class ThrowHelper
+{
+    public static void ThrowArgumentOutOfRange(string message)
+    {
+        throw new ArgumentOutOfRangeException(message: message, null);
     }
 }

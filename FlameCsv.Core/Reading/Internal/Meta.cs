@@ -220,6 +220,24 @@ internal readonly struct Meta : IEquatable<Meta>
         get => _specialCountAndOffset & EndOffsetMask;
     }
 
+    /// <summary>
+    /// Returns whether the field contains control characters.
+    /// </summary>
+    public bool HasControlCharacters
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (_specialCountAndOffset & SpecialCountMask) != 0;
+    }
+
+    /// <summary>
+    /// Returns whether the field needs to be unescaped to a separate buffer.
+    /// </summary>
+    public bool NeedsUnescaping
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (_specialCountAndOffset & (~0b11 ^ 0b10000)) != 0;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetField<T>(
         Dialect<T> dialect,
