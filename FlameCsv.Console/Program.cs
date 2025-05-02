@@ -20,37 +20,32 @@ namespace FlameCsv.Console
         private static readonly CsvOptions<byte> _options = new() { Newline = CsvNewline.LF };
         private static readonly CsvOptions<char> _optionsC = new() { Newline = CsvNewline.LF };
 
-        static async Task Main([NotNull] string[] args)
+        static void Main([NotNull] string[] args)
         {
             FileInfo file = new(
-                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv"
+                // @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv"
+                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
             );
 
-            using var mmf = MemoryMappedFile.CreateFromFile(file.FullName, FileMode.Open);
+            byte[] byteArray = File.ReadAllBytes(file.FullName);
 
             // MemoryProfiler.CollectAllocations(true);
-            // MeasureProfiler.StartCollectingData();
+            MeasureProfiler.StartCollectingData();
 
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < 20_000; i++)
             {
-                using var stream = mmf.CreateViewStream(0, size: file.Length, MemoryMappedFileAccess.Read);
-
-                if (i == 10)
+                if (i == 10_000)
                 {
                     MeasureProfiler.StartCollectingData();
                 }
 
-                var parser = new CsvReader<byte>(_options, CsvBufferReader.Create(stream, MemoryPool<byte>.Shared));
-                // var parser = CsvParser.Create(_options, new PipeReaderWrapper(PipeReader.Create(stream, new(bufferSize: 1024*16))));
+                var parser = new CsvReader<byte>(_options, CsvBufferReader.Create(byteArray));
 
-                await foreach (var r in parser.ParseRecordsAsync())
+                foreach (var r in parser.ParseRecords())
                 {
                     _ = r;
                 }
             }
-
-            // MemoryProfiler.CollectAllocations(false);
-            MeasureProfiler.StopCollectingData();
         }
 
 #pragma warning disable IL2026
