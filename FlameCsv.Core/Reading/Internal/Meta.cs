@@ -236,15 +236,16 @@ internal readonly struct Meta : IEquatable<Meta>
         // - 91.42% of fields have no quotes
         // - 8,51% of fields have just the wrapping quotes
         // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
-        int length = (_endAndEol & ~EOLMask) - start;
-        ref T first = ref Unsafe.Add(ref data, start);
 
         if (dialect.Trimming == CsvFieldTrimming.None)
         {
             // most common case, no quotes or escapes
             if ((_specialCountAndOffset & SpecialCountMask) == 0)
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref first, length);
+                return MemoryMarshal.CreateReadOnlySpan(
+                    ref Unsafe.Add(ref data, start),
+                    (_endAndEol & ~EOLMask) - start
+                );
             }
 
             // check if the field is just wrapped in quotes; by doing both the quote count and quote checks at the same time,
@@ -257,6 +258,8 @@ internal readonly struct Meta : IEquatable<Meta>
             // therefore
             // special count: 0b10000
 
+            ref T first = ref Unsafe.Add(ref data, start);
+            int length = (_endAndEol & ~EOLMask) - start;
             T quote = dialect.Quote;
 
             if (
