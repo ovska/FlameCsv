@@ -196,7 +196,7 @@ public sealed class CsvRecordEnumerator<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void CreateHeader(ref readonly CsvFields<T> headerRecord)
     {
-        CsvFieldsRef<T> reader = new(in headerRecord, stackalloc T[Token<T>.StackLength]);
+        CsvFieldsRef<T> reader = new(in headerRecord);
         ImmutableArray<string> values = CsvHeader.Parse(Options, ref reader);
         Header = new CsvHeader(Options.Comparer, values);
     }

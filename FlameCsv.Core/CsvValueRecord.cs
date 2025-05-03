@@ -229,7 +229,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        CsvFieldsRef<T> reader = new(in _fields, stackalloc T[Token<T>.StackLength]);
+        CsvFieldsRef<T> reader = new(in _fields);
         return materializer.Parse(ref reader);
     }
 
@@ -253,7 +253,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        CsvFieldsRef<T> reader = new(in _fields, stackalloc T[Token<T>.StackLength]);
+        CsvFieldsRef<T> reader = new(in _fields);
         return materializer.Parse(ref reader);
     }
 

@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.IO;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -36,6 +37,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     private readonly CsvTokenizer<T> _scalarTokenizer;
 
     internal readonly Allocator<T> _unescapeAllocator;
+    internal readonly Dialect<T> _dialect;
 
     /// <summary>
     /// Whether the instance has been disposed.
@@ -46,6 +48,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     private readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
+
+    private EnumeratorStack _stackMemory;
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
@@ -59,15 +63,11 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
     public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv)
-        : this(options, CsvBufferReader.Create(csv))
-    {
-    }
+        : this(options, CsvBufferReader.Create(csv)) { }
 
     /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
     public CsvReader(CsvOptions<T> options, in ReadOnlySequence<T> csv)
-        : this(options, CsvBufferReader.Create(in csv))
-    {
-    }
+        : this(options, CsvBufferReader.Create(in csv)) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvReader{T}"/> class.
@@ -85,10 +85,44 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         _skipBOM = typeof(T) == typeof(byte);
         _state = State.Initialized;
 
+        _dialect = new Dialect<T>(options);
         _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
         _simdTokenizer = CsvTokenizer.CreateSimd(options);
         _scalarTokenizer = CsvTokenizer.Create(options);
+
+        Unsafe.SkipInit(out _stackMemory);
+    }
+
+    internal Span<T> GetUnescapeBuffer(int length)
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            const int stackLength = EnumeratorStack.Length / sizeof(byte);
+
+            // allocate a new buffer if the requested length is larger than the stack buffer
+            if (length > stackLength)
+            {
+                return _unescapeAllocator.GetSpan(length);
+            }
+
+            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
+        }
+
+        if (typeof(T) == typeof(char))
+        {
+            const int stackLength = EnumeratorStack.Length / sizeof(char);
+
+            // allocate a new buffer if the requested length is larger than the stack buffer
+            if (length > stackLength)
+            {
+                return _unescapeAllocator.GetSpan(length);
+            }
+
+            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
+        }
+
+        throw new NotSupportedException();
     }
 
     /// <summary>
@@ -135,8 +169,10 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         // skip if the buffer is empty, the reader has completed, or we need to read more data
         if (_state is State.Reading or State.ReaderCompleted && !_buffer.IsEmpty)
         {
-            if (TryFillCore(out ArraySegment<Meta> meta) ||
-                (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true)))
+            if (
+                TryFillCore(out ArraySegment<Meta> meta)
+                || (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true))
+            )
             {
                 fields = new CsvFields<T>(this, _buffer, meta);
                 return true;
@@ -163,17 +199,17 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         Span<Meta> metaBuffer = _metaBuffer.GetUnreadBuffer(out int startIndex);
         ReadOnlySpan<T> data = _buffer.Span;
 
-        int read = readToEnd || _simdTokenizer is null
-            ? _scalarTokenizer.Tokenize(metaBuffer, data, startIndex, readToEnd)
-            : _simdTokenizer.Tokenize(metaBuffer, data, startIndex);
+        int read =
+            readToEnd || _simdTokenizer is null
+                ? _scalarTokenizer.Tokenize(metaBuffer, data, startIndex, readToEnd)
+                : _simdTokenizer.Tokenize(metaBuffer, data, startIndex);
 
         if (read > 0)
         {
             int charactersConsumed = _metaBuffer.SetFieldsRead(read);
 
             // request more data if the next tokenizing would not be large enough to be productive
-            if (_state == State.Reading &&
-                (data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
+            if (_state == State.Reading && (data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
             {
                 _state = State.DataExhausted;
             }
@@ -276,7 +312,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     {
         _buffer = result.Buffer;
         _state = result.IsCompleted ? State.ReaderCompleted : State.Reading;
-        if (typeof(T) == typeof(byte) && _skipBOM) TrySkipBOM();
+        if (typeof(T) == typeof(byte) && _skipBOM)
+            TrySkipBOM();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -295,7 +332,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (IsDisposed) return;
+        if (IsDisposed)
+            return;
         _state = State.Disposed;
 
         using (_reader)
@@ -307,7 +345,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (IsDisposed) return;
+        if (IsDisposed)
+            return;
         _state = State.Disposed;
 
         await using (_reader.ConfigureAwait(false))
@@ -346,4 +385,12 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         /// <summary>The parser has been disposed.</summary>
         Disposed = 5,
     }
+}
+
+[SkipLocalsInit]
+[InlineArray(Length)]
+internal struct EnumeratorStack
+{
+    public const int Length = 256;
+    public byte elem0;
 }

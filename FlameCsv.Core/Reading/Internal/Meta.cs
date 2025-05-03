@@ -221,17 +221,13 @@ internal readonly struct Meta : IEquatable<Meta>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<T> GetField<T>(
-        Dialect<T> dialect,
-        int start,
-        scoped ref T data,
-        Span<T> buffer,
-        Allocator<T>? allocator
-    )
+    public ReadOnlySpan<T> GetField<T>(int start, scoped ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // Fast path for plain fields (91.42% case)
+        Dialect<T> dialect = reader._dialect;
         int length = (_endAndEol & ~EOLMask) - start;
+
+        // Fast path for plain fields (91.42% case)
         if ((_specialCountAndOffset & SpecialCountMask) == 0 && dialect.Trimming == CsvFieldTrimming.None)
         {
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), length);
@@ -254,19 +250,15 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         // Complex case (0.08% case) - separate method to reduce register pressure
-        return GetFieldSlow(dialect, start, ref data, buffer, allocator);
+        return GetFieldSlow(start, ref data, reader);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ReadOnlySpan<T> GetFieldSlow<T>(
-        Dialect<T> dialect,
-        int start,
-        scoped ref T data,
-        Span<T> buffer,
-        Allocator<T>? allocator
-    )
+    private ReadOnlySpan<T> GetFieldSlow<T>(int start, scoped ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
+        Dialect<T> dialect = reader._dialect;
+
         int fieldLength = End - start;
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), End - start);
 
@@ -299,25 +291,13 @@ internal readonly struct Meta : IEquatable<Meta>
                 Debug.Assert(dialect.Escape != default, "Escape character is not set");
                 var unescaper = new IndexOfUnixUnescaper<T>(dialect.Escape, specialCount);
                 int length = IndexOfUnixUnescaper<T>.UnescapedLength(field.Length, specialCount);
-
-                if (length > buffer.Length)
-                {
-                    if (allocator is null)
-                        ThrowIfAllocatorNull(buffer.Length);
-                    buffer = allocator.GetSpan(length);
-                }
-
+                Span<T> buffer = reader.GetUnescapeBuffer(length);
                 IndexOfUnescaper.Field(field, unescaper, buffer);
                 field = buffer.Slice(0, length);
             }
             else if (!IsEscape && specialCount != 2) // already trimmed the quotes
             {
-                if (field.Length > buffer.Length)
-                {
-                    if (allocator is null)
-                        ThrowIfAllocatorNull(buffer.Length);
-                    buffer = allocator.GetSpan(field.Length);
-                }
+                Span<T> buffer = reader.GetUnescapeBuffer(fieldLength - 2);
 
                 // Vector<char> is not supported
                 if (Unsafe.SizeOf<T>() is sizeof(char))
