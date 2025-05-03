@@ -33,7 +33,10 @@ file class Config : ManualConfig
                     printUnitsInContent: false,
                     printZeroValuesInContent: true,
                     timeUnit: null,
-                    sizeUnit: null)));
+                    sizeUnit: null
+                )
+            )
+        );
 
         AddLogger(DefaultConfig.Instance.GetLoggers().ToArray());
         AddAnalyser(DefaultConfig.Instance.GetAnalysers().ToArray());
@@ -43,13 +46,13 @@ file class Config : ManualConfig
         AddColumnProvider(BenchmarkDotNet.Columns.DefaultColumnProviders.Instance);
 
         AddJob(
-            Job.Default
-                .WithMinWarmupCount(24)
+            Job.Default.WithMinWarmupCount(24)
                 .WithMaxWarmupCount(64)
                 .WithMinIterationCount(24)
                 .WithMaxIterationCount(128)
                 .WithMinIterationTime(TimeInterval.FromSeconds(1))
-                .WithGcServer(true));
+                .WithGcServer(true)
+        );
 
         WithOptions(ConfigOptions.DisableLogFile);
     }
