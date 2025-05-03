@@ -23,7 +23,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     private readonly ref T _data;
     private readonly Span<T> _unescapeBuffer;
     private readonly Allocator<T> _allocator;
-    private readonly ref Meta _firstMeta;
+    private readonly ReadOnlySpan<Meta> _meta;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Span<T> unescapeBuffer)
@@ -34,7 +34,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
         _dialect = new Dialect<T>(reader.Options);
         _allocator = reader._unescapeAllocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
-        _firstMeta = ref MemoryMarshal.GetReference(fieldMeta);
+        _meta = fieldMeta;
         FieldCount = fieldMeta.Length - 1;
         _unescapeBuffer = unescapeBuffer;
     }
@@ -52,7 +52,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
         _dialect = dialect;
         _allocator = allocator;
         _data = ref data;
-        _firstMeta = ref fieldsRef;
+        _meta = MemoryMarshal.CreateReadOnlySpan(ref fieldsRef, fieldsLength);
         FieldCount = fieldsLength - 1;
         _unescapeBuffer = unescapeBuffer;
     }
@@ -75,7 +75,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
         _dialect = new Dialect<T>(reader.Options);
         _allocator = allocator;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
-        _firstMeta = ref Unsafe.AsRef(in fieldMeta[0]);
+        _meta = fieldMeta;
         FieldCount = fieldMeta.Length - 1;
         _unescapeBuffer = [];
     }
@@ -88,19 +88,13 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     }
 
     /// <inheritdoc/>
-    public ReadOnlySpan<T> this[int index]
+    public unsafe ReadOnlySpan<T> this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if ((uint)index >= (uint)FieldCount)
-            {
-                Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
-                Throw.Argument_FieldIndex(index, FieldCount);
-            }
-
-            ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
-            int start = Unsafe.Add(ref _firstMeta, index).NextStart;
+            ref readonly Meta meta = ref _meta[index + 1];
+            int start = _meta[index].NextStart;
             return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, _allocator);
         }
     }
@@ -116,16 +110,17 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        if ((uint)index >= (uint)FieldCount)
-        {
-            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
-            Throw.Argument_FieldIndex(index, FieldCount);
-        }
+        throw null!;
+        // if ((uint)index >= (uint)FieldCount)
+        // {
+        //     Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
+        //     Throw.Argument_FieldIndex(index, FieldCount);
+        // }
 
-        ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
-        int start = Unsafe.Add(ref _firstMeta, index).NextStart;
+        // ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
+        // int start = Unsafe.Add(ref _firstMeta, index).NextStart;
 
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), meta.End - start);
+        // return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), meta.End - start);
     }
 
     /// <summary>
@@ -146,15 +141,17 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetSpan(int index, Span<T> unescapeBuffer)
     {
-        if ((uint)index >= (uint)FieldCount)
-        {
-            Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
-            Throw.Argument_FieldIndex(index, FieldCount);
-        }
+        throw null!;
 
-        ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
-        int start = Unsafe.Add(ref _firstMeta, index).NextStart;
-        return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, allocator: null);
+        // if ((uint)index >= (uint)FieldCount)
+        // {
+        //     Debug.Assert(!Unsafe.IsNullRef(ref _firstMeta), "The struct was uninitialized");
+        //     Throw.Argument_FieldIndex(index, FieldCount);
+        // }
+
+        // ref Meta meta = ref Unsafe.Add(ref _firstMeta, index + 1);
+        // int start = Unsafe.Add(ref _firstMeta, index).NextStart;
+        // return meta.GetField(_dialect, start, ref _data, _unescapeBuffer, allocator: null);
     }
 
     /// <inheritdoc cref="CsvFields{T}.Record"/>
@@ -162,12 +159,14 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     {
         get
         {
-            EnsureInitialized();
+        throw null!;
 
-            int start = _firstMeta.NextStart;
-            int end = Unsafe.Add(ref _firstMeta, FieldCount).End;
+            // EnsureInitialized();
 
-            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
+            // int start = _firstMeta.NextStart;
+            // int end = Unsafe.Add(ref _firstMeta, FieldCount).End;
+
+            // return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
         }
     }
 
@@ -176,10 +175,12 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     {
         EnsureInitialized();
 
-        int start = _firstMeta.NextStart;
-        Meta lastMeta = Unsafe.Add(ref _firstMeta, FieldCount);
-        int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
-        return end - start;
+        throw null!;
+
+        // int start = _firstMeta.NextStart;
+        // Meta lastMeta = Unsafe.Add(ref _firstMeta, FieldCount);
+        // int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
+        // return end - start;
     }
 
     /// <summary>
@@ -211,7 +212,8 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     internal ReadOnlySpan<Meta> GetMetaSpan()
     {
         EnsureInitialized();
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _firstMeta, 1), FieldCount);
+        throw null!;
+        // return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _firstMeta, 1), FieldCount);
     }
 
     private void EnsureInitialized()
@@ -220,8 +222,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
             FieldCount == 0
             || Unsafe.IsNullRef(in _dialect)
             || Unsafe.IsNullRef(in _data)
-            || Unsafe.IsNullRef(in _firstMeta)
-        )
+            /* || Unsafe.IsNullRef(in _firstMeta */ )
         {
             Throw.InvalidOp_DefaultStruct(typeof(CsvFieldsRef<T>));
         }
