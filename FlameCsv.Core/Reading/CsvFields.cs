@@ -86,8 +86,7 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     {
         public CsvLineDebugView(CsvFields<T> fields)
         {
-            Span<T> unescapeBuffer = stackalloc T[Token<T>.StackLength];
-            var reader = new CsvFieldsRef<T>(in fields, unescapeBuffer);
+            var reader = new CsvFieldsRef<T>(in fields);
 
             Items = new string[reader.FieldCount];
 
@@ -114,11 +113,10 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     /// </summary>
     /// <param name="index">Zero-based field index</param>
     /// <param name="raw">Whether to return the field unescaped</param>
-    /// <param name="buffer">Optional buffer to use when unescaping fields with embedded quotes/escapes</param>
     /// <returns>The field value</returns>
     /// <exception cref="ArgumentOutOfRangeException">If <paramref name="index"/> is out of range</exception>
     /// <seealso cref="FieldCount"/>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false, Span<T> buffer = default)
+    public ReadOnlySpan<T> GetField(int index, bool raw = false)
     {
         ReadOnlySpan<Meta> fields = Fields;
 
@@ -133,14 +131,7 @@ public readonly struct CsvFields<T> : ICsvFields<T>
             return data[start..fields[index + 1].End];
         }
 
-        return fields[index + 1]
-            .GetField(
-                dialect: new Dialect<T>(Reader.Options),
-                start: start,
-                data: ref MemoryMarshal.GetReference(data),
-                buffer: buffer,
-                allocator: Reader._unescapeAllocator
-            );
+        return fields[index + 1].GetField(start: start, data: ref MemoryMarshal.GetReference(data), reader: Reader);
     }
 
     /// <summary>
@@ -149,7 +140,7 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     public Enumerator GetEnumerator()
     {
         Throw.IfDefaultStruct(Reader is null, typeof(CsvFields<T>));
-        var reader = new CsvFieldsRef<T>(in this, Reader._unescapeAllocator);
+        var reader = new CsvFieldsRef<T>(in this);
         return new Enumerator(reader);
     }
 

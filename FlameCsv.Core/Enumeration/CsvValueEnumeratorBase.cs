@@ -106,7 +106,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
         try
         {
-            CsvFieldsRef<T> reader = new(in fields, stackalloc T[Token<T>.StackLength]);
+            CsvFieldsRef<T> reader = new(in fields);
             Current = _materializer.Parse(ref reader);
             return true;
         }
@@ -156,7 +156,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
 
-        CsvFieldsRef<T> reader = new(in record, stackalloc T[Token<T>.StackLength]);
+        CsvFieldsRef<T> reader = new(in record);
 
         Headers = CsvHeader.Parse(Options, ref reader);
         _materializer = BindToHeaders(Headers);

@@ -19,65 +19,29 @@ namespace FlameCsv.Reading;
 public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Dialect<T> _dialect;
     private readonly ref T _data;
-    private readonly Span<T> _unescapeBuffer;
-    private readonly Allocator<T> _allocator;
+    private readonly CsvReader<T> _reader;
     private readonly ReadOnlySpan<Meta> _meta;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Span<T> unescapeBuffer)
+    internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields)
     {
         CsvReader<T> reader = fields.Reader;
         ReadOnlySpan<Meta> fieldMeta = fields.Fields;
 
-        _dialect = new Dialect<T>(reader.Options);
-        _allocator = reader._unescapeAllocator;
+        _reader = fields.Reader;
         _data = ref MemoryMarshal.GetReference(fields.Data.Span);
         _meta = fieldMeta;
         FieldCount = fieldMeta.Length - 1;
-        _unescapeBuffer = unescapeBuffer;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldsRef(
-        Dialect<T> dialect,
-        Allocator<T> allocator,
-        ref T data,
-        ref Meta fieldsRef,
-        int fieldsLength,
-        Span<T> unescapeBuffer
-    )
+    internal CsvFieldsRef(CsvReader<T> reader, ref T data, ReadOnlySpan<Meta> meta)
     {
-        _dialect = dialect;
-        _allocator = allocator;
+        _reader = reader;
         _data = ref data;
-        _meta = MemoryMarshal.CreateReadOnlySpan(ref fieldsRef, fieldsLength);
-        FieldCount = fieldsLength - 1;
-        _unescapeBuffer = unescapeBuffer;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="CsvFieldsRef{T}"/>.
-    /// </summary>
-    /// <param name="fields"></param>
-    /// <param name="allocator"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields, Allocator<T> allocator)
-    {
-        if (fields.Reader is null)
-            Throw.InvalidOp_DefaultStruct(typeof(CsvFields<T>));
-        ArgumentNullException.ThrowIfNull(allocator);
-
-        CsvReader<T> reader = fields.Reader;
-        ReadOnlySpan<Meta> fieldMeta = fields.Fields;
-
-        _dialect = new Dialect<T>(reader.Options);
-        _allocator = allocator;
-        _data = ref MemoryMarshal.GetReference(fields.Data.Span);
-        _meta = fieldMeta;
-        FieldCount = fieldMeta.Length - 1;
-        _unescapeBuffer = [];
+        _meta = meta;
+        FieldCount = meta.Length - 1;
     }
 
     /// <inheritdoc/>
@@ -94,7 +58,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
         get
         {
             int start = _meta[index].NextStart;
-            return _meta[index + 1].GetField(_dialect, start, ref _data, _unescapeBuffer, _allocator);
+            return _meta[index + 1].GetField(start, ref _data, _reader);
         }
     }
 
@@ -102,7 +66,6 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     /// Returns the raw unescaped span of the field at the specified index.
     /// </summary>
     /// <param name="index">0-based field index</param>
-    /// <seealso cref="GetSpan(int, Span{T})"/>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
     /// </exception>
@@ -111,28 +74,6 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     {
         int start = _meta[index].NextStart;
         return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), _meta[index + 1].End - start);
-    }
-
-    /// <summary>
-    /// Returns the field span at the specified index.
-    /// </summary>
-    /// <param name="index">0-based field index</param>
-    /// <param name="unescapeBuffer">Buffer to unescape the value to if needed</param>
-    /// <remarks>
-    /// The field is escaped to <paramref name="unescapeBuffer"/> if needed.
-    /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown if <paramref name="unescapeBuffer"/> is not large enough to hold the unescaped field.
-    /// </exception>
-    /// <seealso cref="GetRawSpan(int)"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<T> GetSpan(int index, Span<T> unescapeBuffer)
-    {
-        int start = _meta[index].NextStart;
-        return _meta[index + 1].GetField(_dialect, start, ref _data, unescapeBuffer, null);
     }
 
     /// <inheritdoc cref="CsvFields{T}.Record"/>

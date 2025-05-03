@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
+using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Readers;
@@ -168,17 +169,13 @@ public static class MetaTests
 
         string[] expected = ["abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yz"];
 
+        using var reader = new CsvReader<char>(CsvOptions<char>.Default, data.AsMemory());
+
         for (int i = 0; i < metaBuffer.Length; i++)
         {
             Meta meta = metaBuffer[i];
 
-            ReadOnlySpan<char> field = meta.GetField(
-                new Dialect<char>(CsvOptions<char>.Default),
-                start,
-                ref MemoryMarshal.GetReference(data.AsSpan()),
-                [],
-                null!
-            );
+            ReadOnlySpan<char> field = meta.GetField(start, ref MemoryMarshal.GetReference(data.AsSpan()), reader);
             Assert.Equal(expected[i], field.ToString());
 
             start = meta.NextStart;
