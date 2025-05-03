@@ -87,29 +87,20 @@ partial class CsvReader<T>
     {
         [HandlesResourceDisposal]
         private readonly CsvReader<T> _reader;
-        private EnumeratorStack _stackMemory;
 
-        private ref Meta _meta;
-        private int _metaLength;
-
+        private ReadOnlySpan<Meta> _meta;
         private ref T _data;
-
-        private readonly Dialect<T> _dialect;
-        private readonly Allocator<T> _allocator;
 
         internal Enumerator(CsvReader<T> reader)
         {
             _reader = reader;
-            _allocator = reader._unescapeAllocator;
-            _dialect = new Dialect<T>(reader.Options);
         }
 
         /// <summary>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvFieldsRef<T> Current =>
-            new(_dialect, _allocator, ref _data, ref _meta, _metaLength, _stackMemory.AsSpan<T>());
+        public CsvFieldsRef<T> Current => new(_reader, ref _data, _meta);
 
         /// <summary>
         /// Attempts to read the next record.
@@ -122,8 +113,7 @@ partial class CsvReader<T>
         {
             if (_reader._metaBuffer.TryPop(out ArraySegment<Meta> meta))
             {
-                _meta = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(meta.Array!), meta.Offset);
-                _metaLength = meta.Count;
+                _meta = meta.AsSpanUnsafe();
                 return true;
             }
 
@@ -149,15 +139,13 @@ partial class CsvReader<T>
             if (!_reader.TryReadLine(out fields))
             {
                 _data = ref Unsafe.NullRef<T>();
-                _meta = ref Unsafe.NullRef<Meta>();
-                _metaLength = 0;
+                _meta = default;
                 return false;
             }
 
             ConstructValue:
             _data = ref MemoryMarshal.GetReference(fields.Data.Span);
-            _meta = ref MemoryMarshal.GetReference(fields.Fields);
-            _metaLength = fields.Fields.Length;
+            _meta = fields.Fields; ;
             return true;
         }
 
@@ -167,8 +155,7 @@ partial class CsvReader<T>
         public void Dispose()
         {
             _reader.Dispose();
-            _metaLength = 0;
-            _meta = ref Unsafe.NullRef<Meta>();
+            _meta = default;
             _data = ref Unsafe.NullRef<T>();
         }
     }
@@ -183,7 +170,6 @@ partial class CsvReader<T>
         private sealed class Box
         {
             public CsvFields<T> Fields;
-            public EnumeratorStack Memory;
         }
 
         private readonly CsvReader<T> _reader;
@@ -195,7 +181,6 @@ partial class CsvReader<T>
             _reader = reader;
             _cancellationToken = cancellationToken;
             _box = new();
-            Unsafe.SkipInit(out _box.Memory);
         }
 
         /// <summary>
@@ -208,7 +193,7 @@ partial class CsvReader<T>
         public CsvFieldsRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _box.Fields, Unsafe.AsRef(in _box.Memory).AsSpan<T>());
+            get => new(in _box.Fields);
         }
 
         /// <inheritdoc cref="Enumerator.MoveNext"/>
@@ -253,32 +238,5 @@ partial class CsvReader<T>
             _box.Fields = default; // don't hold on to data
             return _reader.DisposeAsync();
         }
-    }
-}
-
-[SkipLocalsInit]
-[InlineArray(Length)]
-internal struct EnumeratorStack
-{
-    public const int Length = 256;
-    public byte elem0;
-}
-
-[SkipLocalsInit]
-file static class LocalExtensions
-{
-    private const int Length = EnumeratorStack.Length;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Span<T> AsSpan<T>(ref this EnumeratorStack memory)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        if (typeof(T) == typeof(byte))
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref memory.elem0), Length);
-
-        if (typeof(T) == typeof(char))
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref memory.elem0), Length / sizeof(char));
-
-        return MemoryMarshal.Cast<byte, T>(MemoryMarshal.CreateSpan(ref memory.elem0, Length));
     }
 }
