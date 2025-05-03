@@ -23,8 +23,8 @@ namespace FlameCsv.Console
         static void Main([NotNull] string[] args)
         {
             FileInfo file = new(
-                // @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv"
-                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
+                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv"
+            // @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
             );
 
             byte[] byteArray = File.ReadAllBytes(file.FullName);
@@ -32,9 +32,9 @@ namespace FlameCsv.Console
             // MemoryProfiler.CollectAllocations(true);
             MeasureProfiler.StartCollectingData();
 
-            for (int i = 0; i < 20_000; i++)
+            for (int i = 0; i < 10_000; i++)
             {
-                if (i == 10_000)
+                if (i == 5_000)
                 {
                     MeasureProfiler.StartCollectingData();
                 }

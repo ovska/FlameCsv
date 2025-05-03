@@ -230,48 +230,30 @@ internal readonly struct Meta : IEquatable<Meta>
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        // don't touch this method without thorough benchmarking
-
-        // Preliminary testing with a small amount of real world data:
-        // - 91.42% of fields have no quotes
-        // - 8,51% of fields have just the wrapping quotes
-        // - 0,08% of fields have quotes embedded, i.e. "John ""The Man"" Smith"
-
-        if (dialect.Trimming == CsvFieldTrimming.None)
+        // Fast path for plain fields (91.42% case)
+        int length = (_endAndEol & ~EOLMask) - start;
+        if ((_specialCountAndOffset & SpecialCountMask) == 0 && dialect.Trimming == CsvFieldTrimming.None)
         {
-            // most common case, no quotes or escapes
-            if ((_specialCountAndOffset & SpecialCountMask) == 0)
-            {
-                return MemoryMarshal.CreateReadOnlySpan(
-                    ref Unsafe.Add(ref data, start),
-                    (_endAndEol & ~EOLMask) - start
-                );
-            }
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), length);
+        }
 
-            // check if the field is just wrapped in quotes; by doing both the quote count and quote checks at the same time,
-            // the CPU can do both checks in parallel, and the branch predictor can predict the outcome of both checks
-            // if quotes don't wrap the value (never happens in valid csv), refer to the slower routine that throws an exception
-            // at this point, the field is guaranteed not to be empty so we can safely access the first and last element
-            // escape bit:    0b00x00
-            // newline bits:  0b000xx
-            // 2 in binary:   0b10
-            // therefore
-            // special count: 0b10000
-
+        // Check for simple quoted fields (8.51% case)
+        if (dialect.Trimming == CsvFieldTrimming.None && (_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0)
+        {
             ref T first = ref Unsafe.Add(ref data, start);
-            int length = (_endAndEol & ~EOLMask) - start;
             T quote = dialect.Quote;
 
-            if (
-                (_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0
-                && quote == first
-                && quote == Unsafe.Add(ref first, length - 1)
-            )
+            // Prefetch these values to help branch prediction
+            T firstChar = first;
+            T lastChar = Unsafe.Add(ref first, length - 1);
+
+            if (quote == firstChar && quote == lastChar)
             {
                 return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
             }
         }
 
+        // Complex case (0.08% case) - separate method to reduce register pressure
         return GetFieldSlow(dialect, start, ref data, buffer, allocator);
     }
 
