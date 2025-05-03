@@ -7,7 +7,7 @@ using CommunityToolkit.HighPerformance;
 namespace FlameCsv.Reading.Internal;
 
 [DebuggerTypeProxy(typeof(MetaBufferDebugView))]
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
+[DebuggerDisplay("{ToString(),nq}")]
 [SkipLocalsInit]
 internal sealed class MetaBuffer : IDisposable
 {
@@ -94,21 +94,16 @@ internal sealed class MetaBuffer : IDisposable
 
         Span<Meta> buffer = _array.AsSpan(start: 1 + _index, length: _count - _index);
 
+        // Preserve the EOL flag while shifting only the end position
+        // this is always called with a small number of records so not worth to unroll
         foreach (ref var meta in buffer)
         {
-#if DEBUG
-            Meta orig = meta;
-#endif
-
             // Preserve the EOL flag while shifting only the end position
             int eolFlag = meta._endAndEol & Meta.EOLMask;
-            Unsafe.AsRef(in meta._endAndEol) = (meta._endAndEol & ~Meta.EOLMask) - offset | eolFlag;
+            int shiftedEnd = meta._endAndEol - offset;
+            Unsafe.AsRef(in meta._endAndEol) = shiftedEnd | eolFlag;
 
-#if DEBUG
-            Debug.Assert(meta != Meta.StartOfData);
-            Debug.Assert(orig.End == (offset + meta.End));
-            Debug.Assert(orig.IsEOL == meta.IsEOL);
-#endif
+            Debug.Assert(shiftedEnd >= 0);
         }
 
         buffer.CopyTo(_array.AsSpan(1));
@@ -132,58 +127,70 @@ internal sealed class MetaBuffer : IDisposable
     {
         Unsafe.SkipInit(out fields);
 
-        const ulong mask = 1UL << 31;
+        // bit 7 in the 4th byte corresponds to the EOL flag (bit 31)
+        const byte mask = 1 << 7;
 
-        ref ulong meta = ref Unsafe.Add(
-            ref Unsafe.As<Meta, ulong>(ref MemoryMarshal.GetArrayDataReference(_array)),
-            _index + 1
+        // Get reference to the 4th byte of each Meta struct (where bit 31 of the ulong lives)
+        ref byte metaByte = ref Unsafe.Add(
+            ref Unsafe.As<Meta, byte>(ref MemoryMarshal.GetArrayDataReference(_array)),
+            (_index + 1) * sizeof(ulong) + 3
         );
 
         int end = _count - _index;
-        int unrolledEnd = end - 8;
+        int unrolledEnd = end - 4;
         int pos = 0;
+        bool found = false;
 
         while (pos < unrolledEnd)
         {
-            if ((Unsafe.Add(ref meta, pos) & mask) != 0)
+            byte b0 = Unsafe.Add(ref metaByte, (pos + 0) * sizeof(ulong));
+            byte b1 = Unsafe.Add(ref metaByte, (pos + 1) * sizeof(ulong));
+            byte b2 = Unsafe.Add(ref metaByte, (pos + 2) * sizeof(ulong));
+            byte b3 = Unsafe.Add(ref metaByte, (pos + 3) * sizeof(ulong));
+
+            if ((b0 & mask) != 0)
             {
                 pos += 1;
-                goto Found;
+                found = true;
+                break;
             }
-
-            if ((Unsafe.Add(ref meta, pos + 1) & mask) != 0)
+            if ((b1 & mask) != 0)
             {
                 pos += 2;
-                goto Found;
+                found = true;
+                break;
             }
-
-            if ((Unsafe.Add(ref meta, pos + 2) & mask) != 0)
+            if ((b2 & mask) != 0)
             {
                 pos += 3;
-                goto Found;
+                found = true;
+                break;
             }
-
-            if ((Unsafe.Add(ref meta, pos + 3) & mask) != 0)
+            if ((b3 & mask) != 0)
             {
                 pos += 4;
-                goto Found;
+                found = true;
+                break;
             }
 
             pos += 4;
         }
 
-        while (pos < end)
+        while (!found && pos < end)
         {
-            if ((Unsafe.Add(ref meta, pos++) & mask) != 0)
+            if ((Unsafe.Add(ref metaByte, pos++ * sizeof(ulong)) & mask) != 0)
             {
-                goto Found;
+                found = true;
+                break;
             }
         }
 
         // ran out of data
-        return false;
+        if (!found)
+        {
+            return false;
+        }
 
-        Found:
         Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
         {
             array = _array,
@@ -217,7 +224,29 @@ internal sealed class MetaBuffer : IDisposable
         }
     }
 
-    // ReSharper disable NotAccessedField.Local
+    internal ref Meta[] UnsafeGetArrayRef() => ref _array;
+
+    public override string ToString() =>
+        _array.Length == 0
+            ? "{ Empty }"
+            : $"{{ {_count} read, {_count - _index} available, range: [{_array[_index].NextStart}..{_array[_count].NextStart}] }}";
+
+    private class MetaBufferDebugView
+    {
+        private readonly MetaBuffer _buffer;
+
+        public MetaBufferDebugView(MetaBuffer buffer)
+        {
+            _buffer = buffer;
+        }
+
+        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+        public Meta[] Items =>
+            _buffer._array.Length == 0
+                ? []
+                : _buffer._array.AsSpan(Math.Max(1, _buffer._index), _buffer._count).ToArray();
+    }
+
     private struct MetaSegment
     {
         public Meta[]? array;
@@ -245,32 +274,5 @@ internal sealed class MetaBuffer : IDisposable
             Debug.Assert(cast.Count == 2);
         }
 #endif
-    }
-
-    // ReSharper restore NotAccessedField.Local
-
-    internal ref Meta[] UnsafeGetArrayRef() => ref _array;
-
-    private string DebuggerDisplay =>
-        _array.Length == 0
-            ? "{ Empty }"
-            : $"{{ {_count} read, {_count - _index} available, range: [{_array[_index].NextStart}..{_array[_count].NextStart}] }}";
-
-    public override string ToString() => DebuggerDisplay;
-
-    private class MetaBufferDebugView
-    {
-        private readonly MetaBuffer _buffer;
-
-        public MetaBufferDebugView(MetaBuffer buffer)
-        {
-            _buffer = buffer;
-        }
-
-        [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-        public Meta[] Items =>
-            _buffer._array.Length == 0
-                ? []
-                : _buffer._array.AsSpan(Math.Max(1, _buffer._index), _buffer._count).ToArray();
     }
 }
