@@ -121,7 +121,7 @@ internal static class Unescaper
 
         return (int)dstOffset;
 
-    Invalid:
+        Invalid:
         Throw(source, srcOffset, oddIndex, carry);
         return 0;
     }

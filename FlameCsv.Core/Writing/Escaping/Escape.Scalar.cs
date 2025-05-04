@@ -86,7 +86,7 @@ internal static partial class Escape
             }
         }
 
-    End:
+        End:
         Copy(ref src, 0, ref dst, 1, (uint)srcRemaining + 1u);
 
         // the final quote must!! be written last since src and dst might occupy the same memory region

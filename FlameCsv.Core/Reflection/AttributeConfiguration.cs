@@ -137,7 +137,9 @@ internal static class AttributeConfiguration
                 candidates.Add(
                     new BindingData
                     {
-                        Name = member.Value.Name, Target = member.Value, Aliases = [],
+                        Name = member.Value.Name,
+                        Target = member.Value,
+                        Aliases = [],
                     });
             }
         }
@@ -161,7 +163,9 @@ internal static class AttributeConfiguration
                 candidates.Add(
                     new BindingData
                     {
-                        Name = parameter.Value.Name!, Target = parameter.Value, Aliases = [],
+                        Name = parameter.Value.Name!,
+                        Target = parameter.Value,
+                        Aliases = [],
                     });
             }
         }

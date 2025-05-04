@@ -41,20 +41,20 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         goto ContinueRead;
 
-    Found1:
+        Found1:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
         srcIndex += 1;
         dstIndex += 1;
         remaining -= 1;
         goto FoundLong;
-    Found2:
+        Found2:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
         Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
         srcIndex += 2;
         dstIndex += 2;
         remaining -= 2;
         goto FoundLong;
-    Found3:
+        Found3:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
         Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
         Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
@@ -62,7 +62,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         dstIndex += 3;
         remaining -= 3;
         goto FoundLong;
-    Found4:
+        Found4:
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
         Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
         Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
@@ -71,31 +71,31 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         dstIndex += 4;
         remaining -= 4;
         goto FoundLong;
-    Found5:
+        Found5:
         Copy(ref src, srcIndex, ref dst, dstIndex, 5);
         srcIndex += 5;
         dstIndex += 5;
         remaining -= 5;
         goto FoundLong;
-    Found6:
+        Found6:
         Copy(ref src, srcIndex, ref dst, dstIndex, 6);
         srcIndex += 6;
         dstIndex += 6;
         remaining -= 6;
         goto FoundLong;
-    Found7:
+        Found7:
         Copy(ref src, srcIndex, ref dst, dstIndex, 7);
         srcIndex += 7;
         dstIndex += 7;
         remaining -= 7;
         goto FoundLong;
-    Found8:
+        Found8:
         Copy(ref src, srcIndex, ref dst, dstIndex, 8);
         srcIndex += 8;
         dstIndex += 8;
         remaining -= 8;
 
-    FoundLong:
+        FoundLong:
         // check if the next is a quote, or dangling quote at the end
         if (remaining <= 0 || quote != Unsafe.Add(ref src, srcIndex))
         {
@@ -109,7 +109,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         if (quotesLeft <= 0) goto NoQuotesLeft;
 
-    ContinueRead:
+        ContinueRead:
         while (
             Vector256.IsHardwareAccelerated &&
             remaining >= Vector256<T>.Count)
@@ -207,10 +207,10 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         goto EOL;
 
         // Copy remaining data
-    NoQuotesLeft:
+        NoQuotesLeft:
         Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(remaining));
 
-    EOL:
+        EOL:
         if (quotesLeft != 0)
         {
             ThrowInvalidUnescape(field, quote, quotesConsumed);
@@ -218,7 +218,7 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         return;
 
-    Fail:
+        Fail:
         ThrowInvalidUnescape(field, quote, quotesConsumed);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

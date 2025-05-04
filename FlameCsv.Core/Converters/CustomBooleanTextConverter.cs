@@ -23,8 +23,8 @@ internal sealed class CustomBooleanTextConverter : CsvConverter<char, bool>
             throw new CsvConfigurationException(
                 $"Comparer does not implement {nameof(IAlternateEqualityComparer<ReadOnlySpan<char>, string>)}.");
 
-        _trueValues = [..options.BooleanValues.Where(t => t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
-        _falseValues = [..options.BooleanValues.Where(t => !t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
+        _trueValues = [.. options.BooleanValues.Where(t => t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
+        _falseValues = [.. options.BooleanValues.Where(t => !t.Item2).Select(t => t.Item1).Distinct(options.Comparer)];
 
         if (_trueValues.Length == 0) Throw.Config_TrueOrFalseBooleanValues(true);
         if (_falseValues.Length == 0) Throw.Config_TrueOrFalseBooleanValues(false);
