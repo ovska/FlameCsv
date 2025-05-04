@@ -9,7 +9,7 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
     private readonly StringPool _stringPool;
 
     public static PoolingStringUtf8Converter SharedInstance { get; } = new();
-    
+
     public PoolingStringUtf8Converter()
     {
         _stringPool = StringPool.Shared;

@@ -54,7 +54,7 @@ public sealed class CsvHeader
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
-        
+
         if (HeaderPool is not null && options.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));

@@ -15,9 +15,8 @@ namespace FlameCsv.Exceptions;
 /// Initializes an exception representing an unparseable value.
 /// </remarks>
 [PublicAPI]
-public sealed class CsvParseException(
-    string? message = null,
-    Exception? innerException = null) : Exception(message, innerException)
+public sealed class CsvParseException(string? message = null, Exception? innerException = null)
+    : Exception(message, innerException)
 {
     /// <summary>
     /// Converter instance.
@@ -79,7 +78,9 @@ public sealed class CsvParseException(
     {
         throw new CsvParseException($"Failed to parse {parsedType.Name} {target} using {converter.GetType().Name}.")
         {
-            Converter = converter, FieldIndex = fieldIndex, Target = target,
+            Converter = converter,
+            FieldIndex = fieldIndex,
+            Target = target,
         };
     }
 
@@ -88,7 +89,8 @@ public sealed class CsvParseException(
     {
         get
         {
-            if (!RuntimeHelpers.TryEnsureSufficientExecutionStack()) return base.Message;
+            if (!RuntimeHelpers.TryEnsureSufficientExecutionStack())
+                return base.Message;
 
             using var vsb = new ValueStringBuilder(stackalloc char[256]);
 
@@ -148,7 +150,8 @@ public sealed class CsvParseException(
         }
     }
 
-    internal void Enrich<T>(int line, long position, in CsvFields<T> fields) where T : unmanaged, IBinaryInteger<T>
+    internal void Enrich<T>(int line, long position, in CsvFields<T> fields)
+        where T : unmanaged, IBinaryInteger<T>
     {
         Line ??= line;
         RecordPosition ??= position;
@@ -167,9 +170,7 @@ public sealed class CsvParseException(
 
         if (FieldIndex is { } index && (uint)index < (uint)fields.FieldCount)
         {
-            int offset =
-                fields.Fields[index].NextStart -
-                fields.Fields[0].NextStart;
+            int offset = fields.Fields[index].NextStart - fields.Fields[0].NextStart;
 
             FieldPosition ??= position + offset;
             FieldValue ??= fields.GetField(index, raw: true).AsPrintableString();
