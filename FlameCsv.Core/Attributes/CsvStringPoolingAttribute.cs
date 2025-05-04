@@ -45,9 +45,9 @@ public sealed class CsvStringPoolingAttribute : CsvConverterAttribute
                 throw new CsvConfigurationException(
                     $"Both {nameof(ProviderType)} and {nameof(MemberName)} must be set to use a custom provider.");
             }
-            
+
             const BindingFlags flags = BindingFlags.Public | BindingFlags.Static;
-            
+
             MethodInfo provider =
                 ProviderType.GetProperty(MemberName, flags)?.GetMethod ??
                 ProviderType.GetMethod(MemberName, flags) ??

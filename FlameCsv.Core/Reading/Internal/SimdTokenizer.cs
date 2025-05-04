@@ -5,35 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace FlameCsv.Reading.Internal;
 
-/*
- * For general purpose data with occasional quotes (256-bit vectors):
- * 50% of vectors had only delimiters.
- * 30% of vectors had quotes (forced ParseAny)
- * 7% of vectors had delimiters followed by newline(s)
- * 5% of vectors were in the middle of a string and had no quotes (can be skipped).
- * 4% of vectors had nothing in them.
- * 2% of vectors had delimiters and newlines mixed in order (surprising).
- * 1,5% of vectors had newline(s) before delimiter(s) (not worth to pursue further).
- * 0,6% of vectors had only newlines (very small %).
- *
- * For very short fields without quotes, only 1,3% of vectors have only delimiters.
- * The Rest is mixed delimiters and newlines.
- *
- * The sequential parser is always slower, no matter how small the input.
- *
- * Failed attempts at optimization:
- * - double-laning 256-bit vectors
- * - using a generic mask size instead of nuint
- * - using popcount and unrolling ParseDelimiters when possible
- * - creating a generic "bool" for whether the data has quotes -> slower due to having to scan the whole data first
- * - BitHacks.FindQuoteMask and zero out bits between quotes -> parsing is too fast, the extra instructions are not worth it
- *
- * Still to do:
- * - Loading comparisons from the vector instead of original data (maybe not possible due to newline boundaries?)
- */
-
 [SkipLocalsInit]
-[SuppressMessage("ReSharper", "InlineTemporaryVariable")]
 internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline<T, TVector>
@@ -121,22 +93,46 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
                 if (maskDelimiter != 0)
                 {
-#if true
+                    int lastDelimiter = (nuint.Size * 8 - 1) - BitOperations.LeadingZeroCount(maskDelimiter);
+                    int firstDelimiter = BitOperations.TrailingZeroCount(maskDelimiter);
                     nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
-                    int indexNewline = BitOperations.TrailingZeroCount(maskNewline);
+                    int firstNewline = BitOperations.TrailingZeroCount(maskNewline);
 
-                    // check if the delimiters and newlines are interleaved
-                    if ((nuint.Size * 8 - 1) - BitOperations.LeadingZeroCount(maskDelimiter) < indexNewline)
+                    // Check if the sets are fully separated (either all delimiters before all newlines,
+                    // or all newlines before all delimiters)
+                    if (
+                        lastDelimiter < firstNewline
+                        || (nuint.Size * 8 - 1) - BitOperations.LeadingZeroCount(maskNewline) < firstDelimiter
+                    )
                     {
-                        // all delimiters are before any of the newlines
-                        currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+                        // The bits are not interleaved - they're fully separated
+                        if (firstDelimiter < firstNewline)
+                        {
+                            // All delimiters are before any newlines
+                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
 
-                        // fall through to parse line ends
-                        maskNewlineOrDelimiter = maskNewline;
+                            // Fall through to parse line ends
+                            maskNewlineOrDelimiter = maskNewline;
+                        }
+                        else
+                        {
+                            // All newlines are before any delimiters
+                            currentMeta = ref ParseLineEnds(
+                                maskNewline,
+                                ref first,
+                                ref runningIndex,
+                                ref currentMeta,
+                                ref nextVector
+                            );
+
+                            // Process delimiters afterward
+                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+                            goto ContinueRead;
+                        }
                     }
                     else
-#endif
                     {
+                        // Bits are interleaved, handle the mixed case
                         Debug.Assert(quotesConsumed == 0);
                         currentMeta = ref ParseDelimitersAndLineEnds(
                             maskNewlineOrDelimiter,

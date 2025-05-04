@@ -72,7 +72,7 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
         int written = Encoding.UTF8.GetChars(source, chars);
 
         bool result =
-            Enum.TryParse(chars[..written], _ignoreCase, out value)&&
+            Enum.TryParse(chars[..written], _ignoreCase, out value) &&
             (_allowUndefinedValues || EnumCacheUtf8<TEnum>.IsDefinedCore(value));
 
         if (toReturn is not null)

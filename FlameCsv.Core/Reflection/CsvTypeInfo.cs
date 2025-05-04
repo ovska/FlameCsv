@@ -115,7 +115,7 @@ internal class CsvTypeInfo
     private static object[] InitCustomAttributes(Type type) => type.GetCustomAttributes(inherit: true);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)] [NotNullWhen(true)] out Type? typeProxy)
+    private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)][NotNullWhen(true)] out Type? typeProxy)
     {
         if (Type.IsValueType ||
             GetFromAssemblyOrType<CsvTypeProxyAttribute>() is not { } attribute)

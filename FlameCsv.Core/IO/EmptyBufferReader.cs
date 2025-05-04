@@ -3,8 +3,8 @@
 internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T> where T : unmanaged
 {
     public static EmptyBufferReader<T> Instance { get; } = new();
-    
-    private EmptyBufferReader(){}
+
+    private EmptyBufferReader() { }
 
     public void Dispose()
     {
