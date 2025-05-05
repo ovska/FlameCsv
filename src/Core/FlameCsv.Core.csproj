@@ -137,11 +137,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj"
+        <ProjectReference Include="..\SourceGen\FlameCsv.SourceGen.csproj"
                           ReferenceOutputAssembly="false"
                           OutputItemType="Analyzer"
                           PrivateAssets="all"/>
-        <None Include="..\FlameCsv.SourceGen\bin\$(Configuration)\netstandard2.0\FlameCsv.SourceGen.dll"
+        <None Include="..\SourceGen\bin\$(Configuration)\netstandard2.0\FlameCsv.SourceGen.dll"
               Pack="true"
               PackagePath="analyzers/dotnet/cs"
               Visible="false"/>

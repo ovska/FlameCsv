@@ -4,7 +4,7 @@
     {
       "src": [
         {
-          "src": "../FlameCsv.Core",
+          "src": "../src/Core",
           "files": [
             "**/*.csproj"
           ]

@@ -32,7 +32,6 @@ file static class Extensions
     }
 }
 
-[SuppressMessage("ReSharper", "ConvertTypeCheckPatternToNullCheck")]
 public static class EscapeModeTests
 {
     [Theory]

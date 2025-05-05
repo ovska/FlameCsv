@@ -1,11 +1,12 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using Basic.Reference.Assemblies;
+using FlameCsv.SourceGen;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace FlameCsv.SourceGen.Tests;
+namespace FlameCsv.Tests.SourceGen;
 
 [Collection(typeof(MetadataCollection))]
 public class TypeMapTests(MetadataFixture fixture)

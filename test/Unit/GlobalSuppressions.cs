@@ -10,3 +10,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Style", "IDE0018:Inline variable declaration")]
 [assembly: SuppressMessage("Design", "CA1067:Override Object.Equals(object) when implementing IEquatable<T>")]
 [assembly: SuppressMessage("ReSharper", "StringLiteralTypo")]
+[assembly: SuppressMessage("ReSharper", "ConvertTypeCheckPatternToNullCheck")]
