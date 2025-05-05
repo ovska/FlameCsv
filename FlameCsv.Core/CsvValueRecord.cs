@@ -250,7 +250,16 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     /// <inheritdoc/>
     public override string ToString()
     {
-        return $"{{ CsvValueRecord [{_options.GetAsString(RawRecord)}] }}";
+        return $"{{ CsvValueRecord[{_fields.FieldCount}] \"{_options.GetAsString(RawRecord)}\" }}";
+    }
+
+    /// <summary>
+    /// Ensures the struct is not <c>default</c> and the version is valid.
+    /// </summary>
+    internal void EnsureValid()
+    {
+        Throw.IfDefaultStruct(_owner is null, typeof(CsvValueRecord<T>));
+        _owner.EnsureVersion(_version);
     }
 
     /// <summary>
