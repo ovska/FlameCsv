@@ -245,7 +245,7 @@ public partial class CsvWriterTTests
             "A,B,C\r\n",
             Impl<char>(writer =>
             {
-                writer.WriteHeader(["A", "B", "C"]);
+                writer.WriteHeader("A", "B", "C");
             })
         );
 
@@ -253,7 +253,7 @@ public partial class CsvWriterTTests
             "A,B,C\r\n",
             Impl<byte>(writer =>
             {
-                writer.WriteHeader(["A", "B", "C"]);
+                writer.WriteHeader("A", "B", "C");
             })
         );
 
