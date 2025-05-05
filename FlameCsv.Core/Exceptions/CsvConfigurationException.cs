@@ -6,6 +6,5 @@ namespace FlameCsv.Exceptions;
 /// <remarks>
 /// Initializes an exception representing an erroneus configuration.
 /// </remarks>
-public class CsvConfigurationException(
-    string? message = null,
-    Exception? innerException = null) : Exception(message, innerException);
+public class CsvConfigurationException(string? message = null, Exception? innerException = null)
+    : Exception(message, innerException);

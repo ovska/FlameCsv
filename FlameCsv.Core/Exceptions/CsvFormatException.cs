@@ -11,9 +11,8 @@ namespace FlameCsv.Exceptions;
 /// <remarks>
 /// Initializes an exception representing invalid CSV format.
 /// </remarks>
-public sealed class CsvFormatException(
-    string? message = null,
-    Exception? innerException = null) : Exception(message, innerException)
+public sealed class CsvFormatException(string? message = null, Exception? innerException = null)
+    : Exception(message, innerException)
 {
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -25,15 +24,15 @@ public sealed class CsvFormatException(
     /// <summary>
     /// 1-based line index of where the invalid data was found, if available.
     /// </summary>
-    public int? Line { get; internal set; }
+    public int? Line { get; set; }
 
     /// <summary>
     /// Approximate 0-based index where the invalid data was found, if available.
     /// </summary>
-    public long? Position { get; internal set; }
+    public long? Position { get; set; }
 
     /// <summary>
     /// The CSV record that caused the exception, if available.
     /// </summary>
-    public string? Record { get; internal set; }
+    public string? Record { get; set; }
 }
