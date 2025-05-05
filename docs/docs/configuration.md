@@ -151,7 +151,7 @@ CsvConverter<char, DayOfWeek> c2 = options.Aot.GetOrCreateEnum<DayOfWeek>();
 
 ### Memory pooling
 
-You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and records split across multiple sequence segments. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
+You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and buffers to read data from streaming sources. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
 
 If set to `null`, no pooled memory is used and all temporary buffers are heap allocated.
 
