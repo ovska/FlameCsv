@@ -18,7 +18,7 @@
 
   <ItemGroup Condition="'$(IncludeInternalsVisibleTo)' == 'true'">
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>FlameCsv.SourceGen.Tests, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
+      <_Parameter1>FlameCsv.Tests.SourceGen, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

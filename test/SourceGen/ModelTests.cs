@@ -1,10 +1,11 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace FlameCsv.SourceGen.Tests;
+namespace FlameCsv.Tests.SourceGen;
 
 [Collection(typeof(MetadataCollection))]
 public class ModelTests(MetadataFixture fixture)

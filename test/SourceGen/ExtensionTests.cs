@@ -1,7 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.SourceGen;
 using FlameCsv.SourceGen.Helpers;
 
-namespace FlameCsv.SourceGen.Tests;
+namespace FlameCsv.Tests.SourceGen;
 
 public static class ExtensionTests
 {
@@ -28,9 +29,16 @@ public static class ExtensionTests
     }
 
     [Fact]
-    [SuppressMessage("ReSharper", "UseCollectionExpression")]
-    [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "Testing collection expression initialization")]
-    [SuppressMessage("Style", "IDE0303:Simplify collection initialization", Justification = "Testing collection expression initialization")]
+    [SuppressMessage(
+        "Style",
+        "IDE0301:Simplify collection initialization",
+        Justification = "Testing collection expression initialization"
+    )]
+    [SuppressMessage(
+        "Style",
+        "IDE0303:Simplify collection initialization",
+        Justification = "Testing collection expression initialization"
+    )]
     public static void Test_EquatableArray()
     {
         Assert.Equal(EquatableArray<int>.Empty, EquatableArray<int>.Empty);
@@ -47,10 +55,11 @@ public static class ExtensionTests
 
         Assert.Equal(
             new EquatableArray<(string name, string display)>([("x", "y"), ("a", "b")]),
-            new EquatableArray<(string name, string display)>([("x", "y"), ("a", "b")]));
+            new EquatableArray<(string name, string display)>([("x", "y"), ("a", "b")])
+        );
 
         // ReSharper disable once RedundantCast
-        Assert.Equal(EquatableArray.Create(1, 2, 3), new EquatableArray<int>((ReadOnlySpan<int>) [1, 2, 3]));
+        Assert.Equal(EquatableArray.Create(1, 2, 3), new EquatableArray<int>((ReadOnlySpan<int>)[1, 2, 3]));
     }
 
     [Theory]
@@ -68,16 +77,20 @@ public static class ExtensionTests
     [InlineData("Unicode: 𝄞", false)]
     [InlineData(
         "Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`",
-        true)]
+        true
+    )]
     [InlineData(
         "Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`Café",
-        false)]
+        false
+    )]
     [InlineData(
         "Very long value with a lot of characters: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':`e,.<>?/~`",
-        true)]
+        true
+    )]
     [InlineData(
         "Very long value with a lot of characters: Café 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+[]{}|;':\",.<>?/~`",
-        false)]
+        false
+    )]
     [InlineData("Another long string with special characters: ~!@#$%^&*()_+", true)]
     [InlineData("Special characters: ©, ™, ®", false)]
     public static void Test_IsAscii(string? value, bool expected)

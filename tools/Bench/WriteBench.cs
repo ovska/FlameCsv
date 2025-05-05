@@ -95,7 +95,6 @@ public partial class WriteBench
     }
 
     [Benchmark]
-    [SuppressMessage("ReSharper", "MethodHasAsyncOverload")]
     public async Task Async_CsvHelper_Fields()
     {
         await using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
