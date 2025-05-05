@@ -4,12 +4,12 @@ _layout: landing
 
 # Introduction
 
-🔥 FlameCSV 🔥 is a fully-featured high performance CSV library for .NET with a simple API, deep customization options, and built-in support for UTF8, nativeAOT, and more.
+🔥 FlameCsv 🔥 is a fully-featured high performance CSV library for .NET with a simple API, deep customization options, and built-in support for UTF8, nativeAOT, and more.
 
-FlameCSV can be thought to be the System.Text.Json of CSV libraries. It is designed to be fast, easy to use, and extensible, while supporting low-level operations for advances use-cases. It is consistently the fastest .NET CSV library in reading, writing, and enumerating CSV data, and does this while also allocating the least memory.
+FlameCsv can be thought to be the System.Text.Json of CSV libraries. It is designed to be fast, easy to use, and extensible, while supporting low-level operations for advances use-cases. It is consistently the fastest .NET CSV library in reading, writing, and enumerating CSV data, and does this while also allocating the least memory.
 
-FlameCSV can read CSV at [multiple gigabytes per second](docs/benchmarks.md#reading-without-processing-all-fields) on consumer hardware, and write arbitrarily large amounts of CSV with [near-zero allocations](docs/benchmarks.md#writing-net-objects) irrespective of the dataset's size.
-FlameCSV leverages modern .NET patterns such as spans, SIMD hardware intrinsics, memory/string pooling, and buffer writers, and is built from the ground up to provide an easy-to-use high performance experience.
+FlameCsv can read CSV at [multiple gigabytes per second](docs/benchmarks.md#reading-without-processing-all-fields) on consumer hardware, and write arbitrarily large amounts of CSV with [near-zero allocations](docs/benchmarks.md#writing-net-objects) irrespective of the dataset's size.
+FlameCsv leverages modern .NET patterns such as spans, SIMD hardware intrinsics, memory/string pooling, and buffer writers, and is built from the ground up to provide an easy-to-use high performance experience.
 
 The library has thousands of tests, and critical paths have been fuzz-tested with SharpFuzz.
 

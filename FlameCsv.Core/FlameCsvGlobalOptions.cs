@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 namespace FlameCsv;
 
 /// <summary>
-/// Contains global options for FlameCSV configurable through environment variables.
+/// Contains global options for FlameCsv configurable through environment variables.
 /// </summary>
 [PublicAPI]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -34,8 +34,10 @@ public static class FlameCsvGlobalOptions
         get => _readAheadCount ??= GetReadAheadFromEnvironment();
         set
         {
-            if (value == _readAheadCount) return;
-            if (_readAheadCount.HasValue && _readAheadCount != value) ThrowMutation();
+            if (value == _readAheadCount)
+                return;
+            if (_readAheadCount.HasValue && _readAheadCount != value)
+                ThrowMutation();
             ArgumentOutOfRangeException.ThrowIfLessThan(value, 32);
             _readAheadCount = value;
         }
@@ -53,8 +55,10 @@ public static class FlameCsvGlobalOptions
         get => _cachingDisabled ??= GetCachingFromEnvironment();
         set
         {
-            if (value == _cachingDisabled) return;
-            if (_cachingDisabled.HasValue && _cachingDisabled != value) ThrowMutation();
+            if (value == _cachingDisabled)
+                return;
+            if (_cachingDisabled.HasValue && _cachingDisabled != value)
+                ThrowMutation();
             _cachingDisabled = value;
         }
     }
@@ -86,6 +90,7 @@ public static class FlameCsvGlobalOptions
     private static void ThrowMutation([CallerMemberName] string propertyName = "")
     {
         throw new NotSupportedException(
-            $"{propertyName} can only be modified once at the very start of the application before FlameCSV is used.");
+            $"{propertyName} can only be modified once at the very start of the application before FlameCsv is used."
+        );
     }
 }
