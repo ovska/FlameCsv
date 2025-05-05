@@ -29,7 +29,7 @@ The field separator is configured with @"FlameCsv.CsvOptions`1.Delimiter?display
 The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
 
 ### Newline
-The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCSV is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
+The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCsv is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
 
 ### Trimming
 The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.Reading.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both.
@@ -120,7 +120,7 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> Comments are not yet fully supported by FlameCSV (see [issue](https://github.com/ovska/FlameCsv/issues/20)).
+> Comments are not yet fully supported by FlameCsv (see [issue](https://github.com/ovska/FlameCsv/issues/20)).
 For example, even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). 
 
 

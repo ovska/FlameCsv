@@ -26,8 +26,7 @@ The benchmarks use commonly used CSV datasets, and can be downloaded from the re
 ### Reading .NET objects
 
 The dataset is 5000 records of 10 fields of varied data, quoted fields, and escaped quotes.
-The data is read from a pre-loaded byte array to simulate real-world scenarios. FlameCSV is even faster comparatively
-when reading from a string.
+The data is read from a pre-loaded byte array to simulate real-world scenarios.
 
 | Method                | Mean     |  Ratio | Allocated | Alloc Ratio |
 |----------------------:|---------:|-------:|----------:|------------:|

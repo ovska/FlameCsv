@@ -74,7 +74,7 @@ The configuration object is identical for `char` and `byte`, and UTF16 <-> UTF8 
 
 ## Comparisons to other libraries
 
-|                     | FlameCSV   | CsvHelper          | Sylvan   | Sep     | RecordParser |
+|                     | FlameCsv   | CsvHelper          | Sylvan   | Sep     | RecordParser |
 | ------------------- | ---------- | ------------------ | -------- | ------- | ------------ |
 | License             | Apache 2.0 | MS-PL / Apache 2.0 | MIT      | MIT     | MIT          |
 | Performance         | Fast       | Slow               | Fast     | Fast    | Moderate     |
