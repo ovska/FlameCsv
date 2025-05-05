@@ -1,15 +1,15 @@
 using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using CommunityToolkit.HighPerformance;
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
-using System.Globalization;
 using JetBrains.Annotations;
-using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
-using FlameCsv.Attributes;
 
 namespace FlameCsv;
 
@@ -18,7 +18,8 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, IBinaryInteger<T>
+public sealed partial class CsvOptions<T> : ICanBeReadOnly
+    where T : unmanaged, IBinaryInteger<T>
 {
     private static readonly CsvOptions<T> _default;
 
@@ -47,7 +48,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (typeof(T) == typeof(char) || typeof(T) == typeof(byte)) return _default;
+            if (typeof(T) == typeof(char) || typeof(T) == typeof(byte))
+                return _default;
             throw InvalidTokenTypeEx();
         }
     }
@@ -63,13 +65,15 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
             {
                 var @this = (CsvOptions<T>)state;
                 @this.ConverterCache.Clear();
-            });
+            }
+        );
     }
 
     /// <summary>
     /// Initializes a new instance of options, copying the configuration from <paramref name="other"/>.
     /// </summary>
-    public CsvOptions(CsvOptions<T> other) : this()
+    public CsvOptions(CsvOptions<T> other)
+        : this()
     {
         ArgumentNullException.ThrowIfNull(other);
 
@@ -107,7 +111,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
 
     /// <summary>
     /// Whether the options-instance is sealed and can no longer be modified.
-    /// Options become read only after they begin being used to avoid concurrency bugs.
+    /// Options become read only after they begin being used to avoid concurrency bugs.<br/>
+    /// Create a copy of the instance if you need to modify it after this point.
     /// </summary>
     /// <seealso cref="CsvOptions{T}(CsvOptions{T})"/>
     public bool IsReadOnly { get; private set; }
@@ -152,7 +157,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     {
         Utf8String? value = GetNullCore(resultType);
 
-        if (value is null || value.String.Length == 0) return default;
+        if (value is null || value.String.Length == 0)
+            return default;
 
         if (typeof(T) == typeof(char))
         {
@@ -172,7 +178,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     {
         Utf8String? value = GetNullCore(resultType);
 
-        if (value is null || value.String.Length == 0) return [];
+        if (value is null || value.String.Length == 0)
+            return [];
 
         if (typeof(T) == typeof(char))
         {
@@ -196,15 +203,14 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     /// Returns the custom format configured for <paramref name="resultType"/>,
     /// or <paramref name="defaultValue"/> by default.
     /// </summary>
-    public string? GetFormat(Type resultType, string? defaultValue = null)
-        => _formats.TryGetExt(resultType, defaultValue);
+    public string? GetFormat(Type resultType, string? defaultValue = null) =>
+        _formats.TryGetExt(resultType, defaultValue);
 
     /// <summary>
     /// Returns the custom format provider configured for <paramref name="resultType"/>,
     /// or <see cref="FormatProvider"/> by default.
     /// </summary>
-    public IFormatProvider? GetFormatProvider(Type resultType)
-        => _providers.TryGetExt(resultType, _formatProvider);
+    public IFormatProvider? GetFormatProvider(Type resultType) => _providers.TryGetExt(resultType, _formatProvider);
 
     /// <summary>
     /// Returns the custom number styles configured for the <see cref="INumberBase{TSelf}"/>,
@@ -214,8 +220,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
     /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
     /// </remarks>
-    public NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
-        => _styles.TryGetExt(resultType, defaultValue);
+    public NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue) =>
+        _styles.TryGetExt(resultType, defaultValue);
 
     private CsvRecordCallback<T>? _recordCallback;
     private bool _hasHeader = true;
@@ -273,8 +279,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="FormatProvider"/>
     /// <seealso cref="GetFormatProvider(Type)"/>
-    public IDictionary<Type, IFormatProvider?> FormatProviders
-        => _providers ??= new TypeDictionary<IFormatProvider?>(this);
+    public IDictionary<Type, IFormatProvider?> FormatProviders =>
+        _providers ??= new TypeDictionary<IFormatProvider?>(this);
 
     /// <summary>
     /// Format used per type.
@@ -425,8 +431,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly where T : unmanaged, 
     /// </summary>
     /// <seealso cref="UseDefaultConverters"/>
     /// <seealso cref="CsvBooleanValuesAttribute"/>
-    public IList<(string text, bool value)> BooleanValues
-        => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
+    public IList<(string text, bool value)> BooleanValues =>
+        _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
 
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
     internal MemoryPool<T> Allocator => _memoryPool;
@@ -439,8 +445,8 @@ file static class TypeDictExtensions
         this TypeDictionary<T>? dict,
         Type key,
         T defaultValue,
-        [CallerArgumentExpression(nameof(key))]
-        string parameterName = "")
+        [CallerArgumentExpression(nameof(key))] string parameterName = ""
+    )
     {
         ArgumentNullException.ThrowIfNull(key, parameterName);
         return dict is not null && dict.TryGetValue(key, out T? value) ? value : defaultValue;
