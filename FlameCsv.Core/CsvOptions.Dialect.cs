@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -132,6 +133,12 @@ public partial class CsvOptions<T>
     /// <exception cref="CsvConfigurationException"/>
     public void Validate()
     {
+        // already validated at this point
+        if (IsReadOnly)
+        {
+            return;
+        }
+
         StringScratch scratch = default;
         using ValueListBuilder<string> errors = new(scratch);
 
@@ -173,7 +180,7 @@ public partial class CsvOptions<T>
             T.CreateTruncating(_quote),
             T.CreateTruncating('\r'),
             T.CreateTruncating('\n'),
-            T.CreateSaturating(_escape.GetValueOrDefault()),
+            T.CreateTruncating(_escape.GetValueOrDefault()),
         ];
 
         if (!Escape.HasValue)
@@ -192,6 +199,30 @@ public partial class CsvOptions<T>
         }
 
         throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> if <paramref name="other"/> has the exact same CSV dialect as this instance
+    /// (e.g. both types read and write CSV structure identically).
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public bool DialectEquals([NotNullWhen(true)] CsvOptions<T>? other)
+    {
+        if (other is null)
+        {
+            return false;
+        }
+
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        return Quote == other.Quote
+            && Delimiter == other.Delimiter
+            && Newline == other.Newline
+            && Trimming == other.Trimming
+            && Escape == other.Escape;
     }
 }
 

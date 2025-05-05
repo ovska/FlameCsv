@@ -298,8 +298,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     {
         record.EnsureValid();
 
-        // same escaping rules
-        if (ReferenceEquals(record.Options, Options))
+        // check if the records have the exact same dialect
+        if (Options.DialectEquals(record.Options))
         {
             WriteDelimiterIfNeeded();
             _inner.WriteRaw(record.RawRecord, skipEscaping: true);
@@ -328,8 +328,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(record);
 
-        // same escaping rules
-        if (ReferenceEquals(record.Options, Options))
+        // check if the records have the exact same dialect
+        if (Options.DialectEquals(record.Options))
         {
             WriteDelimiterIfNeeded();
             _inner.WriteRaw(record.RawRecord.Span, skipEscaping: true);
@@ -351,10 +351,11 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </summary>
     /// <param name="values">Header values</param>
     /// <remarks>
-    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.<br/>
+    /// <c>null</c> values are written as empty fields.
     /// </remarks>
     /// <returns>Number of fields written</returns>
-    public int WriteHeader(scoped ReadOnlySpan<string> values)
+    public int WriteHeader(params scoped ReadOnlySpan<string> values)
     {
         foreach (var value in values)
         {
