@@ -151,7 +151,7 @@
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
-    <ItemGroup>
+    <ItemGroup Condition="'$(IncludeInternalsVisibleTo)' == 'true'">
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
             <_Parameter1>FlameCsv.Tests, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
         </AssemblyAttribute>
