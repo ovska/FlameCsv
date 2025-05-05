@@ -47,8 +47,8 @@
       "templates/material"
     ],
     "globalMetadata": {
-      "_appName": "FlameCSV",
-      "_appTitle": "FlameCSV",
+      "_appName": "FlameCsv",
+      "_appTitle": "FlameCsv",
       "_appLogoPath": "data/logo.svg",
       "_appFaviconPath": "data/favicon.ico",
       "_enableSearch": true,

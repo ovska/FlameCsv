@@ -95,7 +95,7 @@ The following primitive types are supported by default:
 - @"System.DateTimeOffset"
 - @"System.TimeSpan"
 - @"System.Guid"
-- @"System.Char?text=char" (not considered a numeric type in FlameCSV)
+- @"System.Char?text=char" (not considered a numeric type in FlameCsv)
 - Any type implementing both @"System.ISpanParsable`1" and @"System.ISpanFormattable",
   or @"System.IUtf8SpanFormattable" and/r @"System.IUtf8SpanParsable`1" when converting to/from @"System.Byte?text=byte".
 

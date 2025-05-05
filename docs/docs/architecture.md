@@ -15,7 +15,7 @@ While not required for using the library, it provides insights into the internal
 
 ## Reading
 
-FlameCSV's reading implementation is built on two goals:
+FlameCsv's reading implementation is built on two goals:
 
 - ⚖️ Feature and performance parity with synchronous and asynchronous processing
 - 🚀 Zero-allocation processing
