@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
@@ -20,12 +21,12 @@ public sealed class CsvConverterMissingException(Type resultType)
     /// </summary>
     public Type ResultType { get; } = resultType;
 
-    /// <exception cref="CsvConverterMissingException">Always thrown</exception>
+    /// <exception cref="CsvConverterMissingException" />
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
+    [StackTraceHidden]
     public static void Throw(Type resultType)
     {
-        ArgumentNullException.ThrowIfNull(resultType);
-        throw new CsvConverterMissingException(resultType);
+        throw new CsvConverterMissingException(resultType ?? typeof(void));
     }
 }

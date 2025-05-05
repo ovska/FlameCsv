@@ -26,17 +26,17 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
     /// <summary>
     /// Index of the field in the record.
     /// </summary>
-    public int? FieldIndex { get; init; }
+    public int? FieldIndex { get; set; }
 
     /// <summary>
     /// If available, name of the target property, field, or parameter.
     /// </summary>
-    public string? Target { get; init; }
+    public string? Target { get; set; }
 
     /// <summary>
     /// Target type of the conversion.
     /// </summary>
-    public Type? TargetType { get; init; }
+    public Type? TargetType { get; set; }
 
     /// <summary>
     /// Line of the record where the exception occurred.
@@ -90,7 +90,9 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         get
         {
             if (!RuntimeHelpers.TryEnsureSufficientExecutionStack())
+            {
                 return base.Message;
+            }
 
             using var vsb = new ValueStringBuilder(stackalloc char[256]);
 
@@ -98,27 +100,12 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
 
             bool comma = false;
 
-            if (Line is { } line)
-            {
-                vsb.Append(" Line: ");
-                vsb.AppendFormatted(line);
-                comma = true;
-            }
-
-            if (RecordPosition is { } recordPosition)
+            if (FieldValue is { Length: > 0 } fieldValue)
             {
                 vsb.Append(comma ? ", " : " ");
-                vsb.Append("Record start position: ");
-                vsb.AppendFormatted(recordPosition);
-                comma = true;
-            }
-
-            if (FieldPosition is { } fieldPosition)
-            {
-                vsb.Append(comma ? ", " : " ");
-                vsb.Append("Field start position: ");
-                vsb.AppendFormatted(fieldPosition);
-                comma = true;
+                vsb.Append("Field value: [");
+                vsb.Append(fieldValue);
+                vsb.Append(']');
             }
 
             if (FieldIndex is { } fieldIndex)
@@ -138,12 +125,27 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
                 comma = true;
             }
 
-            if (FieldValue is { Length: > 0 } fieldValue)
+            if (Line is { } line)
+            {
+                vsb.Append(" Line: ");
+                vsb.AppendFormatted(line);
+                comma = true;
+            }
+
+            if (FieldPosition is { } fieldPosition)
             {
                 vsb.Append(comma ? ", " : " ");
-                vsb.Append("Field value: [");
-                vsb.Append(fieldValue);
-                vsb.Append(']');
+                vsb.Append("Field start position: ");
+                vsb.AppendFormatted(fieldPosition);
+                comma = true;
+            }
+
+            if (RecordPosition is { } recordPosition)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Record start position: ");
+                vsb.AppendFormatted(recordPosition);
+                comma = true;
             }
 
             return vsb.ToString();

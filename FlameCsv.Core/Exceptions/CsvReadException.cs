@@ -8,9 +8,8 @@ namespace FlameCsv.Exceptions;
 /// </summary>
 /// <param name="message"></param>
 /// <param name="innerException"></param>
-public class CsvReadException(
-    string? message = null,
-    Exception? innerException = null) : Exception(message, innerException)
+public sealed class CsvReadException(string? message = null, Exception? innerException = null)
+    : Exception(message, innerException)
 {
     /// <summary>
     /// Throws an exception for a CSV record having an invalid number of fields.
