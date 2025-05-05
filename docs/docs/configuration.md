@@ -32,7 +32,7 @@ The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayPro
 The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCSV is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
 
 ### Trimming
-The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.Writing.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both.
+The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.Reading.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both.
 This property is only used when reading CSV, and has no effect when writing, see @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" for writing.
 
 ### Escape
@@ -41,20 +41,19 @@ Any field containing the escape character **must** be wrapped in quotes. The esc
 
 > [!TIP]
 > Due to the rarity of this non-standard format, SIMD accelerated parsing is not supported when using an escape character.
+> The library functions identically, but you will lose the performance benefits of SIMD parsing.
 
 > [!WARNING]
 > For performance reasons, all the dialect characters must be ASCII (value 127 or lower). A runtime exception is thrown if the configured dialect contains non-ASCII characters.
 
-### Additional info
-
-Internally, FlameCsv uses the @"FlameCsv.CsvDialect`1" struct to handle the configured dialect. It is constructed from the options when they are used (this makes the options immutable), and contains the configured values and other things related to parsing, such as @"System.Buffers.SearchValues`1" used internally in parsing.
+### Example
 
 ```cs
 CsvOptions<byte> options = new()
 {
     Delimiter = '\t',
     Quote = '"',
-    Newline = "\r\n",
+    Newline = CsvNewline.LF,
     Trimming = CsvFieldTrimming.Both,
     Escape = '\\',
 };
@@ -150,22 +149,6 @@ CsvConverter<char, int?> c1 = options.Aot.GetOrCreateNullable(static o => o.Aot.
 CsvConverter<char, DayOfWeek> c2 = options.Aot.GetOrCreateEnum<DayOfWeek>();
 ```
 
-### Transcoding
-
-The following methods are used by the library to convert `T` values to @"System.Char?text=char" and back:
-
- - @"FlameCsv.CsvOptions`1.TryGetChars(System.ReadOnlySpan{`0},System.Span{System.Char},System.Int32@)" used to convert the header fields to strings
- - @"FlameCsv.CsvOptions`1.GetAsString(System.ReadOnlySpan{`0})" used in error messages, and to convert long header fields to strings
- - @"FlameCsv.CsvOptions`1.TryWriteChars(System.ReadOnlySpan{System.Char},System.Span{`0},System.Int32@)" used when writing text values, and initializing @"FlameCsv.CsvDialect`1.Newline" and @"FlameCsv.CsvDialect`1.Whitespace"
- - @"FlameCsv.CsvOptions`1.GetFromString(System.String)" used in some converters, and while initializing the dialect
-
-> [!NOTE]
-> The library maintains a small pool of @"System.String"-instances of previously encountered headers, so unless your data is exceptionally varied, the allocation cost is paid only once.
-
-> [!WARNING]
-> While you can inherit the options-type and override these methods, the library expects both of the the @"System.String" and @"System.ReadOnlySpan`1" methods to return the same sequences for the same inputs. Make sure you override both transcoding methods in either direction, and keep the implementations in sync.<br/>
-> Most likely you can achieve the same goals easier by using @"FlameCsv.CsvOptions`1.Comparer" and [custom converters](examples.md#converters).
-
 ### Memory pooling
 
 You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and records split across multiple sequence segments. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
@@ -173,6 +156,9 @@ You can configure the @"System.Buffers.MemoryPool`1" instance used internally wi
 If set to `null`, no pooled memory is used and all temporary buffers are heap allocated.
 
 Further reading: @"architecture".
+
+The library also maintains a small pool of @"System.String"-instances of previously encountered headers,
+so unless your data is exceptionally varied, the allocation cost is paid only once.
 
 ### Custom binding
 

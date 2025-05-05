@@ -242,7 +242,7 @@ using (CsvWriter<byte> writer = CsvWriter.Create(Stream.Null))
 ```
 ---
 
-After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.CsvAsyncWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)" should be called to properly dispose of resources used by the writer instance.
+After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.CsvWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)" should be called to properly dispose of resources used by the writer instance.
 
 > [!NOTE]
 > The @"System.Exception" parameter is used to suppress flushing any remaining data if the write operation errored. A `using`-statement or `Dispose` can be used to clean up the writer instance similarly, but you lose the aforementioned benefit by only disposing. You can safely wrap a manually completed writer in a `using` block, since multiple completions are harmless.

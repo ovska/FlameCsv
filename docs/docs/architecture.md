@@ -9,6 +9,10 @@ uid: architecture
 This document explains the inner workings and design philosophy of FlameCsv.
 While not required for using the library, it provides insights into the internals for those interested.
 
+> [!WARNING]
+> Nerdy stuff ahead 🤓
+
+
 ## Reading
 
 FlameCSV's reading implementation is built on two goals:
@@ -29,8 +33,6 @@ Unescaping and buffer rewinding when reading are the only times when the library
 
 ### Read-ahead
 
-Warning: nerdy stuff ahead 🤓
-
 The read-ahead process works by reading as many CSV fields as possible from the currently available data.
 Each field's data is stored in a [metadata-struct](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Reading/Internal/Meta.cs),
 which contains:
@@ -50,6 +52,10 @@ The metadata struct fits into 8 bytes (size of a `long`) by storing bit flags in
 as the sign-bit of the end index), and the expectation that no single CSV field needs over 29 bits
 (536&nbsp;870&nbsp;912) to store the quote/escape count.
 
+Numerous optimization techniques have been trialed to improve performance until eventually settling on this approach.
+Attempted optimizations include: double laning SIMD, storing EOL's in a separate array for fast TZCNT-lookups,
+pre-calculating field/record ranges, using POPCNT to unroll control character parsing, and general shuffling and
+reorganizing the code to produce better JIT ASM.
 
 ## Writing
 
@@ -91,12 +97,12 @@ across the whole read-operation lifetime, so the allocations are minimal in the 
 
 This benefit extends to tests as well. As the reading code makes extensive use of @"System.Runtime.CompilerServices.Unsafe"
 to avoid bounds checks when accessing the data numerous times, the validity of the unsafe code is tested by using
-a [custom memory pool](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Tests/Utilities/GuardedMemoryManager.cs)
-that allocates native memory with read-protected blocks before and after to ensure no out-of-bounds reads are done.
+custom memory pools that allocate native memory with read-protected blocks before or after to ensure no out-of-bounds reads are done.
+Such pools are also used in fuzz testing.
 
 Note that buffers larger than @"System.Buffers.MemoryPool`1.MaxBufferSize?displayProperty=nameWithType" will be
-rented from the shared array pool. This is unlikely unless your memory pool only supports tiny buffers,
-or your fields are thousands of characters long.
+rented from the shared array pool. This is unlikely unless your memory pool only supports tiny buffers, your fields are thousands of characters long,
+or you intentionally use a small @"FlameCsv.IO.CsvIOOptions.BufferSize?displayProperty=nameWithType" value.
 
 
 ## Dynamic code generation

@@ -71,3 +71,17 @@ The configuration object is identical for `char` and `byte`, and UTF16 <-> UTF8 
 - Browse available configuration options in @"configuration"
 - Check out the performance @"benchmarks"
 - Understand the internals and design philosophy in @"architecture"
+
+## Comparisons to other libraries
+
+|                     | FlameCSV   | CsvHelper          | Sylvan   | Sep     | RecordParser |
+| ------------------- | ---------- | ------------------ | -------- | ------- | ------------ |
+| License             | Apache 2.0 | MS-PL / Apache 2.0 | MIT      | MIT     | MIT          |
+| Performance         | Fast       | Slow               | Fast     | Fast    | Moderate     |
+| Memory use          | Near-zero  | High               | Moderate | Low     | High         |
+| Async support       | Yes        | Yes                | Yes      | Partial |              |
+| Type binding        | Yes        | Yes                | Yes      |         |              |
+| AOT compatible      | Yes        |                    |          | Yes     |              |
+| Reading API         | Simple     | Simple             | Simple   | Simple  | Complex      |
+| Writing API         | Simple     | Simple             | Simple   | Complex | Complex      |
+| Broken data support | No         | Yes                | Yes      | Yes     | Unknown      |
