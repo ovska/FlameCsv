@@ -32,6 +32,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
     private readonly T _delimiter;
     private readonly T _quote;
+    private readonly T _space;
     private readonly bool _isCRLF;
     private readonly T? _escape;
     private readonly SearchValues<T> _needsQuoting;
@@ -56,6 +57,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
         _delimiter = T.CreateTruncating(options.Delimiter);
         _quote = T.CreateTruncating(options.Quote);
+        _space = T.CreateTruncating(' ');
         _escape = options.Escape.HasValue ? T.CreateTruncating(options.Escape.Value) : null;
         _isCRLF = options.Newline.IsCRLF();
         _needsQuoting = options.NeedsQuoting;
@@ -125,7 +127,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
         Debug.Assert((uint)tokensWritten <= (uint)destination.Length);
 
-        if (skipEscaping || _fieldQuoting is CsvFieldQuoting.Never)
+        if (skipEscaping || _fieldQuoting == CsvFieldQuoting.Never)
         {
             Writer.Advance(tokensWritten);
         }
@@ -133,11 +135,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         {
             if (_escape is null)
             {
-                EscapeAndAdvance(_rfc4180Escaper, destination, value.Length);
+                EscapeAndAdvance(new RFC4180Escaper<T>(quote: _quote), destination, tokensWritten);
             }
             else
             {
-                EscapeAndAdvance(_unixEscaper, destination, value.Length);
+                EscapeAndAdvance(new UnixEscaper<T>(quote: _quote, escape: _escape.Value), destination, tokensWritten);
             }
         }
     }
@@ -153,7 +155,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         scoped Span<T> destination = Writer.GetSpan(sizeHint: value.Length);
         value.CopyTo(destination);
 
-        if (skipEscaping || _fieldQuoting is CsvFieldQuoting.Never)
+        if (skipEscaping || _fieldQuoting == CsvFieldQuoting.Never)
         {
             Writer.Advance(value.Length);
         }
@@ -238,7 +240,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     private void EscapeAndAdvance<TEscaper>(TEscaper escaper, Span<T> destination, int tokensWritten)
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
-        if (_fieldQuoting is CsvFieldQuoting.Never)
+        if (_fieldQuoting == CsvFieldQuoting.Never)
         {
             Writer.Advance(tokensWritten);
             return;
@@ -247,7 +249,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (_fieldQuoting is CsvFieldQuoting.Always or CsvFieldQuoting.Empty)
+            if (((_fieldQuoting & CsvFieldQuoting.Empty)) != 0)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -268,7 +270,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         bool shouldQuote;
         int escapableCount;
 
-        if (_fieldQuoting is CsvFieldQuoting.Always)
+        if (_fieldQuoting == CsvFieldQuoting.Always)
         {
             shouldQuote = true;
             escapableCount = escaper.CountEscapable(written);
@@ -284,15 +286,10 @@ public readonly struct CsvFieldWriter<T> : IDisposable
             }
             else
             {
-                if (_fieldQuoting == CsvFieldQuoting.LeadingOrTrailingSpaces)
-                {
-                    shouldQuote = written[0] == T.CreateTruncating(' ') || written[^1] == T.CreateTruncating(' ');
-                }
-                else
-                {
-                    shouldQuote = false;
-                }
+                bool quoteLeading = (_fieldQuoting & CsvFieldQuoting.LeadingSpaces) != 0;
+                bool quoteTrailing = (_fieldQuoting & CsvFieldQuoting.TrailingSpaces) != 0;
 
+                shouldQuote = (quoteLeading && written[0] == _space) || (quoteTrailing && written[^1] == _space);
                 escapableCount = 0;
             }
         }

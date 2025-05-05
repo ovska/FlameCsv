@@ -226,7 +226,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     private CsvRecordCallback<T>? _recordCallback;
     private bool _hasHeader = true;
     private bool _validateFieldCount;
-    private CsvFieldQuoting _fieldQuoting;
+    private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
     private MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
@@ -341,16 +341,14 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// <summary>
     /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
     /// </summary>
+    /// <remarks>
+    /// You can combine conditions using bitwise OR. For example, to quote both empty fields, and fields with leading spaces:
+    /// <code>CsvFieldQuoting.Empty | CsvFieldQuoting.LeadingSpaces</code>
+    /// </remarks>
     public CsvFieldQuoting FieldQuoting
     {
         get => _fieldQuoting;
-        set
-        {
-            if (!Enum.IsDefined(value))
-                Throw.Argument(nameof(value), "Value not defined in enum CsvFieldEscaping");
-
-            this.SetValue(ref _fieldQuoting, value);
-        }
+        set => this.SetValue(ref _fieldQuoting, value);
     }
 
     /// <summary>

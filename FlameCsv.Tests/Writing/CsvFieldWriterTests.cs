@@ -8,7 +8,8 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvFieldWriterTests : IAsyncDisposable
 {
-    [HandlesResourceDisposal] private CsvFieldWriter<char> _writer;
+    [HandlesResourceDisposal]
+    private CsvFieldWriter<char> _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -112,7 +113,8 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
             escapeMode
                 ? $"\"Test ^\"{new string('x', 114)}^\" test\""
                 : $"\"Test \"\"{new string('x', 114)}\"\" test\"",
-            Written);
+            Written
+        );
     }
 
     [Theory, InlineData(-1), InlineData(int.MaxValue)]
@@ -129,15 +131,28 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     [InlineData(CsvFieldQuoting.Auto, "", "")]
     [InlineData(CsvFieldQuoting.Auto, ",", "\",\"")]
     [InlineData(CsvFieldQuoting.Auto, "x", "x")]
+    [InlineData(CsvFieldQuoting.Auto, " ", " ")]
     [InlineData(CsvFieldQuoting.Empty, "", "\"\"")]
+    [InlineData(CsvFieldQuoting.Empty, " ", " ")]
     [InlineData(CsvFieldQuoting.Empty, ",", "\",\"")]
     [InlineData(CsvFieldQuoting.Empty, "x", "x")]
     [InlineData(CsvFieldQuoting.Always, "", "\"\"")]
     [InlineData(CsvFieldQuoting.Always, ",", "\",\"")]
     [InlineData(CsvFieldQuoting.Always, "x", "\"x\"")]
+    [InlineData(CsvFieldQuoting.Always, " ", "\" \"")]
     [InlineData(CsvFieldQuoting.Never, "", "")]
     [InlineData(CsvFieldQuoting.Never, ",", ",")]
     [InlineData(CsvFieldQuoting.Never, "x", "x")]
+    [InlineData(CsvFieldQuoting.Never, " ", " ")]
+    [InlineData(CsvFieldQuoting.LeadingSpaces, " test", "\" test\"")]
+    [InlineData(CsvFieldQuoting.LeadingSpaces, "test ", "test ")]
+    [InlineData(CsvFieldQuoting.LeadingSpaces, " test ", "\" test \"")]
+    [InlineData(CsvFieldQuoting.TrailingSpaces, " test", " test")]
+    [InlineData(CsvFieldQuoting.TrailingSpaces, "test ", "\"test \"")]
+    [InlineData(CsvFieldQuoting.TrailingSpaces, " test ", "\" test \"")]
+    [InlineData(CsvFieldQuoting.LeadingOrTrailingSpaces, " test", "\" test\"")]
+    [InlineData(CsvFieldQuoting.LeadingOrTrailingSpaces, "test ", "\"test \"")]
+    [InlineData(CsvFieldQuoting.LeadingOrTrailingSpaces, " test ", "\" test \"")]
     public async Task Should_Quote_Fields(CsvFieldQuoting quoting, string input, string expected)
     {
         Initialize(quoting);
@@ -149,15 +164,18 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     }
 
     [MemberNotNull(nameof(_writer))]
-    private void Initialize(
-        CsvFieldQuoting quoting = CsvFieldQuoting.Auto,
-        int bufferSize = 1024,
-        char? escape = null)
+    private void Initialize(CsvFieldQuoting quoting = CsvFieldQuoting.Auto, int bufferSize = 1024, char? escape = null)
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char>(
             new TextBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, new() { BufferSize = bufferSize }),
-            new CsvOptions<char> { FieldQuoting = quoting, Null = "null", Escape = escape });
+            new CsvOptions<char>
+            {
+                FieldQuoting = quoting,
+                Null = "null",
+                Escape = escape,
+            }
+        );
     }
 
     private sealed class Formatter : CsvConverter<char, string>
