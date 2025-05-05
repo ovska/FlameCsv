@@ -121,7 +121,7 @@ public sealed class CsvRecordEnumerator<T>
                 Throw.Unreachable_AlreadyHasHeader();
 
             _header = value;
-            _expectedFieldCount = value?.Count;
+            _expectedFieldCount = value?.Values.Length;
             _materializerCache?.Clear();
         }
     }

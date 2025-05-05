@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
@@ -14,17 +15,24 @@ namespace FlameCsv;
 [PublicAPI]
 public sealed class CsvHeader
 {
-    // does not need to be cleared on hot-reload, headers are always transcoded the same way
-    internal static readonly StringPool? HeaderPool = FlameCsvGlobalOptions.CachingDisabled
-        ? null
-        : new StringPool(minimumSize: 32);
+    /// <summary>
+    /// Contains the string pool for header values.
+    /// </summary>
+    /// <remarks>
+    /// Will be null <see cref="FlameCsvGlobalOptions.CachingDisabled"/> is set to <c>true</c>.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [CLSCompliant(false)]
+    public static StringPool? HeaderPool { get; } =
+        FlameCsvGlobalOptions.CachingDisabled ? null : new StringPool(minimumSize: 32);
 
-    internal static ImmutableArray<string> Parse<T>(
-        CsvOptions<T> options,
-        ref CsvFieldsRef<T> record)
+    internal static ImmutableArray<string> Parse<T>(CsvOptions<T> options, ref CsvFieldsRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (record.FieldCount == 0) CsvFormatException.Throw("CSV header was empty");
+        if (record.FieldCount == 0)
+        {
+            CsvFormatException.Throw("CSV header was empty");
+        }
 
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
@@ -64,11 +72,15 @@ public sealed class CsvHeader
     }
 
     /// <summary>
+    /// The comparer used to compare header values.
+    /// </summary>
+    public IEqualityComparer<string> Comparer { get; }
+
+    /// <summary>
     /// Returns the header values.
     /// </summary>
     public ImmutableArray<string> Values { get; }
 
-    private readonly IEqualityComparer<string> _comparer;
     private readonly int[] _hashCodes;
 
     /// <summary>
@@ -82,20 +94,17 @@ public sealed class CsvHeader
         ArgumentNullException.ThrowIfNull(ImmutableCollectionsMarshal.AsArray(header), nameof(header));
         ArgumentOutOfRangeException.ThrowIfZero(header.Length);
 
-        _comparer = comparer;
-        Values = header;
         _hashCodes = new int[header.Length];
 
         for (int i = 0; i < header.Length; i++)
         {
+            ArgumentNullException.ThrowIfNull(header[i], nameof(header));
             _hashCodes[i] = comparer.GetHashCode(header[i]);
         }
-    }
 
-    /// <summary>
-    /// Returns the number of header values.
-    /// </summary>
-    public int Count => Values.Length;
+        Comparer = comparer;
+        Values = header;
+    }
 
     /// <summary>
     /// Returns <c>true</c> if the specified header is present.
@@ -105,11 +114,12 @@ public sealed class CsvHeader
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        int hash = _comparer.GetHashCode(key);
+        int hash = Comparer.GetHashCode(key);
+        ReadOnlySpan<string> values = Values.AsSpan();
 
-        foreach (var header in Values)
+        for (int index = 0; index < values.Length; index++)
         {
-            if (_comparer.GetHashCode(header) == hash && _comparer.Equals(header, key))
+            if (_hashCodes[index] == hash && Comparer.Equals(values[index], key))
             {
                 return true;
             }
@@ -125,12 +135,12 @@ public sealed class CsvHeader
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        int hash = _comparer.GetHashCode(key);
+        int hash = Comparer.GetHashCode(key);
         ReadOnlySpan<string> values = Values.AsSpan();
 
         for (int index = 0; index < values.Length; index++)
         {
-            if (_hashCodes[index] == hash && _comparer.Equals(values[index], key))
+            if (_hashCodes[index] == hash && Comparer.Equals(values[index], key))
             {
                 value = index;
                 return true;
