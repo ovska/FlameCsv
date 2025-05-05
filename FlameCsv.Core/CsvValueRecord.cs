@@ -46,6 +46,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
             return _owner.Header;
         }
     }
+
     /// <inheritdoc cref="CsvRecord{T}.Contains(CsvFieldIdentifier)"/>
     public bool Contains(CsvFieldIdentifier id)
     {
@@ -260,6 +261,29 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
     {
         Throw.IfDefaultStruct(_owner is null, typeof(CsvValueRecord<T>));
         _owner.EnsureVersion(_version);
+    }
+
+    internal int GetFieldIndex(CsvFieldIdentifier id, [CallerArgumentExpression(nameof(id))] string paramName = "")
+    {
+        if (!id.TryGetIndex(out int index, out string? name))
+        {
+            if (_owner.Header is null)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
+
+            if (!_owner.Header.TryGetValue(name, out index))
+            {
+                Throw.Argument_HeaderNameNotFound(name, _owner.Header.Values);
+            }
+        }
+
+        if ((uint)index >= (uint)_fields.FieldCount)
+        {
+            Throw.Argument_FieldIndex(index, _fields.FieldCount, paramName);
+        }
+
+        return index;
     }
 
     /// <summary>

@@ -98,11 +98,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
         if (_escape is null)
         {
-            EscapeAndAdvance(in _rfc4180Escaper, destination, tokensWritten);
+            EscapeAndAdvance(_rfc4180Escaper, destination, tokensWritten);
         }
         else
         {
-            EscapeAndAdvance(in _unixEscaper, destination, tokensWritten);
+            EscapeAndAdvance(_unixEscaper, destination, tokensWritten);
         }
     }
 
@@ -114,8 +114,9 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {
+        // we are optimistic here with the sizeHint, assuming that most writes are ASCII
         int tokensWritten;
-        scoped Span<T> destination = Writer.GetSpan();
+        scoped Span<T> destination = Writer.GetSpan(sizeHint: value.Length);
 
         while (!Options.TryWriteChars(value, destination, out tokensWritten))
         {
@@ -149,7 +150,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteRaw(ReadOnlySpan<T> value, bool skipEscaping = false)
     {
-        scoped Span<T> destination = Writer.GetSpan(value.Length);
+        scoped Span<T> destination = Writer.GetSpan(sizeHint: value.Length);
         value.CopyTo(destination);
 
         if (skipEscaping || _fieldQuoting is CsvFieldQuoting.Never)
@@ -222,22 +223,19 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     {
         if (_escape is null)
         {
-            EscapeAndAdvance(in _rfc4180Escaper, destination, tokensWritten);
+            EscapeAndAdvance(_rfc4180Escaper, destination, tokensWritten);
         }
         else
         {
-            EscapeAndAdvance(in _unixEscaper, destination, tokensWritten);
+            EscapeAndAdvance(_unixEscaper, destination, tokensWritten);
         }
     }
 
     /// <summary>
-    /// Attempts to escape the value written in the first <paramref name="tokensWritten"/> characters
-    /// of <paramref name="destination"/>. Returns <c>false</c> if no escaping is needed
-    /// and the writer was not advanced.
+    /// Advances the writer, escaping the written value if needed.
     /// </summary>
-    /// <returns>True if the writer was advanced</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void EscapeAndAdvance<TEscaper>(in TEscaper escaper, Span<T> destination, int tokensWritten)
+    private void EscapeAndAdvance<TEscaper>(TEscaper escaper, Span<T> destination, int tokensWritten)
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
         if (_fieldQuoting is CsvFieldQuoting.Never)

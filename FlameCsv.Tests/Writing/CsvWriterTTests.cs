@@ -95,6 +95,25 @@ public partial class CsvWriterTTests
     {
         Assert.ThrowsAny<CsvWriteException>(() =>
         {
+            Impl<char>(
+                writer =>
+                {
+                    writer.ExpectedFieldCount = null;
+                    writer.WriteField("1");
+                    writer.WriteField("2");
+                    writer.WriteField("3");
+                    writer.NextRecord();
+                    writer.NextRecord(); // empty records don't throw
+                    writer.WriteField("1");
+                    writer.WriteField("2");
+                    writer.NextRecord();
+                },
+                new CsvOptions<char> { ValidateFieldCount = true }
+            );
+        });
+
+        Assert.ThrowsAny<CsvWriteException>(() =>
+        {
             Impl<char>(writer =>
             {
                 writer.ExpectedFieldCount = 4;
@@ -113,7 +132,7 @@ public partial class CsvWriterTTests
             "xyz\r\n",
             Impl<char>(writer =>
             {
-                writer.WriteRaw("xyz");
+                writer.WriteField("xyz");
                 writer.NextRecord();
             })
         );
@@ -122,7 +141,7 @@ public partial class CsvWriterTTests
             "xyz\r\n",
             Impl<byte>(writer =>
             {
-                writer.WriteRaw("xyz"u8);
+                writer.WriteField("xyz"u8);
                 writer.NextRecord();
             })
         );
@@ -131,7 +150,7 @@ public partial class CsvWriterTTests
             "xyz\r\n",
             await Impl<char>(async writer =>
             {
-                writer.WriteRaw("xyz");
+                writer.WriteField("xyz");
                 await writer.NextRecordAsync(TestContext.Current.CancellationToken);
             })
         );
@@ -140,7 +159,7 @@ public partial class CsvWriterTTests
             "xyz\r\n",
             await Impl<byte>(async writer =>
             {
-                writer.WriteRaw("xyz"u8);
+                writer.WriteField("xyz"u8);
                 await writer.NextRecordAsync(TestContext.Current.CancellationToken);
             })
         );
@@ -181,6 +200,21 @@ public partial class CsvWriterTTests
                 writer.WriteField(new NumberUtf8Converter<int>(CsvOptions<byte>.Default, NumberStyles.Integer), 1)
             )
         );
+
+        Assert.Equal("1,2,3\r\n", Impl<char>(writer => writer.WriteFields(["1", "2", "3"])));
+        Assert.Equal("1,2,3\r\n", Impl<byte>(writer => writer.WriteFields(["1", "2", "3"])));
+
+        Assert.Equal("\"te,st\",\"te,st\"\r\n", Impl<char>(writer => writer.WriteFields(["te,st", "te,st"])));
+        Assert.Equal("\"te,st\",\"te,st\"\r\n", Impl<byte>(writer => writer.WriteFields(["te,st", "te,st"])));
+
+        Assert.Equal(
+            "te,st,te,st\r\n",
+            Impl<char>(writer => writer.WriteFields(["te,st", "te,st"], skipEscaping: true))
+        );
+        Assert.Equal(
+            "te,st,te,st\r\n",
+            Impl<byte>(writer => writer.WriteFields(["te,st", "te,st"], skipEscaping: true))
+        );
     }
 
     [Fact]
@@ -195,9 +229,6 @@ public partial class CsvWriterTTests
         Assert.Equal("te,st\r\n", Impl<byte>(writer => writer.WriteField(value: "te,st"u8, skipEscaping: true)));
         Assert.Equal("te,st\r\n", Impl<char>(writer => writer.WriteField(chars: "te,st", skipEscaping: true)));
         Assert.Equal("te,st\r\n", Impl<byte>(writer => writer.WriteField(chars: "te,st", skipEscaping: true)));
-
-        Assert.Equal("te,st\r\n", Impl<char>(writer => writer.WriteRaw("te,st", fieldsWritten: 1)));
-        Assert.Equal("te,st\r\n", Impl<byte>(writer => writer.WriteRaw("te,st"u8, fieldsWritten: 1)));
     }
 
     [Fact]
@@ -207,7 +238,7 @@ public partial class CsvWriterTTests
             "xyz\r\n",
             Impl<char>(writer =>
             {
-                writer.WriteRaw("xyz");
+                writer.WriteField("xyz");
             })
         );
 
@@ -215,7 +246,7 @@ public partial class CsvWriterTTests
             "xyz\r\n",
             Impl<byte>(writer =>
             {
-                writer.WriteRaw("xyz"u8);
+                writer.WriteField("xyz"u8);
             })
         );
 
@@ -224,7 +255,7 @@ public partial class CsvWriterTTests
             Impl<char>(writer =>
             {
                 writer.EnsureTrailingNewline = false;
-                writer.WriteRaw("xyz");
+                writer.WriteField("xyz");
             })
         );
 
@@ -233,7 +264,7 @@ public partial class CsvWriterTTests
             Impl<byte>(writer =>
             {
                 writer.EnsureTrailingNewline = false;
-                writer.WriteRaw("xyz"u8);
+                writer.WriteField("xyz"u8);
             })
         );
     }
@@ -290,10 +321,128 @@ public partial class CsvWriterTTests
         );
     }
 
-    private static string Impl<T>(Action<CsvWriter<T>> action)
+    [Fact]
+    public static void Should_Write_Records()
+    {
+        const string chars = "A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9\r\n";
+        byte[] bytes = Encoding.UTF8.GetBytes(chars);
+
+        Assert.Equal(
+            chars,
+            Impl<char>(writer =>
+            {
+                foreach (var record in CsvReader.Enumerate(chars))
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader(in record);
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record);
+                    writer.NextRecord();
+                }
+            })
+        );
+
+        Assert.Equal(
+            chars,
+            Impl<byte>(writer =>
+            {
+                foreach (var record in CsvReader.Enumerate(bytes))
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader(in record);
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record);
+                    writer.NextRecord();
+                }
+            })
+        );
+
+        const string trimmedChars = "A,C\r\n1,3\r\n4,6\r\n7,9\r\n";
+        byte[] trimmedBytes = Encoding.UTF8.GetBytes(trimmedChars);
+
+        Assert.Equal(
+            trimmedChars,
+            Impl<char>(writer =>
+            {
+                foreach (var record in CsvReader.Enumerate(chars))
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader("A", "C");
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record, [0, 2]);
+                    writer.NextRecord();
+                }
+            })
+        );
+
+        Assert.Equal(
+            trimmedChars,
+            Impl<byte>(writer =>
+            {
+                foreach (var record in CsvReader.Enumerate(bytes))
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader("A", "C");
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record, [0, 2]);
+                    writer.NextRecord();
+                }
+            })
+        );
+
+        Assert.Equal(
+            trimmedChars,
+            Impl<char>(writer =>
+            {
+                foreach (var record in CsvReader.Enumerate(chars))
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader("A", "C");
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record, ["A", "C"]);
+                    writer.NextRecord();
+                }
+            })
+        );
+
+        Assert.Equal(
+            trimmedChars,
+            Impl<byte>(writer =>
+            {
+                foreach (var record in CsvReader.Enumerate(bytes))
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader("A", "C");
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record, ["A", "C"]);
+                    writer.NextRecord();
+                }
+            })
+        );
+    }
+
+    private static string Impl<T>(Action<CsvWriter<T>> action, CsvOptions<T>? options = null)
         where T : unmanaged, IBinaryInteger<T>
     {
-        var writer = GetWriter<T>(out Func<string> getString);
+        var writer = GetWriter<T>(out Func<string> getString, options);
         Exception? ex = null;
         try
         {
@@ -307,10 +456,10 @@ public partial class CsvWriterTTests
         return getString();
     }
 
-    private static async Task<string> Impl<T>(Func<CsvWriter<T>, Task> action)
+    private static async Task<string> Impl<T>(Func<CsvWriter<T>, Task> action, CsvOptions<T>? options = null)
         where T : unmanaged, IBinaryInteger<T>
     {
-        var writer = GetWriter<T>(out Func<string> getString);
+        var writer = GetWriter<T>(out Func<string> getString, options);
         Exception? ex = null;
         try
         {
@@ -325,21 +474,21 @@ public partial class CsvWriterTTests
         return getString();
     }
 
-    private static CsvWriter<T> GetWriter<T>(out Func<string> getString)
+    private static CsvWriter<T> GetWriter<T>(out Func<string> getString, CsvOptions<T>? options)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (typeof(T) == typeof(char))
         {
             var stringWriter = new StringWriter();
             getString = () => stringWriter.ToString();
-            return (CsvWriter<T>)(object)CsvWriter.Create(stringWriter);
+            return (CsvWriter<T>)(object)CsvWriter.Create(stringWriter, (CsvOptions<char>?)(object?)options);
         }
 
         if (typeof(T) == typeof(byte))
         {
             var stream = new MemoryStream();
             getString = () => Encoding.UTF8.GetString(stream.ToArray());
-            return (CsvWriter<T>)(object)CsvWriter.Create(stream);
+            return (CsvWriter<T>)(object)CsvWriter.Create(stream, (CsvOptions<byte>?)(object?)options);
         }
 
         throw Token<T>.NotSupported;
