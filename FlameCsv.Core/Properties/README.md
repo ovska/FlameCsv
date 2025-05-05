@@ -71,12 +71,13 @@ await CsvWriter.WriteAsync(
 - *Breaking:* Only ASCII tokens are now supported in the dialect (delimiter, quote, newline, etc.)
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios.
 - *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
+- *Breaking:* `CsvFieldQuoting` is now a flags enum, and zero values is `CsvFieldQuoting.Never`. Library default has not changed.
 - *Breaking:* Argument to the exception handler no longer a `ref struct` or has `in`-modifier
 - *Breaking:* ImmutableArray used instead of ReadOnlySpan for header parsing (may require recompile for source generated files)
 - *Breaking:* Delete `CsvAsyncWriter<T>` (combined with `CsvWriter<T>`), rename `ColumnIndex` to `FieldIndex`, moved configuration to instance instead of factory method
 - *Breaking*: `CsvOptions<T>` is now sealed
 - *Breaking*: Removed `in` and `ref struct` modifier from exception handler
-- Parsing performance improvements
+- Parsing performance improvements for all architectures (especially Avx512BW when reading `char`)
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding
 - Added hot reload support for enum changes

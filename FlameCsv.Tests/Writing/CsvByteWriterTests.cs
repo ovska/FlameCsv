@@ -11,11 +11,12 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvByteWriterTests : IAsyncDisposable
 {
-    [HandlesResourceDisposal] private CsvFieldWriter<byte> _writer;
+    [HandlesResourceDisposal]
+    private CsvFieldWriter<byte> _writer;
     private MemoryStream? _stream;
 
-    private string Written
-        => _stream is not null && _stream.TryGetBuffer(out var buffer)
+    private string Written =>
+        _stream is not null && _stream.TryGetBuffer(out var buffer)
             ? Encoding.UTF8.GetString(buffer.AsSpan())
             : throw new UnreachableException();
 
@@ -131,17 +132,18 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
         Assert.Equal(expected, Written);
     }
 
-    private void Initialize(
-        CsvFieldQuoting quoting = CsvFieldQuoting.Auto,
-        int bufferSize = 1024)
+    private void Initialize(CsvFieldQuoting quoting = CsvFieldQuoting.Auto, int bufferSize = 1024)
     {
         _stream = new MemoryStream();
         _writer = new CsvFieldWriter<byte>(
             new PipeBufferWriter(
                 PipeWriter.Create(
                     _stream,
-                    new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Instance))),
-            new CsvOptions<byte> { FieldQuoting = quoting, Null = "null" });
+                    new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Instance)
+                )
+            ),
+            new CsvOptions<byte> { FieldQuoting = quoting, Null = "null" }
+        );
     }
 
     private sealed class Formatter : CsvConverter<byte, string>
