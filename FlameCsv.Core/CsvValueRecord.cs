@@ -18,7 +18,8 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvValueRecord<>.CsvRecordDebugView))]
-public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvValueRecord<T> : ICsvFields<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="CsvRecord{T}.Position"/>
     public long Position { get; }
@@ -45,8 +46,15 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         get
         {
             _owner.EnsureVersion(_version);
-            if (_owner.Header is null) Throw.NotSupported_CsvHasNoHeader();
-            return _owner.Header.Values;
+
+            CsvHeader? header = _owner.Header;
+
+            if (header is null)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
+
+            return header.Values;
         }
     }
 
@@ -57,9 +65,14 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
 
         if (!id.TryGetIndex(out int index, out string? name))
         {
-            if (_owner.Header is null) Throw.NotSupported_CsvHasNoHeader();
+            CsvHeader? header = _owner.Header;
 
-            if (!_owner.Header.TryGetValue(name, out index))
+            if (header is null)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
+
+            if (!header.TryGetValue(name, out index))
             {
                 return false;
             }
@@ -88,7 +101,8 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         int lineIndex,
         ref readonly CsvFields<T> fields,
         CsvOptions<T> options,
-        IRecordOwner owner)
+        IRecordOwner owner
+    )
     {
         _version = version;
         Position = position;
@@ -107,7 +121,8 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
             return true;
         }
 
-        if (_owner.Header is null) Throw.NotSupported_CsvHasNoHeader();
+        if (_owner.Header is null)
+            Throw.NotSupported_CsvHasNoHeader();
         return _owner.Header.TryGetValue(name, out index);
     }
 
@@ -163,7 +178,8 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
     public bool TryParseField<TValue>(
         CsvConverter<T, TValue> converter,
         CsvFieldIdentifier id,
-        [MaybeNullWhen(false)] out TValue value)
+        [MaybeNullWhen(false)] out TValue value
+    )
     {
         ArgumentNullException.ThrowIfNull(converter);
         var field = GetField(id);
@@ -271,7 +287,7 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T> where T : unmanaged, IB
         /// <summary>
         /// Current field in the record.
         /// </summary>
-        public ReadOnlySpan<T> Current => _fields.GetField(_index - 1);
+        public readonly ReadOnlySpan<T> Current => _fields.GetField(_index - 1);
 
         private readonly int _version;
         private readonly IRecordOwner _owner;
