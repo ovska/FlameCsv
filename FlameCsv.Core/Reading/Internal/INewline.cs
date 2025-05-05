@@ -89,7 +89,7 @@ internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
         {
             sizeof(byte) => Unsafe.As<T, byte>(ref value) == '\n',
             sizeof(char) => Unsafe.As<T, char>(ref value) == '\n',
-            _ => throw new NotSupportedException(),
+            _ => throw Token<T>.NotSupported,
         };
     }
 
@@ -143,7 +143,7 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
             return Unsafe.As<T, char>(ref value) == '\r' && Unsafe.Add(ref Unsafe.As<T, char>(ref value), 1) == '\n';
         }
 
-        throw new NotSupportedException();
+        throw Token<T>.NotSupported;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -172,7 +172,7 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
         }
         else
         {
-            throw new NotSupportedException();
+            throw Token<T>.NotSupported;
         }
 
         Unsafe.SkipInit(out isMultitoken); // shave off 2-3 bytes, this is never checked if returned false

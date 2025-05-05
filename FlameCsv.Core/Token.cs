@@ -3,15 +3,14 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
 
-internal static class Token<T> where T : unmanaged
+internal static class Token<T>
+    where T : unmanaged
 {
     [ExcludeFromCodeCoverage]
-    public static string Name
-        => typeof(T) == typeof(char)
-            ? "char"
-            : typeof(T) == typeof(byte)
-                ? "byte"
-                : typeof(T).Name;
+    public static string Name =>
+        typeof(T) == typeof(char) ? "char"
+        : typeof(T) == typeof(byte) ? "byte"
+        : typeof(T).Name;
 
     /// <summary>
     /// Returns true if <see langword="stackalloc"/> <typeparamref name="T"/>[<paramref name="length"/>] is reasonably safe.
@@ -26,4 +25,6 @@ internal static class Token<T> where T : unmanaged
     /// Conservative <see langword="stackalloc"/> size.
     /// </summary>
     public static int StackLength => Unsafe.SizeOf<T>() >= 128 ? 0 : 256 / Unsafe.SizeOf<T>();
+
+    public static NotSupportedException NotSupported => new($"Token type {typeof(T).Name} is not supported.");
 }

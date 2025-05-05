@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Attributes;
-using FlameCsv.Exceptions;
 using FlameCsv.Converters;
+using FlameCsv.Exceptions;
 
 // ReSharper disable UnusedMember.Local
 
@@ -10,8 +10,8 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    public static TheoryData<string, bool, bool?> NonNullableTestData()
-        => new()
+    public static TheoryData<string, bool, bool?> NonNullableTestData() =>
+        new()
         {
             { "1", true, true },
             { "Y", true, true },
@@ -23,8 +23,8 @@ public static class CsvBooleanValuesAttributeTests
             { "KYLLÄ", true, true },
         };
 
-    public static TheoryData<string, bool, bool?, string> NullableTestData()
-        => new()
+    public static TheoryData<string, bool, bool?, string> NullableTestData() =>
+        new()
         {
             { "1", true, true, "" },
             { "Y", true, true, "" },
@@ -56,12 +56,12 @@ public static class CsvBooleanValuesAttributeTests
     [Theory, InlineData(nameof(Shim.InvalidType)), InlineData(nameof(Shim.NoValues))]
     public static void Should_Validate_Configuration(string property)
     {
-        Assert.Throws<CsvConfigurationException>(
-            () =>
-            {
-                var @override = typeof(Shim).GetProperty(property)!.GetCustomAttribute<CsvConverterAttribute>()!;
-                _ = @override.TryCreateConverter(typeof(bool), CsvOptions<char>.Default, out _);
-            });
+        var @override = typeof(Shim).GetProperty(property)!.GetCustomAttribute<CsvConverterAttribute>()!;
+
+        Assert.Throws<CsvConfigurationException>(() =>
+        {
+            _ = @override.TryCreateConverter(typeof(bool), CsvOptions<char>.Default, out _);
+        });
     }
 
     [Theory, MemberData(nameof(NonNullableTestData))]
@@ -70,7 +70,8 @@ public static class CsvBooleanValuesAttributeTests
         Impl<char>();
         Impl<byte>();
 
-        void Impl<T>() where T : unmanaged, IBinaryInteger<T>
+        void Impl<T>()
+            where T : unmanaged, IBinaryInteger<T>
         {
             var options = CsvOptions<T>.Default;
 
@@ -93,16 +94,13 @@ public static class CsvBooleanValuesAttributeTests
     }
 
     [Theory, MemberData(nameof(NullableTestData))]
-    public static void Should_Override_Nullable_Bool(
-        string input,
-        bool success,
-        bool? expected,
-        string nullToken)
+    public static void Should_Override_Nullable_Bool(string input, bool success, bool? expected, string nullToken)
     {
         Impl<char>();
         Impl<byte>();
 
-        void Impl<T>() where T : unmanaged, IBinaryInteger<T>
+        void Impl<T>()
+            where T : unmanaged, IBinaryInteger<T>
         {
             var options = new CsvOptions<T> { Null = nullToken };
 
@@ -130,7 +128,8 @@ public static class CsvBooleanValuesAttributeTests
         Impl<char>();
         Impl<byte>();
 
-        static void Impl<T>() where T : unmanaged, IBinaryInteger<T>
+        static void Impl<T>()
+            where T : unmanaged, IBinaryInteger<T>
         {
             var @override = typeof(Shim).GetProperty("IsEnabledN")!.GetCustomAttribute<CsvConverterAttribute>()!;
 
@@ -139,8 +138,9 @@ public static class CsvBooleanValuesAttributeTests
 
             Assert.False(parser.TryParse(CsvOptions<T>.Default.GetFromString("y").Span, out _));
             Assert.True(
-                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value) &&
-                value.GetValueOrDefault());
+                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value)
+                    && value.GetValueOrDefault()
+            );
         }
     }
 
@@ -161,17 +161,22 @@ public static class CsvBooleanValuesAttributeTests
     public static void Should_Validate_AlternateComparer()
     {
         Assert.ThrowsAny<CsvConfigurationException>(
-            () => new CustomBooleanTextConverter(
-                new CsvOptions<char>
-                {
-                    BooleanValues = { ("t", true), ("f", false) }, Comparer = new NotAlternateComparer(),
-                }));
+            () =>
+                new CustomBooleanConverter<char>(
+                    new CsvOptions<char>
+                    {
+                        BooleanValues = { ("t", true), ("f", false) },
+                        Comparer = new NotAlternateComparer(),
+                    }
+                )
+        );
     }
 
     [ExcludeFromCodeCoverage]
     private sealed class NotAlternateComparer : IEqualityComparer<string>
     {
         public bool Equals(string? x, string? y) => String.Equals(x, y);
+
         public int GetHashCode(string obj) => obj.GetHashCode();
     }
 }

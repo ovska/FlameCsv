@@ -9,19 +9,22 @@ namespace FlameCsv.Attributes;
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,
     AllowMultiple = true, // type and assembly need AllMultiple = true
-    Inherited = false)]
+    Inherited = false
+)]
 public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
 {
+    private int[] _value = [];
+
     /// <summary>
     /// Indexes to ignore when reading CSV, and to leave empty when writing.
     /// </summary>
     public int[] Value
     {
-        get;
+        get => _value;
         init
         {
             ArgumentNullException.ThrowIfNull(value);
-            field = value;
+            _value = value;
         }
     }
 
@@ -45,8 +48,5 @@ public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvIgnoredIndexesAttribute"/> class.
     /// </summary>
-    public CsvIgnoredIndexesAttribute()
-    {
-        Value = [];
-    }
+    public CsvIgnoredIndexesAttribute() { }
 }

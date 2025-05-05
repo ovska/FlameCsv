@@ -12,7 +12,7 @@ internal static class DefaultConverters
         if (type == typeof(Double)) return o => new NumberTextConverter<double>(o, NumberStyles.Float);
         if (type == typeof(Boolean))
             return o => o.HasBooleanValues
-                ? new CustomBooleanTextConverter(o)
+                ? new CustomBooleanConverter<char>(o)
                 : BooleanTextConverter.Instance;
         if (type == typeof(DateTime)) return o => new SpanTextConverter<DateTime>(o);
         if (type == typeof(Byte)) return o => new NumberTextConverter<byte>(o, NumberStyles.Integer);
@@ -39,7 +39,7 @@ internal static class DefaultConverters
         if (type == typeof(Double)) return o => new NumberUtf8Converter<double>(o, NumberStyles.Float);
         if (type == typeof(Boolean))
             return o => o.HasBooleanValues
-                ? new CustomBooleanUtf8Converter(o)
+                ? new CustomBooleanConverter<byte>(o)
                 : BooleanUtf8Converter.Instance;
         if (type == typeof(DateTime)) return o => new SpanUtf8FormattableConverter<DateTime>(o);
         if (type == typeof(Byte)) return o => new NumberUtf8Converter<byte>(o, NumberStyles.Integer);

@@ -122,7 +122,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
         }
 
-        throw new NotSupportedException();
+        throw Token<T>.NotSupported;
     }
 
     /// <summary>
