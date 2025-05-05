@@ -9,6 +9,8 @@ using JetBrains.Annotations;
 
 namespace FlameCsv;
 
+// note: we don't need to clear HeaderPool on hot-reload as the values are always the same
+
 /// <summary>
 /// Read-only CSV header record.
 /// </summary>

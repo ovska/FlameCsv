@@ -50,8 +50,8 @@ public class CsvRecord<T>
     /// The header isn't returned as a separate record, so this property is always true if the options-instance
     /// is configured to have a header, and always false if not.
     /// </remarks>
-    [MemberNotNullWhen(true, nameof(_header))]
-    public bool HasHeader => _header is not null;
+    [MemberNotNullWhen(true, nameof(Header))]
+    public bool HasHeader => Header is not null;
 
     /// <summary>
     /// Returns <c>true</c> if the record contains the specified field.
@@ -63,26 +63,15 @@ public class CsvRecord<T>
     {
         return id.TryGetIndex(out int index, out string? name)
             ? (uint)index < (uint)_fields.Length
-            : HasHeader && _header.ContainsKey(name);
+            : HasHeader && Header.ContainsKey(name);
     }
 
     /// <summary>
-    /// Returns the header record for the current CSV. Throws if <see cref="HasHeader"/> is <c>false</c>.
+    /// Returns the header record for the current CSV, or null if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </summary>
-    /// <seealso cref="HasHeader"/>
-    /// <exception cref="NotSupportedException">Options is configured not to have a header</exception>
-    public ImmutableArray<string> Header
-    {
-        get
-        {
-            if (!Options.HasHeader) Throw.NotSupported_CsvHasNoHeader();
-            if (!HasHeader) Throw.InvalidOperation_HeaderNotRead();
-            return _header.Values;
-        }
-    }
+    public CsvHeader? Header { get; }
 
     private readonly ArraySegment<T>[] _fields;
-    private readonly CsvHeader? _header;
 
     /// <summary>
     /// Initializes a new instance, copying the record's data.
@@ -96,10 +85,11 @@ public class CsvRecord<T>
         Line = record.Line;
         Options = record._options;
         RawRecord = record._fields.Record.SafeCopy();
-        _header = record._owner.Header;
+        Header = record._owner.Header;
 
         using WritableBuffer<T> buffer = new(Options.Allocator);
-        foreach (var field in record) buffer.Push(field);
+        foreach (var field in record)
+            buffer.Push(field);
         _fields = buffer.Preserve();
     }
 
@@ -113,8 +103,8 @@ public class CsvRecord<T>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
     {
-        IMaterializer<T, TRecord> materializer = _header is not null
-            ? Options.TypeBinder.GetMaterializer<TRecord>(_header.Values)
+        IMaterializer<T, TRecord> materializer = Header is not null
+            ? Options.TypeBinder.GetMaterializer<TRecord>(Header.Values)
             : Options.TypeBinder.GetMaterializer<TRecord>();
 
         CsvRecord<T> @this = this;
@@ -128,8 +118,8 @@ public class CsvRecord<T>
     {
         ArgumentNullException.ThrowIfNull(typeMap);
 
-        IMaterializer<T, TRecord> materializer = _header is not null
-            ? typeMap.GetMaterializer(_header.Values, Options)
+        IMaterializer<T, TRecord> materializer = Header is not null
+            ? typeMap.GetMaterializer(Header.Values, Options)
             : typeMap.GetMaterializer(Options);
 
         CsvRecord<T> @this = this;
@@ -150,14 +140,14 @@ public class CsvRecord<T>
     {
         if (!id.TryGetIndex(out index, out string? name))
         {
-            if (!HasHeader || _header is null)
+            if (!HasHeader || Header is null)
             {
                 Throw.NotSupported_CsvHasNoHeader();
             }
 
-            if (!_header.TryGetValue(name, out index))
+            if (!Header.TryGetValue(name, out index))
             {
-                Throw.Argument_HeaderNameNotFound(name, _header.Values.AsEnumerable());
+                Throw.Argument_HeaderNameNotFound(name, Header.Values.AsEnumerable());
             }
         }
 
@@ -253,7 +243,8 @@ public class CsvRecord<T>
     public bool TryParseField<TValue>(
         CsvConverter<T, TValue> converter,
         CsvFieldIdentifier id,
-        [MaybeNullWhen(false)] out TValue value)
+        [MaybeNullWhen(false)] out TValue value
+    )
     {
         ArgumentNullException.ThrowIfNull(converter);
         return converter.TryParse(GetField(id).Span, out value);
@@ -261,8 +252,9 @@ public class CsvRecord<T>
 
     int IReadOnlyCollection<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>.Count => _fields.Length;
 
-    IEnumerator<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>
-        IEnumerable<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>.GetEnumerator()
+    IEnumerator<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>> IEnumerable<
+        KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>
+    >.GetEnumerator()
     {
         for (int i = 0; i < _fields.Length; i++)
         {
@@ -284,7 +276,8 @@ public class CsvRecord<T>
     {
         get
         {
-            for (int i = 0; i < _fields.Length; i++) yield return i;
+            for (int i = 0; i < _fields.Length; i++)
+                yield return i;
         }
     }
 
@@ -292,7 +285,8 @@ public class CsvRecord<T>
     {
         get
         {
-            foreach (var f in _fields) yield return f;
+            foreach (var f in _fields)
+                yield return f;
         }
     }
 
@@ -303,7 +297,8 @@ public class CsvRecord<T>
 
     bool IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.TryGetValue(
         CsvFieldIdentifier key,
-        out ReadOnlyMemory<T> value)
+        out ReadOnlyMemory<T> value
+    )
     {
         if (Contains(key))
         {

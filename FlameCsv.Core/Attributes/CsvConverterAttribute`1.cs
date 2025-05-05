@@ -21,7 +21,8 @@ public sealed class CsvConverterAttribute<[DAM(Messages.Ctors)] TConverter> : Cs
     protected override bool TryCreateConverterOrFactory<T>(
         Type targetType,
         CsvOptions<T> options,
-        [NotNullWhen(true)] out CsvConverter<T>? converter)
+        [NotNullWhen(true)] out CsvConverter<T>? converter
+    )
     {
         if (!typeof(TConverter).IsAssignableTo(typeof(CsvConverter<T>)))
         {
@@ -34,35 +35,36 @@ public sealed class CsvConverterAttribute<[DAM(Messages.Ctors)] TConverter> : Cs
         return true;
     }
 
-    private static class Ctor<T> where T : unmanaged, IBinaryInteger<T>
+    private static class Ctor<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
-        public static readonly Lazy<(ConstructorInfo ctor, bool empty)> Value = new(
-            static () =>
+        public static readonly Lazy<(ConstructorInfo ctor, bool empty)> Value = new(static () =>
+        {
+            ConstructorInfo? empty = null;
+
+            foreach (var ctor in typeof(TConverter).GetConstructors())
             {
-                ConstructorInfo? empty = null;
+                ParameterInfo[] parameters = ctor.GetParameters();
 
-                foreach (var ctor in typeof(TConverter).GetConstructors())
+                if (parameters.Length == 0)
                 {
-                    ParameterInfo[] parameters = ctor.GetParameters();
-
-                    if (parameters.Length == 0)
-                    {
-                        empty ??= ctor;
-                    }
-                    else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(CsvOptions<T>))
-                    {
-                        return (ctor, false);
-                    }
+                    empty ??= ctor;
                 }
-
-                if (empty is not null)
+                else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(CsvOptions<T>))
                 {
-                    return (empty, true);
+                    return (ctor, false);
                 }
+            }
 
-                throw new CsvConfigurationException(
-                    $"{typeof(TConverter).FullName} has no parameterless constructor " +
-                    $"or constructor with a single {typeof(CsvOptions<T>).FullName} parameter.");
-            });
+            if (empty is not null)
+            {
+                return (empty, true);
+            }
+
+            throw new CsvConfigurationException(
+                $"{typeof(TConverter).FullName} has no parameterless constructor "
+                    + $"or constructor with a single {typeof(CsvOptions<T>).FullName} parameter."
+            );
+        });
     }
 }

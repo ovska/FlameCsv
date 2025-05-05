@@ -12,9 +12,11 @@ public static partial class CsvRecordTests
     {
         CsvValueRecord<char>.Enumerator secondRecordEnumerator;
 
-        await using (var enumerator = CsvReader
-                         .Enumerate(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
-                         .GetAsyncEnumerator(TestContext.Current.CancellationToken))
+        await using (
+            var enumerator = CsvReader
+                .Enumerate(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
+                .GetAsyncEnumerator(TestContext.Current.CancellationToken)
+        )
         {
             Assert.Equal(0, enumerator.Line);
             Assert.Equal(0, enumerator.Position);
@@ -26,11 +28,12 @@ public static partial class CsvRecordTests
 
             CsvValueRecord<char> firstRecord = enumerator.Current;
 
-            Assert.True(firstRecord.HasHeader);
+            Assert.NotNull(firstRecord.Header);
             Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
 
             List<string> fields = [];
-            foreach (var field in firstRecord) fields.Add(field.ToString());
+            foreach (var field in firstRecord)
+                fields.Add(field.ToString());
             Assert.Equal(["1", "2", "3"], fields);
 
             var firstRecordEnumerator = firstRecord.GetEnumerator();
@@ -71,11 +74,12 @@ public static partial class CsvRecordTests
 
             CsvValueRecord<char> firstRecord = enumerator.Current;
 
-            Assert.True(firstRecord.HasHeader);
+            Assert.NotNull(firstRecord.Header);
             Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
 
             List<string> fields = [];
-            foreach (var field in firstRecord) fields.Add(field.ToString());
+            foreach (var field in firstRecord)
+                fields.Add(field.ToString());
             Assert.Equal(["1", "2", "3"], fields);
 
             var firstRecordEnumerator = firstRecord.GetEnumerator();
@@ -110,8 +114,8 @@ public static partial class CsvRecordTests
 
         var record = enumerator.Current;
 
-        Assert.True(record.HasHeader);
-        Assert.Equal((string[]) ["A", "B", "C"], record.Header);
+        Assert.NotNull(record.Header);
+        Assert.Equal(["A", "B", "C"], record.Header?.Values);
 
         Assert.Equal("1,2,3", record.RawRecord.ToString());
 
@@ -154,8 +158,10 @@ public static partial class CsvRecordTests
     [Fact]
     public static void Should_Parse_Fields_And_Records_Obj()
     {
-        var enumerable = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3\r\n".AsMemory(), CsvOptions<char>.Default)
-            .Preserve();
+        var enumerable = new CsvRecordEnumerable<char>(
+            "A,B,C\r\n1,2,3\r\n".AsMemory(),
+            CsvOptions<char>.Default
+        ).Preserve();
 
         using IEnumerator<CsvRecord<char>> enumerator = enumerable.GetEnumerator();
 
@@ -164,7 +170,7 @@ public static partial class CsvRecordTests
         var record = enumerator.Current;
 
         Assert.True(record.HasHeader);
-        Assert.Equal((string[]) ["A", "B", "C"], record.Header);
+        Assert.Equal(["A", "B", "C"], record.Header.Values);
 
         Assert.Equal("1,2,3", record.RawRecord.ToString());
 
