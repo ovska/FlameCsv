@@ -17,7 +17,8 @@ namespace FlameCsv;
 /// Provides convenience methods for writing CSV records.
 /// </summary>
 [PublicAPI]
-public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Options instance of this writer.
@@ -42,11 +43,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     public bool EnsureTrailingNewline { get; set; }
 
     /// <summary>
-    /// Field count required for each record, if set.
+    /// Field count required for each record, if set. Terminating a record (with <see cref="NextRecord"/> or completion)
+    /// will throw a <see cref="CsvWriteException"/> if the record is not empty, and the field count does not match.
     /// </summary>
     /// <remarks>
-    /// Set automatically after the first non-empty record if <see cref="CsvOptions{T}.ValidateFieldCount"/>
-    /// is <c>true</c>.
+    /// If not <c>null</c>, set to the field count of the first non-empty record written if <see cref="CsvOptions{T}.ValidateFieldCount"/>
+    /// is <c>true</c>. You can set this property to <c>null</c> to reset the field count validation in this case.
     /// </remarks>
     public int? ExpectedFieldCount { get; set; }
 
@@ -120,7 +122,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
                         @this._previousValue = null;
                         @this._dematerializerCache.Clear();
                     }
-                });
+                }
+            );
         }
     }
 
@@ -155,22 +158,22 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     /// <summary>
     /// Writes a field with the preceding delimiter if needed.
     /// </summary>
-    /// <param name="text">Value to write</param>
+    /// <param name="value">Value to write</param>
     /// <param name="skipEscaping">Whether no escaping should be performed, use with care</param>
     [OverloadResolutionPriority(1)] // prefer writing span instead of generic TField
-    public void WriteField(ReadOnlySpan<T> text, bool skipEscaping = false)
+    public void WriteField(ReadOnlySpan<T> value, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
-        _inner.WriteRaw(text, skipEscaping);
+        _inner.WriteRaw(value, skipEscaping);
         FieldIndex++;
     }
 
     /// <inheritdoc cref="WriteField(ReadOnlySpan{T},bool)"/>
     [OverloadResolutionPriority(-1)] // prefer writing T directly if T is char
-    public void WriteField(ReadOnlySpan<char> text, bool skipEscaping = false)
+    public void WriteField(ReadOnlySpan<char> chars, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
-        _inner.WriteText(text, skipEscaping);
+        _inner.WriteText(chars, skipEscaping);
         FieldIndex++;
     }
 
@@ -284,6 +287,66 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     }
 
     /// <summary>
+    /// Writes the provided record to the writer.
+    /// </summary>
+    /// <remarks>
+    /// If the record uses the same options-instance as the writer, the raw record is written directly.
+    /// </remarks>
+    /// <param name="record">Record to write</param>
+    /// <returns>Number of fields written</returns>
+    public int WriteRecord(in CsvValueRecord<T> record)
+    {
+        record.EnsureValid();
+
+        // same escaping rules
+        if (ReferenceEquals(record.Options, Options))
+        {
+            WriteDelimiterIfNeeded();
+            _inner.WriteRaw(record.RawRecord, skipEscaping: true);
+        }
+        else
+        {
+            foreach (var field in record)
+            {
+                WriteDelimiterIfNeeded();
+                _inner.WriteRaw(field);
+            }
+        }
+
+        return record.FieldCount;
+    }
+
+    /// <summary>
+    /// Writes the provided record to the writer.
+    /// </summary>
+    /// <remarks>
+    /// If the record uses the same options-instance as the writer, the raw record is written directly.
+    /// </remarks>
+    /// <param name="record">Record to write</param>
+    /// <returns>Number of fields written</returns>
+    public int WriteRecord(CsvRecord<T> record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+
+        // same escaping rules
+        if (ReferenceEquals(record.Options, Options))
+        {
+            WriteDelimiterIfNeeded();
+            _inner.WriteRaw(record.RawRecord.Span, skipEscaping: true);
+        }
+        else
+        {
+            foreach (var segment in record._fields)
+            {
+                WriteDelimiterIfNeeded();
+                _inner.WriteRaw(segment.AsSpanUnsafe(), skipEscaping: false);
+            }
+        }
+
+        return record.FieldCount;
+    }
+
+    /// <summary>
     /// Writes the provided header values.
     /// </summary>
     /// <param name="values">Header values</param>
@@ -297,9 +360,9 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
         {
             WriteDelimiterIfNeeded();
             _inner.WriteText(value);
+            FieldIndex++;
         }
 
-        FieldIndex += values.Length;
         return values.Length;
     }
 
@@ -382,10 +445,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
 
     private void WriteTrailingNewlineIfNeeded(Exception? exception, CancellationToken cancellationToken)
     {
-        if (exception is null &&
-            EnsureTrailingNewline &&
-            FieldIndex != 0 &&
-            !cancellationToken.IsCancellationRequested)
+        if (
+            exception is null
+            && EnsureTrailingNewline
+            && (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
+            && !cancellationToken.IsCancellationRequested
+        )
         {
             // don't call NextRecord as it can trigger an unnecessary auto-flush
             _inner.WriteNewline();
@@ -415,9 +480,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     /// </exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        return IsCompleted
-            ? ObjectDisposedValueTask()
-            : _inner.Writer.FlushAsync(cancellationToken);
+        return IsCompleted ? ObjectDisposedValueTask() : _inner.Writer.FlushAsync(cancellationToken);
     }
 
     /// <summary>
@@ -431,7 +494,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeMap,
             state: typeMap,
-            factory: static (options, state) => ((CsvTypeMap<T, TRecord>)state!).GetDematerializer(options));
+            factory: static (options, state) => ((CsvTypeMap<T, TRecord>)state!).GetDematerializer(options)
+        );
     }
 
     /// <summary>
@@ -440,13 +504,15 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     /// </summary>
     /// <typeparam name="TRecord">Type to write</typeparam>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    private IDematerializer<T, TRecord>
-        GetDematerializerAndIncrementFieldCount<[DAM(Messages.ReflectionBound)] TRecord>()
+    private IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCount<
+        [DAM(Messages.ReflectionBound)] TRecord
+    >()
     {
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeof(TRecord),
             state: null,
-            factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>());
+            factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>()
+        );
     }
 
     /// <summary>
@@ -459,7 +525,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     private IDematerializer<T, TRecord> GetDematerializerAndIncrementFieldCountCore<TRecord>(
         object cacheKey,
         object? state,
-        [RequireStaticDelegate] Func<CsvOptions<T>, object?, IDematerializer<T, TRecord>> factory)
+        [RequireStaticDelegate] Func<CsvOptions<T>, object?, IDematerializer<T, TRecord>> factory
+    )
     {
         Debug.Assert(cacheKey is Type or CsvTypeMap<T, TRecord>);
 
@@ -497,7 +564,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable where T : unman
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WriteDelimiterIfNeeded()
     {
-        if (FieldIndex > 0) _inner.WriteDelimiter();
+        if (FieldIndex > 0)
+            _inner.WriteDelimiter();
     }
 
     /// <summary>

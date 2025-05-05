@@ -6,7 +6,8 @@ using FlameCsv.Extensions;
 namespace FlameCsv.Utilities;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
-internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInteger<T>
+internal struct WritableBuffer<T> : IDisposable
+    where T : unmanaged, IBinaryInteger<T>
 {
     public readonly int Length
     {
@@ -55,7 +56,11 @@ internal struct WritableBuffer<T> : IDisposable where T : unmanaged, IBinaryInte
 
         if ((_memory.Length - _written) < value.Length)
         {
-            _memory = _memoryPool.EnsureCapacity(ref _owner, Math.Max(value.Length + _written, 256), copyOnResize: true);
+            _memory = _memoryPool.EnsureCapacity(
+                ref _owner,
+                Math.Max(value.Length + _written, 256),
+                copyOnResize: true
+            );
         }
 
         int start = _written;
