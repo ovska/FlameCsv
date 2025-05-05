@@ -5,13 +5,14 @@ using CommunityToolkit.HighPerformance.Helpers;
 namespace FlameCsv.Utilities.Comparers;
 
 internal sealed class OrdinalAsciiComparer
-    : IEqualityComparer<StringLike>, IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>
+    : IEqualityComparer<StringLike>,
+        IEqualityComparer<string>,
+        IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>,
+        IAlternateEqualityComparer<ReadOnlySpan<byte>, string>
 {
     public static OrdinalAsciiComparer Instance { get; } = new();
 
-    private OrdinalAsciiComparer()
-    {
-    }
+    private OrdinalAsciiComparer() { }
 
     public bool Equals(StringLike x, StringLike y) => StringComparer.Ordinal.Equals(x, y);
 
@@ -22,11 +23,38 @@ internal sealed class OrdinalAsciiComparer
 
     public int GetHashCode(StringLike obj)
     {
-        return Utf8Util.WithChars(
-            obj,
-            this,
-            static (obj, state) => state.GetHashCode(obj));
+        return Utf8Util.WithChars(obj, this, static (obj, state) => state.GetHashCode(obj));
     }
 
     public int GetHashCode(ReadOnlySpan<byte> alternate) => HashCode<byte>.Combine(alternate);
+
+    bool IAlternateEqualityComparer<ReadOnlySpan<byte>, string>.Equals(ReadOnlySpan<byte> alternate, string other)
+    {
+        return Equals(alternate, (StringLike)other);
+    }
+
+    string IAlternateEqualityComparer<ReadOnlySpan<byte>, string>.Create(ReadOnlySpan<byte> alternate)
+    {
+        return Create(alternate);
+    }
+    
+    bool IEqualityComparer<string>.Equals(string? x, string? y)
+    {
+        if (x is null)
+        {
+            return y is null;
+        }
+
+        if (y is null)
+        {
+            return false;
+        }
+
+        return Equals((StringLike)x, (StringLike)y);
+    }
+
+    int IEqualityComparer<string>.GetHashCode(string obj)
+    {
+        return GetHashCode((StringLike)obj);
+    }
 }

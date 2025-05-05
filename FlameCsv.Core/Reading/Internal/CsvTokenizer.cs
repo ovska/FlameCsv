@@ -37,7 +37,7 @@ internal abstract class CsvTokenizer<T>
     /// </exception>
     public virtual int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
     {
-        throw new NotSupportedException();
+        throw new NotSupportedException("This tokenizer does not support reading to the end of the data.");
     }
 }
 

@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -11,11 +12,13 @@ internal static class MemoryPoolExtensions
         this MemoryPool<T> pool,
         [AllowNull] ref IMemoryOwner<T> memoryOwner,
         int minimumLength,
-        bool copyOnResize = false)
+        bool copyOnResize = false
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
 
-        if (minimumLength == 0) return Memory<T>.Empty;
+        if (minimumLength == 0)
+            return Memory<T>.Empty;
 
         Memory<T> currentMemory = memoryOwner?.Memory ?? Memory<T>.Empty;
 
@@ -71,7 +74,8 @@ internal class HeapMemoryOwner<T>(T[] array) : IMemoryOwner<T>
     {
 #if DEBUG
         // Don't dispose the empty instance
-        if (array.Length != 0) _disposed = true;
+        if (array.Length != 0)
+            _disposed = true;
 #endif
     }
 }
@@ -80,9 +84,8 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
 {
     public static HeapMemoryPool<T> Instance { get; } = new();
 
-    // ReSharper disable once UnusedMember.Global
     [Obsolete("Use HeapMemoryPool<T>.Instance instead", true)]
-    public new static MemoryPool<T> Shared => throw new NotSupportedException();
+    public static new MemoryPool<T> Shared => throw new UnreachableException();
 
     public override int MaxBufferSize => Array.MaxLength;
 

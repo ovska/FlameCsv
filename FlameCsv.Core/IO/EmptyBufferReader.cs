@@ -1,14 +1,13 @@
 ﻿namespace FlameCsv.IO;
 
-internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T> where T : unmanaged
+internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T>
+    where T : unmanaged
 {
     public static EmptyBufferReader<T> Instance { get; } = new();
 
     private EmptyBufferReader() { }
 
-    public void Dispose()
-    {
-    }
+    public void Dispose() { }
 
     public ValueTask DisposeAsync() => default;
 
@@ -22,5 +21,6 @@ internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T> where T : unman
     }
 
     public void Advance(int count) => throw new NotSupportedException();
+
     public bool TryReset() => true;
 }

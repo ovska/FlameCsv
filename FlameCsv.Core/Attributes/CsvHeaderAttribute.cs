@@ -8,27 +8,31 @@ namespace FlameCsv.Attributes;
 /// When placed on an assembly, <see cref="CsvConfigurationAttribute.TargetType"/> must be set.
 /// </summary>
 [AttributeUsage(
-    AttributeTargets.Property |
-    AttributeTargets.Field |
-    AttributeTargets.Parameter |
-    AttributeTargets.Class |
-    AttributeTargets.Struct |
-    AttributeTargets.Interface |
-    AttributeTargets.Assembly,
-    AllowMultiple = true)] // type and assembly need AllMultiple = true
+    AttributeTargets.Property
+        | AttributeTargets.Field
+        | AttributeTargets.Parameter
+        | AttributeTargets.Class
+        | AttributeTargets.Struct
+        | AttributeTargets.Interface
+        | AttributeTargets.Assembly,
+    AllowMultiple = true
+)] // type and assembly need AllMultiple = true
 [PublicAPI]
 public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
 {
+    private string _value = "";
+    private string[] _aliases = [];
+
     /// <summary>
     /// Header value used when reading or writing CSV.
     /// </summary>
     public string Value
     {
-        get;
+        get => _value;
         init
         {
             ArgumentNullException.ThrowIfNull(value);
-            field = value;
+            _value = value;
         }
     }
 
@@ -38,13 +42,13 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
     /// </summary>
     public string[] Aliases
     {
-        get;
+        get => _aliases;
         init
         {
             ArgumentNullException.ThrowIfNull(value);
-            field = value;
+            _aliases = value;
         }
-    } = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.

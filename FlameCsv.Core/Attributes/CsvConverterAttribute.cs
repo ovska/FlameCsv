@@ -30,7 +30,8 @@ public abstract class CsvConverterAttribute : Attribute
     protected abstract bool TryCreateConverterOrFactory<T>(
         Type targetType,
         CsvOptions<T> options,
-        [NotNullWhen(true)] out CsvConverter<T>? converter)
+        [NotNullWhen(true)] out CsvConverter<T>? converter
+    )
         where T : unmanaged, IBinaryInteger<T>;
 
     /// <summary>
@@ -40,7 +41,8 @@ public abstract class CsvConverterAttribute : Attribute
     public bool TryCreateConverter<T>(
         Type targetType,
         CsvOptions<T> options,
-        [NotNullWhen(true)] out CsvConverter<T>? converter)
+        [NotNullWhen(true)] out CsvConverter<T>? converter
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -71,8 +73,9 @@ public abstract class CsvConverterAttribute : Attribute
             }
 
             throw new CsvConfigurationException(
-                $"Overridden converter {converter.GetType().FullName} " +
-                $"can not parse the member type: {targetType.FullName} (attribute: {this.GetType().FullName})");
+                $"Overridden converter {converter.GetType().FullName} "
+                    + $"can not parse the member type: {targetType.FullName} (attribute: {this.GetType().FullName})"
+            );
         }
 
         Success:
