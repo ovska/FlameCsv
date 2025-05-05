@@ -78,12 +78,6 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidOperation_HeaderNotRead()
-    {
-        throw new InvalidOperationException("The CSV header has not been read.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOperation(string message)
     {
         throw new InvalidOperationException(message);

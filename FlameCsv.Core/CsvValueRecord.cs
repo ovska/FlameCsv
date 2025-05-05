@@ -37,27 +37,15 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         }
     }
 
-    /// <inheritdoc cref="CsvRecord{T}.HasHeader"/>
-    public bool HasHeader => _owner.Header is not null;
-
     /// <inheritdoc cref="CsvRecord{T}.Header"/>
-    public ImmutableArray<string> Header
+    public CsvHeader? Header
     {
         get
         {
             _owner.EnsureVersion(_version);
-
-            CsvHeader? header = _owner.Header;
-
-            if (header is null)
-            {
-                Throw.NotSupported_CsvHasNoHeader();
-            }
-
-            return header.Values;
+            return _owner.Header;
         }
     }
-
     /// <inheritdoc cref="CsvRecord{T}.Contains(CsvFieldIdentifier)"/>
     public bool Contains(CsvFieldIdentifier id)
     {
@@ -110,20 +98,6 @@ public readonly struct CsvValueRecord<T> : ICsvFields<T>
         _fields = fields;
         _options = options;
         _owner = owner;
-    }
-
-    private bool TryGetIndex(CsvFieldIdentifier id, out int index)
-    {
-        _owner.EnsureVersion(_version);
-
-        if (id.TryGetIndex(out index, out string? name))
-        {
-            return true;
-        }
-
-        if (_owner.Header is null)
-            Throw.NotSupported_CsvHasNoHeader();
-        return _owner.Header.TryGetValue(name, out index);
     }
 
     /// <inheritdoc cref="CsvRecord{T}.GetField(CsvFieldIdentifier)"/>
