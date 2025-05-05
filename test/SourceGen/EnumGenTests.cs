@@ -1,10 +1,11 @@
 ﻿using System.Collections.Immutable;
 using Basic.Reference.Assemblies;
+using FlameCsv.SourceGen;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace FlameCsv.SourceGen.Tests;
+namespace FlameCsv.Tests.SourceGen;
 
 [Collection(typeof(MetadataCollection))]
 public class EnumGenTests(MetadataFixture fixture)

@@ -171,7 +171,6 @@ internal class ObjectPool<T> where T : class
     }
 
 #if DETECT_LEAKS
-    // ReSharper disable once StaticMemberInGenericType
     private static readonly Lazy<Type> _stackTraceType = new(() => Type.GetType("System.Diagnostics.StackTrace"));
 
     private static object CaptureStackTrace()

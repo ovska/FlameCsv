@@ -31,8 +31,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\FlameCsv.Core\FlameCsv.Core.csproj"/>
-        <ProjectReference Include="..\FlameCsv.SourceGen\FlameCsv.SourceGen.csproj"/>
+		<ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

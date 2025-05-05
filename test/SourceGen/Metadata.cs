@@ -1,7 +1,7 @@
 using FlameCsv.Attributes;
 using Microsoft.CodeAnalysis;
 
-namespace FlameCsv.SourceGen.Tests;
+namespace FlameCsv.Tests.SourceGen;
 
 [CollectionDefinition(nameof(MetadataCollection))]
 public class MetadataCollection : ICollectionFixture<MetadataFixture>;
