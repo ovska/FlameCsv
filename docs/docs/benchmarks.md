@@ -214,7 +214,7 @@ Benchmarking writes using no-op destinations like @"System.IO.Stream.Null?displa
 ### Memory Usage
 
 Fewer allocations result in less garbage collector overhead. This is particularly important in web servers handling concurrent operations.
-Memory usage is best evaluated by _comparing_ libraries, since some operations (like reading strings) inherently require allocations,
+Memory usage is best evaluated by _comparing_ libraries, since some operations (like creating strings) inherently require allocations,
 so looking at the allocation numbers in isolation may not be useful.
 
 Streaming is another crucial factor. While important for servers, it's essential for handling large files that cannot fit in memory.

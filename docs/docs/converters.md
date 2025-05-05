@@ -159,7 +159,7 @@ converter.TryFormat(new char[64], DayOfWeek.Monday, out int charsWritten); // wr
 ```
 
 > [!TIP]
-> For extremely performant NativeAOT and trimming compatible enum converters, see the [source generator](docs/source-generator.md#enum-converter-generator).
+> For extremely performant NativeAOT and trimming compatible enum converters, see the [source generator](source-generator.md#enum-converter-generator).
 
 ### Nullable types
 
@@ -195,7 +195,7 @@ options.GetNullToken(typeof(object)); // returns "null"
 
 Use @"FlameCsv.CsvOptions`1.BooleanValues?displayProperty=nameWithType" to customize which field values are parsed as booleans. You must specify at least one `true` and one `false` value.
 
-Note that configuring custom boolean values globally _replaces_ the default parsing behavior. For more granular control, consider using @"FlameCsv.Attributes.CsvBooleanValuesAttribute`1" to configure values on per-member basis.
+Note that configuring custom boolean values globally _replaces_ the default parsing behavior. For more granular control, consider using @"FlameCsv.Attributes.CsvBooleanValuesAttribute" to configure values on per-member basis.
 
 ```cs
 CsvOptions<char> options = new()
@@ -209,6 +209,7 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> The built-in custom boolean converters have the following limitations for @"FlameCsv.CsvOptions`1.Comparer":
-> - When reading @"System.Char", the comparer must implement `IAlternateEqualityComparer<ReadOnlySpan<char>, string>`.
-> - When reading @"System.Byte"/UTF8, the comparer **must** be either @"System.StringComparer.Ordinal?displayProperty=nameWithType" or @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
+> When using global custom boolean values, @"FlameCsv.CsvOptions`1.Comparer?displayProperty=nameWithType" **must** be either @"System.StringComparer.Ordinal?displayProperty=nameWithType" or @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
+>
+> The attribute supports case-sensitivity configuration on a per-member basis with
+> @"FlameCsv.Attributes.CsvBooleanValuesAttribute.IgnoreCase?displayProperty=nameWithType".
