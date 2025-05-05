@@ -6,13 +6,14 @@ using System.Text;
 namespace FlameCsv.Utilities.Comparers;
 
 internal sealed class IgnoreCaseAsciiComparer
-    : IEqualityComparer<StringLike>, IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>
+    : IEqualityComparer<StringLike>,
+        IEqualityComparer<string>,
+        IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>,
+        IAlternateEqualityComparer<ReadOnlySpan<byte>, string>
 {
     public static IgnoreCaseAsciiComparer Instance { get; } = new();
 
-    private IgnoreCaseAsciiComparer()
-    {
-    }
+    private IgnoreCaseAsciiComparer() { }
 
     public bool Equals(StringLike x, StringLike y) => Ascii.EqualsIgnoreCase(x, y);
 
@@ -23,15 +24,13 @@ internal sealed class IgnoreCaseAsciiComparer
 
     public int GetHashCode(StringLike obj)
     {
-        return Utf8Util.WithChars(
-            obj,
-            this,
-            static (obj, state) => state.GetHashCode(obj));
+        return Utf8Util.WithChars(obj, this, static (obj, state) => state.GetHashCode(obj));
     }
 
     public int GetHashCode(ReadOnlySpan<byte> alternate)
     {
-        if (alternate.IsEmpty) return 0;
+        if (alternate.IsEmpty)
+            return 0;
 
         ref byte first = ref MemoryMarshal.GetReference(alternate);
         nint index = 0;
@@ -97,5 +96,35 @@ internal sealed class IgnoreCaseAsciiComparer
         byte mask = (byte)((combinedIndicator & 0x80u) >> 2);
 
         return (byte)(value ^ mask);
+    }
+
+    bool IAlternateEqualityComparer<ReadOnlySpan<byte>, string>.Equals(ReadOnlySpan<byte> alternate, string other)
+    {
+        return Equals(alternate, (StringLike)other);
+    }
+
+    string IAlternateEqualityComparer<ReadOnlySpan<byte>, string>.Create(ReadOnlySpan<byte> alternate)
+    {
+        return Create(alternate);
+    }
+
+    bool IEqualityComparer<string>.Equals(string? x, string? y)
+    {
+        if (x is null)
+        {
+            return y is null;
+        }
+
+        if (y is null)
+        {
+            return false;
+        }
+
+        return Equals((StringLike)x, (StringLike)y);
+    }
+
+    int IEqualityComparer<string>.GetHashCode(string obj)
+    {
+        return GetHashCode((StringLike)obj);
     }
 }
