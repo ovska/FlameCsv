@@ -27,6 +27,7 @@ public readonly struct CsvFieldIdentifier
     /// <summary>
     /// Creates a field identifier pointing to a specific field index.
     /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="index"/> is negative.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldIdentifier(int index)
     {
@@ -37,6 +38,7 @@ public readonly struct CsvFieldIdentifier
     /// <summary>
     /// Creates a field identifier pointing to a specific field by header name.
     /// </summary>
+    /// <exception cref="ArgumentNullException">If <paramref name="name"/> is null.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldIdentifier(string name)
     {
