@@ -71,14 +71,14 @@ public class CsvRecord<T>
     /// </summary>
     public CsvHeader? Header { get; }
 
-    private readonly ArraySegment<T>[] _fields;
+    internal readonly ArraySegment<T>[] _fields;
 
     /// <summary>
     /// Initializes a new instance, copying the record's data.
     /// </summary>
     public CsvRecord(in CsvValueRecord<T> record)
     {
-        Throw.IfDefaultStruct(record._options is null, typeof(CsvValueRecord<T>));
+        record.EnsureValid();
 
         // we don't need to validate field count here, as a non-default CsvValueRecord validates it on init
         Position = record.Position;
@@ -88,8 +88,12 @@ public class CsvRecord<T>
         Header = record._owner.Header;
 
         using WritableBuffer<T> buffer = new(Options.Allocator);
+
         foreach (var field in record)
+        {
             buffer.Push(field);
+        }
+
         _fields = buffer.Preserve();
     }
 
@@ -248,6 +252,12 @@ public class CsvRecord<T>
     {
         ArgumentNullException.ThrowIfNull(converter);
         return converter.TryParse(GetField(id).Span, out value);
+    }
+
+    /// <inheritdoc/>
+    public override string ToString()
+    {
+        return $"{{ CsvRecord[{FieldCount}] \"{Options.GetAsString(RawRecord.Span)}\" }}";
     }
 
     int IReadOnlyCollection<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>.Count => _fields.Length;

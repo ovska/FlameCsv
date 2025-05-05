@@ -8,19 +8,24 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinaryInteger<T>
+public readonly ref struct CsvRecordCallbackArgs<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref readonly CsvFields<T> _fields;
     private readonly ref bool _skip;
     private readonly ref bool _headerRead;
 
-    internal CsvRecordCallbackArgs(
+    /// <summary>
+    /// Internal implementation detail.
+    /// </summary>
+    public CsvRecordCallbackArgs(
         ref readonly CsvFields<T> fields,
         ReadOnlySpan<string> header,
         int lineIndex,
         long position,
         ref bool skip,
-        ref bool headerRead)
+        ref bool headerRead
+    )
     {
         _fields = ref fields;
         Line = lineIndex;
@@ -52,12 +57,12 @@ public readonly ref struct CsvRecordCallbackArgs<T> where T : unmanaged, IBinary
     /// <summary>
     /// 1-based line number.
     /// </summary>
-    public int Line { get; init; }
+    public int Line { get; }
 
     /// <summary>
     /// 0-based character position in the data, measured from the start of the unescaped record.
     /// </summary>
-    public long Position { get; init; }
+    public long Position { get; }
 
     /// <summary>
     /// Set to true to skip this record.
