@@ -7,6 +7,7 @@ using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
+using FlameCsv.Reading;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
@@ -41,6 +42,15 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// The trailing newline check does not validate the field count.
     /// </remarks>
     public bool EnsureTrailingNewline { get; set; }
+
+    /// <summary>
+    /// Whether a header record has been written.
+    /// </summary>
+    /// <remarks>
+    /// This property is set to <c>true</c> after the first call to <c>WriteHeader</c>.
+    /// It has no effect on the usage of the writer, but can be helpful when writing values in a streaming manner.
+    /// </remarks>
+    public bool HeaderWritten { get; private set; }
 
     /// <summary>
     /// Field count required for each record, if set. Terminating a record (with <see cref="NextRecord"/> or completion)
@@ -160,7 +170,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </summary>
     /// <param name="value">Value to write</param>
     /// <param name="skipEscaping">Whether no escaping should be performed, use with care</param>
-    [OverloadResolutionPriority(1)] // prefer writing span instead of generic TField
+    [OverloadResolutionPriority(1000)] // prefer writing span instead of generic TField
     public void WriteField(ReadOnlySpan<T> value, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
@@ -169,7 +179,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     }
 
     /// <inheritdoc cref="WriteField(ReadOnlySpan{T},bool)"/>
-    [OverloadResolutionPriority(-1)] // prefer writing T directly if T is char
+    [OverloadResolutionPriority(500)] // prefer writing this instead of string TField
     public void WriteField(ReadOnlySpan<char> chars, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
@@ -178,28 +188,22 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Writes a sequence of raw characters to the writer.
-    /// <see cref="FieldIndex"/> and <see cref="LineIndex"/> are not tracked automatically, and no escaping is performed.<br/>
-    /// This is equivalent to writing the value directly to the inner buffer writer.
+    /// Writes the fields with the preceding delimiter if needed.
     /// </summary>
-    /// <param name="value">Value to write</param>
-    /// <param name="fieldsWritten">How many fields the value spans</param>
-    /// <param name="linesWritten">How many new lines the value spans</param>
-    [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public void WriteRaw(ReadOnlySpan<T> value, int fieldsWritten = 0, int linesWritten = 0)
+    /// <remarks>
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.<br/>
+    /// <c>null</c> values are written as empty fields.
+    /// </remarks>
+    /// <param name="values">Values to write</param>
+    /// <param name="skipEscaping">Whether no escaping should be performed, use with care</param>
+    public void WriteFields(ReadOnlySpan<string> values, bool skipEscaping = false)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(fieldsWritten);
-        ArgumentOutOfRangeException.ThrowIfNegative(linesWritten);
-
-        if (!value.IsEmpty)
+        foreach (var value in values)
         {
-            Span<T> destination = _inner.Writer.GetSpan(value.Length);
-            value.CopyTo(destination);
-            _inner.Writer.Advance(value.Length);
+            WriteDelimiterIfNeeded();
+            _inner.WriteText(value, skipEscaping);
+            FieldIndex++;
         }
-
-        FieldIndex += fieldsWritten;
-        LineIndex += linesWritten;
     }
 
     /// <summary>
@@ -249,10 +253,11 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Writes the value to the current line using <see cref="CsvOptions{T}.TypeBinder"/>.
     /// </summary>
     /// <remarks>
-    /// Does not write a trailing newline,
-    /// see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.<br/>
+    /// Throws on <c>null</c> values.
     /// </remarks>
     /// <param name="value">Value to write</param>
+    /// <exception cref="ArgumentNullException"/>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
     public int WriteRecord<[DAM(Messages.ReflectionBound)] TRecord>(TRecord value)
     {
@@ -269,11 +274,13 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Writes the value to the current line using the type map.
     /// </summary>
     /// <remarks>
-    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.
+    /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.<br/>
+    /// Throws on <c>null</c> values.
     /// </remarks>
     /// <param name="typeMap">Type map to use for writing</param>
     /// <param name="value">Value to write</param>
     /// <returns>Number of fields written</returns>
+    /// <exception cref="ArgumentNullException"/>
     public int WriteRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap, TRecord value)
     {
         ArgumentNullException.ThrowIfNull(typeMap);
@@ -317,6 +324,49 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
+    /// Writes the specified fields from the provided record to the writer.
+    /// </summary>
+    /// <remarks>
+    /// If the record uses the same options-instance as the writer, the raw fields are written directly.<br/>
+    /// Fields are written in the order they are specified in <paramref name="fieldIds"/>.
+    /// </remarks>
+    /// <param name="record">Record to write</param>
+    /// <param name="fieldIds">Identifiers of fields to write</param>
+    /// <returns>Number of fields written</returns>
+    public int WriteRecord(in CsvValueRecord<T> record, scoped ReadOnlySpan<CsvFieldIdentifier> fieldIds)
+    {
+        record.EnsureValid();
+
+        if (fieldIds.IsEmpty)
+        {
+            return 0;
+        }
+
+        CsvFieldsRef<T> fieldsRef = new(in record._fields);
+
+        bool writeRaw = Options.DialectEquals(record.Options);
+
+        foreach (var id in fieldIds)
+        {
+            int index = record.GetFieldIndex(id);
+            WriteDelimiterIfNeeded();
+
+            if (writeRaw)
+            {
+                _inner.WriteRaw(fieldsRef.GetRawSpan(index), skipEscaping: true);
+            }
+            else
+            {
+                _inner.WriteRaw(fieldsRef[index], skipEscaping: false);
+            }
+
+            FieldIndex++;
+        }
+
+        return fieldIds.Length;
+    }
+
+    /// <summary>
     /// Writes the provided record to the writer.
     /// </summary>
     /// <remarks>
@@ -347,6 +397,29 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
+    /// Writes the header from the provided record.
+    /// </summary>
+    /// <param name="record">Record to write the headers from</param>
+    /// <returns>Number of fields written</returns>
+    /// <exception cref="NotSupportedException">
+    /// Thrown if the writer was created with <see cref="CsvOptions{T}.HasHeader"/> set to <c>false</c>
+    /// or if the record does not have a header.
+    /// </exception>
+    public int WriteHeader(in CsvValueRecord<T> record)
+    {
+        record.EnsureValid();
+
+        CsvHeader? header = record.Header;
+
+        if (!Options.HasHeader || header is null)
+        {
+            Throw.NotSupported_CsvHasNoHeader();
+        }
+
+        return WriteHeader(header.Values.AsSpan());
+    }
+
+    /// <summary>
     /// Writes the provided header values.
     /// </summary>
     /// <param name="values">Header values</param>
@@ -364,6 +437,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             FieldIndex++;
         }
 
+        HeaderWritten = true;
         return values.Length;
     }
 
@@ -383,6 +457,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         var dematerializer = GetDematerializerAndIncrementFieldCount<TRecord>();
         dematerializer.WriteHeader(in _inner);
 
+        HeaderWritten = true;
         return dematerializer.FieldCount;
     }
 
@@ -402,6 +477,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         var dematerializer = GetDematerializerAndIncrementFieldCount(typeMap);
         dematerializer.WriteHeader(in _inner);
 
+        HeaderWritten = true;
         return dematerializer.FieldCount;
     }
 
@@ -615,6 +691,9 @@ file static class ThrowHelper
     [StackTraceHidden]
     public static void InvalidFieldCount(int lineIndex, int expected, int actual)
     {
-        throw new CsvWriteException($"Invalid field count at line {lineIndex}. Expected {expected}, got {actual}.");
+        throw new CsvWriteException($"Invalid field count at line {lineIndex}. Expected {expected}, got {actual}.")
+        {
+            LineNumber = lineIndex,
+        };
     }
 }
