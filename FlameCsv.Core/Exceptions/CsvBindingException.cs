@@ -21,7 +21,8 @@ public class CsvBindingException : CsvConfigurationException
     /// <summary>
     /// Initializes a new instance.
     /// </summary>
-    public CsvBindingException(Type? targetType, string message) : base(message)
+    public CsvBindingException(Type? targetType, string message)
+        : base(message)
     {
         TargetType = targetType;
     }
@@ -29,10 +30,8 @@ public class CsvBindingException : CsvConfigurationException
     /// <summary>
     /// Initializes a new instance.
     /// </summary>
-    public CsvBindingException(
-        string? message = null, Exception? innerException = null) : base(message, innerException)
-    {
-    }
+    public CsvBindingException(string? message = null, Exception? innerException = null)
+        : base(message, innerException) { }
 }
 
 /// <summary>
@@ -51,9 +50,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     public override IReadOnlyList<CsvBinding> Bindings { get; }
 
     /// <inheritdoc/>
-    public CsvBindingException(
-        string? message = null,
-        Exception? innerException = null)
+    public CsvBindingException(string? message = null, Exception? innerException = null)
         : base(message, innerException)
     {
         Bindings = [];
@@ -64,9 +61,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// </summary>
     /// <param name="message"></param>
     /// <param name="bindings"></param>
-    public CsvBindingException(
-        string message,
-        IReadOnlyList<CsvBinding<T>> bindings)
+    public CsvBindingException(string message, IReadOnlyList<CsvBinding<T>> bindings)
         : base(message)
     {
         Bindings = bindings;
@@ -75,9 +70,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Throws an exception for conflicting bindings.
     /// </summary>
-    public CsvBindingException(
-        CsvBinding<T> first,
-        CsvBinding<T> second)
+    public CsvBindingException(CsvBinding<T> first, CsvBinding<T> second)
         : base($"Conflicting bindings for {typeof(T)}: {first} and {second}")
     {
         Bindings = [first, second];
@@ -86,10 +79,7 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Throws an exception for conflicting constructor bindings.
     /// </summary>
-    public CsvBindingException(
-        Type target,
-        ConstructorInfo first,
-        ConstructorInfo second)
+    public CsvBindingException(Type target, ConstructorInfo first, ConstructorInfo second)
         : base($"Multiple constructors {target}: {first} and {second}")
     {
         Bindings = [];
