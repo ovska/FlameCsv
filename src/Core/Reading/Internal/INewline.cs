@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 

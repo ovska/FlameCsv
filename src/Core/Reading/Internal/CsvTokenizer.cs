@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using FlameCsv.Extensions;
+﻿using FlameCsv.Extensions;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 

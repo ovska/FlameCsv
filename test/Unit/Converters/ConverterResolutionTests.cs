@@ -1,5 +1,6 @@
 ﻿using FlameCsv.Attributes;
 using FlameCsv.Converters;
+using FlameCsv.Converters.Formattable;
 
 // ReSharper disable InconsistentNaming
 

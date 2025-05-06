@@ -2,8 +2,8 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using FlameCsv.Intrinsics;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Benchmark;

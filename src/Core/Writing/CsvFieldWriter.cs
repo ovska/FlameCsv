@@ -1,5 +1,6 @@
 ﻿using System.IO.Pipelines;
 using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Writing;

@@ -6,7 +6,6 @@ using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reflection;
-using FlameCsv.Runtime;
 using FlameCsv.Writing;
 
 namespace FlameCsv.Binding;

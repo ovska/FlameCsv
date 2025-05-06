@@ -1,7 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
-using FlameCsv.Extensions;
+using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Utilities;
 
@@ -28,12 +27,6 @@ internal struct WritableBuffer<T> : IDisposable
             Range range = _items[index];
             return _memory[range];
         }
-    }
-
-    public readonly BufferFieldReader<T> CreateReader()
-    {
-        ObjectDisposedException.ThrowIf(_items is null, typeof(WritableBuffer<T>));
-        return new(_memory.Span, _items.AsSpan());
     }
 
     private int _written;

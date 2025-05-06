@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.Contracts;
-using FlameCsv.Reading.Internal;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Writing.Escaping;
 

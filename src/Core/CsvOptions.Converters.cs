@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Enums;
-using FlameCsv.Extensions;
+using FlameCsv.Converters.Formattable;
 
 namespace FlameCsv;
 
@@ -130,7 +130,7 @@ partial class CsvOptions<T>
             {
                 if (converters[i].CanConvert(resultType))
                 {
-                    converter = converters[i].GetOrCreateConverter(resultType, this);
+                    converter = converters[i].GetAsConverter(resultType, this);
                     created = true;
                     return true;
                 }
