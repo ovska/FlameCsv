@@ -1,6 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
-using FlameCsv.Converters;
+using FlameCsv.Converters.Formattable;
 
 namespace FlameCsv.Tests.Converters;
 

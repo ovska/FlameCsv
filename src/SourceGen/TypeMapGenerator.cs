@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace FlameCsv.SourceGen;
 
 [Generator(LanguageNames.CSharp)]
-public partial class TypeMapGenerator : IIncrementalGenerator
+internal partial class TypeMapGenerator : IIncrementalGenerator
 {
     const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
 

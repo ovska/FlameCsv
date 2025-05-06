@@ -1,8 +1,7 @@
 ﻿using System.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
-using FlameCsv.Reading;
-using FlameCsv.Utilities;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Converters.Enums;
 

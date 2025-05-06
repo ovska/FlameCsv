@@ -1,5 +1,4 @@
-﻿using System.Numerics;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Unescaping;
 

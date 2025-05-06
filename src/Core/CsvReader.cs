@@ -2,6 +2,7 @@
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -46,7 +47,7 @@ public static partial class CsvReader
 
         try
         {
-            if (encoding is null || encoding == Encoding.UTF8 || encoding == Encoding.ASCII)
+            if (encoding is null || encoding.Equals(Encoding.UTF8) || encoding.Equals(Encoding.ASCII))
             {
                 return new Utf8StreamReader(stream, memoryPool, in ioOptions);
             }
@@ -55,7 +56,7 @@ public static partial class CsvReader
                 new StreamReader(
                     stream,
                     encoding,
-                    detectEncodingFromByteOrderMarks: encoding is null,
+                    detectEncodingFromByteOrderMarks: true,
                     ioOptions.BufferSize,
                     leaveOpen: false
                 ),

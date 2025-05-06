@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters;
+using FlameCsv.Converters.Formattable;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests.Converters;

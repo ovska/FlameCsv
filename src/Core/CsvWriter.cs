@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Text;
 using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
 
@@ -38,7 +39,7 @@ public static partial class CsvWriter
 
         try
         {
-            if (encoding is null || encoding == Encoding.UTF8 || encoding == Encoding.ASCII)
+            if (encoding is null || encoding.Equals(Encoding.UTF8) || encoding.Equals(Encoding.ASCII))
             {
                 return new Utf8StreamWriter(stream, memoryPool, in ioOptions);
             }

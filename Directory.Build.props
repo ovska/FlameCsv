@@ -1,17 +1,21 @@
 <Project>
+
     <PropertyGroup>
-        <Version>0.4.0</Version>
         <TargetFramework>net9.0</TargetFramework>
         <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
         <DefineConstants>$(DefineConstants);SOURCEGEN_USE_COMPILATION</DefineConstants>
-        
+
         <IncludeInternalsVisibleTo Condition="'$(IncludeInternalsVisibleTo)' == ''">true</IncludeInternalsVisibleTo>
 
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)FlameCsv.snk</AssemblyOriginatorKeyFile>
         <FlameCsvPublicKey>00240000048000009400000006020000002400005253413100040000010001002df165bfa7bac90e44a28f0d36ec1c96dbd1faf274d2dc6d435018655dbb3e0076cc63d8881126a12a20eb2832e41b28ebf45df5899ed9d29393be1ad7468a086a38ab31c5971ac3a2c4beb100460c2da3750ea28deaf9d981806eb74818f1f660254de6a5de767ae177ab1f87047d636e987c248ce438cda78d1e032f5b52b9</FlameCsvPublicKey>
     </PropertyGroup>
+
+    <ItemGroup>
+        <Using Include="System.Numerics"/>
+    </ItemGroup>
 </Project>

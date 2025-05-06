@@ -34,7 +34,7 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryIn
         long position)
     {
         if (Unsafe.IsNullRef(in fields)) Throw.ArgumentNull(nameof(fields));
-        Throw.IfDefaultStruct(header.IsDefault, typeof(ImmutableArray<string>));
+        if (header.IsDefault) Throw.ArgumentNull(nameof(header));
         ArgumentNullException.ThrowIfNull(exception);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lineIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(position);

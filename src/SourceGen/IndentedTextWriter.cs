@@ -255,7 +255,6 @@ internal sealed class IndentedTextWriter : IDisposable
     /// <summary>
     /// Writes content to the underlying buffer.
     /// </summary>
-    /// <param name="content">The content to write.</param>
     public void WriteIf(bool condition, char content)
     {
         if (condition)

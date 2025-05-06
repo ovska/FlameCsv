@@ -2,6 +2,7 @@
 
 using System.Runtime.Intrinsics;
 using System.Text;
+using FlameCsv.Intrinsics;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;

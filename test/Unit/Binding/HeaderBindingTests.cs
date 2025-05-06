@@ -1,7 +1,7 @@
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
-using FlameCsv.Tests.Utilities;
+using FlameCsv.Reading;
 
 // ReSharper disable all
 
@@ -120,4 +120,16 @@ file class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
 
     public string? Name { get; set; }
     public bool IsEnabled { get; } = isEnabled;
+}
+
+file struct ConstantRecord<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+{
+    public ConstantRecord(IEnumerable<string> values, CsvOptions<T>? options = null)
+    {
+        Values = values.Select(v => (options ?? CsvOptions<T>.Default).GetFromString(v)).ToArray();
+    }
+
+    public ReadOnlyMemory<T>[] Values { get; }
+    public int FieldCount => Values.Length;
+    public ReadOnlySpan<T> this[int index] => Values[index].Span;
 }

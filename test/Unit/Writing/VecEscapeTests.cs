@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using FlameCsv.Extensions;
-using FlameCsv.Reading.Internal;
+using FlameCsv.Intrinsics;
 using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;

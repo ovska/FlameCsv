@@ -7,8 +7,8 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Extensions;
+using FlameCsv.IO.Internal;
 using FlameCsv.Utilities;
-using FlameCsv.Writing;
 using JetBrains.Annotations;
 
 namespace FlameCsv;

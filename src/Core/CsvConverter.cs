@@ -1,4 +1,7 @@
-﻿namespace FlameCsv;
+﻿using System.Diagnostics;
+using FlameCsv.Extensions;
+
+namespace FlameCsv;
 
 /// <summary>
 /// Base class used for registering custom converters.<br/>
@@ -24,5 +27,37 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
     /// </summary>
     private protected CsvConverter()
     {
+    }
+
+    /// <summary>
+    /// Returns the converter instance, of creates a new one if the current instance is a factory.
+    /// </summary>
+    [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
+    internal CsvConverter<T> GetAsConverter(Type targetType, CsvOptions<T> readerOptions)
+    {
+        Debug.Assert(targetType is not null);
+        Debug.Assert(readerOptions is not null);
+        Debug.Assert(CanConvert(targetType));
+
+        if (this is CsvConverterFactory<T> factory)
+        {
+            CsvConverter<T> created = factory.Create(targetType, readerOptions);
+
+            if (created is null)
+            {
+                Throw.InvalidOperation(
+                    $"Factory {GetType().FullName} returned null when creating parser for type {targetType.FullName}");
+            }
+
+            if (created is CsvConverterFactory<T>)
+            {
+                Throw.InvalidOperation(
+                    $"Factory {GetType().FullName} returned another factory ({created.GetType().FullName}) when creating parser for type {targetType.FullName}");
+            }
+
+            return created;
+        }
+
+        return this;
     }
 }

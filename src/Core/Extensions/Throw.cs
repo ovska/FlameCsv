@@ -160,4 +160,30 @@ internal static class Throw
             "If custom boolean values are not empty, they must contain at least one value " +
             $"for both true and false ({which.ToString().ToLowerInvariant()} was missing).");
     }
+
+    /// <summary>
+    /// Ensures the stream is readable and not null.
+    /// </summary>
+    public static void IfNotReadable(
+        [NotNull] Stream? stream,
+        [CallerArgumentExpression(nameof(stream))] string paramName = "")
+    {
+        ArgumentNullException.ThrowIfNull(stream, paramName);
+
+        if (!stream.CanRead)
+            Argument(paramName, "Stream is not readable");
+    }
+
+    /// <summary>
+    /// Ensures the stream is writable and not null.
+    /// </summary>
+    public static void IfNotWritable(
+        [NotNull] Stream? stream,
+        [CallerArgumentExpression(nameof(stream))] string paramName = "")
+    {
+        ArgumentNullException.ThrowIfNull(stream, paramName);
+
+        if (!stream.CanWrite)
+            Argument(paramName, "Stream is not writable");
+    }
 }

@@ -102,24 +102,21 @@ public readonly record struct CsvIOOptions
     public bool NoDirectBufferAccess { get; init; }
 
     internal bool HasCustomBufferSize => _bufferSize.HasValue && _bufferSize != DefaultBufferSize;
-}
 
-internal static class IOExtensions
-{
     /// <summary>
     /// Returns the options with file I/O specific settings applied.<br/>
     /// This will set <see cref="CsvIOOptions.LeaveOpen"/> to <c>false</c> and
     /// set the <see cref="CsvIOOptions.BufferSize"/> to
     /// <see cref="CsvIOOptions.DefaultFileBufferSize"/> if the user has not set a custom buffer size.
     /// </summary>
-    public static CsvIOOptions ForFileIO(in this CsvIOOptions ioOptions)
+    internal CsvIOOptions ForFileIO()
     {
-        // never leave library-created file streams open
-        // use large buffer size for file I/O if no user overridden buffer size
-        return ioOptions with
+        return this with
         {
+            // never leave library-created file streams open!
             LeaveOpen = false,
-            BufferSize = ioOptions.HasCustomBufferSize ? ioOptions.BufferSize : CsvIOOptions.DefaultFileBufferSize,
+            // use large buffer size for file I/O if no user overridden buffer size
+            BufferSize = HasCustomBufferSize ? BufferSize : DefaultFileBufferSize,
         };
     }
 }

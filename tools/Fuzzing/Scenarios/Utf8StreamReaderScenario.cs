@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Unicode;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.IO.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 

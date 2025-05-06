@@ -1,7 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+﻿using System.Globalization;
 using FlameCsv.Attributes;
 using FlameCsv.Converters;
+using FlameCsv.Converters.Formattable;
 using FlameCsv.Writing;
 using nietras.SeparatedValues;
 

@@ -2,8 +2,7 @@ using System.Buffers;
 using System.Collections.Frozen;
 using System.Text;
 using System.Text.Unicode;
-using FlameCsv.Extensions;
-using FlameCsv.Utilities;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Converters.Enums;
 

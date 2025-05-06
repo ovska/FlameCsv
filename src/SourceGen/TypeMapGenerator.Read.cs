@@ -3,7 +3,7 @@ using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
-public partial class TypeMapGenerator
+partial class TypeMapGenerator
 {
     private static void GetReadCode(
         IndentedTextWriter writer,

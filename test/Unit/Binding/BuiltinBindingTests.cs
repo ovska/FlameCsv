@@ -1,5 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
-using FlameCsv.Runtime;
+using FlameCsv.Reflection;
 
 namespace FlameCsv.Tests.Binding;
 

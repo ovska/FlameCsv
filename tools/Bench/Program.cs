@@ -17,43 +17,46 @@ using Perfolizer.Horology;
 
 BenchmarkRunner.Run<CsvEnumerateBench>(new Config(), args);
 
-file class Config : ManualConfig
+namespace FlameCsv.Benchmark
 {
-    public Config()
+    file class Config : ManualConfig
     {
-        AddExporter(HtmlExporter.Default);
-        AddExporter(MarkdownExporter.GitHub);
-        AddExporter(JsonExporter.BriefCompressed);
-        AddExporter(
-            new CsvExporter(
-                CsvSeparator.Comma,
-                new SummaryStyle(
-                    cultureInfo: System.Globalization.CultureInfo.InvariantCulture,
-                    printUnitsInHeader: true,
-                    printUnitsInContent: false,
-                    printZeroValuesInContent: true,
-                    timeUnit: null,
-                    sizeUnit: null
+        public Config()
+        {
+            AddExporter(HtmlExporter.Default);
+            AddExporter(MarkdownExporter.GitHub);
+            AddExporter(JsonExporter.BriefCompressed);
+            AddExporter(
+                new CsvExporter(
+                    CsvSeparator.Comma,
+                    new SummaryStyle(
+                        cultureInfo: System.Globalization.CultureInfo.InvariantCulture,
+                        printUnitsInHeader: true,
+                        printUnitsInContent: false,
+                        printZeroValuesInContent: true,
+                        timeUnit: null,
+                        sizeUnit: null
+                    )
                 )
-            )
-        );
+            );
 
-        AddLogger(DefaultConfig.Instance.GetLoggers().ToArray());
-        AddAnalyser(DefaultConfig.Instance.GetAnalysers().ToArray());
-        AddValidator(DefaultConfig.Instance.GetValidators().ToArray());
-        WithSummaryStyle(SummaryStyle.Default);
+            AddLogger(DefaultConfig.Instance.GetLoggers().ToArray());
+            AddAnalyser(DefaultConfig.Instance.GetAnalysers().ToArray());
+            AddValidator(DefaultConfig.Instance.GetValidators().ToArray());
+            WithSummaryStyle(SummaryStyle.Default);
 
-        AddColumnProvider(BenchmarkDotNet.Columns.DefaultColumnProviders.Instance);
+            AddColumnProvider(BenchmarkDotNet.Columns.DefaultColumnProviders.Instance);
 
-        AddJob(
-            Job.Default.WithMinWarmupCount(24)
-                .WithMaxWarmupCount(64)
-                .WithMinIterationCount(24)
-                .WithMaxIterationCount(128)
-                .WithMinIterationTime(TimeInterval.FromSeconds(1))
-                .WithGcServer(true)
-        );
+            AddJob(
+                Job.Default.WithMinWarmupCount(24)
+                    .WithMaxWarmupCount(64)
+                    .WithMinIterationCount(24)
+                    .WithMaxIterationCount(128)
+                    .WithMinIterationTime(TimeInterval.FromSeconds(1))
+                    .WithGcServer(true)
+            );
 
-        WithOptions(ConfigOptions.DisableLogFile);
+            WithOptions(ConfigOptions.DisableLogFile);
+        }
     }
 }
