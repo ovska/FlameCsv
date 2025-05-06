@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests.IO;
 

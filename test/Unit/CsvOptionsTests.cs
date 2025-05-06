@@ -2,7 +2,6 @@ using System.Globalization;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
-using FlameCsv.Reading;
 
 namespace FlameCsv.Tests;
 

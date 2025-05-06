@@ -12,19 +12,6 @@ namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
 {
-    /// <summary>
-    /// Returns either "\n" or "\r\n" depending on the newline type.
-    /// </summary>
-    public static string AsString(this CsvNewline newline)
-    {
-        return newline switch
-        {
-            CsvNewline.LF => "\n",
-            CsvNewline.Platform => Environment.NewLine,
-            _ => "\r\n",
-        };
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCRLF(this CsvNewline newline)
     {

@@ -1,4 +1,3 @@
-global using System.Numerics;
 global using DAM = System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembersAttribute;
 global using RDC = System.Diagnostics.CodeAnalysis.RequiresDynamicCodeAttribute;
 global using RUF = System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute;

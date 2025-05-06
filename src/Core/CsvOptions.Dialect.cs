@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Reading;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;

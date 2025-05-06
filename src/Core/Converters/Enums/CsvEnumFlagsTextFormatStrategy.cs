@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using FlameCsv.Reflection;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Converters.Enums;

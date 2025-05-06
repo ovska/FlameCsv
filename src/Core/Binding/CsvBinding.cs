@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 using FlameCsv.Reflection;
 using JetBrains.Annotations;
 

@@ -1,6 +1,4 @@
-﻿using FlameCsv.Writing;
-
-namespace FlameCsv.Tests.Writing;
+﻿namespace FlameCsv.Tests.Writing;
 
 public abstract class CsvWriterTestsBase
 {

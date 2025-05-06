@@ -1,11 +1,8 @@
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Attributes;
-using FlameCsv.Converters;
+using FlameCsv.Converters.Formattable;
 using FlameCsv.Exceptions;
-using FlameCsv.IO;
-using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 

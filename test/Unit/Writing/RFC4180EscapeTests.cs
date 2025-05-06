@@ -1,4 +1,3 @@
-using FlameCsv.Extensions;
 using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;

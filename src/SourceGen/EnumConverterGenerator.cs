@@ -1,12 +1,11 @@
-﻿using System.Numerics;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
 
 [Generator(LanguageNames.CSharp)]
-public partial class EnumConverterGenerator : IIncrementalGenerator
+internal partial class EnumConverterGenerator : IIncrementalGenerator
 {
     private const string AggressiveInlining
         = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";

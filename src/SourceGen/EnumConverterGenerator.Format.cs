@@ -2,7 +2,7 @@
 
 namespace FlameCsv.SourceGen;
 
-public partial class EnumConverterGenerator
+partial class EnumConverterGenerator
 {
     private static void WriteFormatMethod(
         ref readonly EnumModel model,

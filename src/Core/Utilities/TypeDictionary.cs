@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
+using FlameCsv.Utilities.Comparers;
 
 namespace FlameCsv.Utilities;
 

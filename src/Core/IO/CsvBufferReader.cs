@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Extensions;
+using FlameCsv.IO.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -24,7 +25,7 @@ public static class CsvBufferReader
     /// <param name="csv">String builder containing the CSV</param>
     public static ICsvBufferReader<char> Create(StringBuilder? csv)
     {
-        if (csv is null)
+        if (csv is null || csv.Length == 0)
         {
             return EmptyBufferReader<char>.Instance;
         }
@@ -146,7 +147,7 @@ public static class CsvBufferReader
     )
     {
         ArgumentNullException.ThrowIfNull(stream);
-        Guard.CanRead(stream);
+        Throw.IfNotReadable(stream);
 
         if (
             !options.NoDirectBufferAccess
@@ -235,7 +236,7 @@ public static class CsvBufferReader
     )
     {
         ArgumentNullException.ThrowIfNull(stream);
-        Guard.CanRead(stream);
+        Throw.IfNotReadable(stream);
 
         if (encoding is null || Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8))
         {

@@ -1,10 +1,9 @@
-﻿using System.Numerics;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 
 namespace FlameCsv.SourceGen;
 
-public partial class EnumConverterGenerator
+partial class EnumConverterGenerator
 {
     private static void WriteParseMethod(
         ref readonly EnumModel model,

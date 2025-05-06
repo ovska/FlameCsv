@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Attributes;
 
@@ -79,7 +78,7 @@ public abstract class CsvConverterAttribute : Attribute
         }
 
         Success:
-        converter = converter.GetOrCreateConverter(targetType, options);
+        converter = converter.GetAsConverter(targetType, options);
         return true;
     }
 }

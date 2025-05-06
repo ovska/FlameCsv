@@ -2,8 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Text;
-using FlameCsv.Extensions;
-using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 
 // ReSharper disable InconsistentNaming
 

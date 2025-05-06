@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Extensions;
-using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
 

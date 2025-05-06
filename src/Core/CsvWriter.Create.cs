@@ -38,7 +38,7 @@ static partial class CsvWriter
         in CsvIOOptions ioOptions = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        Guard.CanWrite(stream);
+        Throw.IfNotWritable(stream);
 
         options ??= CsvOptions<byte>.Default;
         return new CsvWriter<byte>(CsvFieldWriter.Create(stream, options, in ioOptions));

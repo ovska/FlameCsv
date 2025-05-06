@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
-using FlameCsv.Utilities;
+using FlameCsv.Utilities.Comparers;
 
 // ReSharper disable PreferConcreteValueOverDefault
 

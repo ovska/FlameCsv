@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using FlameCsv.Reading;
 
 // ReSharper disable InconsistentNaming
 

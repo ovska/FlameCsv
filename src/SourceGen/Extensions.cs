@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using System.Numerics;
 using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 
