@@ -121,7 +121,7 @@
         <PackageId>FlameCsv</PackageId>
         <Description>FlameCsv is the world's fastest .NET CSV library, with a deep API and AOT support.</Description>
         <PackageProjectUrl>http://ovska.github.io/FlameCsv</PackageProjectUrl>
-        <PackageTags>performance, csv, tsv, simd, csv-parser, csv-reader, csv-writer</PackageTags>
+        <PackageTags>csv, tsv, simd, csv-parser, csv-reader, csv-writer, performance</PackageTags>
         <Copyright>Copyright (c) Sipi Ovaska 2022-$([System.DateTime]::Now.Year)</Copyright>
         <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
