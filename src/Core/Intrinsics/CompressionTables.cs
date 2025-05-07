@@ -1,4 +1,5 @@
-﻿namespace FlameCsv.Intrinsics;
+﻿#if SIMD_UNESCAPING
+namespace FlameCsv.Intrinsics;
 
 /// <summary>
 /// Sources:<br/>
@@ -400,3 +401,4 @@ internal static class CompressionTables
     ];
     // @formatter:on
 }
+#endif

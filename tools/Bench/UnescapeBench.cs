@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿#if SIMD_UNESCAPING
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -405,3 +406,4 @@ public class UnescapeBench
     }
     }
 }
+#endif

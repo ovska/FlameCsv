@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿#if SIMD_UNESCAPING
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 using FlameCsv.Extensions;
@@ -156,3 +157,4 @@ public static class UnescaperTests
         Assert.All(buffer[(64 + data.Length)..], b => Assert.Equal(T.Zero, b));
     }
 }
+#endif
