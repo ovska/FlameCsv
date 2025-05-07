@@ -318,7 +318,7 @@ internal static class CsvParallel
 
     public static ParallelLoopResult ForEach<T>(
         ICsvBufferReader<T> reader,
-        Action<CsvValueRecord<T>> action,
+        Action<CsvRecord<T>> action,
         CsvOptions<T>? options = null,
         ParallelOptions? parallelOptions = null)
         where T : unmanaged, IBinaryInteger<T>
@@ -329,7 +329,7 @@ internal static class CsvParallel
 
     public static Task ForEachAsync<T>(
         ICsvBufferReader<T> reader,
-        Func<CsvValueRecord<T>, CancellationToken, ValueTask> action,
+        Func<CsvRecord<T>, CancellationToken, ValueTask> action,
         CsvOptions<T>? options = null,
         ParallelOptions? parallelOptions = null)
         where T : unmanaged, IBinaryInteger<T>

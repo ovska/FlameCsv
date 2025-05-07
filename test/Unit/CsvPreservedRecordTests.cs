@@ -5,12 +5,12 @@ using FlameCsv.Enumeration;
 namespace FlameCsv.Tests;
 
 [SuppressMessage("ReSharper", "GenericEnumeratorNotDisposed")]
-public static partial class CsvRecordTests
+public static partial class CsvPreservedRecordTests
 {
     [Fact]
     public static async Task Should_Handle_Internal_State_Async()
     {
-        CsvValueRecord<char>.Enumerator secondRecordEnumerator;
+        CsvRecord<char>.Enumerator secondRecordEnumerator;
 
         await using (
             var enumerator = CsvReader
@@ -26,7 +26,7 @@ public static partial class CsvRecordTests
             Assert.Equal(2, enumerator.Line);
             Assert.Equal(14, enumerator.Position);
 
-            CsvValueRecord<char> firstRecord = enumerator.Current;
+            CsvRecord<char> firstRecord = enumerator.Current;
 
             Assert.NotNull(firstRecord.Header);
             Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
@@ -60,7 +60,7 @@ public static partial class CsvRecordTests
     [Fact]
     public static void Should_Handle_Internal_State()
     {
-        CsvValueRecord<char>.Enumerator secondRecordEnumerator;
+        CsvRecord<char>.Enumerator secondRecordEnumerator;
 
         using (var enumerator = CsvReader.Enumerate("A,B,C\r\n1,2,3\r\n4,5,6\r\n").GetEnumerator())
         {
@@ -72,7 +72,7 @@ public static partial class CsvRecordTests
             Assert.Equal(2, enumerator.Line);
             Assert.Equal(14, enumerator.Position);
 
-            CsvValueRecord<char> firstRecord = enumerator.Current;
+            CsvRecord<char> firstRecord = enumerator.Current;
 
             Assert.NotNull(firstRecord.Header);
             Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
@@ -108,7 +108,7 @@ public static partial class CsvRecordTests
     {
         var enumerable = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3\r\n".AsMemory(), CsvOptions<char>.Default);
 
-        using IEnumerator<CsvValueRecord<char>> enumerator = enumerable.GetEnumerator();
+        using IEnumerator<CsvRecord<char>> enumerator = enumerable.GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
 
@@ -163,13 +163,13 @@ public static partial class CsvRecordTests
             CsvOptions<char>.Default
         ).Preserve();
 
-        using IEnumerator<CsvRecord<char>> enumerator = enumerable.GetEnumerator();
+        using IEnumerator<CsvPreservedRecord<char>> enumerator = enumerable.GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
 
         var record = enumerator.Current;
 
-        Assert.True(record.HasHeader);
+        Assert.NotNull(record.Header);
         Assert.Equal(["A", "B", "C"], record.Header.Values);
 
         Assert.Equal("1,2,3", record.RawRecord.ToString());

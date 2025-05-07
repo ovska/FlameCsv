@@ -322,19 +322,6 @@ internal readonly struct Meta : IEquatable<Meta>
         return field;
     }
 
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [StackTraceHidden]
-    private void ThrowIfAllocatorNull(int bufferLength)
-    {
-#pragma warning disable CA2208 // Instantiate argument exceptions correctly
-        throw new ArgumentNullException(
-            paramName: "buffer",
-            $"Unescape buffer ({bufferLength}) is shorter than the field length ({End - NextStart})."
-        );
-#pragma warning restore CA2208 // Instantiate argument exceptions correctly
-    }
-
 #if DEBUG
     static Meta()
     {

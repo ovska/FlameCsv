@@ -137,7 +137,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -158,7 +158,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -179,7 +179,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -200,7 +200,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -221,7 +221,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -242,7 +242,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -392,7 +392,7 @@ static partial class CsvReader
     /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -415,7 +415,7 @@ static partial class CsvReader
     /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -438,7 +438,7 @@ static partial class CsvReader
     /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -461,7 +461,7 @@ static partial class CsvReader
     /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -484,7 +484,7 @@ static partial class CsvReader
     /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -507,7 +507,7 @@ static partial class CsvReader
     /// <param name="typeMap">Type map used to bind the CSV data</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -535,7 +535,7 @@ static partial class CsvReader
     /// <param name="encoding">Encoding to use. If null, UTF8, or ASCII, a specialized UTF8 reader is used instead of a StreamReader</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -563,7 +563,7 @@ static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -590,7 +590,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -608,7 +608,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -626,7 +626,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -644,7 +644,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -662,7 +662,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -680,7 +680,7 @@ static partial class CsvReader
     /// <param name="csv">CSV data to read</param>
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -699,7 +699,7 @@ static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -725,7 +725,7 @@ static partial class CsvReader
     /// <param name="encoding">Encoding to use. If null, UTF8, or ASCII, a specialized UTF8 reader is used instead of a StreamReader</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>
@@ -751,7 +751,7 @@ static partial class CsvReader
     /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <remarks>
-    /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+    /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
     /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
     /// Improper use will throw a runtime exception.
     /// </remarks>

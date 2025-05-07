@@ -1,4 +1,4 @@
-﻿namespace FlameCsv.Reading.Unescaping;
+﻿namespace FlameCsv.Intrinsics;
 
 /// <summary>
 /// Sources:<br/>

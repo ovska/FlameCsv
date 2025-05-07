@@ -353,7 +353,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     /// <summary>
     /// If <c>true</c>, validates that all records have the same number of fields
-    /// when reading <see cref="CsvValueRecord{T}"/> or writing with <see cref="CsvWriter{T}"/>.
+    /// when reading <see cref="CsvRecord{T}"/> or writing with <see cref="CsvWriter{T}"/>.
     /// Default is <c>false</c>.
     /// </summary>
     public bool ValidateFieldCount

@@ -73,7 +73,21 @@ internal static class ReadExtensions
     public static ReadOnlySpan<T> Trim<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
         where T : unmanaged, IBinaryInteger<T>
     {
-        T space = T.CreateTruncating(' ');
+        T space;
+
+        if (typeof(T) == typeof(byte))
+        {
+            space = Unsafe.BitCast<byte, T>((byte)' ');
+        }
+        else if (typeof(T) == typeof(char))
+        {
+            space = Unsafe.BitCast<char, T>(' ');
+        }
+        else
+        {
+            space = T.CreateTruncating(' ');
+        }
+
         int start = 0;
         int end = value.Length - 1;
 

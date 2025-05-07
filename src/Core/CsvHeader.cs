@@ -26,9 +26,9 @@ public sealed class CsvHeader
     [EditorBrowsable(EditorBrowsableState.Never)]
     [CLSCompliant(false)]
     public static StringPool? HeaderPool { get; } =
-        FlameCsvGlobalOptions.CachingDisabled ? null : new StringPool(minimumSize: 32);
+        FlameCsvGlobalOptions.CachingDisabled ? null : new StringPool(minimumSize: 128);
 
-    internal static ImmutableArray<string> Parse<T>(CsvOptions<T> options, ref CsvFieldsRef<T> record)
+    internal static ImmutableArray<string> Parse<T>(CsvOptions<T> options, ref CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (record.FieldCount == 0)

@@ -22,7 +22,7 @@ namespace FlameCsv.Enumeration;
 /// </remarks>
 [MustDisposeResource]
 public sealed class CsvRecordEnumerator<T>
-    : CsvEnumeratorBase<T>, IEnumerator<CsvValueRecord<T>>, IAsyncEnumerator<CsvValueRecord<T>>, IRecordOwner
+    : CsvEnumeratorBase<T>, IEnumerator<CsvRecord<T>>, IAsyncEnumerator<CsvRecord<T>>, IRecordOwner
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -31,11 +31,11 @@ public sealed class CsvRecordEnumerator<T>
     /// <remarks>
     /// The value should not be held onto after the enumeration continues or ends, as the records wrap
     /// shared and/or pooled memory.
-    /// If you must, convert the record to <see cref="CsvRecord{T}"/>.
+    /// If you must, convert the record to <see cref="CsvPreservedRecord{T}"/>.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">Thrown when the enumerator has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown when enumeration has not yet started.</exception>
-    public ref readonly CsvValueRecord<T> Current
+    public ref readonly CsvRecord<T> Current
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -49,8 +49,8 @@ public sealed class CsvRecordEnumerator<T>
         }
     }
 
-    CsvValueRecord<T> IEnumerator<CsvValueRecord<T>>.Current => _current;
-    CsvValueRecord<T> IAsyncEnumerator<CsvValueRecord<T>>.Current => _current;
+    CsvRecord<T> IEnumerator<CsvRecord<T>>.Current => _current;
+    CsvRecord<T> IAsyncEnumerator<CsvRecord<T>>.Current => _current;
     object IEnumerator.Current => _current;
     void IEnumerator.Reset() => ResetCore();
 
@@ -89,7 +89,7 @@ public sealed class CsvRecordEnumerator<T>
 
     private int _version;
 
-    private CsvValueRecord<T> _current;
+    private CsvRecord<T> _current;
     internal readonly bool _hasHeader;
     private readonly bool _validateFieldCount;
     private Dictionary<object, object>? _materializerCache;
@@ -133,14 +133,14 @@ public sealed class CsvRecordEnumerator<T>
     protected override void ResetHeader() => Header = null;
 
     /// <inheritdoc/>
-    protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
+    protected override bool MoveNextCore(ref readonly CsvFields<T> record)
     {
         Throw.IfEnumerationDisposed(_version == -1);
 
         // header needs to be read
         if (_hasHeader && _header is null)
         {
-            CreateHeader(in fields);
+            CreateHeader(in record);
             return false;
         }
 
@@ -150,15 +150,15 @@ public sealed class CsvRecordEnumerator<T>
         {
             if (_expectedFieldCount is null)
             {
-                _expectedFieldCount = fields.FieldCount;
+                _expectedFieldCount = record.FieldCount;
             }
-            else if (fields.FieldCount != _expectedFieldCount.Value)
+            else if (record.FieldCount != _expectedFieldCount.Value)
             {
-                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, fields.FieldCount);
+                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, record.FieldCount);
             }
         }
 
-        _current = new CsvValueRecord<T>(_version, Position, Line, in fields, Reader.Options, this);
+        _current = new CsvRecord<T>(_version, Position, Line, in record, Reader.Options, this);
         return true;
     }
 
@@ -196,7 +196,7 @@ public sealed class CsvRecordEnumerator<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void CreateHeader(ref readonly CsvFields<T> headerRecord)
     {
-        CsvFieldsRef<T> reader = new(in headerRecord);
+        CsvRecordRef<T> reader = new(in headerRecord);
         ImmutableArray<string> values = CsvHeader.Parse(Options, ref reader);
         Header = new CsvHeader(Options.Comparer, values);
     }

@@ -21,10 +21,5 @@ internal static class Token<T>
         return (uint)length <= 512u / (uint)Unsafe.SizeOf<T>();
     }
 
-    /// <summary>
-    /// Conservative <see langword="stackalloc"/> size.
-    /// </summary>
-    public static int StackLength => Unsafe.SizeOf<T>() >= 128 ? 0 : 256 / Unsafe.SizeOf<T>();
-
     public static NotSupportedException NotSupported => new($"Token type {typeof(T).Name} is not supported.");
 }

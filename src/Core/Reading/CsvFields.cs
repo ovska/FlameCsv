@@ -14,7 +14,7 @@ namespace FlameCsv.Reading;
 [PublicAPI]
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(CsvFields<>.CsvLineDebugView))]
-public readonly struct CsvFields<T> : ICsvFields<T>
+public readonly struct CsvFields<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,9 +84,9 @@ public readonly struct CsvFields<T> : ICsvFields<T>
 
     private class CsvLineDebugView
     {
-        public CsvLineDebugView(CsvFields<T> fields)
+        public CsvLineDebugView(CsvFields<T> record)
         {
-            var reader = new CsvFieldsRef<T>(in fields);
+            var reader = new CsvRecordRef<T>(in record);
 
             Items = new string[reader.FieldCount];
 
@@ -106,7 +106,7 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     /// </summary>
     public int FieldCount => Fields.Length - 1;
 
-    ReadOnlySpan<T> ICsvFields<T>.this[int index] => GetField(index);
+    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => GetField(index);
 
     /// <summary>
     /// Returns the value of a field.
@@ -140,7 +140,7 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     public Enumerator GetEnumerator()
     {
         Throw.IfDefaultStruct(Reader is null, typeof(CsvFields<T>));
-        var reader = new CsvFieldsRef<T>(in this);
+        var reader = new CsvRecordRef<T>(in this);
         return new Enumerator(reader);
     }
 
@@ -150,10 +150,10 @@ public readonly struct CsvFields<T> : ICsvFields<T>
     [PublicAPI]
     public ref struct Enumerator
     {
-        private readonly CsvFieldsRef<T> _reader;
+        private readonly CsvRecordRef<T> _reader;
         private int _index;
 
-        internal Enumerator(CsvFieldsRef<T> reader)
+        internal Enumerator(CsvRecordRef<T> reader)
         {
             _reader = reader;
         }
@@ -176,25 +176,6 @@ public readonly struct CsvFields<T> : ICsvFields<T>
             }
 
             Current = default;
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Returns true if the record cannot be considered "self-contained", e.g., data needs to be copied to an
-    /// unescape buffer.
-    /// </summary>
-    internal bool NeedsUnescapeBuffer
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            foreach (var meta in Fields)
-            {
-                if (meta.SpecialCount > 2)
-                    return true;
-            }
-
             return false;
         }
     }

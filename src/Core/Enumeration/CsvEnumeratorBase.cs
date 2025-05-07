@@ -70,22 +70,22 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool CallMoveNextAndIncrementPosition(ref readonly CsvFields<T> fields)
+    private bool CallMoveNextAndIncrementPosition(ref readonly CsvFields<T> record)
     {
         Line++;
         bool result = false;
 
-        if (_callback is null || !TrySkipRecord(in fields))
+        if (_callback is null || !TrySkipRecord(in record))
         {
-            result = MoveNextCore(in fields);
+            result = MoveNextCore(in record);
         }
 
-        Position += fields.GetRecordLength(includeTrailingNewline: true);
+        Position += record.GetRecordLength(includeTrailingNewline: true);
         return result;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TrySkipRecord(in CsvFields<T> fields)
+    private bool TrySkipRecord(in CsvFields<T> record)
     {
         Debug.Assert(_callback is not null);
 
@@ -94,7 +94,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
         bool headerRead = !header.IsEmpty;
 
         CsvRecordCallbackArgs<T> args = new(
-            in fields,
+            in record,
             header,
             Line,
             Position,
@@ -147,7 +147,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <summary>
     /// Attempts to read the next CSV record from the inner parser.
     /// </summary>
-    /// <param name="fields">Current CSV record</param>
+    /// <param name="record">Current CSV record</param>
     /// <returns>
     /// <c>true</c> if the enumerator produced the next value,
     /// <c>false</c> if the record was a header record, or was skipped.
@@ -155,39 +155,39 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <remarks>
     /// When this method is called, <see cref="Position"/> points to the start of the record.
     /// </remarks>
-    protected abstract bool MoveNextCore(ref readonly CsvFields<T> fields);
+    protected abstract bool MoveNextCore(ref readonly CsvFields<T> record);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private protected bool AdvanceReaderAndMoveNext()
     {
-        CsvFields<T> fields;
+        CsvFields<T> record;
 
         while (_reader.TryAdvanceReader())
         {
-            while (_reader.TryReadLine(out fields))
+            while (_reader.TryReadLine(out record))
             {
-                if (CallMoveNextAndIncrementPosition(in fields)) return true;
+                if (CallMoveNextAndIncrementPosition(in record)) return true;
             }
         }
 
-        return _reader.TryReadLine(out fields) && CallMoveNextAndIncrementPosition(in fields);
+        return _reader.TryReadLine(out record) && CallMoveNextAndIncrementPosition(in record);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))] // TODO PERF: profile
     private protected async ValueTask<bool> AdvanceReaderAndMoveNextAsync()
     {
-        CsvFields<T> fields;
+        CsvFields<T> record;
 
         while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
         {
-            while (_reader.TryReadLine(out fields))
+            while (_reader.TryReadLine(out record))
             {
-                if (CallMoveNextAndIncrementPosition(in fields)) return true;
+                if (CallMoveNextAndIncrementPosition(in record)) return true;
             }
         }
 
-        return _reader.TryReadLine(out fields) && CallMoveNextAndIncrementPosition(in fields);
+        return _reader.TryReadLine(out record) && CallMoveNextAndIncrementPosition(in record);
     }
 
     /// <summary>
@@ -244,11 +244,11 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     protected virtual ValueTask DisposeAsyncCore() => default;
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    private protected void ThrowInvalidFormatException(Exception innerException, in CsvFields<T> fields)
+    private protected void ThrowInvalidFormatException(Exception innerException, in CsvFields<T> record)
     {
         throw new CsvFormatException(
             $"The CSV was in an invalid format. The record was at position {Position} in line {Line} " +
-            $"in the CSV. Record: {fields.Data.Span.AsPrintableString()}",
+            $"in the CSV. Record: {record.Data.Span.AsPrintableString()}",
             innerException);
     }
 }
