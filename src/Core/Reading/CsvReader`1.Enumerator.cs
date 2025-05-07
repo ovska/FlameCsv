@@ -123,20 +123,20 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool MoveNextSlow()
         {
-            if (_reader.TryFillBuffer(out CsvFields<T> fields))
+            if (_reader.TryFillBuffer(out CsvSlice<T> slice))
             {
                 goto ConstructValue;
             }
 
             while (_reader.TryAdvanceReader())
             {
-                if (_reader.TryReadLine(out fields))
+                if (_reader.TryReadLine(out slice))
                 {
                     goto ConstructValue;
                 }
             }
 
-            if (!_reader.TryReadLine(out fields))
+            if (!_reader.TryReadLine(out slice))
             {
                 _data = ref Unsafe.NullRef<T>();
                 _meta = default;
@@ -144,8 +144,8 @@ partial class CsvReader<T>
             }
 
             ConstructValue:
-            _data = ref MemoryMarshal.GetReference(fields.Data.Span);
-            _meta = fields.Fields; ;
+            _data = ref MemoryMarshal.GetReference(slice.Data.Span);
+            _meta = slice.Fields;
             return true;
         }
 
@@ -169,7 +169,7 @@ partial class CsvReader<T>
         [SkipLocalsInit]
         private sealed class Box
         {
-            public CsvFields<T> _record;
+            public CsvSlice<T> _slice;
         }
 
         private readonly CsvReader<T> _reader;
@@ -183,17 +183,11 @@ partial class CsvReader<T>
             _box = new();
         }
 
-        /// <summary>
-        /// Returns a read-only reference to the field value that <see cref="Current"/> is constructed from.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        public ref readonly CsvFields<T> UnsafeGetFields() => ref _box._record;
-
         /// <inheritdoc cref="Enumerator.Current"/>
         public CsvRecordRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _box._record);
+            get => new(in _box._slice);
         }
 
         /// <inheritdoc cref="Enumerator.MoveNext"/>
@@ -205,7 +199,7 @@ partial class CsvReader<T>
                 return ValueTask.FromCanceled<bool>(_cancellationToken);
             }
 
-            if (!_reader.TryGetBuffered(out _box._record))
+            if (!_reader.TryGetBuffered(out _box._slice))
             {
                 return MoveNextSlowAsync();
             }
@@ -216,26 +210,26 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<bool> MoveNextSlowAsync()
         {
-            if (_reader.TryFillBuffer(out _box._record))
+            if (_reader.TryFillBuffer(out _box._slice))
             {
                 return true;
             }
 
             while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
             {
-                if (_reader.TryReadLine(out _box._record))
+                if (_reader.TryReadLine(out _box._slice))
                 {
                     return true;
                 }
             }
 
-            return _reader.TryReadLine(out _box._record);
+            return _reader.TryReadLine(out _box._slice);
         }
 
         /// <inheritdoc cref="Enumerator.Dispose"/>
         public ValueTask DisposeAsync()
         {
-            _box._record = default; // don't hold on to data
+            _box._slice = default; // don't hold on to data
             return _reader.DisposeAsync();
         }
     }

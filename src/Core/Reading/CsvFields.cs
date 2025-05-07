@@ -1,92 +1,60 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
-using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
-/// <summary>
-/// Contains the fields of a single CSV record.
-/// </summary>
-/// <typeparam name="T"></typeparam>
-[PublicAPI]
 [DebuggerDisplay("{ToString(),nq}")]
-[DebuggerTypeProxy(typeof(CsvFields<>.CsvLineDebugView))]
-public readonly struct CsvFields<T> : ICsvRecord<T>
-    where T : unmanaged, IBinaryInteger<T>
+[DebuggerTypeProxy(typeof(CsvSlice<>.CsvSliceDebugView))]
+[SkipLocalsInit]
+internal readonly struct CsvSlice<T> where T : unmanaged, IBinaryInteger<T>
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFields(CsvReader<T> reader, ReadOnlyMemory<T> data, ArraySegment<Meta> fieldMeta)
+    public CsvReader<T> Reader { get; init; }
+    public ReadOnlyMemory<T> Data { get; init; }
+    public ArraySegment<Meta> Fields { get; init; }
+
+    public ReadOnlySpan<T> RawValue
     {
-        Reader = reader;
-        Data = data;
-        _fieldMeta = fieldMeta;
-    }
-
-    private readonly ArraySegment<Meta> _fieldMeta;
-
-    /// <summary>
-    /// Raw value the fields point to.
-    /// </summary>
-    internal ReadOnlyMemory<T> Data { get; }
-
-    /// <summary>
-    /// Field end indexes and special character counts.
-    /// </summary>
-    /// <remarks>
-    /// Contains one extra field at start denoting the start index inf <see cref="Data"/>.
-    /// </remarks>
-    internal ReadOnlySpan<Meta> Fields
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fieldMeta.AsSpanUnsafe();
-    }
-
-    internal CsvReader<T> Reader { get; }
-
-    /// <summary>
-    /// Returns length of the raw record.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetRecordLength(bool includeTrailingNewline = false)
-    {
-        ReadOnlySpan<Meta> fields = Fields;
-        int start = fields[0].NextStart;
-        int end = includeTrailingNewline ? fields[^1].NextStart : fields[^1].End;
-        return end - start;
-    }
-
-    /// <summary>
-    /// Data of the raw record, not including possible trailing newline.
-    /// </summary>
-    public ReadOnlyMemory<T> Record
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
             ReadOnlySpan<Meta> fields = Fields;
-            return Data[fields[0].NextStart..fields[^1].End];
+            return Data[fields[0].NextStart..fields[^1].End].Span;
         }
     }
 
-    /// <inheritdoc />
+    public int FieldCount => Fields.Count - 1;
+
+    public ReadOnlySpan<T> GetField(int index, bool raw = false)
+    {
+        ReadOnlySpan<T> data = Data.Span;
+        ReadOnlySpan<Meta> fields = Fields;
+        int start = fields[index].NextStart;
+        Meta meta = fields[index + 1];
+
+        if (raw)
+        {
+            return data[start..meta.End];
+        }
+
+        return meta.GetField(start, ref MemoryMarshal.GetReference(data), Reader);
+    }
+
     public override string ToString()
     {
-        if (Fields.IsEmpty)
+        if (Fields.Count == 0)
         {
-            return $"{{ CsvFields<{Token<T>.Name}>: Empty }}";
+            return $"{{ CsvSlice<{Token<T>.Name}>[0] \"\" }}";
         }
 
-        return $"{{ CsvFields<{Token<T>.Name}>[{Fields.Length - 1}]: \"{Reader.Options.GetAsString(Record.Span)}\" }}";
+        return $"{{ CsvSlice<{Token<T>.Name}>[{Fields.Count - 1}]: \"{Reader.Options.GetAsString(RawValue)}\" }}";
     }
 
-    private class CsvLineDebugView
+    private class CsvSliceDebugView
     {
-        public CsvLineDebugView(CsvFields<T> record)
+        public CsvSliceDebugView(CsvSlice<T> slice)
         {
-            var reader = new CsvRecordRef<T>(in record);
+            var reader = new CsvRecordRef<T>(in slice);
 
             Items = new string[reader.FieldCount];
 
@@ -99,84 +67,5 @@ public readonly struct CsvFields<T> : ICsvRecord<T>
         // ReSharper disable once CollectionNeverQueried.Local
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public string[] Items { get; }
-    }
-
-    /// <summary>
-    /// Number of fields in the record.
-    /// </summary>
-    public int FieldCount => Fields.Length - 1;
-
-    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => GetField(index);
-
-    /// <summary>
-    /// Returns the value of a field.
-    /// </summary>
-    /// <param name="index">Zero-based field index</param>
-    /// <param name="raw">Whether to return the field unescaped</param>
-    /// <returns>The field value</returns>
-    /// <exception cref="ArgumentOutOfRangeException">If <paramref name="index"/> is out of range</exception>
-    /// <seealso cref="FieldCount"/>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false)
-    {
-        ReadOnlySpan<Meta> fields = Fields;
-
-        if ((uint)index >= (uint)(fields.Length - 1))
-            Throw.Argument_FieldIndex(index, fields.Length - 1);
-
-        int start = fields[index].NextStart;
-        ReadOnlySpan<T> data = Data.Span;
-
-        if (raw)
-        {
-            return data[start..fields[index + 1].End];
-        }
-
-        return fields[index + 1].GetField(start: start, data: ref MemoryMarshal.GetReference(data), reader: Reader);
-    }
-
-    /// <summary>
-    /// Returns an enumerator that iterates over the fields in the record.
-    /// </summary>
-    public Enumerator GetEnumerator()
-    {
-        Throw.IfDefaultStruct(Reader is null, typeof(CsvFields<T>));
-        var reader = new CsvRecordRef<T>(in this);
-        return new Enumerator(reader);
-    }
-
-    /// <summary>
-    /// Enumerates the fields in the record, unescaping them if needed.
-    /// </summary>
-    [PublicAPI]
-    public ref struct Enumerator
-    {
-        private readonly CsvRecordRef<T> _reader;
-        private int _index;
-
-        internal Enumerator(CsvRecordRef<T> reader)
-        {
-            _reader = reader;
-        }
-
-        /// <summary>
-        /// Current field in the enumerator.
-        /// </summary>
-        public ReadOnlySpan<T> Current { get; private set; }
-
-        /// <summary>
-        /// Attempts to read the next field in the record.
-        /// </summary>
-        /// <returns></returns>
-        public bool MoveNext()
-        {
-            if ((uint)_index < (uint)_reader.FieldCount)
-            {
-                Current = _reader[_index++];
-                return true;
-            }
-
-            Current = default;
-            return false;
-        }
     }
 }

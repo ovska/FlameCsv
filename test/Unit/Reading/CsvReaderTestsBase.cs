@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Tests.Utilities;
@@ -308,7 +309,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                 index++;
                 Assert.Equal(hasHeader ? index + 1 : index, record.Line);
                 Assert.Equal(tokenPosition, record.Position);
-                tokenPosition += record._record.GetRecordLength(includeTrailingNewline: true);
+                tokenPosition += record._slice.Fields.AsSpanUnsafe().GetRecordLength(includeTrailingNewline: true);
             }
 
             Obj obj = new()

@@ -341,7 +341,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             return 0;
         }
 
-        CsvRecordRef<T> recordRef = new(in record._record);
+        CsvRecordRef<T> recordRef = new(in record._slice);
 
         bool writeRaw = Options.DialectEquals(record.Options);
 

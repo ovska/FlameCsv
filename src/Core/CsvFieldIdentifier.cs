@@ -18,7 +18,7 @@ namespace FlameCsv;
 /// Field indexes are 0-based, so <c>default(CsvFieldIdentifier)</c> points to the first field.<br/>
 /// </remarks>
 [PublicAPI]
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
+[DebuggerDisplay("{ToString(),nq}")]
 public readonly struct CsvFieldIdentifier
 {
     private readonly int _index;
@@ -112,7 +112,4 @@ public readonly struct CsvFieldIdentifier
 
         return vsb.ToString();
     }
-
-    [ExcludeFromCodeCoverage]
-    private string DebuggerDisplay => ToString();
 }

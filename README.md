@@ -82,7 +82,7 @@ CsvOptions<char> options = new()
     Converters = { new CustomDateTimeConverter() },
 };
 
-foreach (CsvValueRecord<char> record in CsvReader.Enumerate(data, options))
+foreach (CsvRecord<char> record in CsvReader.Enumerate(data, options))
 {
     // get fields by index or header name
     var u1 = new User(

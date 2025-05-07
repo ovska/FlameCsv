@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
@@ -17,16 +18,16 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref T _data;
-    private readonly CsvReader<T> _reader;
     private readonly ReadOnlySpan<Meta> _meta;
+    internal readonly CsvReader<T> _reader;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecordRef(scoped ref readonly CsvFields<T> record)
+    internal CsvRecordRef(scoped ref readonly CsvSlice<T> slice)
     {
-        ReadOnlySpan<Meta> fieldMeta = record.Fields;
+        ReadOnlySpan<Meta> fieldMeta = slice.Fields.AsSpanUnsafe();
 
-        _reader = record.Reader;
-        _data = ref MemoryMarshal.GetReference(record.Data.Span);
+        _reader = slice.Reader;
+        _data = ref MemoryMarshal.GetReference(slice.Data.Span);
         _meta = fieldMeta;
         FieldCount = fieldMeta.Length - 1;
     }
@@ -72,8 +73,10 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), _meta[index + 1].End - start);
     }
 
-    /// <inheritdoc cref="CsvFields{T}.Record"/>
-    public ReadOnlySpan<T> Record
+    /// <summary>
+    /// Data of the raw record, not including possible trailing newline.
+    /// </summary>
+    public ReadOnlySpan<T> RawValue
     {
         get
         {
@@ -83,20 +86,20 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         }
     }
 
-    /// <inheritdoc cref="CsvFields{T}.GetRecordLength"/>
+    /// <summary>
+    /// Returns length of the raw record.
+    /// </summary>
+    /// <param name="includeTrailingNewline">Whether to include the length of the possible trailing newline</param>
     public int GetRecordLength(bool includeTrailingNewline = false)
     {
-        int start = _meta[0].NextStart;
-        Meta lastMeta = _meta[^1];
-        int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
-        return end - start;
+        return _meta.GetRecordLength(includeTrailingNewline);
     }
 
     /// <summary>
     /// Returns a diagnostic string representation of the current instance.
     /// </summary>
     /// <remarks>
-    /// See <see cref="Record"/> to get the actual record span.
+    /// See <see cref="RawValue"/> to get the actual record span.
     /// </remarks>
     public override string ToString()
     {
@@ -107,14 +110,14 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
 
         if (typeof(T) == typeof(char))
         {
-            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(Record)}\" }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(RawValue)}\" }}";
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Record))}\" }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(RawValue))}\" }}";
         }
 
-        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Length: {Record.Length} }}";
+        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Length: {RawValue.Length} }}";
     }
 }
