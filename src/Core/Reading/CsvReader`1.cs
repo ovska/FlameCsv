@@ -50,7 +50,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     private readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
 
-    private EnumeratorStack _stackMemory;
+    private EnumeratorStack _stackMemory; // don't make me readonly
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
@@ -95,73 +95,38 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         Unsafe.SkipInit(out _stackMemory);
     }
 
-    internal Span<T> GetUnescapeBuffer(int length)
-    {
-        if (typeof(T) == typeof(byte))
-        {
-            const int stackLength = EnumeratorStack.Length / sizeof(byte);
-
-            // allocate a new buffer if the requested length is larger than the stack buffer
-            if (length > stackLength)
-            {
-                return _unescapeAllocator.GetSpan(length);
-            }
-
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
-        }
-
-        if (typeof(T) == typeof(char))
-        {
-            const int stackLength = EnumeratorStack.Length / sizeof(char);
-
-            // allocate a new buffer if the requested length is larger than the stack buffer
-            if (length > stackLength)
-            {
-                return _unescapeAllocator.GetSpan(length);
-            }
-
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
-        }
-
-        throw Token<T>.NotSupported;
-    }
-
     /// <summary>
     /// Attempts to return a complete CSV record from the read-ahead buffer.
     /// </summary>
-    /// <param name="record">Fields of the CSV record up to the newline</param>
     /// <returns>
     /// <c>true</c> if a record was read,
     /// <c>false</c> if the read-ahead buffer is empty or the record is incomplete.
     /// </returns>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool TryGetBuffered(out CsvFields<T> record)
+    internal bool TryGetBuffered(out CsvSlice<T> slice)
     {
         if (_metaBuffer.TryPop(out ArraySegment<Meta> meta))
         {
-            record = new CsvFields<T>(reader: this, data: _buffer, fieldMeta: meta);
+            slice = new() { Reader = this, Data = _buffer, Fields = meta };
             return true;
         }
 
-        Unsafe.SkipInit(out record);
+        Unsafe.SkipInit(out slice);
         return false;
     }
 
     /// <summary>
     /// Attempts to read the next CSV record from the buffered data or read-ahead buffer.
     /// </summary>
-    /// <param name="record"></param>
-    /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadLine(out CsvFields<T> record)
+    internal bool TryReadLine(out CsvSlice<T> slice)
     {
-        return TryGetBuffered(out record) || TryFillBuffer(out record);
+        return TryGetBuffered(out slice) || TryFillBuffer(out slice);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryFillBuffer(out CsvFields<T> record)
+    private bool TryFillBuffer(out CsvSlice<T> slice)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
@@ -175,7 +140,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
                 || (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true))
             )
             {
-                record = new CsvFields<T>(this, _buffer, meta);
+                slice = new() { Reader = this, Data = _buffer, Fields = meta };
                 return true;
             }
 
@@ -191,7 +156,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             }
         }
 
-        Unsafe.SkipInit(out record);
+        Unsafe.SkipInit(out slice);
         return false;
     }
 
@@ -364,6 +329,37 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             _buffer = ReadOnlyMemory<T>.Empty;
             _metaBuffer.Dispose();
         }
+    }
+
+    internal Span<T> GetUnescapeBuffer(int length)
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            const int stackLength = EnumeratorStack.Length / sizeof(byte);
+
+            // allocate a new buffer if the requested length is larger than the stack buffer
+            if (length > stackLength)
+            {
+                return _unescapeAllocator.GetSpan(length);
+            }
+
+            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
+        }
+
+        if (typeof(T) == typeof(char))
+        {
+            const int stackLength = EnumeratorStack.Length / sizeof(char);
+
+            // allocate a new buffer if the requested length is larger than the stack buffer
+            if (length > stackLength)
+            {
+                return _unescapeAllocator.GetSpan(length);
+            }
+
+            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
+        }
+
+        throw Token<T>.NotSupported;
     }
 
     private enum State : byte

@@ -125,23 +125,6 @@ internal static class UtilityExtensions
         return true;
     }
 
-    public static ReadOnlyMemory<T> SafeCopy<T>(this ReadOnlyMemory<T> data)
-    {
-        if (data.IsEmpty)
-            return data;
-
-        // strings are immutable and safe to return as-is
-        if (
-            typeof(T) == typeof(char)
-            && MemoryMarshal.TryGetString((ReadOnlyMemory<char>)(object)data, out _, out _, out _)
-        )
-        {
-            return data;
-        }
-
-        return data.ToArray();
-    }
-
     public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters)
         where T : class
     {

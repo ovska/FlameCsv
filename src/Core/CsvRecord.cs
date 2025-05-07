@@ -31,7 +31,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         get
         {
             _owner.EnsureVersion(_version);
-            return _record.Record.Span;
+            return _slice.RawValue;
         }
     }
 
@@ -65,20 +65,19 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             }
         }
 
-        return (uint)index < (uint)_record.FieldCount;
+        return (uint)index < (uint)_slice.FieldCount;
     }
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.Options"/>
-    public CsvOptions<T> Options => _options;
+    public CsvOptions<T> Options => _slice.Reader.Options;
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.this[CsvFieldIdentifier]"/>
     public ReadOnlySpan<T> this[CsvFieldIdentifier id] => GetField(id);
 
-    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => GetField(index);
+    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => GetField(index, out _);
 
     internal readonly IRecordOwner _owner;
-    internal readonly CsvOptions<T> _options;
-    internal readonly CsvFields<T> _record;
+    internal readonly CsvSlice<T> _slice;
     private readonly int _version;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,16 +85,14 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         int version,
         long position,
         int lineIndex,
-        ref readonly CsvFields<T> record,
-        CsvOptions<T> options,
+        CsvSlice<T> slice,
         IRecordOwner owner
     )
     {
         _version = version;
         Position = position;
         Line = lineIndex;
-        _record = record;
-        _options = options;
+        _slice = slice;
         _owner = owner;
     }
 
@@ -117,12 +114,12 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             }
         }
 
-        if ((uint)index >= (uint)_record.FieldCount)
+        if ((uint)index >= (uint)_slice.FieldCount)
         {
-            Throw.Argument_FieldIndex(index, _record.FieldCount, id.UnsafeName);
+            Throw.Argument_FieldIndex(index, _slice.FieldCount, id.UnsafeName);
         }
 
-        return _record.GetField(index);
+        return _slice.GetField(index);
     }
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.GetField(CsvFieldIdentifier)"/>
@@ -135,7 +132,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         get
         {
             _owner.EnsureVersion(_version);
-            return _record.FieldCount;
+            return _slice.FieldCount;
         }
     }
 
@@ -144,7 +141,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
     public bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
     {
         var field = GetField(id);
-        return _options.GetConverter<TValue>().TryParse(field, out value);
+        return Options.GetConverter<TValue>().TryParse(field, out value);
     }
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.TryParseField{TValue}(CsvConverter{T,TValue},CsvFieldIdentifier,out TValue)"/>
@@ -165,7 +162,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
     {
         var field = GetField(id, out int fieldIndex);
 
-        var converter = _options.GetConverter<TValue>();
+        var converter = Options.GetConverter<TValue>();
 
         if (!converter.TryParse(field, out var value))
         {
@@ -195,7 +192,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
     /// </summary>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Enumerator GetEnumerator() => new(_version, _owner, in _record);
+    public Enumerator GetEnumerator() => new(_version, _owner, in _slice);
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.ParseRecord{TRecord>()"/>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -211,14 +208,14 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             var header = _owner.Header;
 
             obj = header is not null
-                ? _options.TypeBinder.GetMaterializer<TRecord>(header.Values)
-                : _options.TypeBinder.GetMaterializer<TRecord>();
+                ? Options.TypeBinder.GetMaterializer<TRecord>(header.Values)
+                : Options.TypeBinder.GetMaterializer<TRecord>();
 
             cache[typeof(TRecord)] = obj;
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        CsvRecordRef<T> reader = new(in _record);
+        CsvRecordRef<T> reader = new(in _slice);
         return materializer.Parse(ref reader);
     }
 
@@ -235,21 +232,21 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         if (!cache.TryGetValue(typeMap, out object? obj))
         {
             obj = _owner.Header is not null
-                ? typeMap.GetMaterializer(_owner.Header.Values, _options)
-                : typeMap.GetMaterializer(_options);
+                ? typeMap.GetMaterializer(_owner.Header.Values, Options)
+                : typeMap.GetMaterializer(Options);
 
             cache[typeMap] = obj;
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        CsvRecordRef<T> reader = new(in _record);
+        CsvRecordRef<T> reader = new(in _slice);
         return materializer.Parse(ref reader);
     }
 
     /// <inheritdoc/>
     public override string ToString()
     {
-        return $"{{ CsvValueRecord[{_record.FieldCount}] \"{_options.GetAsString(RawRecord)}\" }}";
+        return $"{{ CsvRecord[{_slice.FieldCount}] \"{Options.GetAsString(RawRecord)}\" }}";
     }
 
     /// <summary>
@@ -276,9 +273,9 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             }
         }
 
-        if ((uint)index >= (uint)_record.FieldCount)
+        if ((uint)index >= (uint)_slice.FieldCount)
         {
-            Throw.Argument_FieldIndex(index, _record.FieldCount, paramName);
+            Throw.Argument_FieldIndex(index, _slice.FieldCount, paramName);
         }
 
         return index;
@@ -292,21 +289,21 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         /// <summary>
         /// Current field in the record.
         /// </summary>
-        public readonly ReadOnlySpan<T> Current => _record.GetField(_index - 1);
+        public readonly ReadOnlySpan<T> Current => _slice.GetField(_index - 1);
 
         private readonly int _version;
         private readonly IRecordOwner _owner;
-        private readonly CsvFields<T> _record;
+        private readonly CsvSlice<T> _slice;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, IRecordOwner owner, scoped ref readonly CsvFields<T> record)
+        internal Enumerator(int version, IRecordOwner owner, scoped ref readonly CsvSlice<T> slice)
         {
             owner.EnsureVersion(version);
 
             _version = version;
             _owner = owner;
-            _record = record;
+            _slice = slice;
         }
 
         /// <inheritdoc cref="IEnumerator.MoveNext"/>
@@ -315,7 +312,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         {
             _owner.EnsureVersion(_version);
 
-            if (_index < _record.FieldCount)
+            if (_index < _slice.FieldCount)
             {
                 _index++;
                 return true;
@@ -334,17 +331,17 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         public long Position => _record.Position;
         public string[] Headers => _record._owner.Header?.Values.ToArray() ?? [];
 
-        public ReadOnlyMemory<T>[] Fields
+        public string[] Fields
         {
             get
             {
                 if (_fields is null)
                 {
-                    var fields = new ReadOnlyMemory<T>[_record.FieldCount];
+                    var fields = new string[_record.FieldCount];
 
                     for (int i = 0; i < fields.Length; i++)
                     {
-                        fields[i] = _record.GetField(i).ToArray();
+                        fields[i] = _record.Options.GetAsString(_record.GetField(i));
                     }
 
                     _fields = fields;
@@ -354,9 +351,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             }
         }
 
-        private ReadOnlyMemory<T>[]? _fields;
-
-        public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
+        private string[]? _fields;
     }
 
     /// <summary>
@@ -378,7 +373,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             Converter = converter, FieldIndex = index, Target = target,
         };
 
-        ex.Enrich(Line, Position, in _record);
+        ex.Enrich(Line, Position, in _slice);
         throw ex;
     }
 }

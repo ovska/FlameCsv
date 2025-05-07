@@ -40,7 +40,7 @@ public sealed class CsvRecordEnumerator<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (_current._options is null)
+            if (_current._owner is null)
             {
                 ThrowInvalidCurrentAccess();
             }
@@ -133,14 +133,14 @@ public sealed class CsvRecordEnumerator<T>
     protected override void ResetHeader() => Header = null;
 
     /// <inheritdoc/>
-    protected override bool MoveNextCore(ref readonly CsvFields<T> record)
+    internal override bool MoveNextCore(ref readonly CsvSlice<T> slice)
     {
         Throw.IfEnumerationDisposed(_version == -1);
 
         // header needs to be read
         if (_hasHeader && _header is null)
         {
-            CreateHeader(in record);
+            CreateHeader(in slice);
             return false;
         }
 
@@ -150,15 +150,15 @@ public sealed class CsvRecordEnumerator<T>
         {
             if (_expectedFieldCount is null)
             {
-                _expectedFieldCount = record.FieldCount;
+                _expectedFieldCount = slice.FieldCount;
             }
-            else if (record.FieldCount != _expectedFieldCount.Value)
+            else if (slice.FieldCount != _expectedFieldCount.Value)
             {
-                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, record.FieldCount);
+                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, slice.FieldCount);
             }
         }
 
-        _current = new CsvRecord<T>(_version, Position, Line, in record, Reader.Options, this);
+        _current = new CsvRecord<T>(_version, Position, Line, slice, this);
         return true;
     }
 
@@ -194,9 +194,9 @@ public sealed class CsvRecordEnumerator<T>
 
     [MemberNotNull(nameof(Header))]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void CreateHeader(ref readonly CsvFields<T> headerRecord)
+    private void CreateHeader(ref readonly CsvSlice<T> slice)
     {
-        CsvRecordRef<T> reader = new(in headerRecord);
+        CsvRecordRef<T> reader = new(in slice);
         ImmutableArray<string> values = CsvHeader.Parse(Options, ref reader);
         Header = new CsvHeader(Options.Comparer, values);
     }

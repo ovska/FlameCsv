@@ -69,11 +69,11 @@ public class CsvPreservedRecord<T>
     {
         record.EnsureValid();
 
-        // we don't need to validate field count here, as a non-default CsvValueRecord validates it on init
+        // we don't need to validate field count here, as a non-default CsvRecord validates it on init
         Position = record.Position;
         Line = record.Line;
-        Options = record._options;
-        RawRecord = record._record.Record.SafeCopy();
+        Options = record.Options;
+        RawRecord = record.RawRecord.ToArray();
         Header = record._owner.Header;
 
         using WritableBuffer<T> buffer = new(Options.Allocator);
@@ -246,7 +246,7 @@ public class CsvPreservedRecord<T>
     /// <inheritdoc/>
     public override string ToString()
     {
-        return $"{{ CsvRecord[{FieldCount}] \"{Options.GetAsString(RawRecord.Span)}\" }}";
+        return $"{{ CsvPreservedRecord[{FieldCount}] \"{Options.GetAsString(RawRecord.Span)}\" }}";
     }
 
     int IReadOnlyCollection<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>.Count => _fields.Length;

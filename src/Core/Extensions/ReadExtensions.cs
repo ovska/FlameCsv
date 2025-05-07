@@ -3,11 +3,21 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Extensions;
 
 internal static class ReadExtensions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetRecordLength(this ReadOnlySpan<Meta> meta, bool includeTrailingNewline = false)
+    {
+        int start = meta[0].NextStart;
+        Meta lastMeta = meta[^1];
+        int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
+        return end - start;
+    }
+
     public static bool TryParseFromUtf8<TValue>(
         ReadOnlySpan<byte> source,
         IFormatProvider? formatProvider,

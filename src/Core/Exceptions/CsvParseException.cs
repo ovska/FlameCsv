@@ -152,7 +152,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         }
     }
 
-    internal void Enrich<T>(int line, long position, in CsvFields<T> record)
+    internal void Enrich<T>(int line, long position, ref readonly CsvSlice<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         Line ??= line;
@@ -162,7 +162,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         {
             try
             {
-                RecordValue = record.Record.Span.AsPrintableString();
+                RecordValue = record.RawValue.AsPrintableString();
             }
             catch (Exception e)
             {

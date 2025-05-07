@@ -21,38 +21,48 @@ public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) whe
 [PublicAPI]
 public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly CsvFields<T> _record;
+    private readonly bool _useSlice;
+    private readonly CsvSlice<T> _slice;
+    private readonly CsvRecord<T> _record;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
     /// </summary>
-    public CsvExceptionHandlerArgs(
-        in CsvFields<T> record,
+    internal CsvExceptionHandlerArgs(
+        in CsvSlice<T> slice,
         ImmutableArray<string> header,
         Exception exception,
         int lineIndex,
         long position)
     {
-        if (Unsafe.IsNullRef(in record)) Throw.ArgumentNull(nameof(record));
-        if (header.IsDefault) Throw.ArgumentNull(nameof(header));
-        ArgumentNullException.ThrowIfNull(exception);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lineIndex);
-        ArgumentOutOfRangeException.ThrowIfNegative(position);
-
-        _record = record;
+        _slice = slice;
         Header = header;
         Line = lineIndex;
         Position = position;
         Exception = exception;
+        FieldCount = slice.Fields.Count - 1;
+
+        _useSlice = true;
     }
 
     /// <summary>
-    /// Returns the <see cref="CsvFields{T}"/> instance.
+    /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
     /// </summary>
     /// <remarks>
-    /// The instance is only valid until the handler returns, and should not be stored for further use.
+    /// This constructor is included for testing only.
     /// </remarks>
-    public CsvFields<T> Record => _record;
+    public CsvExceptionHandlerArgs(in CsvRecord<T> record, Exception exception)
+    {
+        record.EnsureValid();
+        ArgumentNullException.ThrowIfNull(exception);
+
+        Header = record.Header?.Values ?? [];
+        Line = record.Line;
+        Position = record.Position;
+        Exception = exception;
+
+        _useSlice = false;
+    }
 
     /// <summary>
     /// Returns the header record, or empty if no headers in CSV.
@@ -60,7 +70,7 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryIn
     public ImmutableArray<string> Header { get; }
 
     /// <inheritdoc cref="ICsvRecord{T}.FieldCount"/>
-    public int FieldCount => _record.FieldCount;
+    public int FieldCount { get; }
 
     /// <summary>
     /// Exception thrown.
@@ -73,12 +83,12 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryIn
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> RawRecord => _record.Record.Span;
+    public ReadOnlySpan<T> RawRecord => _useSlice ? _slice.RawValue : _record.RawRecord;
 
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _record.Reader.Options;
+    public CsvOptions<T> Options => _slice.Reader.Options;
 
     /// <summary>
     /// 1-based line number.
@@ -96,5 +106,13 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryIn
     /// <param name="index">0-based field index</param>
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _record.GetField(index, raw);
+    public ReadOnlySpan<T> GetField(int index, bool raw = false)
+    {
+        ref readonly CsvSlice<T> slice = ref _useSlice
+            ? ref _slice
+            : ref _record._slice;
+
+        CsvRecordRef<T> recordRef = new(in slice);
+        return raw ? recordRef.GetRawSpan(index) : recordRef[index];
+    }
 }

@@ -1,3 +1,6 @@
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -11,15 +14,32 @@ namespace FlameCsv;
 public readonly ref struct CsvRecordCallbackArgs<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ref readonly CsvFields<T> _record;
+    private readonly CsvRecordRef<T> _record;
     private readonly ref bool _skip;
     private readonly ref bool _headerRead;
 
     /// <summary>
-    /// Internal implementation detail.
+    /// Initializes a new instance of <see cref="CsvRecordCallbackArgs{T}"/>.
     /// </summary>
     public CsvRecordCallbackArgs(
-        ref readonly CsvFields<T> record,
+        CsvRecordRef<T> record,
+        ImmutableArray<string> header,
+        int lineIndex,
+        long position,
+        ref bool skip,
+        ref bool headerRead
+    ) : this(record, header.AsSpan(), lineIndex, position, ref skip, ref headerRead)
+    {
+        Throw.IfDefaultStruct(record._reader is null, typeof(CsvRecordRef<T>));
+        if (header.IsDefault) Throw.ArgumentNull(nameof(header));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lineIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(position);
+        if (Unsafe.IsNullRef(ref skip)) Throw.ArgumentNull(nameof(skip));
+        if (Unsafe.IsNullRef(ref headerRead)) Throw.ArgumentNull(nameof(headerRead));
+    }
+
+    internal CsvRecordCallbackArgs(
+        CsvRecordRef<T> record,
         ReadOnlySpan<string> header,
         int lineIndex,
         long position,
@@ -27,7 +47,8 @@ public readonly ref struct CsvRecordCallbackArgs<T>
         ref bool headerRead
     )
     {
-        _record = ref record;
+        // use separate private ctor to avoid validation overhead since we know the args are valid
+        _record = record;
         Line = lineIndex;
         Position = position;
         Header = header;
@@ -47,12 +68,12 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> Record => _record.Record.Span;
+    public ReadOnlySpan<T> RawRecord => _record.RawValue;
 
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _record.Reader.Options;
+    public CsvOptions<T> Options => _record._reader.Options;
 
     /// <summary>
     /// 1-based line number.
@@ -103,7 +124,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <param name="index">0-based field index</param>
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _record.GetField(index, raw);
+    public ReadOnlySpan<T> GetField(int index, bool raw = false) => raw ? _record.GetRawSpan(index) : _record[index];
 }
 
 /// <summary>
