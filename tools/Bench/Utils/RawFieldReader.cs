@@ -9,19 +9,19 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark.Utils;
 
-internal readonly ref struct RawFieldReader<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+internal readonly ref struct RawFieldReader<T> : ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ReadOnlySpan<T> _data;
     private readonly ref Meta _firstMeta;
     private readonly int _fieldCount;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RawFieldReader(scoped ref readonly CsvFields<T> fields)
+    public RawFieldReader(scoped ref readonly CsvFields<T> record)
     {
-        Options = fields.Reader.Options;
-        _data = fields.Data.Span;
-        _firstMeta = ref MemoryMarshal.GetReference(fields.Fields);
-        _fieldCount = fields.Fields.Length - 1;
+        Options = record.Reader.Options;
+        _data = record.Data.Span;
+        _firstMeta = ref MemoryMarshal.GetReference(record.Fields);
+        _fieldCount = record.Fields.Length - 1;
     }
 
     public int FieldCount => _fieldCount;

@@ -301,14 +301,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         return items;
 
-        Obj Core(CsvValueRecord<T> record)
+        Obj Core(CsvRecord<T> record)
         {
             if (!parallel)
             {
                 index++;
                 Assert.Equal(hasHeader ? index + 1 : index, record.Line);
                 Assert.Equal(tokenPosition, record.Position);
-                tokenPosition += record._fields.GetRecordLength(includeTrailingNewline: true);
+                tokenPosition += record._record.GetRecordLength(includeTrailingNewline: true);
             }
 
             Obj obj = new()

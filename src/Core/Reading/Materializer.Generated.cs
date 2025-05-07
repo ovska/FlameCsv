@@ -74,7 +74,7 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult>, I
 
     private readonly CsvConverter<T, T0> converter0;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -105,7 +105,7 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
     private readonly CsvConverter<T, T0> converter0;
     private readonly CsvConverter<T, T1> converter1;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -139,7 +139,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
     private readonly CsvConverter<T, T1> converter1;
     private readonly CsvConverter<T, T2> converter2;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -176,7 +176,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
     private readonly CsvConverter<T, T2> converter2;
     private readonly CsvConverter<T, T3> converter3;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -216,7 +216,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
     private readonly CsvConverter<T, T3> converter3;
     private readonly CsvConverter<T, T4> converter4;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -259,7 +259,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
     private readonly CsvConverter<T, T4> converter4;
     private readonly CsvConverter<T, T5> converter5;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -305,7 +305,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
     private readonly CsvConverter<T, T5> converter5;
     private readonly CsvConverter<T, T6> converter6;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -354,7 +354,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     private readonly CsvConverter<T, T6> converter6;
     private readonly CsvConverter<T, T7> converter7;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -406,7 +406,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> converter7;
     private readonly CsvConverter<T, T8> converter8;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -461,7 +461,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> converter8;
     private readonly CsvConverter<T, T9> converter9;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -519,7 +519,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> converter9;
     private readonly CsvConverter<T, T10> converter10;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -580,7 +580,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> converter10;
     private readonly CsvConverter<T, T11> converter11;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -644,7 +644,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> converter11;
     private readonly CsvConverter<T, T12> converter12;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -711,7 +711,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> converter12;
     private readonly CsvConverter<T, T13> converter13;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -781,7 +781,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> converter13;
     private readonly CsvConverter<T, T14> converter14;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));
@@ -854,7 +854,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> converter14;
     private readonly CsvConverter<T, T15> converter15;
 
-    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvFields<T>, allows ref struct
+    public TResult Parse<TRecord>(scoped ref TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, record.FieldCount);
         if (!converter0.TryParse(record[0], out T0 v0)) CsvParseException.Throw(0, typeof(T0), converter0, GetName(0));

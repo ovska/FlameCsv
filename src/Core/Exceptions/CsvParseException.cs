@@ -152,7 +152,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         }
     }
 
-    internal void Enrich<T>(int line, long position, in CsvFields<T> fields)
+    internal void Enrich<T>(int line, long position, in CsvFields<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         Line ??= line;
@@ -162,7 +162,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         {
             try
             {
-                RecordValue = fields.Record.Span.AsPrintableString();
+                RecordValue = record.Record.Span.AsPrintableString();
             }
             catch (Exception e)
             {
@@ -170,12 +170,12 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
             }
         }
 
-        if (FieldIndex is { } index && (uint)index < (uint)fields.FieldCount)
+        if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {
-            int offset = fields.Fields[index].NextStart - fields.Fields[0].NextStart;
+            int offset = record.Fields[index].NextStart - record.Fields[0].NextStart;
 
             FieldPosition ??= position + offset;
-            FieldValue ??= fields.GetField(index, raw: true).AsPrintableString();
+            FieldValue ??= record.GetField(index, raw: true).AsPrintableString();
         }
     }
 }

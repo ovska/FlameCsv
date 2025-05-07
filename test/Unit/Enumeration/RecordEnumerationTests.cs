@@ -15,7 +15,7 @@ public static class RecordEnumerationTests
 
         var enumerable = new CsvRecordEnumerable<char>(data.AsMemory(), new CsvOptions<char> { HasHeader = false });
 
-        List<CsvRecord<char>> records = [];
+        List<CsvPreservedRecord<char>> records = [];
 
         if (isAsync)
         {

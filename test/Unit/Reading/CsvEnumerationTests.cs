@@ -86,7 +86,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Return_Field_Count()
     {
-        CsvValueRecord<char> record = GetRecord();
+        CsvRecord<char> record = GetRecord();
 
         Assert.Equal(3, record.FieldCount);
         Assert.Equal(3, record.FieldCount);
@@ -95,7 +95,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Enumerate_Record()
     {
-        CsvValueRecord<char> record = GetRecord();
+        CsvRecord<char> record = GetRecord();
 
         var expected = new[] { "1", "Test", "true" };
         var actual = new List<string>();
@@ -109,7 +109,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Parse_Fields()
     {
-        CsvValueRecord<char> record = GetRecord();
+        CsvRecord<char> record = GetRecord();
 
         Assert.Equal(1, record.ParseField<int>(0));
         Assert.Equal("Test", record.ParseField<string?>(1));
@@ -128,7 +128,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Return_Fields()
     {
-        CsvValueRecord<char> record = GetRecord();
+        CsvRecord<char> record = GetRecord();
 
         Assert.Equal("1", record.GetField(0).ToString());
         Assert.Equal("Test", record.GetField(1).ToString());
@@ -144,7 +144,7 @@ public sealed class CsvEnumerationTests : IDisposable
             .GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
-        CsvValueRecord<char> record = enumerator.Current;
+        CsvRecord<char> record = enumerator.Current;
 
         Assert.Equal("1", record.GetField("A").ToString());
         Assert.Equal("2", record.GetField("B").ToString());
@@ -153,7 +153,7 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.False(enumerator.MoveNext());
     }
 
-    private CsvValueRecord<char> GetRecord()
+    private CsvRecord<char> GetRecord()
     {
         _enumerator = new CsvRecordEnumerator<char>(
             "1,\"Test\",true".AsMemory(),

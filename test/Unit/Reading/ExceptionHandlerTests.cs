@@ -39,7 +39,7 @@ public class ExceptionHandlerTests
                 Assert.Equal(2, args.FieldCount);
                 Assert.Equal(4, args.Line);
                 Assert.Equal(19, args.Position);
-                Assert.Equal("X,C", args.Record.ToString());
+                Assert.Equal("X,C", args.RawRecord.ToString());
 
                 if (args.Exception is CsvParseException pe)
                 {

@@ -122,7 +122,7 @@ file class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
     public bool IsEnabled { get; } = isEnabled;
 }
 
-file struct ConstantRecord<T> : ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+file struct ConstantRecord<T> : ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
     public ConstantRecord(IEnumerable<string> values, CsvOptions<T>? options = null)
     {

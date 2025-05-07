@@ -97,16 +97,16 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     protected abstract IMaterializer<T, TValue> BindToHeaderless();
 
     /// <inheritdoc/>
-    protected override bool MoveNextCore(ref readonly CsvFields<T> fields)
+    protected override bool MoveNextCore(ref readonly CsvFields<T> record)
     {
-        if (_materializer is null && TryReadHeader(in fields))
+        if (_materializer is null && TryReadHeader(in record))
         {
             return false;
         }
 
         try
         {
-            CsvFieldsRef<T> reader = new(in fields);
+            CsvRecordRef<T> reader = new(in record);
             Current = _materializer.Parse(ref reader);
             return true;
         }
@@ -116,19 +116,19 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             {
                 cfe.Line ??= Line;
                 cfe.Position ??= Position;
-                cfe.Record = fields.Record.Span.AsPrintableString();
+                cfe.Record = record.Record.Span.AsPrintableString();
             }
             catch { /* ignore */ }
             throw;
         }
         catch (Exception ex)
         {
-            (ex as CsvParseException)?.Enrich(Line, Position, in fields);
+            (ex as CsvParseException)?.Enrich(Line, Position, in record);
 
             CsvExceptionHandler<T>? handler = ExceptionHandler;
 
             if (handler is not null &&
-                handler(new CsvExceptionHandlerArgs<T>(in fields, Headers, ex, Line, Position)))
+                handler(new CsvExceptionHandlerArgs<T>(in record, Headers, ex, Line, Position)))
             {
                 // try again
                 return false;
@@ -156,7 +156,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
 
-        CsvFieldsRef<T> reader = new(in record);
+        CsvRecordRef<T> reader = new(in record);
 
         Headers = CsvHeader.Parse(Options, ref reader);
         _materializer = BindToHeaders(Headers);

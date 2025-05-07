@@ -1,248 +1,153 @@
-﻿using System.Collections;
+using System.Collections;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Utilities;
+using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
 
 /// <summary>
-/// A self-contained copy of a single CSV record.
+/// Represents the current record when reading CSV.
 /// </summary>
+/// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public class CsvRecord<T>
-    : ICsvFields<T>,
-        IReadOnlyList<ReadOnlyMemory<T>>,
-        IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
-    where T : unmanaged, IBinaryInteger<T>
+[DebuggerTypeProxy(typeof(CsvRecord<>.CsvRecordDebugView))]
+public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
-    /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
-    public virtual ReadOnlyMemory<T> this[CsvFieldIdentifier id] => GetField(id);
+    /// <inheritdoc cref="CsvPreservedRecord{T}.Position"/>
+    public long Position { get; }
 
-    /// <summary>
-    /// Start position of the record in the original data.
-    /// </summary>
-    public virtual long Position { get; }
+    /// <inheritdoc cref="CsvPreservedRecord{T}.Line"/>
+    public int Line { get; }
 
-    /// <summary>
-    /// 1-based line number in the CSV data. Empty lines and the header are counted.
-    /// </summary>
-    public virtual int Line { get; }
+    /// <inheritdoc cref="CsvPreservedRecord{T}.RawRecord"/>
+    public ReadOnlySpan<T> RawRecord
+    {
+        get
+        {
+            _owner.EnsureVersion(_version);
+            return _record.Record.Span;
+        }
+    }
 
-    /// <summary>
-    /// The options-instance associated with the current CSV.
-    /// </summary>
-    public CsvOptions<T> Options { get; }
+    /// <inheritdoc cref="CsvPreservedRecord{T}.Header"/>
+    public CsvHeader? Header
+    {
+        get
+        {
+            _owner.EnsureVersion(_version);
+            return _owner.Header;
+        }
+    }
 
-    /// <summary>
-    /// Raw data of the record as a single memory block, not including a possible trailing newline.
-    /// </summary>
-    public virtual ReadOnlyMemory<T> RawRecord { get; }
-
-    /// <summary>
-    /// Returns true if the header has been parsed from the CSV the record and <see cref="Header"/> is safe to use.
-    /// </summary>
-    /// <remarks>
-    /// The header isn't returned as a separate record, so this property is always true if the options-instance
-    /// is configured to have a header, and always false if not.
-    /// </remarks>
-    [MemberNotNullWhen(true, nameof(Header))]
-    public bool HasHeader => Header is not null;
-
-    /// <summary>
-    /// Returns <c>true</c> if the record contains the specified field.
-    /// </summary>
-    /// <remarks>
-    /// This method does not throw even if the identifier is for a header name, but the record's CSV has no header.
-    /// </remarks>
+    /// <inheritdoc cref="CsvPreservedRecord{T}.Contains(CsvFieldIdentifier)"/>
     public bool Contains(CsvFieldIdentifier id)
     {
-        return id.TryGetIndex(out int index, out string? name)
-            ? (uint)index < (uint)_fields.Length
-            : HasHeader && Header.ContainsKey(name);
-    }
+        _owner.EnsureVersion(_version);
 
-    /// <summary>
-    /// Returns the header record for the current CSV, or null if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
-    /// </summary>
-    public CsvHeader? Header { get; }
-
-    internal readonly ArraySegment<T>[] _fields;
-
-    /// <summary>
-    /// Initializes a new instance, copying the record's data.
-    /// </summary>
-    public CsvRecord(in CsvValueRecord<T> record)
-    {
-        record.EnsureValid();
-
-        // we don't need to validate field count here, as a non-default CsvValueRecord validates it on init
-        Position = record.Position;
-        Line = record.Line;
-        Options = record._options;
-        RawRecord = record._fields.Record.SafeCopy();
-        Header = record._owner.Header;
-
-        using WritableBuffer<T> buffer = new(Options.Allocator);
-
-        foreach (var field in record)
+        if (!id.TryGetIndex(out int index, out string? name))
         {
-            buffer.Push(field);
-        }
+            CsvHeader? header = _owner.Header;
 
-        _fields = buffer.Preserve();
-    }
-
-    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => FieldCount;
-
-    ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
-
-    /// <summary>
-    /// Parses the record into an instance of <typeparamref name="TRecord"/> using reflection.
-    /// </summary>
-    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
-    {
-        IMaterializer<T, TRecord> materializer = Header is not null
-            ? Options.TypeBinder.GetMaterializer<TRecord>(Header.Values)
-            : Options.TypeBinder.GetMaterializer<TRecord>();
-
-        CsvRecord<T> @this = this;
-        return materializer.Parse(ref @this);
-    }
-
-    /// <summary>
-    /// Parses the record into an instance of <typeparamref name="TRecord"/> by using the type map.
-    /// </summary>
-    public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
-    {
-        ArgumentNullException.ThrowIfNull(typeMap);
-
-        IMaterializer<T, TRecord> materializer = Header is not null
-            ? typeMap.GetMaterializer(Header.Values, Options)
-            : typeMap.GetMaterializer(Options);
-
-        CsvRecord<T> @this = this;
-        return materializer.Parse(ref @this);
-    }
-
-    /// <summary>
-    /// Returns the value of the field at the specified index.
-    /// </summary>
-    /// <param name="id">Field index of name</param>
-    /// <returns>Field value, unescaped and stripped of quotes when applicable</returns>
-    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
-    /// <exception cref="NotSupportedException"><paramref name="id"/> points to a header name, but the CSV has no header</exception>
-    public ReadOnlyMemory<T> GetField(CsvFieldIdentifier id) => GetField(id, out _);
-
-    /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
-    protected virtual ReadOnlyMemory<T> GetField(CsvFieldIdentifier id, out int index)
-    {
-        if (!id.TryGetIndex(out index, out string? name))
-        {
-            if (!HasHeader || Header is null)
+            if (header is null)
             {
                 Throw.NotSupported_CsvHasNoHeader();
             }
 
-            if (!Header.TryGetValue(name, out index))
+            if (!header.TryGetValue(name, out index))
             {
-                Throw.Argument_HeaderNameNotFound(name, Header.Values.AsEnumerable());
+                return false;
             }
         }
 
-        if ((uint)index >= _fields.Length)
-        {
-            Throw.Argument_FieldIndex(index, _fields.Length);
-        }
-
-        return _fields[index];
+        return (uint)index < (uint)_record.FieldCount;
     }
 
-    /// <summary>
-    /// Parses a value of type <typeparamref name="TValue"/> from a specific field.
-    /// </summary>
-    /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="converter">Converter to parse the field with</param>
-    /// <param name="id">Field index of name</param>
-    /// <returns>Parsed value</returns>
-    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
-    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
-    /// <exception cref="CsvParseException">The field value could not be parsed</exception>
-    public virtual TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
+    /// <inheritdoc cref="CsvPreservedRecord{T}.Options"/>
+    public CsvOptions<T> Options => _options;
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.this[CsvFieldIdentifier]"/>
+    public ReadOnlySpan<T> this[CsvFieldIdentifier id] => GetField(id);
+
+    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => GetField(index);
+
+    internal readonly IRecordOwner _owner;
+    internal readonly CsvOptions<T> _options;
+    internal readonly CsvFields<T> _record;
+    private readonly int _version;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal CsvRecord(
+        int version,
+        long position,
+        int lineIndex,
+        ref readonly CsvFields<T> record,
+        CsvOptions<T> options,
+        IRecordOwner owner
+    )
     {
-        ArgumentNullException.ThrowIfNull(converter);
-
-        var field = GetField(id, out int fieldIndex).Span;
-
-        if (!converter.TryParse(field, out TValue? value))
-        {
-            CsvParseException.Throw(fieldIndex, typeof(TValue), converter, id.ToString());
-        }
-
-        return value;
+        _version = version;
+        Position = position;
+        Line = lineIndex;
+        _record = record;
+        _options = options;
+        _owner = owner;
     }
 
-    /// <summary>
-    /// Parses a value of type <typeparamref name="TValue"/> from a specific field.
-    /// </summary>
-    /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="id">Field index of name</param>
-    /// <returns>Parsed value</returns>
-    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
-    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
-    /// <exception cref="CsvParseException">The field value could not be parsed</exception>
+    /// <inheritdoc cref="CsvPreservedRecord{T}.GetField(CsvFieldIdentifier)"/>
+    private ReadOnlySpan<T> GetField(CsvFieldIdentifier id, out int index)
+    {
+        _owner.EnsureVersion(_version);
+
+        if (!id.TryGetIndex(out index, out string? name))
+        {
+            if (_owner.Header is null)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
+
+            if (!_owner.Header.TryGetValue(name, out index))
+            {
+                Throw.Argument_HeaderNameNotFound(name, _owner.Header.Values);
+            }
+        }
+
+        if ((uint)index >= (uint)_record.FieldCount)
+        {
+            Throw.Argument_FieldIndex(index, _record.FieldCount, id.UnsafeName);
+        }
+
+        return _record.GetField(index);
+    }
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.GetField(CsvFieldIdentifier)"/>
+    public ReadOnlySpan<T> GetField(CsvFieldIdentifier id) => GetField(id, out _);
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.FieldCount"/>
+    public int FieldCount
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            _owner.EnsureVersion(_version);
+            return _record.FieldCount;
+        }
+    }
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.TryParseField{TValue}(CsvFieldIdentifier,out TValue)"/>
     [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
-    public virtual TValue ParseField<TValue>(CsvFieldIdentifier id)
+    public bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
     {
-        var field = GetField(id, out int fieldIndex).Span;
-
-        var converter = Options.GetConverter<TValue>();
-
-        if (!converter.TryParse(field, out TValue? value))
-        {
-            CsvParseException.Throw(fieldIndex, typeof(TValue), converter, id.ToString());
-        }
-
-        return value;
+        var field = GetField(id);
+        return _options.GetConverter<TValue>().TryParse(field, out value);
     }
 
-    /// <summary>
-    /// Returns the number of fields in the record.
-    /// </summary>
-    public virtual int FieldCount => _fields.Length;
-
-    ReadOnlySpan<T> ICsvFields<T>.this[int index] => _fields[index];
-
-    /// <summary>
-    /// Attempts to parse a <typeparamref name="TValue"/> from a specific field.
-    /// </summary>
-    /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="id">Field index of name</param>
-    /// <param name="value">Parsed value, if successful</param>
-    /// <returns><c>true</c> if the value was successfully parsed</returns>
-    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
-    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
-    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
-    public virtual bool TryParseField<TValue>(CsvFieldIdentifier id, [MaybeNullWhen(false)] out TValue value)
-    {
-        var converter = Options.GetConverter<TValue>();
-        return converter.TryParse(GetField(id).Span, out value);
-    }
-
-    /// <summary>
-    /// Attempts to parse a <typeparamref name="TValue"/> from a specific field.
-    /// </summary>
-    /// <typeparam name="TValue">Value parsed</typeparam>
-    /// <param name="converter">Converter to parse the field with</param>
-    /// <param name="id">Field index of name</param>
-    /// <param name="value">Parsed value, if successful</param>
-    /// <returns><c>true</c> if the value was successfully parsed</returns>
-    /// <exception cref="ArgumentException">The ID points to a field that does not exist</exception>
-    /// <exception cref="CsvConverterMissingException">Converter not found for <typeparamref name="TValue"/></exception>
+    /// <inheritdoc cref="CsvPreservedRecord{T}.TryParseField{TValue}(CsvConverter{T,TValue},CsvFieldIdentifier,out TValue)"/>
     public bool TryParseField<TValue>(
         CsvConverter<T, TValue> converter,
         CsvFieldIdentifier id,
@@ -250,72 +155,230 @@ public class CsvRecord<T>
     )
     {
         ArgumentNullException.ThrowIfNull(converter);
-        return converter.TryParse(GetField(id).Span, out value);
+        var field = GetField(id);
+        return converter.TryParse(field, out value);
+    }
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.ParseField{TValue}(CsvFieldIdentifier)"/>
+    [RUF(Messages.ConverterOverload), RDC(Messages.ConverterOverload)]
+    public TValue ParseField<TValue>(CsvFieldIdentifier id)
+    {
+        var field = GetField(id, out int fieldIndex);
+
+        var converter = _options.GetConverter<TValue>();
+
+        if (!converter.TryParse(field, out var value))
+        {
+            ThrowParseException(typeof(TValue), fieldIndex, id, converter);
+        }
+
+        return value;
+    }
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.ParseField{TValue}(CsvConverter{T,TValue},CsvFieldIdentifier)"/>
+    public TValue ParseField<TValue>(CsvConverter<T, TValue> converter, CsvFieldIdentifier id)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+
+        var field = GetField(id, out int fieldIndex);
+
+        if (!converter.TryParse(field, out var value))
+        {
+            ThrowParseException(typeof(TValue), fieldIndex, id, converter);
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// Returns an enumerator that can be used to read the fields one by one.
+    /// </summary>
+    /// <returns></returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Enumerator GetEnumerator() => new(_version, _owner, in _record);
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.ParseRecord{TRecord>()"/>
+    [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
+    public TRecord ParseRecord<[DAM(Messages.ReflectionBound)] TRecord>()
+    {
+        _owner.EnsureVersion(_version);
+
+        // read to local as hot reload can reset the cache
+        IDictionary<object, object> cache = _owner.MaterializerCache;
+
+        if (!cache.TryGetValue(typeof(TRecord), out object? obj))
+        {
+            var header = _owner.Header;
+
+            obj = header is not null
+                ? _options.TypeBinder.GetMaterializer<TRecord>(header.Values)
+                : _options.TypeBinder.GetMaterializer<TRecord>();
+
+            cache[typeof(TRecord)] = obj;
+        }
+
+        var materializer = (IMaterializer<T, TRecord>)obj;
+        CsvRecordRef<T> reader = new(in _record);
+        return materializer.Parse(ref reader);
+    }
+
+    /// <inheritdoc cref="CsvPreservedRecord{T}.ParseRecord{TRecord}(CsvTypeMap{T,TRecord})"/>
+    public TRecord ParseRecord<TRecord>(CsvTypeMap<T, TRecord> typeMap)
+    {
+        ArgumentNullException.ThrowIfNull(typeMap);
+
+        _owner.EnsureVersion(_version);
+
+        // read to local as hot reload can reset the cache
+        IDictionary<object, object> cache = _owner.MaterializerCache;
+
+        if (!cache.TryGetValue(typeMap, out object? obj))
+        {
+            obj = _owner.Header is not null
+                ? typeMap.GetMaterializer(_owner.Header.Values, _options)
+                : typeMap.GetMaterializer(_options);
+
+            cache[typeMap] = obj;
+        }
+
+        var materializer = (IMaterializer<T, TRecord>)obj;
+        CsvRecordRef<T> reader = new(in _record);
+        return materializer.Parse(ref reader);
     }
 
     /// <inheritdoc/>
     public override string ToString()
     {
-        return $"{{ CsvRecord[{FieldCount}] \"{Options.GetAsString(RawRecord.Span)}\" }}";
+        return $"{{ CsvValueRecord[{_record.FieldCount}] \"{_options.GetAsString(RawRecord)}\" }}";
     }
 
-    int IReadOnlyCollection<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>.Count => _fields.Length;
-
-    IEnumerator<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>> IEnumerable<
-        KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>
-    >.GetEnumerator()
+    /// <summary>
+    /// Ensures the struct is not <c>default</c> and the version is valid.
+    /// </summary>
+    internal void EnsureValid()
     {
-        for (int i = 0; i < _fields.Length; i++)
+        Throw.IfDefaultStruct(_owner is null, typeof(CsvRecord<T>));
+        _owner.EnsureVersion(_version);
+    }
+
+    internal int GetFieldIndex(CsvFieldIdentifier id, [CallerArgumentExpression(nameof(id))] string paramName = "")
+    {
+        if (!id.TryGetIndex(out int index, out string? name))
         {
-            yield return new KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>(i, _fields[i]);
+            if (_owner.Header is null)
+            {
+                Throw.NotSupported_CsvHasNoHeader();
+            }
+
+            if (!_owner.Header.TryGetValue(name, out index))
+            {
+                Throw.Argument_HeaderNameNotFound(name, _owner.Header.Values);
+            }
+        }
+
+        if ((uint)index >= (uint)_record.FieldCount)
+        {
+            Throw.Argument_FieldIndex(index, _record.FieldCount, paramName);
+        }
+
+        return index;
+    }
+
+    /// <summary>
+    /// Enumerates the fields in the record.
+    /// </summary>
+    public struct Enumerator
+    {
+        /// <summary>
+        /// Current field in the record.
+        /// </summary>
+        public readonly ReadOnlySpan<T> Current => _record.GetField(_index - 1);
+
+        private readonly int _version;
+        private readonly IRecordOwner _owner;
+        private readonly CsvFields<T> _record;
+        private int _index;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Enumerator(int version, IRecordOwner owner, scoped ref readonly CsvFields<T> record)
+        {
+            owner.EnsureVersion(version);
+
+            _version = version;
+            _owner = owner;
+            _record = record;
+        }
+
+        /// <inheritdoc cref="IEnumerator.MoveNext"/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool MoveNext()
+        {
+            _owner.EnsureVersion(_version);
+
+            if (_index < _record.FieldCount)
+            {
+                _index++;
+                return true;
+            }
+
+            _index = int.MaxValue;
+            return false;
         }
     }
 
-    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
+    private sealed class CsvRecordDebugView(CsvRecord<T> record)
     {
-        for (int i = 0; i < _fields.Length; i++)
+        private readonly CsvRecord<T> _record = record;
+
+        public int Line => _record.Line;
+        public long Position => _record.Position;
+        public string[] Headers => _record._owner.Header?.Values.ToArray() ?? [];
+
+        public ReadOnlyMemory<T>[] Fields
         {
-            yield return _fields[i];
-        }
-    }
+            get
+            {
+                if (_fields is null)
+                {
+                    var fields = new ReadOnlyMemory<T>[_record.FieldCount];
 
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
+                    for (int i = 0; i < fields.Length; i++)
+                    {
+                        fields[i] = _record.GetField(i).ToArray();
+                    }
 
-    IEnumerable<CsvFieldIdentifier> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Keys
-    {
-        get
-        {
-            for (int i = 0; i < _fields.Length; i++)
-                yield return i;
-        }
-    }
+                    _fields = fields;
+                }
 
-    IEnumerable<ReadOnlyMemory<T>> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Values
-    {
-        get
-        {
-            foreach (var f in _fields)
-                yield return f;
-        }
-    }
-
-    bool IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.ContainsKey(CsvFieldIdentifier key)
-    {
-        return Contains(key);
-    }
-
-    bool IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.TryGetValue(
-        CsvFieldIdentifier key,
-        out ReadOnlyMemory<T> value
-    )
-    {
-        if (Contains(key))
-        {
-            value = GetField(key);
-            return true;
+                return _fields;
+            }
         }
 
-        value = default;
-        return false;
+        private ReadOnlyMemory<T>[]? _fields;
+
+        public string[] FieldValues => [.. Fields.Select(f => _record._options.GetAsString(f.Span))];
+    }
+
+    /// <summary>
+    /// Preserves the data in the value record.
+    /// </summary>
+    public CsvPreservedRecord<T> Preserve() => new(in this);
+
+    /// <inheritdoc cref="Preserve"/>
+    public static explicit operator CsvPreservedRecord<T>(in CsvRecord<T> record) => new(in record);
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ThrowParseException(Type type, int index, CsvFieldIdentifier id, object converter)
+    {
+        string target = id.ToString();
+
+        var ex = new CsvParseException($"Failed to parse {type.Name} {target} using {converter.GetType().Name}.")
+        {
+            Converter = converter, FieldIndex = index, Target = target,
+        };
+
+        ex.Enrich(Line, Position, in _record);
+        throw ex;
     }
 }
