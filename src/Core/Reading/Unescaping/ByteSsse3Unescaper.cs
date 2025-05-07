@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿#if SIMD_UNESCAPING
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Intrinsics;
@@ -71,3 +72,4 @@ internal readonly struct ByteSsse3Unescaper : ISimdUnescaper<byte, ushort, Vecto
         result.StoreUnsafe(ref destination, offset);
     }
 }
+#endif

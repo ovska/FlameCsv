@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿#if SIMD_UNESCAPING
+using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Intrinsics;
@@ -64,3 +65,4 @@ internal readonly struct CharAvxUnescaper : ISimdUnescaper<char, ushort, Vector2
         upper.StoreUnsafe(ref dst, offset + (nuint)Vector128<short>.Count - (nuint)countOnes);
     }
 }
+#endif
