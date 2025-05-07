@@ -300,7 +300,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </remarks>
     /// <param name="record">Record to write</param>
     /// <returns>Number of fields written</returns>
-    public int WriteRecord(in CsvValueRecord<T> record)
+    public int WriteRecord(in CsvRecord<T> record)
     {
         record.EnsureValid();
 
@@ -332,7 +332,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <param name="record">Record to write</param>
     /// <param name="fieldIds">Identifiers of fields to write</param>
     /// <returns>Number of fields written</returns>
-    public int WriteRecord(in CsvValueRecord<T> record, scoped ReadOnlySpan<CsvFieldIdentifier> fieldIds)
+    public int WriteRecord(in CsvRecord<T> record, scoped ReadOnlySpan<CsvFieldIdentifier> fieldIds)
     {
         record.EnsureValid();
 
@@ -341,7 +341,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             return 0;
         }
 
-        CsvFieldsRef<T> fieldsRef = new(in record._fields);
+        CsvRecordRef<T> recordRef = new(in record._record);
 
         bool writeRaw = Options.DialectEquals(record.Options);
 
@@ -352,11 +352,11 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
 
             if (writeRaw)
             {
-                _inner.WriteRaw(fieldsRef.GetRawSpan(index), skipEscaping: true);
+                _inner.WriteRaw(recordRef.GetRawSpan(index), skipEscaping: true);
             }
             else
             {
-                _inner.WriteRaw(fieldsRef[index], skipEscaping: false);
+                _inner.WriteRaw(recordRef[index], skipEscaping: false);
             }
 
             FieldIndex++;
@@ -373,7 +373,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </remarks>
     /// <param name="record">Record to write</param>
     /// <returns>Number of fields written</returns>
-    public int WriteRecord(CsvRecord<T> record)
+    public int WriteRecord(CsvPreservedRecord<T> record)
     {
         ArgumentNullException.ThrowIfNull(record);
 
@@ -404,7 +404,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Thrown if the writer was created with <see cref="CsvOptions{T}.HasHeader"/> set to <c>false</c>
     /// or if the record does not have a header.
     /// </exception>
-    public int WriteHeader(in CsvValueRecord<T> record)
+    public int WriteHeader(in CsvRecord<T> record)
     {
         record.EnsureValid();
 

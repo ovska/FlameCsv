@@ -129,7 +129,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// <summary>
     /// Attempts to return a complete CSV record from the read-ahead buffer.
     /// </summary>
-    /// <param name="fields">Fields of the CSV record up to the newline</param>
+    /// <param name="record">Fields of the CSV record up to the newline</param>
     /// <returns>
     /// <c>true</c> if a record was read,
     /// <c>false</c> if the read-ahead buffer is empty or the record is incomplete.
@@ -137,31 +137,31 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool TryGetBuffered(out CsvFields<T> fields)
+    public bool TryGetBuffered(out CsvFields<T> record)
     {
         if (_metaBuffer.TryPop(out ArraySegment<Meta> meta))
         {
-            fields = new CsvFields<T>(reader: this, data: _buffer, fieldMeta: meta);
+            record = new CsvFields<T>(reader: this, data: _buffer, fieldMeta: meta);
             return true;
         }
 
-        Unsafe.SkipInit(out fields);
+        Unsafe.SkipInit(out record);
         return false;
     }
 
     /// <summary>
     /// Attempts to read the next CSV record from the buffered data or read-ahead buffer.
     /// </summary>
-    /// <param name="fields"></param>
+    /// <param name="record"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReadLine(out CsvFields<T> fields)
+    public bool TryReadLine(out CsvFields<T> record)
     {
-        return TryGetBuffered(out fields) || TryFillBuffer(out fields);
+        return TryGetBuffered(out record) || TryFillBuffer(out record);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryFillBuffer(out CsvFields<T> fields)
+    private bool TryFillBuffer(out CsvFields<T> record)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
@@ -175,7 +175,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
                 || (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true))
             )
             {
-                fields = new CsvFields<T>(this, _buffer, meta);
+                record = new CsvFields<T>(this, _buffer, meta);
                 return true;
             }
 
@@ -191,7 +191,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             }
         }
 
-        Unsafe.SkipInit(out fields);
+        Unsafe.SkipInit(out record);
         return false;
     }
 

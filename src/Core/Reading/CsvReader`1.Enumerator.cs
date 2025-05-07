@@ -52,7 +52,7 @@ partial class CsvReader<T>
     /// <summary>
     /// Enumerates records from the parser.
     /// </summary>
-    public readonly struct RecordAsyncEnumerable : IAsyncEnumerable<CsvFieldsRef<T>>
+    public readonly struct RecordAsyncEnumerable : IAsyncEnumerable<CsvRecordRef<T>>
     {
         private readonly CsvReader<T> _reader;
         private readonly CancellationToken _cancellationToken;
@@ -70,7 +70,7 @@ partial class CsvReader<T>
             return new(_reader, _cancellationToken);
         }
 
-        IAsyncEnumerator<CsvFieldsRef<T>> IAsyncEnumerable<CsvFieldsRef<T>>.GetAsyncEnumerator(
+        IAsyncEnumerator<CsvRecordRef<T>> IAsyncEnumerable<CsvRecordRef<T>>.GetAsyncEnumerator(
             CancellationToken cancellationToken
         )
         {
@@ -100,7 +100,7 @@ partial class CsvReader<T>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvFieldsRef<T> Current => new(_reader, ref _data, _meta);
+        public CsvRecordRef<T> Current => new(_reader, ref _data, _meta);
 
         /// <summary>
         /// Attempts to read the next record.
@@ -163,13 +163,13 @@ partial class CsvReader<T>
     /// <inheritdoc cref="Enumerator"/>
     [PublicAPI]
     [SkipLocalsInit]
-    public readonly struct AsyncEnumerator : IAsyncEnumerator<CsvFieldsRef<T>>
+    public readonly struct AsyncEnumerator : IAsyncEnumerator<CsvRecordRef<T>>
     {
         // the asyncenumerator struct needs to be readonly to play nice with async
         [SkipLocalsInit]
         private sealed class Box
         {
-            public CsvFields<T> Fields;
+            public CsvFields<T> _record;
         }
 
         private readonly CsvReader<T> _reader;
@@ -187,13 +187,13 @@ partial class CsvReader<T>
         /// Returns a read-only reference to the field value that <see cref="Current"/> is constructed from.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public ref readonly CsvFields<T> UnsafeGetFields() => ref _box.Fields;
+        public ref readonly CsvFields<T> UnsafeGetFields() => ref _box._record;
 
         /// <inheritdoc cref="Enumerator.Current"/>
-        public CsvFieldsRef<T> Current
+        public CsvRecordRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _box.Fields);
+            get => new(in _box._record);
         }
 
         /// <inheritdoc cref="Enumerator.MoveNext"/>
@@ -205,7 +205,7 @@ partial class CsvReader<T>
                 return ValueTask.FromCanceled<bool>(_cancellationToken);
             }
 
-            if (!_reader.TryGetBuffered(out _box.Fields))
+            if (!_reader.TryGetBuffered(out _box._record))
             {
                 return MoveNextSlowAsync();
             }
@@ -216,26 +216,26 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<bool> MoveNextSlowAsync()
         {
-            if (_reader.TryFillBuffer(out _box.Fields))
+            if (_reader.TryFillBuffer(out _box._record))
             {
                 return true;
             }
 
             while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
             {
-                if (_reader.TryReadLine(out _box.Fields))
+                if (_reader.TryReadLine(out _box._record))
                 {
                     return true;
                 }
             }
 
-            return _reader.TryReadLine(out _box.Fields);
+            return _reader.TryReadLine(out _box._record);
         }
 
         /// <inheritdoc cref="Enumerator.Dispose"/>
         public ValueTask DisposeAsync()
         {
-            _box.Fields = default; // don't hold on to data
+            _box._record = default; // don't hold on to data
             return _reader.DisposeAsync();
         }
     }

@@ -24,7 +24,7 @@ static partial class CsvReader
     const string docEnumerateRemarks =
         """
         <remarks>
-            /// <see cref="CsvValueRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
+            /// <see cref="CsvRecord{T}"/> instances are only valid until <c>MoveNext()</c> is called again.
             /// The returned enumerator is intended to be used in a <c>foreach</c> loop.
             /// Improper use will throw a runtime exception.
             /// </remarks>

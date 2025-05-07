@@ -127,7 +127,7 @@ partial class TypeMapGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(scoped ref TRecord reader) where TRecord : global::FlameCsv.Reading.ICsvFields<{typeMap.Token.FullyQualifiedName}>, allows ref struct");
+                $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(scoped ref TRecord reader) where TRecord : global::FlameCsv.Reading.ICsvRecord<{typeMap.Token.FullyQualifiedName}>, allows ref struct");
 
             using (writer.WriteBlock())
             {
@@ -328,7 +328,7 @@ partial class TypeMapGenerator
             foreach (ref readonly var property in typeMap.Properties)
             {
                 writer.WriteLineIf(
-                    property.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is null,
+                    property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null },
                     $"{property.Identifier} = state.{property.Identifier},");
             }
 

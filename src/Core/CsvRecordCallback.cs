@@ -11,7 +11,7 @@ namespace FlameCsv;
 public readonly ref struct CsvRecordCallbackArgs<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ref readonly CsvFields<T> _fields;
+    private readonly ref readonly CsvFields<T> _record;
     private readonly ref bool _skip;
     private readonly ref bool _headerRead;
 
@@ -19,7 +19,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// Internal implementation detail.
     /// </summary>
     public CsvRecordCallbackArgs(
-        ref readonly CsvFields<T> fields,
+        ref readonly CsvFields<T> record,
         ReadOnlySpan<string> header,
         int lineIndex,
         long position,
@@ -27,7 +27,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
         ref bool headerRead
     )
     {
-        _fields = ref fields;
+        _record = ref record;
         Line = lineIndex;
         Position = position;
         Header = header;
@@ -42,17 +42,17 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// An empty record's <see cref="FieldCount"/> is not zero,
     /// is considered to have exactly one field with length of 0.
     /// </remarks>
-    public bool IsEmpty => _fields.GetRecordLength() == 0;
+    public bool IsEmpty => _record.GetRecordLength() == 0;
 
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> Record => _fields.Record.Span;
+    public ReadOnlySpan<T> Record => _record.Record.Span;
 
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _fields.Reader.Options;
+    public CsvOptions<T> Options => _record.Reader.Options;
 
     /// <summary>
     /// 1-based line number.
@@ -95,7 +95,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <summary>
     /// Number of fields in the record.
     /// </summary>
-    public int FieldCount => _fields.FieldCount;
+    public int FieldCount => _record.FieldCount;
 
     /// <summary>
     /// Returns the value of a field.
@@ -103,7 +103,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <param name="index">0-based field index</param>
     /// <param name="raw">Don't unescape the value</param>
     /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _fields.GetField(index, raw);
+    public ReadOnlySpan<T> GetField(int index, bool raw = false) => _record.GetField(index, raw);
 }
 
 /// <summary>

@@ -3,7 +3,7 @@
 /// <summary>
 /// Interface representing the fields of a CSV record.
 /// </summary>
-public interface ICsvFields<T> where T : unmanaged, IBinaryInteger<T>
+public interface ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Gets the number of fields in the record.

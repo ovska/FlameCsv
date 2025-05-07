@@ -8,13 +8,12 @@ using JetBrains.Annotations;
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Internal implementation detail. This type should probably not be used directly.
-/// Using an unitialized instance leads to undefined behavior.
+/// Internal implementation detail. This type should not be used directly.
 /// </summary>
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [PublicAPI]
-public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
+public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref T _data;
@@ -22,19 +21,18 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     private readonly ReadOnlySpan<Meta> _meta;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldsRef(scoped ref readonly CsvFields<T> fields)
+    internal CsvRecordRef(scoped ref readonly CsvFields<T> record)
     {
-        CsvReader<T> reader = fields.Reader;
-        ReadOnlySpan<Meta> fieldMeta = fields.Fields;
+        ReadOnlySpan<Meta> fieldMeta = record.Fields;
 
-        _reader = fields.Reader;
-        _data = ref MemoryMarshal.GetReference(fields.Data.Span);
+        _reader = record.Reader;
+        _data = ref MemoryMarshal.GetReference(record.Data.Span);
         _meta = fieldMeta;
         FieldCount = fieldMeta.Length - 1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvFieldsRef(CsvReader<T> reader, ref T data, ReadOnlySpan<Meta> meta)
+    internal CsvRecordRef(CsvReader<T> reader, ref T data, ReadOnlySpan<Meta> meta)
     {
         _reader = reader;
         _data = ref data;
@@ -50,7 +48,7 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     }
 
     /// <inheritdoc/>
-    public unsafe ReadOnlySpan<T> this[int index]
+    public ReadOnlySpan<T> this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
@@ -104,19 +102,19 @@ public readonly ref struct CsvFieldsRef<T> : ICsvFields<T>
     {
         if (FieldCount == 0)
         {
-            return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: Uninitialized }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Uninitialized }}";
         }
 
         if (typeof(T) == typeof(char))
         {
-            return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(Record)}\" }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(Record)}\" }}";
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Record))}\" }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Record))}\" }}";
         }
 
-        return $"{{ CsvFieldsRef<{Token<T>.Name}>[{FieldCount}]: Length: {Record.Length} }}";
+        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Length: {Record.Length} }}";
     }
 }
