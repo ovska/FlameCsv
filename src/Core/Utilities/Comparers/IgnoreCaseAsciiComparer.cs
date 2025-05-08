@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Reflection;
@@ -20,7 +19,6 @@ internal sealed class IgnoreCaseAsciiComparer
 
     public bool Equals(ReadOnlySpan<byte> alternate, StringLike other) => Ascii.EqualsIgnoreCase(alternate, other);
 
-    [ExcludeFromCodeCoverage]
     public StringLike Create(ReadOnlySpan<byte> alternate) => Encoding.UTF8.GetString(alternate);
 
     public int GetHashCode(StringLike obj)
@@ -42,9 +40,7 @@ internal sealed class IgnoreCaseAsciiComparer
         while (remaining >= sizeof(ulong))
         {
             ulong value = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref first, index));
-            value = ConvertAllAsciiBytesInUInt64ToLowercase(value);
-            hash.Add((int)(uint)value);
-            hash.Add((int)(uint)(value >> 32));
+            hash.Add(ConvertAllAsciiBytesInUInt64ToLowercase(value));
             index += 8;
             remaining -= 8;
         }

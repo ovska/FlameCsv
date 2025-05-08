@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Reflection;
 
@@ -33,7 +32,6 @@ internal sealed class Utf8Comparer
 
     public int GetHashCode(StringLike obj) => Comparer.GetHashCode(obj);
 
-    [ExcludeFromCodeCoverage]
     public StringLike Create(ReadOnlySpan<byte> alternate) => Encoding.UTF8.GetString(alternate);
 
     public bool Equals(ReadOnlySpan<byte> alternate, StringLike other)
