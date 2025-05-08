@@ -3,10 +3,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Buffers;
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Numerics;
-using FlameCsv.Fuzzing.Utilities;
 
 namespace FlameCsv.Fuzzing.Utilities;
 

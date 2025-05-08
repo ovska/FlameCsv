@@ -14,11 +14,11 @@ public static class StringPoolAttributeConverterTests
             p => p.Name,
             p => p.GetCustomAttribute<CsvStringPoolingAttribute>()!);
 
-        Assert.True(attrs[nameof(Shim.Name)].TryCreateConverter<char>(typeof(string), CsvOptions<char>.Default, out var converter));
+        Assert.True(attrs[nameof(Shim.Name)].TryCreateConverter(typeof(string), CsvOptions<char>.Default, out var converter));
         Assert.IsType<PoolingStringTextConverter>(converter);
         Assert.Same(StringPool.Shared, ((PoolingStringTextConverter)converter).Pool);
 
-        Assert.True(attrs[nameof(Shim.Description)].TryCreateConverter<char>(typeof(string), CsvOptions<char>.Default, out converter));
+        Assert.True(attrs[nameof(Shim.Description)].TryCreateConverter(typeof(string), CsvOptions<char>.Default, out converter));
         Assert.IsType<PoolingStringTextConverter>(converter);
         Assert.Same(Provider.Value, ((PoolingStringTextConverter)converter).Pool);
     }

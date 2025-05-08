@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
-using FlameCsv.Exceptions;
 using FlameCsv.Attributes;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Writing;

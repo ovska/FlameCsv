@@ -420,7 +420,7 @@ public class CsvOptionsTests
             return new CsvOptions<char>
             {
                 HasHeader = hasHeader,
-                RecordCallback = (ref readonly CsvRecordCallbackArgs<char> args) =>
+                RecordCallback = (ref readonly args) =>
                 {
                     if (args.RawRecord[0] == 'A')
                     {

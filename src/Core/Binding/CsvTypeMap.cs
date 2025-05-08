@@ -1,9 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
-using FlameCsv.Exceptions;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Attributes;
+using FlameCsv.Exceptions;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Binding;

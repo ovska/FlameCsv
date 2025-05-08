@@ -144,7 +144,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
             return false;
         }
         throw new CsvConfigurationException(
-            $"IgnoreCase must be defined, or CsvOptions.Comparer must be either Ordinal or OrdinalIgnoreCase.."
+            "IgnoreCase must be defined, or CsvOptions.Comparer must be either Ordinal or OrdinalIgnoreCase.."
         );
     }
 

@@ -1,13 +1,13 @@
-﻿using FlameCsv.Converters;
-using FlameCsv.Exceptions;
-using FlameCsv.Utilities;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
+using FlameCsv.Converters;
 using FlameCsv.Converters.Enums;
 using FlameCsv.Converters.Formattable;
+using FlameCsv.Exceptions;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
 

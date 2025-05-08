@@ -95,13 +95,15 @@ file static class ForChar
                 ? new SimdTokenizer<char, NewlineCRLF<char, Vec256Char>, Vec256Char>(options)
                 : new SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char>(options);
         }
-        else if (Vec512Char.IsSupported)
+
+        if (Vec512Char.IsSupported)
         {
             return options.Newline.IsCRLF()
                 ? new SimdTokenizer<char, NewlineCRLF<char, Vec512Char>, Vec512Char>(options)
                 : new SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char>(options);
         }
-        else if (Vec128Char.IsSupported)
+
+        if (Vec128Char.IsSupported)
         {
             return options.Newline.IsCRLF()
                 ? new SimdTokenizer<char, NewlineCRLF<char, Vec128Char>, Vec128Char>(options)
@@ -125,13 +127,15 @@ file static class ForByte
                 ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec256Byte>, Vec256Byte>(options)
                 : new SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte>(options);
         }
-        else if (Vec512Byte.IsSupported)
+
+        if (Vec512Byte.IsSupported)
         {
             return options.Newline.IsCRLF()
                 ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec512Byte>, Vec512Byte>(options)
                 : new SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte>(options);
         }
-        else if (Vec128Byte.IsSupported)
+
+        if (Vec128Byte.IsSupported)
         {
             return options.Newline.IsCRLF()
                 ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec128Byte>, Vec128Byte>(options)
