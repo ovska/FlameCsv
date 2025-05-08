@@ -154,6 +154,15 @@
             <_Parameter1>FlameCsv.Tests.Lib, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
         </AssemblyAttribute>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>FlameCsv.Tests.Binding, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>FlameCsv.Tests.Writing, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+            <_Parameter1>FlameCsv.Tests.Reading, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
+        </AssemblyAttribute>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
             <_Parameter1>FlameCsv.Benchmark, PublicKey=$(FlameCsvPublicKey)</_Parameter1>
         </AssemblyAttribute>
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">

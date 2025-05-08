@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FlameCsv.Tests": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    }
+  }
+}
