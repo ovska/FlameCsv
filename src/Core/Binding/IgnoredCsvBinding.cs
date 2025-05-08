@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using FlameCsv.Utilities;
 
 namespace FlameCsv.Binding;
 
@@ -11,9 +11,9 @@ internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, nul
 
     protected override ReadOnlySpan<object> Attributes => [];
 
-    protected override void PrintDetails(StringBuilder sb)
+    private protected override void PrintDetails(ref ValueStringBuilder vsb)
     {
-        sb.Append("Ignored");
+        vsb.Append("Ignored");
     }
 
     protected internal override string DisplayName => "Ignored";

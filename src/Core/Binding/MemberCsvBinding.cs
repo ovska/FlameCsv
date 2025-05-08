@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
-using System.Text;
 using FlameCsv.Reflection;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Binding;
 
@@ -18,12 +18,12 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
     protected override MemberInfo Sentinel => member.Value;
     protected override ReadOnlySpan<object> Attributes => member.Attributes;
 
-    protected override void PrintDetails(StringBuilder sb)
+    private protected override void PrintDetails(ref ValueStringBuilder vsb)
     {
-        sb.Append(member.IsProperty ? "Property: " : "Field: ");
-        sb.Append(Type.Name);
-        sb.Append(' ');
-        sb.Append(member.Value.Name);
+        vsb.Append(member.IsProperty ? "Property: " : "Field: ");
+        vsb.Append(Type.Name);
+        vsb.Append(' ');
+        vsb.Append(member.Value.Name);
     }
 
     protected internal override string DisplayName
