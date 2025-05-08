@@ -1,8 +1,7 @@
 ﻿using FlameCsv.IO;
 using FlameCsv.IO.Internal;
-using FlameCsv.Tests.Utilities;
 
-namespace FlameCsv.Tests.Reading;
+namespace FlameCsv.Tests.IO;
 
 public static class ConstantBufferReaderTests
 {

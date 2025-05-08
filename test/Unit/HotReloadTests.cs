@@ -2,6 +2,7 @@
 using System.Reflection;
 using System.Reflection.Metadata;
 using FlameCsv.Enumeration;
+using FlameCsv.IO.Internal;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.Binding;
 using FlameCsv.Tests.TestData;
@@ -14,7 +15,7 @@ public static class HotReloadTests
     [Fact]
     public static void Should_Clear_Caches_On_Hot_Reload()
     {
-        if (!MetadataUpdater.IsSupported) return;
+        Assert.SkipUnless(MetadataUpdater.IsSupported, "Hot reload is not enabled.");
 
         // options
         var o = new CsvOptions<char>();
@@ -34,7 +35,7 @@ public static class HotReloadTests
         Assert.Same(mh, ObjTypeMap_Simple.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
-        using var state = new CsvRecordEnumerator<char>(default, CsvOptions<char>.Default);
+        using var state = new CsvRecordEnumerator<char>(CsvOptions<char>.Default, EmptyBufferReader<char>.Instance);
         ((IRecordOwner)state).MaterializerCache.Add(new object(), new object());
 
         // trimming caches
