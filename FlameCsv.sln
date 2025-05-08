@@ -5,7 +5,7 @@ VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Core", "src\Core\FlameCsv.Core.csproj", "{6BC229E7-192F-489E-A136-EE9FE2436E1F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Tests", "test\Unit\FlameCsv.Tests.csproj", "{98ED9090-FF17-4853-968B-17AF360DF86A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Tests", "test\Core\FlameCsv.Tests.csproj", "{98ED9090-FF17-4853-968B-17AF360DF86A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlameCsv.Benchmark", "tools\Bench\FlameCsv.Benchmark.csproj", "{5C6A6EAD-B036-4651-BB21-3CFCB070AA70}"
 EndProject
@@ -38,9 +38,16 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F956-CE84-757C-A364CCF449FC}"
 	ProjectSection(SolutionItems) = preProject
 		test\Directory.Build.props = test\Directory.Build.props
+		test\.editorconfig = test\.editorconfig
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Lib", "test\Lib\FlameCsv.Tests.Lib.csproj", "{59F86B78-F628-4376-A2A5-4E57871AE2F0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Writing", "test\Writing\FlameCsv.Tests.Writing.csproj", "{DC424700-DD61-4841-AFA2-E0722EB5DFCC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Reading", "test\Reading\FlameCsv.Tests.Reading.csproj", "{6E149708-1FEA-4D49-BB8F-77DFAB820B2C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Binding", "test\Binding\FlameCsv.Tests.Binding.csproj", "{7828141A-97A5-468B-8038-8AC8ECD75848}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -80,6 +87,18 @@ Global
 		{59F86B78-F628-4376-A2A5-4E57871AE2F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59F86B78-F628-4376-A2A5-4E57871AE2F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59F86B78-F628-4376-A2A5-4E57871AE2F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC424700-DD61-4841-AFA2-E0722EB5DFCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC424700-DD61-4841-AFA2-E0722EB5DFCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC424700-DD61-4841-AFA2-E0722EB5DFCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC424700-DD61-4841-AFA2-E0722EB5DFCC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E149708-1FEA-4D49-BB8F-77DFAB820B2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E149708-1FEA-4D49-BB8F-77DFAB820B2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E149708-1FEA-4D49-BB8F-77DFAB820B2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E149708-1FEA-4D49-BB8F-77DFAB820B2C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7828141A-97A5-468B-8038-8AC8ECD75848}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7828141A-97A5-468B-8038-8AC8ECD75848}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7828141A-97A5-468B-8038-8AC8ECD75848}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7828141A-97A5-468B-8038-8AC8ECD75848}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -96,5 +115,8 @@ Global
 		{B1759006-B31F-4E93-B711-96A64E7C6669} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 		{98ED9090-FF17-4853-968B-17AF360DF86A} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 		{59F86B78-F628-4376-A2A5-4E57871AE2F0} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{DC424700-DD61-4841-AFA2-E0722EB5DFCC} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{6E149708-1FEA-4D49-BB8F-77DFAB820B2C} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
+		{7828141A-97A5-468B-8038-8AC8ECD75848} = {0C88DD14-F956-CE84-757C-A364CCF449FC}
 	EndGlobalSection
 EndGlobal
