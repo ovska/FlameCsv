@@ -427,7 +427,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <c>null</c> values are written as empty fields.
     /// </remarks>
     /// <returns>Number of fields written</returns>
-    public int WriteHeader(params scoped ReadOnlySpan<string> values)
+    public int WriteHeader(params ReadOnlySpan<string> values)
     {
         foreach (var value in values)
         {

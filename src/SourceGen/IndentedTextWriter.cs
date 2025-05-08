@@ -21,6 +21,7 @@ namespace FlameCsv.SourceGen;
 /// <summary>
 /// A helper type to build sequences of values with pooled buffers.
 /// </summary>
+[ExcludeFromCodeCoverage]
 internal sealed class IndentedTextWriter : IDisposable
 {
     /// <summary>
@@ -571,6 +572,7 @@ internal sealed class IndentedTextWriter : IDisposable
 /// A helper type to build sequences of values with pooled buffers.
 /// </summary>
 /// <typeparam name="T">The type of items to create sequences for.</typeparam>
+[ExcludeFromCodeCoverage]
 internal struct ImmutableArrayBuilder<T> : IDisposable
 {
     /// <summary>
