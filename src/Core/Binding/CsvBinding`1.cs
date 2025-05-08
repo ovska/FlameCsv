@@ -1,8 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.Text;
 using FlameCsv.Attributes;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Binding;
 
@@ -13,10 +12,7 @@ namespace FlameCsv.Binding;
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquatable<CsvBinding<T>>
 {
-    /// <summary>
-    /// Internal implementation detail.
-    /// </summary>
-    protected internal CsvBinding(int index, string? header) : base(index, header)
+    private protected CsvBinding(int index, string? header) : base(index, header)
     {
     }
 
@@ -44,23 +40,30 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        var sb = new StringBuilder(64);
-        sb.Append(CultureInfo.InvariantCulture, $"{{ [{nameof(CsvBinding<T>)}] Index: {Index}, ");
-        PrintDetails(sb);
+        var vsb = new ValueStringBuilder(stackalloc char[64]);
+
+        vsb.Append("{ CsvBinding<");
+        vsb.Append(typeof(T).Name);
+        vsb.Append("> Index: ");
+        vsb.AppendFormatted(Index);
+
+        PrintDetails(ref vsb);
 
         if (!string.IsNullOrEmpty(Header))
         {
-            sb.Append(CultureInfo.InvariantCulture, $", Header: \"{Header}\"");
+            vsb.Append(", Header: \"");
+            vsb.Append(Header);
+            vsb.Append('"');
         }
 
-        sb.Append(" }");
-        return sb.ToString();
+        vsb.Append(" }");
+        return vsb.ToString();
     }
 
     /// <summary>
     /// Prints details for debugging to the builder.
     /// </summary>
-    protected abstract void PrintDetails(StringBuilder sb);
+    private protected abstract void PrintDetails(ref ValueStringBuilder vsb);
 
     /// <summary>
     /// Display name for debugging.
