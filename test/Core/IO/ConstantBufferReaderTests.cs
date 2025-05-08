@@ -1,10 +1,33 @@
-﻿using FlameCsv.IO;
+﻿using System.Buffers;
+using System.Text;
+using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests.IO;
 
 public static class ConstantBufferReaderTests
 {
+    [Fact]
+    public static void Should_Return_Constant()
+    {
+        // empty data from any source should return the empty instance
+        Assert.Same(EmptyBufferReader<char>.Instance, CsvBufferReader.Create(""));
+        Assert.Same(EmptyBufferReader<char>.Instance, CsvBufferReader.Create(new StringBuilder()));
+        Assert.Same(EmptyBufferReader<char>.Instance, CsvBufferReader.Create(ReadOnlyMemory<char>.Empty));
+        Assert.Same(EmptyBufferReader<char>.Instance, CsvBufferReader.Create(new ReadOnlySequence<char>()));
+
+        Assert.IsType<ConstantBufferReader<char>>(CsvBufferReader.Create("test".AsMemory()));
+
+        // single segment sequences should use a buffer reader
+        Assert.IsType<ConstantBufferReader<char>>(CsvBufferReader.Create(new ReadOnlySequence<char>(['a', 'b', 'c'])));
+        Assert.IsType<ConstantBufferReader<char>>(CsvBufferReader.Create(new StringBuilder("abc")));
+
+        // only fall back to sequence reader if we have to
+        Assert.IsType<ConstantSequenceReader<char>>(CsvBufferReader.Create(MemorySegment.Create("abc", "xyz")));
+        Assert.IsType<ConstantBufferReader<char>>(
+            CsvBufferReader.Create(new StringBuilder("abc").Append(new StringBuilder("xyz"))));
+    }
+
     [Fact]
     public static void Should_Only_Use_MemorySteam()
     {
@@ -15,12 +38,12 @@ public static class ConstantBufferReaderTests
         static void Impl(Stream stream)
         {
             using (stream)
-            using (var pipe = CsvBufferReader.Create(
+            using (var reader = CsvBufferReader.Create(
                        stream,
                        HeapMemoryPool<byte>.Instance,
                        new() { LeaveOpen = true }))
             {
-                Assert.IsNotType<ConstantBufferReader<byte>>(pipe);
+                Assert.IsNotType<ConstantBufferReader<byte>>(reader);
             }
         }
     }
@@ -42,7 +65,10 @@ public static class ConstantBufferReaderTests
         static void Impl(TextReader reader)
         {
             using (reader)
-            using (var pipe = CsvBufferReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 }))
+            using (var pipe = CsvBufferReader.Create(
+                       reader,
+                       HeapMemoryPool<char>.Instance,
+                       new() { BufferSize = 4096 }))
             {
                 Assert.IsNotType<ConstantBufferReader<char>>(pipe);
             }
