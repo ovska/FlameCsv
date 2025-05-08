@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
+using FlameCsv.Exceptions;
 using FlameCsv.Tests.TestData;
 using Xunit.Sdk;
 
@@ -43,8 +44,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
                     options,
-                    new() { BufferSize = bufferSize }
-                );
+                    new() { BufferSize = bufferSize });
             }
             else
             {
@@ -59,8 +59,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     new StringWriter(output),
                     TestDataGenerator.Objects.Value,
                     options,
-                    new() { BufferSize = bufferSize }
-                );
+                    new() { BufferSize = bufferSize });
             }
             else
             {
@@ -108,8 +107,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 ObjCharTypeMap.Default,
                 options,
                 new() { BufferSize = bufferSize },
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+                cancellationToken: TestContext.Current.CancellationToken);
         }
         else
         {
@@ -118,11 +116,64 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 options,
                 new() { BufferSize = bufferSize },
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+                cancellationToken: TestContext.Current.CancellationToken);
         }
 
         Validate(output, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
+    }
+
+    [Fact]
+    public static async Task Should_Write_Async_Enumerable()
+    {
+        await using StringWriter sw = new();
+        await CsvWriter.WriteAsync(
+            sw,
+            SyncAsyncEnumerable.Create(new { Id = 1, Name = "Bob", IsEnabled = true }),
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal("Id,Name,IsEnabled\r\n1,Bob,true\r\n", sw.ToString());
+    }
+
+    [Fact]
+    public static async Task Should_Not_Flush_On_Exception()
+    {
+        // ReSharper disable once ConvertToUsingDeclaration
+        await using (StringWriter sw = new())
+        {
+            Assert.Throws<InvalidDataException>(() => CsvWriter.Write(sw, InvalidData()));
+            Assert.Empty(sw.ToString());
+        }
+
+        await using (StringWriter sw = new())
+        {
+            await Assert.ThrowsAsync<InvalidDataException>(() => CsvWriter.WriteAsync(
+                sw,
+                InvalidData(),
+                cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(sw.ToString());
+        }
+
+        await using (StringWriter sw = new())
+        {
+            await Assert.ThrowsAsync<InvalidDataException>(() => CsvWriter.WriteAsync(
+                sw,
+                InvalidDataAsync(),
+                cancellationToken: TestContext.Current.CancellationToken));
+            Assert.Empty(sw.ToString());
+        }
+
+        IEnumerable<Obj> InvalidData()
+        {
+            yield return new();
+            throw new InvalidDataException();
+        }
+
+        async IAsyncEnumerable<Obj> InvalidDataAsync()
+        {
+            await Task.Yield();
+            yield return new();
+            throw new InvalidDataException();
+        }
     }
 
     private static void Validate(StringBuilder sb, bool escapeMode, bool crlf, bool header, CsvFieldQuoting quoting)
@@ -159,8 +210,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 Assert.Equal(0, index);
                 Assert.Equal(
                     quoting == CsvFieldQuoting.Always ? TestDataGenerator.HeaderQuoted : TestDataGenerator.Header,
-                    line
-                );
+                    line);
                 headerRead = true;
                 continue;
             }

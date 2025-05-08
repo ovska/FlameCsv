@@ -88,7 +88,7 @@ public static partial class CsvWriter
         }
         catch (Exception e)
         {
-            // store exception so the writer knows not to flush when disposing
+            // store exception so the writer knows not to flush when completing
             exception = e;
         }
         finally
@@ -100,12 +100,13 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T> writer,
+        ValueTask<CsvFieldWriter<T>> writerTask,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken
     )
         where T : unmanaged, IBinaryInteger<T>
     {
+        CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
         Exception? exception = null;
 
         try
@@ -131,7 +132,7 @@ public static partial class CsvWriter
         }
         catch (Exception e)
         {
-            // store exception so the writer knows not to flush when disposing
+            // store exception so the writer knows not to flush when completing
             exception = e;
         }
         finally
@@ -143,12 +144,13 @@ public static partial class CsvWriter
 
     private static async Task WriteAsyncCore<T, TValue>(
         IAsyncEnumerable<TValue> values,
-        CsvFieldWriter<T> writer,
+        ValueTask<CsvFieldWriter<T>> writerTask,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken
     )
         where T : unmanaged, IBinaryInteger<T>
     {
+        CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
         Exception? exception = null;
 
         try
@@ -174,7 +176,7 @@ public static partial class CsvWriter
         }
         catch (Exception e)
         {
-            // store exception so the writer knows not to flush when disposing
+            // store exception so the writer knows not to flush when completing
             exception = e;
         }
         finally

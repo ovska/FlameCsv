@@ -4,6 +4,7 @@ namespace FlameCsv.Tests;
 
 public static class SyncAsyncEnumerable
 {
+    public static SyncAsyncEnumerable<T> Create<T>(params T[] inner) => new(inner);
     public static SyncAsyncEnumerable<T> Create<T>(IEnumerable<T> inner) => new(inner);
 }
 

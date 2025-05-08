@@ -204,7 +204,7 @@ static partial class CsvWriter
     /// <#= docToken #>
     /// <#= docReturns #>
     /// <#= docRemarks #>
-    <#= attrs #>public static async Task WriteAsync<<#= typeAttrs #>TValue>(
+    <#= attrs #>public static Task WriteAsync<<#= typeAttrs #>TValue>(
         TextWriter textWriter,
         <#= enumerableType #> values,<#= typeMapChar #>
         CsvOptions<char>? options = null,
@@ -213,23 +213,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        await using (textWriter.ConfigureAwait(false))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = <#= bindValue #>;
 
-            options ??= CsvOptions<char>.Default;
-            IDematerializer<char, TValue> dematerializer = <#= bindValue #>;
-
-            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(textWriter, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -242,7 +235,7 @@ static partial class CsvWriter
     /// <#= docToken #>
     /// <#= docReturns #>
     /// <#= docRemarks #>
-    <#= attrs #>public static async Task WriteAsync<<#= typeAttrs #>TValue>(
+    <#= attrs #>public static Task WriteAsync<<#= typeAttrs #>TValue>(
         Stream stream,
         <#= enumerableType #> values,<#= typeMapByte #>
         CsvOptions<byte>? options = null,
@@ -251,18 +244,16 @@ static partial class CsvWriter
     {
         Throw.IfNotWritable(stream);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = <#= bindValue #>;
 
-        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -274,7 +265,7 @@ static partial class CsvWriter
     /// <#= docToken #>
     /// <#= docReturns #>
     /// <#= docRemarks #>
-    <#= attrs #>public static async Task WriteAsync<<#= typeAttrs #>TValue>(
+    <#= attrs #>public static Task WriteAsync<<#= typeAttrs #>TValue>(
         PipeWriter pipe,
         <#= enumerableType #> values,<#= typeMapByte #>
         CsvOptions<byte>? options = null,
@@ -282,18 +273,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = <#= bindValue #>;
 
-        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(pipe, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -306,7 +295,7 @@ static partial class CsvWriter
     /// <#= docToken #>
     /// <#= docReturns #>
     /// <#= docRemarks #>
-    <#= attrs #>public static async Task WriteToFileAsync<<#= typeAttrs #>TValue>(
+    <#= attrs #>public static Task WriteToFileAsync<<#= typeAttrs #>TValue>(
         string path,
         <#= enumerableType #> values,<#= typeMapByte #>
         CsvOptions<byte>? options = null,
@@ -315,7 +304,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
@@ -324,17 +312,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -349,7 +331,7 @@ static partial class CsvWriter
     /// <#= docReturns #>
     /// <#= docRemarks #>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    <#= attrs #>public static async Task WriteToFileAsync<<#= typeAttrs #>TValue>(
+    <#= attrs #>public static Task WriteToFileAsync<<#= typeAttrs #>TValue>(
         string path,
         <#= enumerableType #> values,<#= typeMapChar #>
         CsvOptions<char>? options = null,
@@ -359,7 +341,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<char>.Default;
@@ -368,14 +349,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(fileWriter, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 <#
         }
