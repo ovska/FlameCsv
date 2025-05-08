@@ -23,8 +23,7 @@ public static partial class CsvWriter
             FileAccess.Write,
             FileShare.None,
             ioOptions.BufferSize,
-            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
-        );
+            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None));
     }
 
     private static ICsvBufferWriter<char> GetFileBufferWriter(
@@ -47,8 +46,7 @@ public static partial class CsvWriter
             return new TextBufferWriter(
                 new StreamWriter(stream, encoding, ioOptions.BufferSize, leaveOpen: false),
                 memoryPool ?? MemoryPool<char>.Shared,
-                ioOptions
-            );
+                ioOptions);
         }
         catch
         {
@@ -69,22 +67,39 @@ public static partial class CsvWriter
 
         try
         {
+            if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
+            {
+                if (writer.Options.HasHeader)
+                    dematerializer.WriteHeader(in writer);
+
+                writer.WriteNewline();
+                return;
+            }
+
             if (writer.Options.HasHeader)
             {
                 dematerializer.WriteHeader(in writer);
                 writer.WriteNewline();
             }
 
-            foreach (var value in values)
+            using var enumerator = values.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+            {
+                EnsureTrailingNewline(in writer);
+                return;
+            }
+
+            do
             {
                 if (writer.Writer.NeedsFlush)
                 {
                     writer.Writer.Flush();
                 }
 
-                dematerializer.Write(in writer, value);
+                dematerializer.Write(in writer, enumerator.Current);
                 writer.WriteNewline();
-            }
+            } while (enumerator.MoveNext());
         }
         catch (Exception e)
         {
@@ -113,22 +128,39 @@ public static partial class CsvWriter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
+            {
+                if (writer.Options.HasHeader)
+                    dematerializer.WriteHeader(in writer);
+
+                writer.WriteNewline();
+                return;
+            }
+
             if (writer.Options.HasHeader)
             {
                 dematerializer.WriteHeader(in writer);
                 writer.WriteNewline();
             }
 
-            foreach (var value in values)
+            using var enumerator = values.GetEnumerator();
+
+            if (!enumerator.MoveNext())
+            {
+                EnsureTrailingNewline(in writer);
+                return;
+            }
+
+            do
             {
                 if (writer.Writer.NeedsFlush)
                 {
                     await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                dematerializer.Write(in writer, value);
+                dematerializer.Write(in writer, enumerator.Current);
                 writer.WriteNewline();
-            }
+            } while (enumerator.MoveNext());
         }
         catch (Exception e)
         {
@@ -155,23 +187,32 @@ public static partial class CsvWriter
 
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
             if (writer.Options.HasHeader)
             {
                 dematerializer.WriteHeader(in writer);
                 writer.WriteNewline();
             }
 
-            await foreach (var value in values.WithCancellation(cancellationToken).ConfigureAwait(false))
+            var enumerator = values.GetAsyncEnumerator(cancellationToken);
+
+            await using (enumerator)
             {
-                if (writer.Writer.NeedsFlush)
+                if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
                 {
-                    await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    EnsureTrailingNewline(in writer);
+                    return;
                 }
 
-                dematerializer.Write(in writer, value);
-                writer.WriteNewline();
+                do
+                {
+                    if (writer.Writer.NeedsFlush)
+                    {
+                        await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
+                    dematerializer.Write(in writer, enumerator.Current);
+                    writer.WriteNewline();
+                } while (await enumerator.MoveNextAsync().ConfigureAwait(false));
             }
         }
         catch (Exception e)
@@ -183,6 +224,15 @@ public static partial class CsvWriter
         {
             // re-throws exceptions
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private static void EnsureTrailingNewline<T>(ref readonly CsvFieldWriter<T> writer)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (!writer.Options.HasHeader)
+        {
+            writer.WriteNewline();
         }
     }
 }

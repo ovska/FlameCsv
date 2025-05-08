@@ -417,29 +417,31 @@ public class CsvOptionsTests
 
         CsvOptions<char> GetOpts(bool hasHeader)
         {
+            void Callback(ref readonly CsvRecordCallbackArgs<char> args)
+            {
+                if (args.RawRecord[0] == 'A')
+                {
+                    Assert.Equal(1, args.Line);
+                    Assert.False(args.HeaderRead);
+                }
+
+                if (args.RawRecord[0] == '1')
+                {
+                    Assert.Equal(2, args.Line);
+                    Assert.True(args.HeaderRead);
+                }
+
+                if (args.RawRecord[0] == 'X')
+                {
+                    Assert.InRange(args.Line, 1, 2);
+                    Assert.False(args.HeaderRead);
+                }
+            }
+
             return new CsvOptions<char>
             {
                 HasHeader = hasHeader,
-                RecordCallback = (ref readonly args) =>
-                {
-                    if (args.RawRecord[0] == 'A')
-                    {
-                        Assert.Equal(1, args.Line);
-                        Assert.False(args.HeaderRead);
-                    }
-
-                    if (args.RawRecord[0] == '1')
-                    {
-                        Assert.Equal(2, args.Line);
-                        Assert.True(args.HeaderRead);
-                    }
-
-                    if (args.RawRecord[0] == 'X')
-                    {
-                        Assert.InRange(args.Line, 1, 2);
-                        Assert.False(args.HeaderRead);
-                    }
-                },
+                RecordCallback = Callback,
             };
         }
     }
