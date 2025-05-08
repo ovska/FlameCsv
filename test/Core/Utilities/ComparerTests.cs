@@ -34,7 +34,7 @@ public static class ComparerTests
     }
 
     [Theory]
-    [MemberData(nameof(CombinedData))]
+    [MemberData(nameof(Utf8Data))]
     public static void Should_Compare_Utf8(string left, string right)
     {
         byte[] leftBytes = Encoding.UTF8.GetBytes(left);
@@ -150,27 +150,22 @@ public static class ComparerTests
         };
 
     public static TheoryData<string, string> Utf8Data
-        => new()
-        {
-            // data here is not ASCII, but UTF-8
-            { "Hello, 世界", "hello, 世界" },
-            { "こんにちは", "Kon'nichiwa" },
-            { "Привет", "привет" },
-            { "Γειά σου", "γειά σου" },
-            { "नमस्ते", "नमस्ते" },
-            { "مرحبا", "مرحبا" },
-            { "안녕하세요", "안녕하세요" },
-            { "你好", "你好" },
-            { "שלום", "שלום" },
-        };
-
-    public static TheoryData<string, string> CombinedData
     {
         get
         {
-            var combined = new TheoryData<string, string>();
+            var combined = new TheoryData<string, string>
+            {
+                { "Hello, 世界", "hello, 世界" },
+                { "こんにちは", "Kon'nichiwa" },
+                { "Привет", "привет" },
+                { "Γειά σου", "γειά σου" },
+                { "नमस्ते", "नमस्ते" },
+                { "مرحبا", "مرحبا" },
+                { "안녕하세요", "안녕하세요" },
+                { "你好", "你好" },
+                { "שלום", "שלום" },
+            };
             combined.AddRange(AsciiData);
-            combined.AddRange(Utf8Data);
             return combined;
         }
     }
