@@ -1,5 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Text;
+﻿using System.Text;
 using CommunityToolkit.HighPerformance.Helpers;
 using FlameCsv.Reflection;
 
@@ -19,7 +18,6 @@ internal sealed class OrdinalAsciiComparer
 
     public bool Equals(ReadOnlySpan<byte> alternate, StringLike other) => Ascii.Equals(alternate, other);
 
-    [ExcludeFromCodeCoverage]
     public StringLike Create(ReadOnlySpan<byte> alternate) => Encoding.UTF8.GetString(alternate);
 
     public int GetHashCode(StringLike obj)
