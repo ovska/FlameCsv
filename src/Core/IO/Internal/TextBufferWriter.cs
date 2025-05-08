@@ -38,4 +38,9 @@ internal sealed class TextBufferWriter : CsvBufferWriter<char>
             _writer.Dispose();
         }
     }
+
+    protected override ValueTask DisposeCoreAsync()
+    {
+        return _leaveOpen ? default : _writer.DisposeAsync();
+    }
 }

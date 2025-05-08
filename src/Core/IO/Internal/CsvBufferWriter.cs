@@ -178,17 +178,5 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
     }
 
     protected abstract void DisposeCore();
-
-    protected virtual ValueTask DisposeCoreAsync()
-    {
-        try
-        {
-            DisposeCore();
-            return default;
-        }
-        catch (Exception e)
-        {
-            return ValueTask.FromException(e);
-        }
-    }
+    protected abstract ValueTask DisposeCoreAsync();
 }
