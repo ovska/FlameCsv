@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using FlameCsv.Attributes;
 using FlameCsv.Enumeration;
+using FlameCsv.IO;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Tests.Reading;
@@ -19,7 +20,7 @@ public sealed class CsvEnumerationTests : IDisposable
         const string data =
             "id,name\r\n" + "1,Bob\r\n" + "\r\n" + "name,id\r\n" + "Alice,2\r\n";
 
-        using var enumerator = new CsvRecordEnumerator<char>(data.AsMemory(), CsvOptions<char>.Default);
+        using var enumerator = new CsvRecordEnumerator<char>(CsvOptions<char>.Default, CsvBufferReader.Create(data));
 
         Assert.True(enumerator.MoveNext());
         var record1 = enumerator.Current.ParseRecord<Shim>();
@@ -42,8 +43,8 @@ public sealed class CsvEnumerationTests : IDisposable
         const string data = "1,\"Test\",true\r\n2,\"Asd\",false\r\n";
 
         using var enumerator = new CsvRecordEnumerator<char>(
-            data.AsMemory(),
-            new CsvOptions<char> { HasHeader = false });
+            new CsvOptions<char> { HasHeader = false },
+            CsvBufferReader.Create(data));
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
@@ -156,8 +157,8 @@ public sealed class CsvEnumerationTests : IDisposable
     private CsvRecord<char> GetRecord()
     {
         _enumerator = new CsvRecordEnumerator<char>(
-            "1,\"Test\",true".AsMemory(),
-            new CsvOptions<char> { HasHeader = false });
+            new CsvOptions<char> { HasHeader = false },
+            CsvBufferReader.Create("1,\"Test\",true"));
         _enumerator.MoveNext();
         return _enumerator.Current;
     }

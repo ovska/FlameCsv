@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using FlameCsv.Reading;
-using FlameCsv.Tests.Utilities;
 
 namespace FlameCsv.Tests.Reading;
 

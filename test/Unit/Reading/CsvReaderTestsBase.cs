@@ -6,7 +6,6 @@ using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
-using FlameCsv.Tests.Utilities;
 
 // ReSharper disable AccessToDisposedClosure
 

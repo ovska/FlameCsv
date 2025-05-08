@@ -5,11 +5,10 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using FlameCsv.IO.Internal;
 
-
-namespace FlameCsv.Tests.Utilities;
+namespace FlameCsv.Tests;
 
 [SupportedOSPlatform("windows")]
-internal sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T> where T : unmanaged
+public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T> where T : unmanaged
 {
     public override int MaxBufferSize { get; } = Environment.SystemPageSize * 128;
 
@@ -31,7 +30,7 @@ internal sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnT
     }
 }
 
-internal sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T> where T : unmanaged
+public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T> where T : unmanaged
 {
     public override int MaxBufferSize => Array.MaxLength;
 
@@ -52,7 +51,7 @@ internal sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPoo
     }
 }
 
-internal abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : unmanaged
+public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : unmanaged
 {
     public static ReturnTrackingMemoryPool<T> Create(bool? guardedFromEnd = null)
     {
