@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Extensions;
@@ -60,6 +61,7 @@ public static class CsvBufferReader
 
     /// <inheritdoc cref="Create(string?)"/>
     [OverloadResolutionPriority(-1)]
+    [ExcludeFromCodeCoverage]
     public static ICsvBufferReader<T> Create<T>(ReadOnlyMemory<T> csv)
         where T : unmanaged
     {

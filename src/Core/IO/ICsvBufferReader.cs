@@ -22,6 +22,9 @@ public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable where T : u
     /// Advances the reader by the specified number of characters.
     /// </summary>
     /// <param name="count">Number of characters processed from the read result</param>
+    /// <remarks>
+    /// Advancing the reader invalidates the data in the previous read result.
+    /// </remarks>
     void Advance(int count);
 
     /// <summary>
