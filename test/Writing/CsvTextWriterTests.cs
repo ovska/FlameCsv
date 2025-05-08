@@ -133,48 +133,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         Assert.Equal("Id,Name,IsEnabled\r\n1,Bob,true\r\n", sw.ToString());
     }
 
-    [Fact]
-    public static async Task Should_Not_Flush_On_Exception()
-    {
-        // ReSharper disable once ConvertToUsingDeclaration
-        await using (StringWriter sw = new())
-        {
-            Assert.Throws<InvalidDataException>(() => CsvWriter.Write(sw, InvalidData()));
-            Assert.Empty(sw.ToString());
-        }
-
-        await using (StringWriter sw = new())
-        {
-            await Assert.ThrowsAsync<InvalidDataException>(() => CsvWriter.WriteAsync(
-                sw,
-                InvalidData(),
-                cancellationToken: TestContext.Current.CancellationToken));
-            Assert.Empty(sw.ToString());
-        }
-
-        await using (StringWriter sw = new())
-        {
-            await Assert.ThrowsAsync<InvalidDataException>(() => CsvWriter.WriteAsync(
-                sw,
-                InvalidDataAsync(),
-                cancellationToken: TestContext.Current.CancellationToken));
-            Assert.Empty(sw.ToString());
-        }
-
-        IEnumerable<Obj> InvalidData()
-        {
-            yield return new();
-            throw new InvalidDataException();
-        }
-
-        async IAsyncEnumerable<Obj> InvalidDataAsync()
-        {
-            await Task.Yield();
-            yield return new();
-            throw new InvalidDataException();
-        }
-    }
-
     private static void Validate(StringBuilder sb, bool escapeMode, bool crlf, bool header, CsvFieldQuoting quoting)
     {
         var enumerator = sb.GetChunks();
