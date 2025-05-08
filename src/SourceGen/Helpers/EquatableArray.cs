@@ -211,8 +211,10 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
         public bool MoveNext() => ++_index < _array.Length;
     }
 
-    public override string ToString() => $"EquatableArray<{typeof(T)}>[{Length}]";
+    [ExcludeFromCodeCoverage]
+    public override string ToString() => $"EquatableArray<{typeof(T).Name}>[{Length}]";
 
+    [ExcludeFromCodeCoverage]
     internal sealed class DebuggerTypeProxy
     {
         private readonly EquatableArray<T> _array;

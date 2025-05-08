@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Reading.Internal;
@@ -40,6 +41,7 @@ internal readonly struct CsvSlice<T> where T : unmanaged, IBinaryInteger<T>
         return meta.GetField(start, ref MemoryMarshal.GetReference(data), Reader);
     }
 
+    [ExcludeFromCodeCoverage]
     public override string ToString()
     {
         if (Fields.Count == 0)
@@ -50,6 +52,7 @@ internal readonly struct CsvSlice<T> where T : unmanaged, IBinaryInteger<T>
         return $"{{ CsvSlice<{Token<T>.Name}>[{Fields.Count - 1}]: \"{Reader.Options.GetAsString(RawValue)}\" }}";
     }
 
+    [ExcludeFromCodeCoverage]
     private class CsvSliceDebugView
     {
         public CsvSliceDebugView(CsvSlice<T> slice)
