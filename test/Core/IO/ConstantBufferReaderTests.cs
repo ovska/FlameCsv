@@ -8,6 +8,20 @@ namespace FlameCsv.Tests.IO;
 public static class ConstantBufferReaderTests
 {
     [Fact]
+    public static void Should_Read_From_StringBuilder()
+    {
+        var data = new StringBuilder(capacity: 10)
+            .Append('x', 500)
+            .Append(new StringBuilder("test", capacity: 10))
+            .Append(new StringBuilder(capacity: 10).Append('y', 500));
+
+        using var reader = CsvBufferReader.Create(data);
+        var result = reader.ReadToBuffer();
+
+        Assert.Equal(new string('x', 500) + "test" + new string('y', 500), result.ToString());
+    }
+
+    [Fact]
     public static void Should_Return_Constant()
     {
         // empty data from any source should return the empty instance
