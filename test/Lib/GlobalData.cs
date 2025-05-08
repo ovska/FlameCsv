@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv.Tests;
 
-internal static class GlobalData
+public static class GlobalData
 {
     /// <summary>
     /// True and false.

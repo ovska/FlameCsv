@@ -1,6 +1,6 @@
 ﻿using FlameCsv.Enumeration;
 
-namespace FlameCsv.Tests.Enumeration;
+namespace FlameCsv.Tests.Binding;
 
 public static class RecordEnumerationTests
 {

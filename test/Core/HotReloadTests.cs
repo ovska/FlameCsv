@@ -1,17 +1,20 @@
 ﻿using System.Collections;
 using System.Reflection;
 using System.Reflection.Metadata;
+using FlameCsv.Attributes;
 using FlameCsv.Enumeration;
 using FlameCsv.IO.Internal;
 using FlameCsv.Reading.Internal;
-using FlameCsv.Tests.Binding;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Tests;
 
-public static class HotReloadTests
+public static partial class HotReloadTests
 {
+    [CsvTypeMap<char, Obj>]
+    private partial class TestTypeMap;
+
     [Fact]
     public static void Should_Clear_Caches_On_Hot_Reload()
     {
@@ -24,15 +27,15 @@ public static class HotReloadTests
         Assert.Same(c1, o.GetConverter<int>());
 
         // typemap
-        var dm = ObjTypeMap_Simple.Default.GetDematerializer(CsvOptions<char>.Default);
-        Assert.Same(dm, ObjTypeMap_Simple.Default.GetDematerializer(CsvOptions<char>.Default));
+        var dm = TestTypeMap.Default.GetDematerializer(CsvOptions<char>.Default);
+        Assert.Same(dm, TestTypeMap.Default.GetDematerializer(CsvOptions<char>.Default));
 
         var noheader = new CsvOptions<char> { HasHeader = false };
-        var mnh = ObjTypeMap_Simple.Default.GetMaterializer(noheader);
-        Assert.Same(mnh, ObjTypeMap_Simple.Default.GetMaterializer(noheader));
+        var mnh = TestTypeMap.Default.GetMaterializer(noheader);
+        Assert.Same(mnh, TestTypeMap.Default.GetMaterializer(noheader));
 
-        var mh = ObjTypeMap_Simple.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default);
-        Assert.Same(mh, ObjTypeMap_Simple.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
+        var mh = TestTypeMap.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default);
+        Assert.Same(mh, TestTypeMap.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
         using var state = new CsvRecordEnumerator<char>(CsvOptions<char>.Default, EmptyBufferReader<char>.Instance);
@@ -58,9 +61,9 @@ public static class HotReloadTests
         Assert.NotSame(c1, o.GetConverter<int>());
 
         // typemap
-        Assert.NotSame(dm, ObjTypeMap_Simple.Default.GetDematerializer(CsvOptions<char>.Default));
-        Assert.NotSame(mnh, ObjTypeMap_Simple.Default.GetMaterializer(noheader));
-        Assert.NotSame(mh, ObjTypeMap_Simple.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
+        Assert.NotSame(dm, TestTypeMap.Default.GetDematerializer(CsvOptions<char>.Default));
+        Assert.NotSame(mnh, TestTypeMap.Default.GetMaterializer(noheader));
+        Assert.NotSame(mh, TestTypeMap.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
         Assert.Empty(((IRecordOwner)state).MaterializerCache);

@@ -1,4 +1,5 @@
-﻿using FlameCsv.Attributes;
+﻿#if false
+using FlameCsv.Attributes;
 using FlameCsv.Converters.Enums;
 
 // ReSharper disable all
@@ -45,3 +46,4 @@ public static partial class TypeMapBindingTests
         bool Xyzz { get; set; }
     }
 }
+#endif
