@@ -1,10 +1,13 @@
-﻿namespace FlameCsv;
+﻿using JetBrains.Annotations;
+
+namespace FlameCsv;
 
 /// <summary>
-/// Flags enumeration that determines when CSV fields should be wrapped in quotes when writing.
+/// Flags enumeration that determines when CSV fields should be wrapped in quotes when writing.<br/>
 /// Multiple flags can be combined to apply several quoting rules.
 /// </summary>
 [Flags]
+[PublicAPI]
 public enum CsvFieldQuoting
 {
     /// <summary>
