@@ -177,7 +177,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
@@ -186,23 +186,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        await using (textWriter.ConfigureAwait(false))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            options ??= CsvOptions<char>.Default;
-            IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
-
-            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(textWriter, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -219,7 +212,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
@@ -228,18 +221,16 @@ static partial class CsvWriter
     {
         Throw.IfNotWritable(stream);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -255,7 +246,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeWriter pipe,
         IEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
@@ -263,18 +254,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(pipe, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -291,7 +280,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
@@ -300,7 +289,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
@@ -309,17 +297,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -338,7 +320,7 @@ static partial class CsvWriter
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IEnumerable<TValue> values,
         CsvOptions<char>? options = null,
@@ -348,7 +330,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<char>.Default;
@@ -357,14 +338,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(fileWriter, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
     /// <summary>
     /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using <see cref="CsvOptions{T}.TypeBinder"/>.
@@ -380,7 +358,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         TextWriter textWriter,
         IAsyncEnumerable<TValue> values,
         CsvOptions<char>? options = null,
@@ -389,23 +367,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        await using (textWriter.ConfigureAwait(false))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-            options ??= CsvOptions<char>.Default;
-            IDematerializer<char, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
-
-            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(textWriter, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -422,7 +393,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         Stream stream,
         IAsyncEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
@@ -431,18 +402,16 @@ static partial class CsvWriter
     {
         Throw.IfNotWritable(stream);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -458,7 +427,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
         PipeWriter pipe,
         IAsyncEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
@@ -466,18 +435,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = options.TypeBinder.GetDematerializer<TValue>();
 
-        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(pipe, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -494,7 +461,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
         CsvOptions<byte>? options = null,
@@ -503,7 +470,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
@@ -512,17 +478,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -541,7 +501,7 @@ static partial class CsvWriter
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static async Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
+    public static Task WriteToFileAsync<[DAM(Messages.ReflectionBound)] TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
         CsvOptions<char>? options = null,
@@ -551,7 +511,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<char>.Default;
@@ -560,14 +519,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(fileWriter, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
     /// <summary>
     /// Writes the values as CSV records to a string using the type map.
@@ -739,7 +695,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteAsync<TValue>(
+    public static Task WriteAsync<TValue>(
         TextWriter textWriter,
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
@@ -749,23 +705,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        await using (textWriter.ConfigureAwait(false))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            options ??= CsvOptions<char>.Default;
-            IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
-
-            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(textWriter, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -782,7 +731,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteAsync<TValue>(
+    public static Task WriteAsync<TValue>(
         Stream stream,
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
@@ -792,18 +741,16 @@ static partial class CsvWriter
     {
         Throw.IfNotWritable(stream);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -819,7 +766,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteAsync<TValue>(
+    public static Task WriteAsync<TValue>(
         PipeWriter pipe,
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
@@ -828,18 +775,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(pipe, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -856,7 +801,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteToFileAsync<TValue>(
+    public static Task WriteToFileAsync<TValue>(
         string path,
         IEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
@@ -866,7 +811,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
@@ -875,17 +819,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -904,7 +842,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    public static async Task WriteToFileAsync<TValue>(
+    public static Task WriteToFileAsync<TValue>(
         string path,
         IEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
@@ -915,7 +853,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<char>.Default;
@@ -924,14 +861,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(fileWriter, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
     /// <summary>
     /// Asynchronously writes the values as CSV records to the <see cref="TextWriter"/> using the type map.
@@ -947,7 +881,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteAsync<TValue>(
+    public static Task WriteAsync<TValue>(
         TextWriter textWriter,
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
@@ -957,23 +891,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        await using (textWriter.ConfigureAwait(false))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
+        options ??= CsvOptions<char>.Default;
+        IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-            options ??= CsvOptions<char>.Default;
-            IDematerializer<char, TValue> dematerializer = typeMap.GetDematerializer(options);
-
-            using var writer = await CsvFieldWriter.CreateAsync(textWriter, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(textWriter, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -990,7 +917,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteAsync<TValue>(
+    public static Task WriteAsync<TValue>(
         Stream stream,
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
@@ -1000,18 +927,16 @@ static partial class CsvWriter
     {
         Throw.IfNotWritable(stream);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -1027,7 +952,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteAsync<TValue>(
+    public static Task WriteAsync<TValue>(
         PipeWriter pipe,
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
@@ -1036,18 +961,16 @@ static partial class CsvWriter
     {
         ArgumentNullException.ThrowIfNull(pipe);
         ArgumentNullException.ThrowIfNull(values);
+        cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
         IDematerializer<byte, TValue> dematerializer = typeMap.GetDematerializer(options);
 
-        using var writer = await CsvFieldWriter.CreateAsync(pipe, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(pipe, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 
     /// <summary>
@@ -1064,7 +987,7 @@ static partial class CsvWriter
     /// Data is written even if <paramref name="values"/> empty,
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
-    public static async Task WriteToFileAsync<TValue>(
+    public static Task WriteToFileAsync<TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<byte, TValue> typeMap,
@@ -1074,7 +997,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<byte>.Default;
@@ -1083,17 +1005,11 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         FileStream stream = GetFileStream(path, isAsync: true, in ioOptions);
 
-        await using (stream.ConfigureAwait(false))
-        {
-            using var writer = await CsvFieldWriter.CreateAsync(stream, options, ioOptions).ConfigureAwait(false);
-
-            await WriteAsyncCore(
-                values,
-                writer,
-                dematerializer,
-                cancellationToken)
-                .ConfigureAwait(false);
-        }
+        return WriteAsyncCore(
+            values,
+            CsvFieldWriter.CreateAsync(stream, options, ioOptions),
+            dematerializer,
+            cancellationToken);
     }
 
     /// <summary>
@@ -1112,7 +1028,7 @@ static partial class CsvWriter
     /// either just the header or an empty line if <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </remarks>
     [OverloadResolutionPriority(-1)] // prefer byte to char when writing to file
-    public static async Task WriteToFileAsync<TValue>(
+    public static Task WriteToFileAsync<TValue>(
         string path,
         IAsyncEnumerable<TValue> values,
         CsvTypeMap<char, TValue> typeMap,
@@ -1123,7 +1039,6 @@ static partial class CsvWriter
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(values);
-
         cancellationToken.ThrowIfCancellationRequested();
 
         options ??= CsvOptions<char>.Default;
@@ -1132,13 +1047,10 @@ static partial class CsvWriter
         ioOptions = ioOptions.ForFileIO();
         ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
 
-        using var writer = await CsvFieldWriter.CreateAsync(fileWriter, options).ConfigureAwait(false);
-
-        await WriteAsyncCore(
+        return WriteAsyncCore(
             values,
-            writer,
+            CsvFieldWriter.CreateAsync(fileWriter, options),
             dematerializer,
-            cancellationToken)
-            .ConfigureAwait(false);
+            cancellationToken);
     }
 }
