@@ -3,7 +3,6 @@ using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Tests.TestData;
-using FlameCsv.Tests.Utilities;
 using Xunit.Sdk;
 
 namespace FlameCsv.Tests.Writing;

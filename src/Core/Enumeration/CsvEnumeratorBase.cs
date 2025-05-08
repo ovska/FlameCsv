@@ -1,8 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;

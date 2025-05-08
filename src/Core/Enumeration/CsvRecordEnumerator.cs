@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -54,16 +53,6 @@ public sealed class CsvRecordEnumerator<T>
     object IEnumerator.Current => _current;
     void IEnumerator.Reset() => ResetCore();
 
-    internal CsvRecordEnumerator(ReadOnlyMemory<T> csv, CsvOptions<T> options)
-        : this(options, CsvBufferReader.Create(csv))
-    {
-    }
-
-    internal CsvRecordEnumerator(in ReadOnlySequence<T> csv, CsvOptions<T> options)
-        : this(options, CsvBufferReader.Create(in csv))
-    {
-    }
-
     /// <summary>
     /// Initializes a new instance of <see cref="CsvRecordEnumerator{T}"/>.
     /// </summary>
@@ -77,6 +66,7 @@ public sealed class CsvRecordEnumerator<T>
         : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(reader);
 
         _hasHeader = options.HasHeader;
         _validateFieldCount = options.ValidateFieldCount;
