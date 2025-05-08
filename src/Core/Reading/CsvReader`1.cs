@@ -224,7 +224,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// <remarks>
     /// All further reads after returning <c>false</c> will also return <c>false</c>.
     /// </remarks>
-    public bool TryAdvanceReader()
+    internal bool TryAdvanceReader()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
@@ -241,7 +241,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     /// <inheritdoc cref="TryAdvanceReader"/>
     // TODO: profile pooling task builder
-    public async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
+    internal async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         cancellationToken.ThrowIfCancellationRequested();
