@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
-using System.Text;
 using FlameCsv.Reflection;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Binding;
 
@@ -29,12 +29,12 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
         _data = parameter;
     }
 
-    protected override void PrintDetails(StringBuilder sb)
+    private protected override void PrintDetails(ref ValueStringBuilder vsb)
     {
-        sb.Append("Parameter: ");
-        sb.Append(Type.Name);
-        sb.Append(' ');
-        sb.Append(Parameter.Name);
+        vsb.Append("Parameter: ");
+        vsb.Append(Type.Name);
+        vsb.Append(' ');
+        vsb.Append(Parameter.Name);
     }
 
     // ReSharper disable once StringLiteralTypo

@@ -48,9 +48,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// </summary>
     protected abstract object Sentinel { get; }
 
-    internal CsvBinding(int index, string? header)
+    private protected CsvBinding(int index, string? header)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(index, 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         Index = index;
         Header = header;
     }
@@ -67,7 +67,9 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns a binding for the specified member.
     /// </summary>
     [RDC(Messages.Reflection)]
-    public static CsvBinding<T> For<[DAM(Messages.ReflectionBound)] T>(int index, Expression<Func<T, object?>> memberExpression)
+    public static CsvBinding<T> For<[DAM(Messages.ReflectionBound)] T>(
+        int index,
+        Expression<Func<T, object?>> memberExpression)
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
         return ForMember<T>(index, memberExpression.GetMemberInfo());
@@ -84,6 +86,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
         MemberInfo member,
         string? header = null)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentNullException.ThrowIfNull(member);
 
         foreach (var data in CsvTypeInfo<T>.Value.Members)
@@ -114,6 +117,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <exception cref="CsvBindingException{T}"></exception>
     public static CsvBinding<T> ForParameter<[DAM(Messages.ReflectionBound)] T>(int index, ParameterInfo parameter)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentNullException.ThrowIfNull(parameter);
 
         foreach (var data in CsvTypeInfo<T>.Value.ConstructorParameters)
@@ -122,8 +126,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
                 return new ParameterCsvBinding<T>(index, data);
         }
 
-        throw new CsvBindingException<T>(
-            $"Parameter {parameter} was not found on the constructor of {typeof(T)}");
+        throw new CsvBindingException<T>($"Parameter {parameter} was not found on the constructor of {typeof(T)}");
     }
 
     /// <summary>
@@ -164,9 +167,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool AreSameMember(object? a, object? b)
     {
-        return a is MemberInfo ma
-            && b is MemberInfo mb
-            && AreSameMember(ma, mb);
+        return a is MemberInfo ma && b is MemberInfo mb && AreSameMember(ma, mb);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
