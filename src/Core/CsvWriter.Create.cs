@@ -1,7 +1,7 @@
 ﻿using System.IO.Pipelines;
-using FlameCsv.Writing;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
+using FlameCsv.Writing;
 
 namespace FlameCsv;
 

@@ -92,7 +92,7 @@ public partial class CsvWriterTTests
     {
         Assert.ThrowsAny<CsvWriteException>(() =>
         {
-            Impl<char>(
+            Impl(
                 writer =>
                 {
                     writer.ExpectedFieldCount = null;
@@ -361,7 +361,6 @@ public partial class CsvWriterTTests
         );
 
         const string trimmedChars = "A,C\r\n1,3\r\n4,6\r\n7,9\r\n";
-        byte[] trimmedBytes = Encoding.UTF8.GetBytes(trimmedChars);
 
         Assert.Equal(
             trimmedChars,
@@ -439,7 +438,7 @@ public partial class CsvWriterTTests
     private static string Impl<T>(Action<CsvWriter<T>> action, CsvOptions<T>? options = null)
         where T : unmanaged, IBinaryInteger<T>
     {
-        var writer = GetWriter<T>(out Func<string> getString, options);
+        var writer = GetWriter(out Func<string> getString, options);
         Exception? ex = null;
         try
         {
@@ -456,7 +455,7 @@ public partial class CsvWriterTTests
     private static async Task<string> Impl<T>(Func<CsvWriter<T>, Task> action, CsvOptions<T>? options = null)
         where T : unmanaged, IBinaryInteger<T>
     {
-        var writer = GetWriter<T>(out Func<string> getString, options);
+        var writer = GetWriter(out Func<string> getString, options);
         Exception? ex = null;
         try
         {

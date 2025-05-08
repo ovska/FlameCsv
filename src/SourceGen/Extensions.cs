@@ -1,10 +1,10 @@
 ﻿using System.Collections.Immutable;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.CSharp;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen;
 

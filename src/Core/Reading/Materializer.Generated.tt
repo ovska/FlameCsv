@@ -113,7 +113,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
 <#
         for (var i = 0; i < current; i++)
         {
-            Write($"        if (!converter");
+            Write("        if (!converter");
             Write(i.ToString());
             Write(".TryParse(record[");
             Write(i.ToString());
