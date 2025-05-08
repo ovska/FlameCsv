@@ -1,6 +1,5 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
@@ -35,6 +34,8 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
         ArgumentNullException.ThrowIfNull(trueValues);
         ArgumentNullException.ThrowIfNull(falseValues);
 
+        // ReSharper disable PossibleMultipleEnumeration
+
         _comparer = GetComparer(trueValues.Concat(falseValues), ignoreCase);
 
         var trueBuilder = ImmutableArray.CreateBuilder<(int hash, string value)>();
@@ -56,6 +57,8 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
             _firstFalse ??= GetT(text);
         }
 
+        // ReSharper restore PossibleMultipleEnumeration
+
         if (_firstTrue is null)
             Throw.Config_TrueOrFalseBooleanValues(true);
 
@@ -72,11 +75,11 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
         return span.TryCopyTo(destination, out charsWritten);
     }
 
-    public override bool TryParse(ReadOnlySpan<T> source, [MaybeNullWhen(false)] out bool value)
+    public override bool TryParse(ReadOnlySpan<T> source, out bool value)
     {
         int hashCode = _comparer.GetHashCode(source);
 
-        foreach (var (hash, text) in _trueValues)
+        foreach ((int hash, string text) in _trueValues)
         {
             if (hash == hashCode && _comparer.Equals(source, text))
             {
@@ -85,7 +88,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
             }
         }
 
-        foreach (var (hash, text) in _falseValues)
+        foreach ((int hash, string text) in _falseValues)
         {
             if (hash == hashCode && _comparer.Equals(source, text))
             {
@@ -94,7 +97,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
             }
         }
 
-        value = default;
+        value = false;
         return false;
     }
 
@@ -132,11 +135,11 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
     {
         var comparer = options.Comparer;
 
-        if (comparer == StringComparer.OrdinalIgnoreCase)
+        if (Equals(comparer, StringComparer.OrdinalIgnoreCase))
         {
             return true;
         }
-        if (comparer == StringComparer.Ordinal)
+        if (Equals(comparer, StringComparer.Ordinal))
         {
             return false;
         }

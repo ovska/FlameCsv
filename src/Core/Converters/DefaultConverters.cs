@@ -8,7 +8,7 @@ internal static class DefaultConverters
     public static Func<CsvOptions<char>, CsvConverter<char>>? GetText(Type type)
     {
         if (type.IsEnum) return null;
-        if (type == typeof(String)) return o => StringTextConverter.Instance;
+        if (type == typeof(String)) return _ => StringTextConverter.Instance;
         if (type == typeof(Int32)) return o => new NumberTextConverter<int>(o, NumberStyles.Integer);
         if (type == typeof(Double)) return o => new NumberTextConverter<double>(o, NumberStyles.Float);
         if (type == typeof(Boolean))
@@ -35,7 +35,7 @@ internal static class DefaultConverters
     public static Func<CsvOptions<byte>, CsvConverter<byte>>? GetUtf8(Type type)
     {
         if (type.IsEnum) return null;
-        if (type == typeof(String)) return o => StringUtf8Converter.Instance;
+        if (type == typeof(String)) return _ => StringUtf8Converter.Instance;
         if (type == typeof(Int32)) return o => new NumberUtf8Converter<int>(o, NumberStyles.Integer);
         if (type == typeof(Double)) return o => new NumberUtf8Converter<double>(o, NumberStyles.Float);
         if (type == typeof(Boolean))

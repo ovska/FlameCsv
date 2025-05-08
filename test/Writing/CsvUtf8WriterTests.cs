@@ -42,7 +42,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            // pipes dont support synchronous writing
             CsvWriter.Write(
                 output,
                 TestDataGenerator.Objects.Value,
@@ -53,7 +52,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         }
         else
         {
-            // pipes dont support synchronous writing
             CsvWriter.Write(output, TestDataGenerator.Objects.Value, options, new() { BufferSize = bufferSize });
         }
 

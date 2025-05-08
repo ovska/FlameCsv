@@ -13,8 +13,8 @@ namespace FlameCsv.Exceptions;
 /// </remarks>
 /// <param name="resultType">Type the parser was requested for</param>
 [PublicAPI]
-public sealed class CsvConverterMissingException(Type resultType, Exception? innerException = null)
-    : CsvConfigurationException($"Converter not found for type {resultType.FullName}", innerException)
+public sealed class CsvConverterMissingException(Type resultType)
+    : CsvConfigurationException($"Converter not found for type {resultType.FullName}")
 {
     /// <summary>
     /// Type the converter is for.
