@@ -145,7 +145,6 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
                 vsb.Append(comma ? ", " : " ");
                 vsb.Append("Record start position: ");
                 vsb.AppendFormatted(recordPosition);
-                comma = true;
             }
 
             return vsb.ToString();
@@ -157,18 +156,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
     {
         Line ??= line;
         RecordPosition ??= position;
-
-        if (RecordValue is null)
-        {
-            try
-            {
-                RecordValue = record.RawValue.AsPrintableString();
-            }
-            catch (Exception e)
-            {
-                RecordValue = $"< failed to get record value ({e.GetType().Name}): {e.Message} >";
-            }
-        }
+        RecordValue ??= record.RawValue.AsPrintableString();
 
         if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {

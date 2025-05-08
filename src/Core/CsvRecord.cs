@@ -17,7 +17,8 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvRecord<>.CsvRecordDebugView))]
-public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="CsvPreservedRecord{T}.Position"/>
     public long Position { get; }
@@ -52,14 +53,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
 
         if (!id.TryGetIndex(out int index, out string? name))
         {
-            CsvHeader? header = _owner.Header;
-
-            if (header is null)
-            {
-                Throw.NotSupported_CsvHasNoHeader();
-            }
-
-            if (!header.TryGetValue(name, out index))
+            if (_owner.Header?.TryGetValue(name, out index) != true)
             {
                 return false;
             }
@@ -243,7 +237,11 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
         return materializer.Parse(ref reader);
     }
 
+    IEnumerator<ReadOnlySpan<T>> IEnumerable<ReadOnlySpan<T>>.GetEnumerator() => GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
     /// <inheritdoc/>
+    [ExcludeFromCodeCoverage]
     public override string ToString()
     {
         return $"{{ CsvRecord[{_slice.FieldCount}] \"{Options.GetAsString(RawRecord)}\" }}";
@@ -284,7 +282,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
     /// <summary>
     /// Enumerates the fields in the record.
     /// </summary>
-    public struct Enumerator
+    public struct Enumerator : IEnumerator<ReadOnlySpan<T>>
     {
         /// <summary>
         /// Current field in the record.
@@ -321,8 +319,23 @@ public readonly struct CsvRecord<T> : ICsvRecord<T> where T : unmanaged, IBinary
             _index = int.MaxValue;
             return false;
         }
+
+        void IDisposable.Dispose()
+        {
+        }
+
+        void IEnumerator.Reset()
+        {
+            _index = 0;
+        }
+
+        object IEnumerator.Current
+        {
+            get { throw new NotSupportedException(); }
+        }
     }
 
+    [ExcludeFromCodeCoverage]
     private sealed class CsvRecordDebugView(CsvRecord<T> record)
     {
         private readonly CsvRecord<T> _record = record;

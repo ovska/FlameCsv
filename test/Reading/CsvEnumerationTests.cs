@@ -1,5 +1,8 @@
 ﻿using System.Buffers;
+using System.Globalization;
 using FlameCsv.Attributes;
+using FlameCsv.Binding;
+using FlameCsv.Converters.Formattable;
 using FlameCsv.Enumeration;
 using FlameCsv.IO;
 using JetBrains.Annotations;
@@ -90,7 +93,6 @@ public sealed class CsvEnumerationTests : IDisposable
         CsvRecord<char> record = GetRecord();
 
         Assert.Equal(3, record.FieldCount);
-        Assert.Equal(3, record.FieldCount);
     }
 
     [Fact]
@@ -98,13 +100,12 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         CsvRecord<char> record = GetRecord();
 
-        var expected = new[] { "1", "Test", "true" };
         var actual = new List<string>();
 
         foreach (var field in record)
             actual.Add(field.ToString());
 
-        Assert.Equal(expected, actual);
+        Assert.Equal(["1", "Test", "true"], actual);
     }
 
     [Fact]
@@ -124,6 +125,10 @@ public sealed class CsvEnumerationTests : IDisposable
 
         Assert.True(record.TryParseField(2, out bool _3));
         Assert.True(_3);
+
+        Assert.True(
+            record.TryParseField(new NumberTextConverter<int>(record.Options, NumberStyles.Integer), 0, out _1));
+        Assert.Equal(1, _1);
     }
 
     [Fact]
@@ -131,9 +136,13 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         CsvRecord<char> record = GetRecord();
 
-        Assert.Equal("1", record.GetField(0).ToString());
-        Assert.Equal("Test", record.GetField(1).ToString());
-        Assert.Equal("true", record.GetField(2).ToString());
+        Assert.Equal("1", record[0]);
+        Assert.Equal("Test", record[1]);
+        Assert.Equal("true", record[2]);
+
+        Assert.Equal("1", record.GetField(0));
+        Assert.Equal("Test", record.GetField(1));
+        Assert.Equal("true", record.GetField(2));
     }
 
     [Fact]
@@ -151,11 +160,33 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal("2", record.GetField("B").ToString());
         Assert.Equal("3", record.GetField("C").ToString());
 
+        Assert.Equal("1", record["A"].ToString());
+        Assert.Equal("2", record["B"].ToString());
+        Assert.Equal("3", record["C"].ToString());
+
+        Assert.True(record.Contains(0));
+        Assert.True(record.Contains(1));
+        Assert.True(record.Contains(2));
+        Assert.False(record.Contains(3));
+
+        Assert.True(record.Contains("A"));
+        Assert.True(record.Contains("B"));
+        Assert.True(record.Contains("C"));
+        Assert.False(record.Contains("D"));
+
         Assert.False(enumerator.MoveNext());
+    }
+
+    [Fact]
+    public void Should_Throw_If_No_Header()
+    {
+        Assert.Throws<NotSupportedException>(() => GetRecord().ParseField<int>("A"));
+        Assert.Throws<NotSupportedException>(() => GetRecord().ParseField(CsvIgnored.Converter<char, object>(),"A"));
     }
 
     private CsvRecord<char> GetRecord()
     {
+        _enumerator?.Dispose();
         _enumerator = new CsvRecordEnumerator<char>(
             new CsvOptions<char> { HasHeader = false },
             CsvBufferReader.Create("1,\"Test\",true"));
