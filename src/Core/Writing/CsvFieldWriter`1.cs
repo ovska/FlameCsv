@@ -20,6 +20,8 @@ namespace FlameCsv.Writing;
 public readonly struct CsvFieldWriter<T> : IDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
+    private static readonly T _space = T.CreateTruncating(' ');
+
     /// <summary>
     /// The <see cref="ICsvBufferWriter{T}"/> this instance writes to.
     /// </summary>
@@ -32,7 +34,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
     private readonly T _delimiter;
     private readonly T _quote;
-    private readonly T _space;
     private readonly bool _isCRLF;
     private readonly T? _escape;
     private readonly SearchValues<T> _needsQuoting;
@@ -57,7 +58,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
         _delimiter = T.CreateTruncating(options.Delimiter);
         _quote = T.CreateTruncating(options.Quote);
-        _space = T.CreateTruncating(' ');
         _escape = options.Escape.HasValue ? T.CreateTruncating(options.Escape.Value) : null;
         _isCRLF = options.Newline.IsCRLF();
         _needsQuoting = options.NeedsQuoting;
@@ -202,19 +202,46 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
     {
+        int length = _isCRLF ? 2 : 1;
+        Span<T> destination = Writer.GetSpan(length);
+
         if (_isCRLF)
         {
-            Span<T> destination = Writer.GetSpan(2);
-            destination[0] = T.CreateTruncating('\r');
-            destination[1] = T.CreateTruncating('\n');
-            Writer.Advance(2);
+            // hopefully we elide the second length check by reversing these
+            if (typeof(T) == typeof(byte))
+            {
+                destination[1] = Unsafe.BitCast<byte, T>((byte)'\n');
+                destination[0] = Unsafe.BitCast<byte, T>((byte)'\r');
+            }
+            else if (typeof(T) == typeof(char))
+            {
+                destination[1] = Unsafe.BitCast<char, T>('\n');
+                destination[0] = Unsafe.BitCast<char, T>('\r');
+            }
+            else
+            {
+                destination[1] = T.CreateTruncating('\n');
+                destination[0] = T.CreateTruncating('\r');
+            }
         }
         else
         {
-            Span<T> destination = Writer.GetSpan(1);
-            destination[0] = T.CreateTruncating('\n');
-            Writer.Advance(1);
+
+            if (typeof(T) == typeof(byte))
+            {
+                destination[0] = Unsafe.BitCast<byte, T>((byte)'\n');
+            }
+            else if (typeof(T) == typeof(char))
+            {
+                destination[0] = Unsafe.BitCast<char, T>('\n');
+            }
+            else
+            {
+                destination[0] = T.CreateTruncating('\n');
+            }
         }
+
+        Writer.Advance(length);
     }
 
     /// <summary>
@@ -277,7 +304,9 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         }
         else
         {
-            int index = written.LastIndexOfAny(_needsQuoting);
+            int index = ((_fieldQuoting & CsvFieldQuoting.Auto) != 0)
+                ? written.LastIndexOfAny(_needsQuoting)
+                : -1;
 
             if (index != -1)
             {
@@ -332,7 +361,6 @@ file static class InvalidTokensWritten
     public static void Throw(object source, int tokensWritten, int destinationLength)
     {
         throw new InvalidOperationException(
-            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}."
-        );
+            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}.");
     }
 }
