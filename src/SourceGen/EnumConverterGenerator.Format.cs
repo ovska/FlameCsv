@@ -31,7 +31,7 @@ partial class EnumConverterGenerator
 
             if (model.ContiguousFromZeroCount > 0)
             {
-                writer.DebugLine($"Fast path, has values contiguous from zero");
+                writer.DebugLine("Fast path, has values contiguous from zero");
 
                 fastPathCount = Math.Min(model.ContiguousFromZeroCount, 10);
                 writer.WriteLine($"if ((uint)value < {fastPathCount})");
@@ -47,7 +47,7 @@ partial class EnumConverterGenerator
 
             if (fastPathCount != model.UniqueValues.Length)
             {
-                writer.DebugLine($"Not all values are contiguous from zero");
+                writer.DebugLine("Not all values are contiguous from zero");
 
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -196,7 +196,7 @@ partial class EnumConverterGenerator
                         writer.Write("__Unsafe.As<char, ulong>(ref ");
                         writer.WriteIf(offset != 0, "Unsafe.Add(ref dst, offset)");
                         writer.WriteIf(offset == 0, "dst");
-                        writer.Write($") = __Unsafe.As<char, ulong>(ref __MemoryMarshal.GetReference(");
+                        writer.Write(") = __Unsafe.As<char, ulong>(ref __MemoryMarshal.GetReference(");
                         writer.Write(value.Substring(offset, 4).ToStringLiteral());
                         writer.WriteLine(".AsSpan()));");
                         offset += 4;

@@ -1,10 +1,11 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Utilities;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
+[SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable")]
 internal struct WritableBuffer<T> : IDisposable
     where T : unmanaged, IBinaryInteger<T>
 {

@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
-using FlameCsv.Exceptions;
 using FlameCsv.Tests.TestData;
 using Xunit.Sdk;
 
