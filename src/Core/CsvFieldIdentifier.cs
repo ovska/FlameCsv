@@ -46,6 +46,14 @@ public readonly struct CsvFieldIdentifier
         _name = name;
     }
 
+    internal CsvFieldIdentifier(int index, string name)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentNullException.ThrowIfNull(name);
+        _index = index;
+        _name = name;
+    }
+
     /// <summary>
     /// Returns a field identifier pointing to a specific field index.
     /// </summary>

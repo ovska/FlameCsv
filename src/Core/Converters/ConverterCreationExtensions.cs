@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters.Formattable;
 using JetBrains.Annotations;
 
@@ -9,6 +10,7 @@ namespace FlameCsv.Converters;
 /// </summary>
 [PublicAPI]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[ExcludeFromCodeCoverage]
 public static class ConverterCreationExtensions
 {
     /// <summary>

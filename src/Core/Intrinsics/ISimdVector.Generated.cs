@@ -600,6 +600,7 @@ internal readonly struct Vec512Byte : ISimdVector<byte, Vec512Byte>
 }
 
 /// <summary>Vector type that is not supported and does nothing.</summary>
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T : unmanaged, IBinaryInteger<T>
 {
     public static bool IsSupported => false;

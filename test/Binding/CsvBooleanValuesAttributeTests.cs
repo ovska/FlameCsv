@@ -10,8 +10,8 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    public static TheoryData<string, bool, bool?> NonNullableTestData() =>
-        new()
+    public static TheoryData<string, bool, bool?> NonNullableTestData
+        => new()
         {
             { "1", true, true },
             { "Y", true, true },
@@ -23,8 +23,8 @@ public static class CsvBooleanValuesAttributeTests
             { "KYLLÄ", true, true },
         };
 
-    public static TheoryData<string, bool, bool?, string> NullableTestData() =>
-        new()
+    public static TheoryData<string, bool, bool?, string> NullableTestData
+        => new()
         {
             { "1", true, true, "" },
             { "Y", true, true, "" },
@@ -46,11 +46,31 @@ public static class CsvBooleanValuesAttributeTests
         [CsvBooleanValues(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
         public bool? IsEnabledN { get; set; }
 
-        [CsvBooleanValues(TrueValues = ["1"])]
-        public int InvalidType { get; set; }
+        [CsvBooleanValues(TrueValues = ["1"])] public int InvalidType { get; set; }
 
-        [CsvBooleanValues]
-        public bool NoValues { get; set; }
+        [CsvBooleanValues] public bool NoValues { get; set; }
+    }
+
+    [Fact]
+    public static void Should_Format()
+    {
+        Impl<char>();
+        Impl<byte>();
+
+        void Impl<T>()
+            where T : unmanaged, IBinaryInteger<T>
+        {
+            var @override = typeof(Shim).GetProperty("IsEnabled")!.GetCustomAttribute<CsvConverterAttribute>()!;
+            Assert.True(@override.TryCreateConverter(typeof(bool), CsvOptions<T>.Default, out var converter));
+            var formatter = (CsvConverter<T, bool>)converter;
+
+            T[] buffer = new T[32];
+            Assert.True(formatter.TryFormat(buffer, true, out int charsWritten));
+            Assert.Equal("1", CsvOptions<T>.Default.GetAsString(buffer.AsSpan(0, charsWritten)));
+
+            Assert.True(formatter.TryFormat(buffer, false, out charsWritten));
+            Assert.Equal("0", CsvOptions<T>.Default.GetAsString(buffer.AsSpan(0, charsWritten)));
+        }
     }
 
     [Theory, InlineData(nameof(Shim.InvalidType)), InlineData(nameof(Shim.NoValues))]
@@ -138,9 +158,8 @@ public static class CsvBooleanValuesAttributeTests
 
             Assert.False(parser.TryParse(CsvOptions<T>.Default.GetFromString("y").Span, out _));
             Assert.True(
-                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value)
-                    && value.GetValueOrDefault()
-            );
+                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value) &&
+                value.GetValueOrDefault());
         }
     }
 
@@ -158,21 +177,19 @@ public static class CsvBooleanValuesAttributeTests
     }
 
     [Fact]
-    public static void Should_Validate_AlternateComparer()
+    public static void Should_Validate_Options()
     {
-        Assert.ThrowsAny<CsvConfigurationException>(
-            () =>
-                new CustomBooleanConverter<char>(
-                    new CsvOptions<char>
-                    {
-                        BooleanValues = { ("t", true), ("f", false) },
-                        Comparer = new NotAlternateComparer(),
-                    }
-                )
-        );
+        var opts = new CsvOptions<char> { BooleanValues = { ("t", true), ("f", false) } };
+
+        Assert.ThrowsAny<CsvConfigurationException>(() =>
+            new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.CurrentCulture }));
+
+        // no exception
+        _ = new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.Ordinal });
+        _ = new CustomBooleanConverter<char>(
+            new CsvOptions<char>(opts) { Comparer = StringComparer.OrdinalIgnoreCase });
     }
 
-    [ExcludeFromCodeCoverage]
     private sealed class NotAlternateComparer : IEqualityComparer<string>
     {
         public bool Equals(string? x, string? y) => String.Equals(x, y);
