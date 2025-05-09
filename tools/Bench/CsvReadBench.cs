@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using FlameCsv.Attributes;
+using FlameCsv.Extensions;
 
 // ReSharper disable all
 
@@ -20,7 +21,7 @@ public partial class CsvReadBench
 
         var header = "Index,Name,Contact,Count,Latitude,Longitude,Height,Location,Category,Popularity"u8
             .ToArray()
-            .Concat(Encoding.UTF8.GetBytes(_newline == CsvNewline.CRLF ? "\r\n" : "\n"))
+            .Concat(Encoding.UTF8.GetBytes(_newline.IsCRLF() ? "\r\n" : "\n"))
             .ToArray();
 
         _bytesHeader = new byte[header.Length + _bytes.Length];
@@ -80,7 +81,7 @@ public partial class CsvReadBench
     {
         var config = new CsvHelper.Configuration.CsvConfiguration(System.Globalization.CultureInfo.InvariantCulture)
         {
-            NewLine = _newline == CsvNewline.CRLF ? "\r\n" : "\n",
+            NewLine = _newline.IsCRLF() ? "\r\n" : "\n",
             HasHeaderRecord = Header,
         };
 
