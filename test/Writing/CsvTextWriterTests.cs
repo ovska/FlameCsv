@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
+using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
 using Xunit.Sdk;
 
@@ -68,7 +69,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             }
         }
 
-        Validate(output, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
+        Validate(output, escape.HasValue, newline.IsCRLF(), header, quoting);
     }
 
     [Theory, MemberData(nameof(Args))]
@@ -122,7 +123,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             );
         }
 
-        Validate(output, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
+        Validate(output, escape.HasValue, newline.IsCRLF(), header, quoting);
     }
 
     [Fact]
