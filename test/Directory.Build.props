@@ -4,6 +4,7 @@
         <Using Include="Xunit" />
     </ItemGroup>
     <PropertyGroup>
+        <RunSettingsFilePath>$(MSBuildThisFileDirectory).runsettings</RunSettingsFilePath>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <NoWarn>$(NoWarn);CA2263;CS1591;CA1861;CA1816;CA1067;IDE0018</NoWarn>
     </PropertyGroup>
