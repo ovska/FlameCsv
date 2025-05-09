@@ -7,37 +7,41 @@ namespace FlameCsv.SourceGen;
 [Generator(LanguageNames.CSharp)]
 internal partial class EnumConverterGenerator : IIncrementalGenerator
 {
-    private const string AggressiveInlining
-        = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";
+    private const string AggressiveInlining =
+        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<(EnumModel model, EquatableArray<Diagnostic> diagnostics, bool result)>
-            modelAndDiagnostics = context
-                .SyntaxProvider
-                .ForAttributeWithMetadataName(
-                    "FlameCsv.Attributes.CsvEnumConverterAttribute`2",
-                    static (syntaxNode, cancellationToken) =>
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        return syntaxNode is ClassDeclarationSyntax;
-                    },
-                    static (context, cancellationToken) =>
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
+        IncrementalValuesProvider<(
+            EnumModel model,
+            EquatableArray<Diagnostic> diagnostics,
+            bool result
+        )> modelAndDiagnostics = context
+            .SyntaxProvider.ForAttributeWithMetadataName(
+                "FlameCsv.Attributes.CsvEnumConverterAttribute`2",
+                static (syntaxNode, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return syntaxNode is ClassDeclarationSyntax;
+                },
+                static (context, cancellationToken) =>
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                        bool result = EnumModel.TryGet(
-                            context.TargetSymbol,
-                            context.Attributes[0],
-                            cancellationToken,
-                            out var diagnostics,
-                            out var model);
+                    bool result = EnumModel.TryGet(
+                        context.TargetSymbol,
+                        context.Attributes[0],
+                        cancellationToken,
+                        out var diagnostics,
+                        out var model
+                    );
 
-                        // no values in enum?
-                        result = result && !model.Values.IsEmpty;
-                        return (model, diagnostics, result);
-                    })
-                .WithTrackingName("FlameCsv_EnumSourceGen");
+                    // no values in enum?
+                    result = result && !model.Values.IsEmpty;
+                    return (model, diagnostics, result);
+                }
+            )
+            .WithTrackingName("FlameCsv_EnumSourceGen");
 
         context.RegisterSourceOutput(
             modelAndDiagnostics
@@ -45,14 +49,17 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 .WithTrackingName("FlameCsv_EnumSourceGen_Diagnostics"),
             static (context, diagnostics) =>
             {
-                foreach (var diagnostic in diagnostics) context.ReportDiagnostic(diagnostic);
-            });
+                foreach (var diagnostic in diagnostics)
+                    context.ReportDiagnostic(diagnostic);
+            }
+        );
 
         context.RegisterSourceOutput(
             modelAndDiagnostics
                 .Where(static tuple => tuple.diagnostics.IsEmpty && tuple.result)
                 .WithTrackingName("FlameCsv_EnumSourceGen_Model"),
-            static (context, tuple) => Execute(in tuple.model, context));
+            static (context, tuple) => Execute(in tuple.model, context)
+        );
     }
 
     private static void Execute(ref readonly EnumModel model, SourceProductionContext context)
@@ -91,7 +98,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(
-            $"partial class {model.ConverterType.Name} : global::FlameCsv.CsvConverter<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>");
+            $"partial class {model.ConverterType.Name} : global::FlameCsv.CsvConverter<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>"
+        );
 
         using (writer.WriteBlock())
         {
@@ -119,12 +127,14 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine("_allowUndefinedValues = options.AllowUndefinedEnumValues;");
                 writer.WriteLine("_ignoreCase = options.IgnoreEnumCase;");
                 writer.WriteLine(
-                    $"_format = options.GetFormat(typeof({model.EnumType.FullyQualifiedName}), options.EnumFormat);");
+                    $"_format = options.GetFormat(typeof({model.EnumType.FullyQualifiedName}), options.EnumFormat);"
+                );
 
                 writer.Write("_parseStrategy = ");
                 writer.WriteIf(
                     model.HasFlagsAttribute,
-                    $"new global::FlameCsv.Converters.Enums.CsvEnumFlagsParseStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>(options, ");
+                    $"new global::FlameCsv.Converters.Enums.CsvEnumFlagsParseStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>(options, "
+                );
                 writer.Write("_ignoreCase ? IgnoreCaseStrategy : OrdinalStrategy");
                 writer.WriteIf(model.HasFlagsAttribute, ")");
                 writer.WriteLine(";");
@@ -143,16 +153,19 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 {
                     string specifier = model.TokenType.IsByte() ? "Utf8" : "Text";
                     writer.WriteLine(
-                        $"new global::FlameCsv.Converters.Enums.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),");
+                        $"new global::FlameCsv.Converters.Enums.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),"
+                    );
                 }
                 else
                 {
                     writer.WriteLine(
-                        $"throw new global::System.NotSupportedException(\"Flags-format not supported for non-flags enum {model.EnumType.Name}\"),");
+                        $"throw new global::System.NotSupportedException(\"Flags-format not supported for non-flags enum {model.EnumType.Name}\"),"
+                    );
                 }
 
                 writer.WriteLine(
-                    "{ } configuredFormat => throw new global::System.NotSupportedException(\"Invalid enum format specified: \" + configuredFormat)");
+                    "{ } configuredFormat => throw new global::System.NotSupportedException(\"Invalid enum format specified: \" + configuredFormat)"
+                );
                 writer.DecreaseIndent();
                 writer.WriteLine("};");
             }
@@ -160,7 +173,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
+                $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)"
+            );
             using (writer.WriteBlock())
             {
                 WriteParseMethod(in model, writer, context.CancellationToken);
@@ -169,7 +183,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public override bool TryFormat(global::System.Span<{model.TokenType.Name}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten)");
+                $"public override bool TryFormat(global::System.Span<{model.TokenType.Name}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten)"
+            );
             using (writer.WriteBlock())
             {
                 writer.WriteLine("if (destination.IsEmpty)");
@@ -181,24 +196,28 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
                 writer.WriteLine();
                 writer.WriteLine(
-                    "global::System.Buffers.OperationStatus status = _formatStrategy.TryFormat(destination, value, out charsWritten);");
+                    "global::System.Buffers.OperationStatus status = _formatStrategy.TryFormat(destination, value, out charsWritten);"
+                );
                 writer.WriteLine("if (status == global::System.Buffers.OperationStatus.Done) return true;");
                 writer.WriteLine(
-                    "if (status == global::System.Buffers.OperationStatus.DestinationTooSmall) return false;");
+                    "if (status == global::System.Buffers.OperationStatus.DestinationTooSmall) return false;"
+                );
                 writer.WriteLine();
                 writer.WriteLine("// unknown value, defer to Enum.TryFormat");
                 if (model.TokenType.SpecialType is SpecialType.System_Byte)
                 {
                     // TODO: simplify when Enum implements IUtf8Formattable
                     writer.WriteLine(
-                        "var handler = new global::System.Text.Unicode.Utf8.TryWriteInterpolatedStringHandler(" +
-                        "0, 1, destination, out bool shouldAppend);");
+                        "var handler = new global::System.Text.Unicode.Utf8.TryWriteInterpolatedStringHandler("
+                            + "0, 1, destination, out bool shouldAppend);"
+                    );
                     writer.WriteLine("if (shouldAppend)");
                     using (writer.WriteBlock())
                     {
                         writer.WriteLine("handler.AppendFormatted(value, _format);");
                         writer.WriteLine(
-                            "return global::System.Text.Unicode.Utf8.TryWrite(destination, ref handler, out charsWritten);");
+                            "return global::System.Text.Unicode.Utf8.TryWrite(destination, ref handler, out charsWritten);"
+                        );
                     }
 
                     writer.WriteLine();
@@ -208,7 +227,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 else
                 {
                     writer.WriteLine(
-                        "return ((global::System.ISpanFormattable)value).TryFormat(destination, out charsWritten, _format, provider: null);");
+                        "return ((global::System.ISpanFormattable)value).TryFormat(destination, out charsWritten, _format, provider: null);"
+                    );
                 }
             }
 
@@ -222,7 +242,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine("/// Transcodes the input value to chars and calls Enum.TryParse.");
                 writer.WriteLine("/// </summary>");
                 writer.WriteLine(
-                    $"private bool TryParseFromUtf16(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
+                    $"private bool TryParseFromUtf16(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)"
+                );
                 using (writer.WriteBlock())
                 {
                     WriteParseSlow(writer, context.CancellationToken);
@@ -233,9 +254,11 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine("/// Transcodes the input value to chars.");
                 writer.WriteLine("/// </summary>");
                 writer.WriteLine(
-                    "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]");
+                    "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]"
+                );
                 writer.WriteLine(
-                    $"private static global::System.ReadOnlySpan<char> GetChars(global::System.ReadOnlySpan<{model.TokenType.Name}> source, global::System.Span<char> buffer, out char[]? toReturn)");
+                    $"private static global::System.ReadOnlySpan<char> GetChars(global::System.ReadOnlySpan<{model.TokenType.Name}> source, global::System.Span<char> buffer, out char[]? toReturn)"
+                );
                 using (writer.WriteBlock())
                 {
                     WriteGetChars(writer, context.CancellationToken);
@@ -260,7 +283,9 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("/// Case-insensitive parsing strategy.");
             writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
-            writer.Write("private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy");
+            writer.Write(
+                "private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy"
+            );
             WriteStrategyGenerics(in model, writer, context.CancellationToken);
             writer.WriteLine();
             using (writer.WriteBlock())
@@ -318,7 +343,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
     private static void WriteDefinedCheck(
         ref readonly EnumModel model,
         IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -364,7 +390,8 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
     private static void WriteStrategyGenerics(
         ref readonly EnumModel model,
         IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
         writer.Write("<");

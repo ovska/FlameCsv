@@ -13,8 +13,11 @@ namespace FlameCsv.Reflection;
 internal readonly struct StringLike
 {
     public required string Value { get; init; }
+
     public static implicit operator StringLike(string value) => new() { Value = value };
+
     public static implicit operator string(StringLike value) => value.Value;
+
     public static implicit operator ReadOnlySpan<char>(StringLike value) => value.Value;
 }
 
@@ -33,7 +36,8 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
                 _valuesIgnoreCase = null;
                 _namesNumeric = null;
                 _namesString = null;
-            });
+            }
+        );
     }
 
     private static FrozenDictionary<StringLike, TEnum>? _valuesOrdinal;
@@ -43,7 +47,8 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
     private static FrozenDictionary<TEnum, byte[]>? _namesString;
 
     public static FrozenDictionary<TEnum, byte[]>? GetWriteValues(
-        [StringSyntax(StringSyntaxAttribute.EnumFormat)] string? format)
+        [StringSyntax(StringSyntaxAttribute.EnumFormat)] string? format
+    )
     {
         return (GetFormatChar(format)) switch
         {
@@ -55,11 +60,13 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
 
     public static FrozenDictionary<StringLike, TEnum>.AlternateLookup<ReadOnlySpan<byte>> GetReadValues(bool ignoreCase)
     {
-        return (ignoreCase switch
-        {
-            false => _valuesOrdinal ??= InitValues(false),
-            true => _valuesIgnoreCase ??= InitValues(true),
-        }).GetAlternateLookup<ReadOnlySpan<byte>>();
+        return (
+            ignoreCase switch
+            {
+                false => _valuesOrdinal ??= InitValues(false),
+                true => _valuesIgnoreCase ??= InitValues(true),
+            }
+        ).GetAlternateLookup<ReadOnlySpan<byte>>();
     }
 
     private static FrozenDictionary<TEnum, byte[]> InitNames(Func<EnumMember, byte[]> selector)
@@ -105,6 +112,7 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
     }
 
     private static byte[] ToNumber(EnumMember member) => Encoding.UTF8.GetBytes(member.Value.ToString("D"));
+
     private static byte[] ToString(EnumMember member) => Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
 
     public static bool IsDefinedCore(TEnum value)

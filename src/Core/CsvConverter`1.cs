@@ -7,7 +7,8 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Parsed/formatted value</typeparam>
-public abstract class CsvConverter<T, TValue> : CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvConverter<T, TValue> : CsvConverter<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns whether the type can be handled by this converter.

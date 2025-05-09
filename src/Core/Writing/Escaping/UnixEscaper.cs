@@ -4,7 +4,8 @@ using System.Runtime.InteropServices;
 namespace FlameCsv.Writing.Escaping;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct UnixEscaper<T>(T quote, T escape) : IEscaper<T> where T : unmanaged, IBinaryInteger<T>
+internal readonly struct UnixEscaper<T>(T quote, T escape) : IEscaper<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public T Quote
     {

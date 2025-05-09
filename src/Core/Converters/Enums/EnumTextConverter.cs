@@ -49,8 +49,10 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     {
         OperationStatus status = _formatStrategy.TryFormat(destination, value, out charsWritten);
 
-        if (status is OperationStatus.Done) return true;
-        if (status is OperationStatus.DestinationTooSmall) return false;
+        if (status is OperationStatus.Done)
+            return true;
+        if (status is OperationStatus.DestinationTooSmall)
+            return false;
 
         return Enum.TryFormat(value, destination, out charsWritten, _format);
     }
@@ -63,8 +65,8 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
             return true;
         }
 
-        return Enum.TryParse(source, _ignoreCase, out value) &&
-            (_allowUndefinedValues || EnumCacheText<TEnum>.IsDefinedCore(value));
+        return Enum.TryParse(source, _ignoreCase, out value)
+            && (_allowUndefinedValues || EnumCacheText<TEnum>.IsDefinedCore(value));
     }
 
     private sealed class ParseStrategy : EnumParseStrategy<char, TEnum>

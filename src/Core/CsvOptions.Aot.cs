@@ -84,7 +84,8 @@ partial class CsvOptions<T>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public CsvConverter<T, TValue> GetOrCreate<TValue>(
             [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
-            bool canCache)
+            bool canCache
+        )
         {
             ArgumentNullException.ThrowIfNull(factory);
 
@@ -98,7 +99,8 @@ partial class CsvOptions<T>
             if (converter is null)
             {
                 throw new CsvConfigurationException(
-                    $"The factory delegate passed to GetOrCreate for {typeof(TValue).FullName} returned null.");
+                    $"The factory delegate passed to GetOrCreate for {typeof(TValue).FullName} returned null."
+                );
             }
 
             if (canCache)
@@ -120,7 +122,8 @@ partial class CsvOptions<T>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public CsvConverter<T, TValue?> GetOrCreateNullable<TValue>(
             [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
-            bool canCache)
+            bool canCache
+        )
             where TValue : struct
         {
             if (canCache && TryGetExistingOrCustomConverter(out CsvConverter<T, TValue?>? converter))
@@ -128,7 +131,8 @@ partial class CsvOptions<T>
                 return converter;
             }
 
-            if (canCache && !_options.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TValue?));
+            if (canCache && !_options.UseDefaultConverters)
+                CsvConverterMissingException.Throw(typeof(TValue?));
 
             CsvConverter<T, TValue> inner = GetOrCreate(factory, canCache); // can this be cached?
 
@@ -150,39 +154,45 @@ partial class CsvOptions<T>
         /// If a non-factory user defined converter is found, it is returned directly.
         /// </remarks>
         [EditorBrowsable(EditorBrowsableState.Never)]
-        public CsvConverter<T, TEnum> GetOrCreateEnum<TEnum>() where TEnum : struct, Enum
+        public CsvConverter<T, TEnum> GetOrCreateEnum<TEnum>()
+            where TEnum : struct, Enum
         {
             if (typeof(T) == typeof(char))
             {
                 CsvOptions<char>.AotSafeConverters @this = new(Unsafe.As<CsvOptions<char>>(_options));
-                return (CsvConverter<T, TEnum>)(object)@this
-                    .GetOrCreate(
-                        static o =>
-                        {
-                            if (!o.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TEnum));
-                            return new EnumTextConverter<TEnum>(o);
-                        },
-                        canCache: true);
+                return (CsvConverter<T, TEnum>)
+                    (object)
+                        @this.GetOrCreate(
+                            static o =>
+                            {
+                                if (!o.UseDefaultConverters)
+                                    CsvConverterMissingException.Throw(typeof(TEnum));
+                                return new EnumTextConverter<TEnum>(o);
+                            },
+                            canCache: true
+                        );
             }
 
             if (typeof(T) == typeof(byte))
             {
                 CsvOptions<byte>.AotSafeConverters @this = new(Unsafe.As<CsvOptions<byte>>(_options));
-                return (CsvConverter<T, TEnum>)(object)@this
-                    .GetOrCreate(
-                        static o =>
-                        {
-                            if (!o.UseDefaultConverters) CsvConverterMissingException.Throw(typeof(TEnum));
-                            return new EnumUtf8Converter<TEnum>(o);
-                        },
-                        canCache: true);
+                return (CsvConverter<T, TEnum>)
+                    (object)
+                        @this.GetOrCreate(
+                            static o =>
+                            {
+                                if (!o.UseDefaultConverters)
+                                    CsvConverterMissingException.Throw(typeof(TEnum));
+                                return new EnumUtf8Converter<TEnum>(o);
+                            },
+                            canCache: true
+                        );
             }
 
             throw InvalidTokenTypeEx();
         }
 
-        private bool TryGetExistingOrCustomConverter<TValue>(
-            [NotNullWhen(true)] out CsvConverter<T, TValue>? converter)
+        private bool TryGetExistingOrCustomConverter<TValue>([NotNullWhen(true)] out CsvConverter<T, TValue>? converter)
         {
             _options.MakeReadOnly();
 

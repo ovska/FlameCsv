@@ -8,7 +8,8 @@ partial class TypeMapGenerator
     private static void GetWriteCode(
         IndentedTextWriter writer,
         ref readonly TypeMapModel typeMap,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -41,7 +42,8 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine(
-                $"Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+                $"Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>"
+            );
 
             using (writer.WriteBlock())
             {
@@ -53,9 +55,11 @@ partial class TypeMapGenerator
                 var membersToWrite = hasHeader ? typeMap.AllMembers : typeMap.IndexesForWriting;
                 foreach (var property in membersToWrite)
                 {
-                    if (!property.CanWrite) continue;
+                    if (!property.CanWrite)
+                        continue;
                     writer.Write(
-                        $"public required global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {property.Type.FullyQualifiedName}> ");
+                        $"public required global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {property.Type.FullyQualifiedName}> "
+                    );
                     property.WriteConverterName(writer);
                     writer.WriteLine(" { get; init; }");
                 }
@@ -64,7 +68,8 @@ partial class TypeMapGenerator
                 cancellationToken.ThrowIfCancellationRequested();
 
                 writer.WriteLine(
-                    $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer, {typeMap.Type.FullyQualifiedName} obj)");
+                    $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer, {typeMap.Type.FullyQualifiedName} obj)"
+                );
 
                 using (writer.WriteBlock())
                 {
@@ -72,7 +77,8 @@ partial class TypeMapGenerator
 
                     foreach (var member in membersToWrite)
                     {
-                        if (member is not PropertyModel { CanWrite: true } property) continue;
+                        if (member is not PropertyModel { CanWrite: true } property)
+                            continue;
 
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                         writer.Write("writer.WriteField(");
@@ -99,13 +105,15 @@ partial class TypeMapGenerator
                 cancellationToken.ThrowIfCancellationRequested();
 
                 writer.WriteLine(
-                    $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer)");
+                    $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer)"
+                );
                 using (writer.WriteBlock())
                 {
                     if (!hasHeader)
                     {
                         writer.WriteLine(
-                            "throw new global::System.NotSupportedException(\"This instance is not configured to write a header record.\");");
+                            "throw new global::System.NotSupportedException(\"This instance is not configured to write a header record.\");"
+                        );
                         break;
                     }
 
@@ -121,7 +129,8 @@ partial class TypeMapGenerator
 
                     foreach (var member in typeMap.AllMembers)
                     {
-                        if (member is not PropertyModel { CanWrite: true } property) continue;
+                        if (member is not PropertyModel { CanWrite: true } property)
+                            continue;
 
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                         writer.Write($"writer.{method}(");
@@ -137,10 +146,12 @@ partial class TypeMapGenerator
     internal static void WriteDematerializerCtor(
         IndentedTextWriter writer,
         in TypeMapModel typeMap,
-        out int writableCount)
+        out int writableCount
+    )
     {
         writer.WriteLine(
-            $"protected override global::FlameCsv.Writing.IDematerializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForWriting(global::FlameCsv.CsvOptions<{typeMap.Token.Name}> options)");
+            $"protected override global::FlameCsv.Writing.IDematerializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForWriting(global::FlameCsv.CsvOptions<{typeMap.Token.Name}> options)"
+        );
 
         writableCount = 0;
 
@@ -156,7 +167,8 @@ partial class TypeMapGenerator
 
                 foreach (var property in typeMap.AllMembers)
                 {
-                    if (!property.CanWrite) continue;
+                    if (!property.CanWrite)
+                        continue;
 
                     property.WriteConverterName(writer);
                     writer.Write(" = ");
@@ -174,7 +186,8 @@ partial class TypeMapGenerator
             if (typeMap.IndexesForWriting.Length == 0)
             {
                 writer.WriteLine(
-                    "throw new global::System.NotSupportedException(\"No valid index binding configuration.\");");
+                    "throw new global::System.NotSupportedException(\"No valid index binding configuration.\");"
+                );
             }
             else
             {

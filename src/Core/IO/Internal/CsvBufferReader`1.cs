@@ -3,7 +3,8 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.IO.Internal;
 
-internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unmanaged
+internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
+    where T : unmanaged
 {
     /// <summary>
     /// Attempts to reset the inner data source to the beginning.
@@ -17,9 +18,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unman
     protected abstract int ReadCore(Memory<T> buffer);
 
     /// <inheritdoc cref="ReadCore"/>
-    protected abstract ValueTask<int> ReadAsyncCore(
-        Memory<T> buffer,
-        CancellationToken cancellationToken);
+    protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);
 
     private readonly MemoryPool<T> _pool;
     private IMemoryOwner<T> _owner;
@@ -55,7 +54,8 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unman
     public CsvReadResult<T> Read()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        if (_completed) return new CsvReadResult<T>(_unread, true);
+        if (_completed)
+            return new CsvReadResult<T>(_unread, true);
 
         MoveUnreadToFront();
 
@@ -72,7 +72,8 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T> where T : unman
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         if (cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken);
-        if (_completed) return new ValueTask<CsvReadResult<T>>(new CsvReadResult<T>(_unread, true));
+        if (_completed)
+            return new ValueTask<CsvReadResult<T>>(new CsvReadResult<T>(_unread, true));
 
         MoveUnreadToFront();
 

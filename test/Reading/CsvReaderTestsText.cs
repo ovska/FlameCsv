@@ -14,10 +14,8 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         return CsvBufferReader.Create(
             new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
             options.Allocator,
-            new CsvIOOptions {
-                BufferSize = bufferSize, MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2
-
-            });
+            new CsvIOOptions { BufferSize = bufferSize, MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2 }
+        );
     }
 
     [Fact]
@@ -26,7 +24,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         string name = new('x', 512);
         string data = $"0,{name},true,{DateTime.UnixEpoch:o},{Guid.Empty}{Environment.NewLine}";
 
-        List<Obj> objs = [..CsvReader.Read<Obj>(data, new CsvOptions<char> { HasHeader = false })];
+        List<Obj> objs = [.. CsvReader.Read<Obj>(data, new CsvOptions<char> { HasHeader = false })];
 
         Assert.Single(objs);
         var obj = objs[0];

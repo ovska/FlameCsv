@@ -3,7 +3,8 @@
 /// <summary>
 /// Instance of a type that writes objects/structs as CSV records.
 /// </summary>
-public interface IDematerializer<T, in TValue> where T : unmanaged, IBinaryInteger<T>
+public interface IDematerializer<T, in TValue>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Number of fields the instance will write.

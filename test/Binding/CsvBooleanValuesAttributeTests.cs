@@ -10,8 +10,8 @@ namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests
 {
-    public static TheoryData<string, bool, bool?> NonNullableTestData
-        => new()
+    public static TheoryData<string, bool, bool?> NonNullableTestData =>
+        new()
         {
             { "1", true, true },
             { "Y", true, true },
@@ -23,8 +23,8 @@ public static class CsvBooleanValuesAttributeTests
             { "KYLLÄ", true, true },
         };
 
-    public static TheoryData<string, bool, bool?, string> NullableTestData
-        => new()
+    public static TheoryData<string, bool, bool?, string> NullableTestData =>
+        new()
         {
             { "1", true, true, "" },
             { "Y", true, true, "" },
@@ -46,9 +46,11 @@ public static class CsvBooleanValuesAttributeTests
         [CsvBooleanValues(TrueValues = ["1", "Y", "Kyllä"], FalseValues = ["0", "N"], IgnoreCase = false)]
         public bool? IsEnabledN { get; set; }
 
-        [CsvBooleanValues(TrueValues = ["1"])] public int InvalidType { get; set; }
+        [CsvBooleanValues(TrueValues = ["1"])]
+        public int InvalidType { get; set; }
 
-        [CsvBooleanValues] public bool NoValues { get; set; }
+        [CsvBooleanValues]
+        public bool NoValues { get; set; }
     }
 
     [Fact]
@@ -158,8 +160,9 @@ public static class CsvBooleanValuesAttributeTests
 
             Assert.False(parser.TryParse(CsvOptions<T>.Default.GetFromString("y").Span, out _));
             Assert.True(
-                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value) &&
-                value.GetValueOrDefault());
+                parser.TryParse(CsvOptions<T>.Default.GetFromString("Y").Span, out var value)
+                    && value.GetValueOrDefault()
+            );
         }
     }
 
@@ -182,12 +185,14 @@ public static class CsvBooleanValuesAttributeTests
         var opts = new CsvOptions<char> { BooleanValues = { ("t", true), ("f", false) } };
 
         Assert.ThrowsAny<CsvConfigurationException>(() =>
-            new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.CurrentCulture }));
+            new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.CurrentCulture })
+        );
 
         // no exception
         _ = new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.Ordinal });
         _ = new CustomBooleanConverter<char>(
-            new CsvOptions<char>(opts) { Comparer = StringComparer.OrdinalIgnoreCase });
+            new CsvOptions<char>(opts) { Comparer = StringComparer.OrdinalIgnoreCase }
+        );
     }
 
     private sealed class NotAlternateComparer : IEqualityComparer<string>

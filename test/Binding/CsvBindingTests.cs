@@ -66,37 +66,29 @@ public static class CsvBindingTests
     [Fact]
     public static void Should_Validate_Collection()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => new CsvBindingCollection<Class>(null!, false));
-        Assert.Throws<ArgumentException>(
-            () => new CsvBindingCollection<Class>([], false));
+        Assert.Throws<ArgumentNullException>(() => new CsvBindingCollection<Class>(null!, false));
+        Assert.Throws<ArgumentException>(() => new CsvBindingCollection<Class>([], false));
 
-        Assert.ThrowsAny<CsvBindingException>(
-            () => new CsvBindingCollection<Class>(
-                [CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1)],
-                false));
+        Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvBindingCollection<Class>([CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1)], false)
+        );
 
-        Assert.ThrowsAny<CsvBindingException>(
-            () => new CsvBindingCollection<Class>(
-                [
-                    CsvBinding.For<Class>(0, x => x.Id),
-                    CsvBinding.For<Class>(0, x => x.Name)
-                ],
-                false));
+        Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvBindingCollection<Class>(
+                [CsvBinding.For<Class>(0, x => x.Id), CsvBinding.For<Class>(0, x => x.Name)],
+                false
+            )
+        );
 
-        Assert.ThrowsAny<CsvBindingException>(
-            () => new CsvBindingCollection<Class>(
-                [
-                    CsvBinding.For<Class>(0, x => x.Id),
-                    CsvBinding.For<Class>(1, x => x.Id)
-                ],
-                false));
+        Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvBindingCollection<Class>(
+                [CsvBinding.For<Class>(0, x => x.Id), CsvBinding.For<Class>(1, x => x.Id)],
+                false
+            )
+        );
 
-        Assert.ThrowsAny<CsvBindingException>(
-            () => new CsvBindingCollection<Struct>(
-                [
-                    CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0])
-                ],
-                false));
+        Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvBindingCollection<Struct>([CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0])], false)
+        );
     }
 }

@@ -7,6 +7,7 @@ namespace FlameCsv.Tests.Converters;
 public class DefaultTextConverterTests : DefaultConverterTests<char>
 {
     protected override ReadOnlySpan<char> AsSpan(string? value) => value.AsSpan();
+
     protected override CsvConverterFactory<char> SpanFactory => SpanTextConverterFactory.Instance;
     protected override Type SpanConverterType => typeof(SpanTextConverter<>);
     protected override Type NumberConverterType => typeof(NumberTextConverter<>);
@@ -15,12 +16,14 @@ public class DefaultTextConverterTests : DefaultConverterTests<char>
 public class DefaultUtf8ConverterTests : DefaultConverterTests<byte>
 {
     protected override ReadOnlySpan<byte> AsSpan(string? value) => Encoding.UTF8.GetBytes(value ?? "");
+
     protected override CsvConverterFactory<byte> SpanFactory => SpanUtf8ConverterFactory.Instance;
     protected override Type SpanConverterType => typeof(SpanUtf8Converter<>);
     protected override Type NumberConverterType => typeof(NumberUtf8Converter<>);
 }
 
-public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class DefaultConverterTests<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly T[] _buffer = new T[128];
 
@@ -145,7 +148,8 @@ public abstract class DefaultConverterTests<T> where T : unmanaged, IBinaryInteg
         Execute(TNumber.MaxValue.ToString(null, CultureInfo.InvariantCulture), TNumber.MaxValue);
     }
 
-    private void RunInt<TNumber>() where TNumber : INumber<TNumber>, IMinMaxValue<TNumber>
+    private void RunInt<TNumber>()
+        where TNumber : INumber<TNumber>, IMinMaxValue<TNumber>
     {
         Execute("0", TNumber.Zero);
         Execute("1", TNumber.One);

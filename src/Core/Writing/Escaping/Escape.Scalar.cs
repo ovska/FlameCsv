@@ -19,14 +19,16 @@ internal static partial class Escape
         ref readonly TEscaper escaper,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
-        int specialCount)
+        int specialCount
+    )
         where T : unmanaged, IBinaryInteger<T>
         where TEscaper : struct, IEscaper<T>, allows ref struct
     {
         Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
-            "If src and dst overlap, they must have the same starting point in memory");
+            "If src and dst overlap, they must have the same starting point in memory"
+        );
 
         // Work backwards as the source and destination buffers might overlap
         nint srcRemaining = source.Length - 1;
@@ -52,7 +54,8 @@ internal static partial class Escape
                 (nuint)lastIndex,
                 ref dst,
                 (nuint)(dstRemaining - nonSpecialCount + 1),
-                (uint)nonSpecialCount);
+                (uint)nonSpecialCount
+            );
 
             srcRemaining -= nonSpecialCount;
             dstRemaining -= nonSpecialCount;
@@ -98,7 +101,8 @@ internal static partial class Escape
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length);
+                byteCount: (uint)Unsafe.SizeOf<T>() * length
+            );
         }
     }
 }

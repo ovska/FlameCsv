@@ -14,8 +14,7 @@ partial class TypeMapGenerator
         }
 
         bool wrapInNullable =
-            member.OverriddenConverter?.WrapInNullable ??
-            member.Type.SpecialType == SpecialType.System_Nullable_T;
+            member.OverriddenConverter?.WrapInNullable ?? member.Type.SpecialType == SpecialType.System_Nullable_T;
 
         bool builtinConversion = false;
 
@@ -40,7 +39,8 @@ partial class TypeMapGenerator
             else
             {
                 writer.Write(
-                    member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<");
+                    member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<"
+                );
 
                 Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
                 writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
@@ -101,7 +101,8 @@ partial class TypeMapGenerator
         writer.WriteLine("/// </remarks>");
 
         writer.WriteLine(
-            $"public static {typeMap.TypeMap.FullyQualifiedName} Default {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}()");
+            $"public static {typeMap.TypeMap.FullyQualifiedName} Default {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}()"
+        );
         writer.WriteLine("{");
         writer.IncreaseIndent();
         writer.Write("IgnoreUnmatched = ");
@@ -118,7 +119,8 @@ partial class TypeMapGenerator
     private static bool TryGetBuiltinConversion(
         string token,
         IMemberModel member,
-        [NotNullWhen(true)] out string? methodName)
+        [NotNullWhen(true)] out string? methodName
+    )
     {
         var status = member.Convertability;
 
@@ -159,7 +161,8 @@ partial class TypeMapGenerator
         ref readonly TypeMapModel model,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector,
-        out SortedDictionary<int, IMemberModel?>? dict)
+        out SortedDictionary<int, IMemberModel?>? dict
+    )
     {
         dict = null;
         bool retVal = false;
@@ -174,8 +177,10 @@ partial class TypeMapGenerator
 
             foreach (var member in model.AllMembers)
             {
-                if (member.Index is not { } index) continue;
-                if (write ? !member.CanWrite : !member.CanRead) continue;
+                if (member.Index is not { } index)
+                    continue;
+                if (write ? !member.CanWrite : !member.CanRead)
+                    continue;
 
                 dict ??= MemberDictPool.Acquire();
 
@@ -201,7 +206,8 @@ partial class TypeMapGenerator
 
                 // conflicting bindings
                 collector.AddDiagnostic(
-                    Diagnostics.ConflictingIndex(symbols.TargetType, $"{member.Identifier} ({member.Kind})"));
+                    Diagnostics.ConflictingIndex(symbols.TargetType, $"{member.Identifier} ({member.Kind})")
+                );
                 return false;
             }
 

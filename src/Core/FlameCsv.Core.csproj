@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <RootNamespace>FlameCsv</RootNamespace>
         <IsTrimmable>true</IsTrimmable>
@@ -8,14 +7,21 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <DefineConstants>$(DefineConstants);LIGHT_EXPRESSION</DefineConstants>
     </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0"/>
-        <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" PrivateAssets="all" ReferenceOutputAssembly="false"/>
-        <PackageReference Include="FastExpressionCompiler.LightExpression.Internal.src" Version="5.1.1" PrivateAssets="All"/>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+        <PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+        <PackageReference
+            Include="JetBrains.Annotations"
+            Version="2024.3.0"
+            PrivateAssets="all"
+            ReferenceOutputAssembly="false"
+        />
+        <PackageReference
+            Include="FastExpressionCompiler.LightExpression.Internal.src"
+            Version="5.1.1"
+            PrivateAssets="All"
+        />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     </ItemGroup>
-
     <!-- Nuget -->
     <PropertyGroup>
         <Authors>ovska</Authors>
@@ -29,7 +35,6 @@
         <RepositoryUrl>https://github.com/ovska/FlameCsv</RepositoryUrl>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-
         <!-- Debugging -->
         <DebugSymbols>true</DebugSymbols>
         <DebugType>embedded</DebugType>
@@ -37,31 +42,39 @@
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     </PropertyGroup>
-
     <ItemGroup>
-        <ProjectReference Include="..\SourceGen\FlameCsv.SourceGen.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" PrivateAssets="all"/>
-        <None Include="..\SourceGen\bin\$(Configuration)\netstandard2.0\FlameCsv.SourceGen.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
-        <None Include="Properties/icon.png" Pack="true" PackagePath=""/>
-        <None Include="Properties/README.md" Pack="true" PackagePath=""/>
+        <ProjectReference
+            Include="..\SourceGen\FlameCsv.SourceGen.csproj"
+            ReferenceOutputAssembly="false"
+            OutputItemType="Analyzer"
+            PrivateAssets="all"
+        />
+        <None
+            Include="..\SourceGen\bin\$(Configuration)\netstandard2.0\FlameCsv.SourceGen.dll"
+            Pack="true"
+            PackagePath="analyzers/dotnet/cs"
+            Visible="false"
+        />
+        <None Include="Properties/icon.png" Pack="true" PackagePath="" />
+        <None Include="Properties/README.md" Pack="true" PackagePath="" />
         <None Update="Reading\Materializer.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
         </None>
         <None Update="CsvReader.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>CsvReader.Generated.cs</LastGenOutput>
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>CsvReader.Generated.cs</LastGenOutput>
         </None>
         <None Update="Writing\Dematerializer.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>Dematerializer.Generated.cs</LastGenOutput>
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>Dematerializer.Generated.cs</LastGenOutput>
         </None>
         <None Update="CsvWriter.Generated.tt">
-          <Generator>TextTemplatingFileGenerator</Generator>
-          <LastGenOutput>CsvWriter.Generated.cs</LastGenOutput>
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>CsvWriter.Generated.cs</LastGenOutput>
         </None>
     </ItemGroup>
     <!-- Nuget -->
-
     <!-- Templates -->
     <ItemGroup>
         <None Update="Intrinsics\ISimdVector.Generated.tt">
@@ -69,7 +82,6 @@
             <LastGenOutput>ISimdVector.Generated.cs</LastGenOutput>
         </None>
     </ItemGroup>
-
     <ItemGroup>
         <Compile Update="CsvReader.Records.cs">
             <DependentUpon>CsvReader.cs</DependentUpon>
@@ -113,38 +125,36 @@
             <DependentUpon>ISimdVector.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="Reflection\ParameterData.cs">
-          <DependentUpon>ReflectionData.cs</DependentUpon>
+            <DependentUpon>ReflectionData.cs</DependentUpon>
         </Compile>
         <Compile Update="Reflection\MemberData.cs">
-          <DependentUpon>ReflectionData.cs</DependentUpon>
+            <DependentUpon>ReflectionData.cs</DependentUpon>
         </Compile>
         <Compile Update="Reading\Materializer.Generated.cs">
-          <AutoGen>True</AutoGen>
-          <DependentUpon>Materializer.Generated.tt</DependentUpon>
-          <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Materializer.Generated.tt</DependentUpon>
+            <DesignTime>True</DesignTime>
         </Compile>
         <Compile Update="CsvReader.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>CsvReader.Generated.tt</DependentUpon>
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>CsvReader.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="Writing\Dematerializer.Generated.cs">
-          <DesignTime>True</DesignTime>
-          <AutoGen>True</AutoGen>
-          <DependentUpon>Dematerializer.Generated.tt</DependentUpon>
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>Dematerializer.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="CsvWriter.Generated.cs">
-          <AutoGen>True</AutoGen>
-          <DesignTime>True</DesignTime>
-          <DependentUpon>CsvWriter.Generated.tt</DependentUpon>
+            <AutoGen>True</AutoGen>
+            <DesignTime>True</DesignTime>
+            <DependentUpon>CsvWriter.Generated.tt</DependentUpon>
         </Compile>
     </ItemGroup>
-
     <ItemGroup>
-        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}"/>
+        <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
     </ItemGroup>
     <!-- Templates -->
-
     <!-- Test projects -->
     <ItemGroup Condition="'$(IncludeInternalsVisibleTo)' == 'true'">
         <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
@@ -173,5 +183,4 @@
         </AssemblyAttribute>
     </ItemGroup>
     <!-- Test projects -->
-
 </Project>

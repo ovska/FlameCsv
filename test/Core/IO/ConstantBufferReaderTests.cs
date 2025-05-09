@@ -39,7 +39,8 @@ public static class ConstantBufferReaderTests
         // only fall back to sequence reader if we have to
         Assert.IsType<ConstantSequenceReader<char>>(CsvBufferReader.Create(MemorySegment.Create("abc", "xyz")));
         Assert.IsType<ConstantBufferReader<char>>(
-            CsvBufferReader.Create(new StringBuilder("abc").Append(new StringBuilder("xyz"))));
+            CsvBufferReader.Create(new StringBuilder("abc").Append(new StringBuilder("xyz")))
+        );
     }
 
     [Fact]
@@ -52,10 +53,9 @@ public static class ConstantBufferReaderTests
         static void Impl(Stream stream)
         {
             using (stream)
-            using (var reader = CsvBufferReader.Create(
-                       stream,
-                       HeapMemoryPool<byte>.Instance,
-                       new() { LeaveOpen = true }))
+            using (
+                var reader = CsvBufferReader.Create(stream, HeapMemoryPool<byte>.Instance, new() { LeaveOpen = true })
+            )
             {
                 Assert.IsNotType<ConstantBufferReader<byte>>(reader);
             }
@@ -64,9 +64,8 @@ public static class ConstantBufferReaderTests
 
     private class DerivedStringReader : StringReader
     {
-        public DerivedStringReader(string s) : base(s)
-        {
-        }
+        public DerivedStringReader(string s)
+            : base(s) { }
     }
 
     [Fact]
@@ -79,10 +78,9 @@ public static class ConstantBufferReaderTests
         static void Impl(TextReader reader)
         {
             using (reader)
-            using (var pipe = CsvBufferReader.Create(
-                       reader,
-                       HeapMemoryPool<char>.Instance,
-                       new() { BufferSize = 4096 }))
+            using (
+                var pipe = CsvBufferReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 })
+            )
             {
                 Assert.IsNotType<ConstantBufferReader<char>>(pipe);
             }

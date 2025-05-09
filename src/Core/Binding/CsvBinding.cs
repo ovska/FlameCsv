@@ -69,7 +69,8 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     [RDC(Messages.Reflection)]
     public static CsvBinding<T> For<[DAM(Messages.ReflectionBound)] T>(
         int index,
-        Expression<Func<T, object?>> memberExpression)
+        Expression<Func<T, object?>> memberExpression
+    )
     {
         ArgumentNullException.ThrowIfNull(memberExpression);
         return ForMember<T>(index, memberExpression.GetMemberInfo());
@@ -84,7 +85,8 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     public static CsvBinding<T> ForMember<[DAM(Messages.ReflectionBound)] T>(
         int index,
         MemberInfo member,
-        string? header = null)
+        string? header = null
+    )
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
         ArgumentNullException.ThrowIfNull(member);
@@ -133,9 +135,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns a binding targeting the specified header binding match.
     /// </summary>
     [RDC(Messages.Reflection)]
-    internal static CsvBinding<T> FromBindingData<[DAM(Messages.ReflectionBound)] T>(
-        int index,
-        in BindingData data)
+    internal static CsvBinding<T> FromBindingData<[DAM(Messages.ReflectionBound)] T>(int index, in BindingData data)
     {
         return data.Target switch
         {

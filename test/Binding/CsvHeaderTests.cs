@@ -13,7 +13,8 @@ public static class CsvHeaderTests
         Impl<byte>();
         Impl<char>();
 
-        void Impl<T>() where T : unmanaged, IBinaryInteger<T>
+        void Impl<T>()
+            where T : unmanaged, IBinaryInteger<T>
         {
             CsvHeader.HeaderPool?.Reset();
             var buffer = new char[32];
@@ -33,6 +34,5 @@ public static class CsvHeaderTests
                 Assert.NotSame(header1, header2);
             }
         }
-
     }
 }

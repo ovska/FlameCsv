@@ -15,19 +15,17 @@ public static class WriterEdgeCaseTests
 
         await using (StringWriter sw = new())
         {
-            await Assert.ThrowsAsync<InvalidDataException>(() => CsvWriter.WriteAsync(
-                sw,
-                InvalidData(),
-                cancellationToken: TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                CsvWriter.WriteAsync(sw, InvalidData(), cancellationToken: TestContext.Current.CancellationToken)
+            );
             Assert.Empty(sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await Assert.ThrowsAsync<InvalidDataException>(() => CsvWriter.WriteAsync(
-                sw,
-                InvalidDataAsync(),
-                cancellationToken: TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                CsvWriter.WriteAsync(sw, InvalidDataAsync(), cancellationToken: TestContext.Current.CancellationToken)
+            );
             Assert.Empty(sw.ToString());
         }
 
@@ -73,11 +71,7 @@ public static class WriterEdgeCaseTests
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync(
-                sw,
-                Empty(),
-                options,
-                cancellationToken: TestContext.Current.CancellationToken);
+            await CsvWriter.WriteAsync(sw, Empty(), options, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(header, sw.ToString());
         }
 
@@ -87,7 +81,8 @@ public static class WriterEdgeCaseTests
                 sw,
                 SyncAsyncEnumerable.Create(Empty()),
                 options,
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken
+            );
             Assert.Equal(header, sw.ToString());
         }
     }
@@ -119,11 +114,7 @@ public static class WriterEdgeCaseTests
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync(
-                sw,
-                Empty(),
-                options,
-                cancellationToken: TestContext.Current.CancellationToken);
+            await CsvWriter.WriteAsync(sw, Empty(), options, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal("\r\n", sw.ToString());
         }
 
@@ -133,7 +124,8 @@ public static class WriterEdgeCaseTests
                 sw,
                 SyncAsyncEnumerable.Create(Empty()),
                 options,
-                cancellationToken: TestContext.Current.CancellationToken);
+                cancellationToken: TestContext.Current.CancellationToken
+            );
             Assert.Equal("\r\n", sw.ToString());
         }
     }

@@ -15,8 +15,9 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev")]
 public class ParallelBench
 {
-    private static readonly string _data =
-        File.ReadAllText(@"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv");
+    private static readonly string _data = File.ReadAllText(
+        @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Data\65K_Records_Data.csv"
+    );
 
     [Benchmark]
     public void Sync()
@@ -63,9 +64,7 @@ public class ParallelBench
     [Benchmark]
     public void Parallel()
     {
-        CsvParallel
-            .Enumerate<object?, Accumulator>(new(_data.AsMemory()), new Accumulator())
-            .ForAll(_ => { });
+        CsvParallel.Enumerate<object?, Accumulator>(new(_data.AsMemory()), new Accumulator()).ForAll(_ => { });
     }
 
     readonly struct Accumulator : ICsvParallelTryInvoke<char, object?>
@@ -93,7 +92,8 @@ public class ParallelBench
         public bool TryInvoke<TRecord>(
             scoped ref TRecord record,
             in CsvParallelState state,
-            [NotNullWhen(true)] out object? result)
+            [NotNullWhen(true)] out object? result
+        )
             where TRecord : ICsvFields<char>, allows ref struct
         {
             result = null!;
@@ -112,7 +112,8 @@ public class ParallelBench
                 }
             }
 
-            lock (_lock) totalRevenueValue.Value += totalRevenue;
+            lock (_lock)
+                totalRevenueValue.Value += totalRevenue;
 
             if (!_tsbcl.TryGetValue(country, out var unitsSoldValue))
             {

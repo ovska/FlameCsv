@@ -22,7 +22,8 @@ public static class ComparerTests
             left,
             right,
             leftBytes,
-            rightBytes);
+            rightBytes
+        );
 
         Test(
             StringComparer.OrdinalIgnoreCase.Equals(left, right),
@@ -30,7 +31,8 @@ public static class ComparerTests
             left,
             right,
             leftBytes,
-            rightBytes);
+            rightBytes
+        );
     }
 
     [Theory]
@@ -40,13 +42,7 @@ public static class ComparerTests
         byte[] leftBytes = Encoding.UTF8.GetBytes(left);
         byte[] rightBytes = Encoding.UTF8.GetBytes(right);
 
-        Test(
-            StringComparer.Ordinal.Equals(left, right),
-            Utf8Comparer.Ordinal,
-            left,
-            right,
-            leftBytes,
-            rightBytes);
+        Test(StringComparer.Ordinal.Equals(left, right), Utf8Comparer.Ordinal, left, right, leftBytes, rightBytes);
 
         Test(
             StringComparer.OrdinalIgnoreCase.Equals(left, right),
@@ -54,7 +50,8 @@ public static class ComparerTests
             left,
             right,
             leftBytes,
-            rightBytes);
+            rightBytes
+        );
     }
 
     private static void Test(
@@ -63,7 +60,8 @@ public static class ComparerTests
         string left,
         string right,
         byte[] leftBytes,
-        byte[] rightBytes)
+        byte[] rightBytes
+    )
     {
         var altCmp = (IAlternateEqualityComparer<ReadOnlySpan<byte>, string>)cmp;
 
@@ -95,8 +93,8 @@ public static class ComparerTests
         Assert.Equal(right, altCmp.Create(rightBytes));
     }
 
-    public static TheoryData<string, string> AsciiData
-        => new()
+    public static TheoryData<string, string> AsciiData =>
+        new()
         {
             { "", "" },
             { "", "a" },

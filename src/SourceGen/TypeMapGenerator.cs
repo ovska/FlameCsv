@@ -9,18 +9,17 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 {
     const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
 
-    const string NoInliningAttr
-        = "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+    const string NoInliningAttr =
+        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
 
-    const string EditorBrowsableNever
-        = "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+    const string EditorBrowsableNever =
+        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> typeMapDiagnostics
-            = context
-                .SyntaxProvider
-                .ForAttributeWithMetadataName(
+        IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> typeMapDiagnostics =
+            context
+                .SyntaxProvider.ForAttributeWithMetadataName(
                     "FlameCsv.Attributes.CsvTypeMapAttribute`2",
                     static (syntaxNode, cancellationToken) =>
                     {
@@ -30,9 +29,12 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
                     static (context, cancellationToken) =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        return (ContainingClass: (INamedTypeSymbol)context.TargetSymbol,
-                            Attribute: context.Attributes[0]);
-                    })
+                        return (
+                            ContainingClass: (INamedTypeSymbol)context.TargetSymbol,
+                            Attribute: context.Attributes[0]
+                        );
+                    }
+                )
                 .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
                 .WithTrackingName("FlameCsv_Target")
 #if SOURCEGEN_USE_COMPILATION
@@ -45,22 +47,26 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
                             containingClass: tuple.Left.ContainingClass,
                             attribute: tuple.Left.Attribute,
                             cancellationToken,
-                            out EquatableArray<Diagnostic> diagnostics);
+                            out EquatableArray<Diagnostic> diagnostics
+                        );
 
                         return (typeMap, diagnostics);
-                    })
+                    }
+                )
 #else
-            .Select(
-                static (value, cancellationToken) =>
-                {
-                    var typeMap = new TypeMapModel(
-                        containingClass: value.ContainingClass,
-                        attribute: value.Attribute,
-                        cancellationToken,
-                        out EquatableArray<Diagnostic> diagnostics);
+                .Select(
+                    static (value, cancellationToken) =>
+                    {
+                        var typeMap = new TypeMapModel(
+                            containingClass: value.ContainingClass,
+                            attribute: value.Attribute,
+                            cancellationToken,
+                            out EquatableArray<Diagnostic> diagnostics
+                        );
 
-                    return (typeMap, diagnostics);
-                })
+                        return (typeMap, diagnostics);
+                    }
+                )
 #endif
                 .WithTrackingName("FlameCsv_TypeMapAndDiagnostics");
 
@@ -68,26 +74,28 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
             typeMapDiagnostics.Select(static (tuple, _) => tuple.diagnostics).WithTrackingName("FlameCsv_Diagnostics"),
             static (context, diagnostics) =>
             {
-                foreach (var diagnostic in diagnostics) context.ReportDiagnostic(diagnostic);
-            });
+                foreach (var diagnostic in diagnostics)
+                    context.ReportDiagnostic(diagnostic);
+            }
+        );
 
         context.RegisterSourceOutput(
             typeMapDiagnostics.Select(static (tuple, _) => tuple.typeMap).WithTrackingName("FlameCsv_TypeMap"),
-            static (context, source) => Execute(in source, context));
+            static (context, source) => Execute(in source, context)
+        );
     }
 
     private static void Execute(ref readonly TypeMapModel typeMap, SourceProductionContext context)
     {
-        if (!typeMap.CanGenerateCode) return;
+        if (!typeMap.CanGenerateCode)
+            return;
 
         string sourceName = GlobalConstants.GetFileName(typeMap.TypeMap.Name, typeMap.WrappingTypes);
 
         context.AddSource(sourceName, CreateTypeMap(in typeMap, context.CancellationToken));
     }
 
-    private static SourceText CreateTypeMap(
-        ref readonly TypeMapModel typeMap,
-        CancellationToken cancellationToken)
+    private static SourceText CreateTypeMap(ref readonly TypeMapModel typeMap, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -116,7 +124,8 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(
-            $"partial class {typeMap.TypeMap.Name} : global::FlameCsv.Binding.CsvTypeMap<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+            $"partial class {typeMap.TypeMap.Name} : global::FlameCsv.Binding.CsvTypeMap<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>"
+        );
 
         using (writer.WriteBlock())
         {
@@ -144,7 +153,8 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 
         foreach (var member in typeMap.AllMembers)
         {
-            if (!member.CanRead) continue;
+            if (!member.CanRead)
+                continue;
 
             writer.Write("private const int ");
             member.WriteId(writer);

@@ -40,8 +40,9 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, new() { BufferSize = 1024 }));
+        Assert.Throws<ArgumentNullException>(() =>
+            new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, new() { BufferSize = 1024 })
+        );
     }
 
     [Fact]
@@ -140,8 +141,10 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(
-            async () => { await _writer.CompleteAsync(null, new CancellationToken(canceled: true)); });
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            await _writer.CompleteAsync(null, new CancellationToken(canceled: true));
+        });
     }
 
     [Fact]
@@ -149,11 +152,10 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     {
         Initialize();
 
-        await Assert.ThrowsAsync<UnreachableException>(
-            async () =>
-            {
-                await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
-            });
+        await Assert.ThrowsAsync<UnreachableException>(async () =>
+        {
+            await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
+        });
     }
 
     [MemberNotNull(nameof(_writer))]
@@ -162,6 +164,8 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         _writer = new PipeBufferWriter(
             PipeWriter.Create(
                 _memoryStream = new MemoryStream(),
-                new StreamPipeWriterOptions(minimumBufferSize: bufferSize)));
+                new StreamPipeWriterOptions(minimumBufferSize: bufferSize)
+            )
+        );
     }
 }

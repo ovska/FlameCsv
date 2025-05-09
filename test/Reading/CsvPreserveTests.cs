@@ -10,8 +10,11 @@ public sealed class CsvPreserveTests
 {
     private class Shim
     {
-        [CsvIndex(0)] public int Id { get; set; }
-        [CsvIndex(1)] public string? Name { get; set; }
+        [CsvIndex(0)]
+        public int Id { get; set; }
+
+        [CsvIndex(1)]
+        public string? Name { get; set; }
     }
 
     [Fact]
@@ -20,8 +23,9 @@ public sealed class CsvPreserveTests
         const string data = "1,\"Test\",true\r\n2,\"Asd\",false\r\n";
 
         using var enumerator = new CsvRecordEnumerable<char>(
-                data.AsMemory(),
-                new CsvOptions<char> { HasHeader = false })
+            data.AsMemory(),
+            new CsvOptions<char> { HasHeader = false }
+        )
             .Preserve()
             .GetEnumerator();
 
@@ -45,10 +49,12 @@ public sealed class CsvPreserveTests
 
         int index = 0;
 
-        foreach (var record in new CsvRecordEnumerable<char>(
-                         data.AsMemory(),
-                         new CsvOptions<char> { HasHeader = false })
-                     .Preserve())
+        foreach (
+            var record in new CsvRecordEnumerable<char>(
+                data.AsMemory(),
+                new CsvOptions<char> { HasHeader = false }
+            ).Preserve()
+        )
         {
             var shim = record.ParseRecord<Shim>();
             Assert.Equal(index + 1, shim.Id);
@@ -97,7 +103,8 @@ public sealed class CsvPreserveTests
         Assert.True(_3);
 
         Assert.True(
-            record.TryParseField(new NumberTextConverter<int>(record.Options, NumberStyles.Integer), 0, out _1));
+            record.TryParseField(new NumberTextConverter<int>(record.Options, NumberStyles.Integer), 0, out _1)
+        );
         Assert.Equal(1, _1);
     }
 
@@ -119,8 +126,9 @@ public sealed class CsvPreserveTests
     public void Should_Return_Fields_By_Name()
     {
         using var enumerator = new CsvRecordEnumerable<char>(
-                "A,B,C\r\n1,2,3".AsMemory(),
-                new CsvOptions<char> { HasHeader = true })
+            "A,B,C\r\n1,2,3".AsMemory(),
+            new CsvOptions<char> { HasHeader = true }
+        )
             .Preserve()
             .GetEnumerator();
 

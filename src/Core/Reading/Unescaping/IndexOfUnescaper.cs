@@ -6,10 +6,7 @@ namespace FlameCsv.Reading.Unescaping;
 
 internal static class IndexOfUnescaper
 {
-    public static void Field<T, TUnescaper>(
-        ReadOnlySpan<T> field,
-        TUnescaper unescaper,
-        scoped Span<T> destination)
+    public static void Field<T, TUnescaper>(ReadOnlySpan<T> field, TUnescaper unescaper, scoped Span<T> destination)
         where T : unmanaged, IBinaryInteger<T>
         where TUnescaper : struct, IIndexOfUnescaper<T>
     {
@@ -45,7 +42,8 @@ internal static class IndexOfUnescaper
     }
 
     [DoesNotReturn]
-    public static void Invalid<T>(ReadOnlySpan<T> field, ref readonly Meta meta) where T : unmanaged, IBinaryInteger<T>
+    public static void Invalid<T>(ReadOnlySpan<T> field, ref readonly Meta meta)
+        where T : unmanaged, IBinaryInteger<T>
     {
         string str;
 

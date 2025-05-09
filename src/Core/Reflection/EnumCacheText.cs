@@ -6,7 +6,8 @@ using FlameCsv.Utilities;
 namespace FlameCsv.Reflection;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum> where TEnum : struct, Enum
+internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum>
+    where TEnum : struct, Enum
 {
     [ExcludeFromCodeCoverage]
     static EnumCacheText()
@@ -19,7 +20,8 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum> where TEnum 
                 _valuesIgnoreCase = null;
                 _namesNumeric = null;
                 _namesString = null;
-            });
+            }
+        );
     }
 
     private static FrozenDictionary<string, TEnum>? _valuesOrdinal;
@@ -40,11 +42,13 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum> where TEnum 
 
     public static FrozenDictionary<string, TEnum>.AlternateLookup<ReadOnlySpan<char>> GetReadValues(bool ignoreCase)
     {
-        return (ignoreCase switch
-        {
-            false => _valuesOrdinal ??= InitValues(false),
-            true => _valuesIgnoreCase ??= InitValues(true),
-        }).GetAlternateLookup<ReadOnlySpan<char>>();
+        return (
+            ignoreCase switch
+            {
+                false => _valuesOrdinal ??= InitValues(false),
+                true => _valuesIgnoreCase ??= InitValues(true),
+            }
+        ).GetAlternateLookup<ReadOnlySpan<char>>();
     }
 
     private static FrozenDictionary<TEnum, string> InitNames(Func<EnumMember, string> selector)
@@ -79,6 +83,7 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum> where TEnum 
     }
 
     private static string ToNumber(EnumMember member) => member.Value.ToString("D");
+
     private static string ToString(EnumMember member) => member.ExplicitName ?? member.Name;
 
     public static bool IsDefinedCore(TEnum value)

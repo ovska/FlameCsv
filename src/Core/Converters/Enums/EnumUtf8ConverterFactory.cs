@@ -16,8 +16,6 @@ internal sealed class EnumUtf8ConverterFactory : CsvConverterFactory<byte>
 
     public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
     {
-        return typeof(EnumUtf8Converter<>)
-            .MakeGenericType(type)
-            .CreateInstance<CsvConverter<byte>>(options);
+        return typeof(EnumUtf8Converter<>).MakeGenericType(type).CreateInstance<CsvConverter<byte>>(options);
     }
 }

@@ -3,7 +3,8 @@
 namespace FlameCsv.Writing.Escaping;
 
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T> where T : unmanaged, IBinaryInteger<T>
+internal readonly struct RFC4180Escaper<T>(T quote) : IEscaper<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public T Quote
     {

@@ -23,7 +23,8 @@ public partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private TrimmingCache<CacheKey, object> InitializeBindingCache()
     {
-        if (FlameCsvGlobalOptions.CachingDisabled) Throw.Unreachable("Caching is disabled.");
+        if (FlameCsvGlobalOptions.CachingDisabled)
+            Throw.Unreachable("Caching is disabled.");
 
         TrimmingCache<CacheKey, object> instance = [];
 
@@ -40,7 +41,8 @@ public partial class CsvOptions<T>
     internal IMaterializer<T, TValue> GetMaterializer<TValue>(
         ImmutableArray<string> headers,
         bool ignoreUnmatched,
-        [RequireStaticDelegate] Func<CsvOptions<T>, ImmutableArray<string>, bool, IMaterializer<T, TValue>> valueFactory)
+        [RequireStaticDelegate] Func<CsvOptions<T>, ImmutableArray<string>, bool, IMaterializer<T, TValue>> valueFactory
+    )
     {
         MakeReadOnly();
 
@@ -64,7 +66,8 @@ public partial class CsvOptions<T>
         CsvTypeMap<T, TValue> typeMap,
         ImmutableArray<string> headers,
         [RequireStaticDelegate]
-        Func<CsvOptions<T>, CsvTypeMap<T, TValue>, ImmutableArray<string>, IMaterializer<T, TValue>> valueFactory)
+            Func<CsvOptions<T>, CsvTypeMap<T, TValue>, ImmutableArray<string>, IMaterializer<T, TValue>> valueFactory
+    )
     {
         MakeReadOnly();
 
@@ -85,7 +88,8 @@ public partial class CsvOptions<T>
     }
 
     internal IDematerializer<T, TValue> GetDematerializer<TValue>(
-        [RequireStaticDelegate] Func<CsvOptions<T>, IDematerializer<T, TValue>> valueFactory)
+        [RequireStaticDelegate] Func<CsvOptions<T>, IDematerializer<T, TValue>> valueFactory
+    )
     {
         MakeReadOnly();
 
@@ -107,7 +111,8 @@ public partial class CsvOptions<T>
 
     internal IDematerializer<T, TValue> GetDematerializer<TValue>(
         CsvTypeMap<T, TValue> typeMap,
-        [RequireStaticDelegate] Func<CsvOptions<T>, CsvTypeMap<T, TValue>, IDematerializer<T, TValue>> valueFactory)
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvTypeMap<T, TValue>, IDematerializer<T, TValue>> valueFactory
+    )
     {
         MakeReadOnly();
 
@@ -133,7 +138,8 @@ public partial class CsvOptions<T>
             CsvOptions<T> options,
             Type target,
             bool ignoreUnmatched,
-            ImmutableArray<string> headers)
+            ImmutableArray<string> headers
+        )
         {
             return new(options, false, target, ignoreUnmatched, headers);
         }
@@ -142,7 +148,8 @@ public partial class CsvOptions<T>
             CsvOptions<T> options,
             CsvTypeMap target,
             bool ignoreUnmatched,
-            ImmutableArray<string> headers)
+            ImmutableArray<string> headers
+        )
         {
             return new(options, false, target, ignoreUnmatched, headers);
         }
@@ -176,7 +183,8 @@ public partial class CsvOptions<T>
             bool write,
             object target,
             bool ignoreUnmatched,
-            ImmutableArray<string> headers)
+            ImmutableArray<string> headers
+        )
         {
             Debug.Assert(target is CsvTypeMap or Type);
 
@@ -189,12 +197,11 @@ public partial class CsvOptions<T>
 
         public bool Equals(CacheKey other)
         {
-            return
-                _write == other._write &&
-                _ignoreUnmatched == other._ignoreUnmatched &&
-                ReferenceEquals(_target, other._target) &&
-                ReferenceEquals(_comparer, other._comparer) &&
-                _headers.AsSpan().SequenceEqual(other._headers.AsSpan(), _comparer);
+            return _write == other._write
+                && _ignoreUnmatched == other._ignoreUnmatched
+                && ReferenceEquals(_target, other._target)
+                && ReferenceEquals(_comparer, other._comparer)
+                && _headers.AsSpan().SequenceEqual(other._headers.AsSpan(), _comparer);
         }
 
         public override bool Equals(object? obj) => obj is CacheKey ck && Equals(ck);

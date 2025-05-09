@@ -14,7 +14,10 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev")]
 public partial class WriteBench
 {
-    [Params(/*5, 1_000,*/ 10_000)] public int Count { get; set; }
+    [Params( /*5, 1_000,*/
+        10_000
+    )]
+    public int Count { get; set; }
 
     [Benchmark]
     public void CsvHelper_Records()
@@ -237,7 +240,8 @@ public partial class WriteBench
 
         for (int i = 0; i < _data.Length; i++)
         {
-            if (writer.Writer.NeedsFlush) writer.Writer.Flush();
+            if (writer.Writer.NeedsFlush)
+                writer.Writer.Flush();
 
             Obj obj = _data[i];
             writer.WriteField(c1, obj.Index);
@@ -268,17 +272,21 @@ public partial class WriteBench
     [Benchmark]
     public void Sepp()
     {
-        using var writer = Sep
-            .Writer(
-                c => c with
-                {
-                    Sep = new(','),
-                    Escape = true,
-                    WriteHeader = true,
-                })
+        using var writer = Sep.Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true })
             .To(TextWriter.Null);
 
-        writer.Header.Add("Index", "Name", "Contact", "Count", "Latitude", "Longitude", "Height", "Location", "Category", "Popularity");
+        writer.Header.Add(
+            "Index",
+            "Name",
+            "Contact",
+            "Count",
+            "Latitude",
+            "Longitude",
+            "Height",
+            "Location",
+            "Category",
+            "Popularity"
+        );
 
         int count = 0;
 
@@ -309,8 +317,14 @@ public partial class WriteBench
     [GlobalSetup]
     public void Setup()
     {
-        _data = CsvReader.Read<Obj>(File.ReadAllBytes(
-            "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"), new() { HasHeader = false }).ToArray();
+        _data = CsvReader
+            .Read<Obj>(
+                File.ReadAllBytes(
+                    "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"
+                ),
+                new() { HasHeader = false }
+            )
+            .ToArray();
     }
 
     private Obj[] _data = null!;

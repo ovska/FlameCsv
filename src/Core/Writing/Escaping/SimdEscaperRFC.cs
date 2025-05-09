@@ -33,9 +33,7 @@ internal readonly struct SimdEscaperRFC<T, TVector> : ISimdEscaper<T, TVector>
     {
         TVector hasQuote = TVector.Equals(value, _quote);
         TVector hasDelimiterOrNewline =
-            TVector.Equals(value, _delimiter) |
-            TVector.Equals(value, _newline1) |
-            TVector.Equals(value, _newline2);
+            TVector.Equals(value, _delimiter) | TVector.Equals(value, _newline1) | TVector.Equals(value, _newline2);
         uint mask = (uint)hasQuote.ExtractMostSignificantBits();
         needsQuoting |= (hasQuote | hasDelimiterOrNewline);
         return mask;

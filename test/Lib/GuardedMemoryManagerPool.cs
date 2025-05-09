@@ -6,7 +6,8 @@ using System.Runtime.Versioning;
 namespace FlameCsv.Tests;
 
 [SupportedOSPlatform("windows")]
-public sealed class GuardedMemoryManagerPool<T>(bool fromEnd) : MemoryPool<T> where T : unmanaged
+public sealed class GuardedMemoryManagerPool<T>(bool fromEnd) : MemoryPool<T>
+    where T : unmanaged
 {
     public bool IsDisposed { get; private set; }
     public bool FromEnd => fromEnd;
@@ -44,9 +45,7 @@ public sealed class GuardedMemoryManagerPool<T>(bool fromEnd) : MemoryPool<T> wh
             {
                 item.Key.Dispose();
             }
-            catch (ObjectDisposedException)
-            {
-            }
+            catch (ObjectDisposedException) { }
         }
 
         IsDisposed = true;
@@ -70,10 +69,11 @@ public sealed class GuardedMemoryManagerPool<T>(bool fromEnd) : MemoryPool<T> wh
 
                 if (!pool._leases.TryRemove(this, out StackTrace? stackTrace))
                 {
-                    throw new InvalidOperationException($"Memory of len {length} did not originate from the same pool - {stackTrace}");
+                    throw new InvalidOperationException(
+                        $"Memory of len {length} did not originate from the same pool - {stackTrace}"
+                    );
                 }
             }
         }
     }
 }
-

@@ -13,9 +13,11 @@ internal readonly struct ConstructorModel
         bool isOnAssembly,
         ITypeSymbol targetType,
         AttributeData attribute,
-        ref readonly FlameSymbols symbols)
+        ref readonly FlameSymbols symbols
+    )
     {
-        if (!symbols.IsCsvConstructorAttribute(attribute.AttributeClass)) return null;
+        if (!symbols.IsCsvConstructorAttribute(attribute.AttributeClass))
+            return null;
 
         bool needType = isOnAssembly;
         ImmutableArray<TypedConstant> types = default;
@@ -56,7 +58,8 @@ internal readonly struct ConstructorModel
         ConstructorModel? typeConstructorAttribute,
         CancellationToken cancellationToken,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -74,9 +77,12 @@ internal readonly struct ConstructorModel
 
                     for (int i = 0; i < ctor.Parameters.Length; i++)
                     {
-                        if (!SymbolEqualityComparer.Default.Equals(
+                        if (
+                            !SymbolEqualityComparer.Default.Equals(
                                 ctor.Parameters[i].Type,
-                                typeAttr.Types[i].Value as ITypeSymbol))
+                                typeAttr.Types[i].Value as ITypeSymbol
+                            )
+                        )
                         {
                             match = false;
                             break;
@@ -98,7 +104,9 @@ internal readonly struct ConstructorModel
                     Diagnostics.NoMatchingConstructor(
                         targetType,
                         typeAttr.Types.Select(t => t.Value as ITypeSymbol),
-                        typeAttr.Attribute.GetLocation()));
+                        typeAttr.Attribute.GetLocation()
+                    )
+                );
 
                 MarkParametersAsHandled(ref collector);
                 return [];
@@ -135,12 +143,7 @@ internal readonly struct ConstructorModel
         // check if the constructor is not null and is accessible
         if (constructor is { DeclaredAccessibility: not (Accessibility.Private or Accessibility.Protected) })
         {
-            return ParameterModel.Create(
-                tokenSymbol,
-                targetType,
-                constructor,
-                in symbols,
-                ref collector);
+            return ParameterModel.Create(tokenSymbol, targetType, constructor, in symbols, ref collector);
         }
 
         collector.AddDiagnostic(Diagnostics.NoValidConstructor(targetType, constructor));

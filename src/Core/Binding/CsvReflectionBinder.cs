@@ -19,7 +19,8 @@ public abstract class CsvReflectionBinder
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, [DAM(Messages.ReflectionBound)] TValue>(
         CsvOptions<T> options,
         ImmutableArray<string> headerFields,
-        bool ignoreUnmatched)
+        bool ignoreUnmatched
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         var configuration = AttributeConfiguration.GetFor<TValue>(write: false);
@@ -33,7 +34,8 @@ public abstract class CsvReflectionBinder
 
             foreach (ref readonly var data in configuration.Value)
             {
-                if (data.Ignored) continue;
+                if (data.Ignored)
+                    continue;
 
                 bool match = options.Comparer.Equals(data.Name, field);
 
@@ -52,7 +54,8 @@ public abstract class CsvReflectionBinder
             if (binding is null && !ignoreUnmatched)
             {
                 throw new CsvBindingException(
-                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}");
+                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}"
+                );
             }
 
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
@@ -64,7 +67,8 @@ public abstract class CsvReflectionBinder
     [RUF(Messages.Reflection)]
     [RDC(Messages.DynamicCode)]
     private protected static IDematerializer<T, TValue> Create<T, [DAM(Messages.ReflectionBound)] TValue>(
-        CsvOptions<T> options)
+        CsvOptions<T> options
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvBindingCollection<TValue>? bindingCollection;
@@ -73,12 +77,15 @@ public abstract class CsvReflectionBinder
         {
             bindingCollection = GetWriteHeaders<T, TValue>();
         }
-        else if (!MaterializerExtensions.TryGetTupleBindings<T, TValue>(write: true, out bindingCollection) &&
-                 !IndexAttributeBinder<TValue>.TryGetBindings(write: true, out bindingCollection))
+        else if (
+            !MaterializerExtensions.TryGetTupleBindings<T, TValue>(write: true, out bindingCollection)
+            && !IndexAttributeBinder<TValue>.TryGetBindings(write: true, out bindingCollection)
+        )
         {
             throw new CsvBindingException<TValue>(
-                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no " +
-                "[CsvIndex]-attributes.");
+                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no "
+                    + "[CsvIndex]-attributes."
+            );
         }
 
         var bindings = bindingCollection.MemberBindings;
@@ -154,7 +161,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RUF(Messages.Reflection)]
     [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>(
-        ImmutableArray<string> headers)
+        ImmutableArray<string> headers
+    )
     {
         Throw.IfDefaultOrEmpty(headers);
 
@@ -165,7 +173,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
             {
                 var bindings = GetReadBindings<T, TValue>(options, headers, ignoreUnmatched);
                 return options.CreateMaterializerFrom(bindings);
-            });
+            }
+        );
     }
 
     /// <inheritdoc />
@@ -179,7 +188,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
         return _options.GetMaterializer(
             [],
             false,
-            static (options, _, _) => options.GetMaterializerNoHeader<T, TValue>());
+            static (options, _, _) => options.GetMaterializerNoHeader<T, TValue>()
+        );
     }
 
     /// <inheritoc />

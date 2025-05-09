@@ -9,22 +9,16 @@ namespace FlameCsv.Utilities;
 
 internal static class Utf8Util
 {
-    internal static bool SequenceEqual(
-        ReadOnlySpan<byte> left,
-        ReadOnlySpan<byte> right,
-        StringComparison comparison)
+    internal static bool SequenceEqual(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right, StringComparison comparison)
     {
         if (comparison == StringComparison.Ordinal)
             return left.SequenceEqual(right);
 
-        return (comparison == StringComparison.OrdinalIgnoreCase && Ascii.EqualsIgnoreCase(left, right)) ||
-            SequenceEqualSlow(left, right, comparison);
+        return (comparison == StringComparison.OrdinalIgnoreCase && Ascii.EqualsIgnoreCase(left, right))
+            || SequenceEqualSlow(left, right, comparison);
     }
 
-    public static bool SequenceEqualSlow(
-        ReadOnlySpan<byte> left,
-        ReadOnlySpan<byte> right,
-        StringComparison comparison)
+    public static bool SequenceEqualSlow(ReadOnlySpan<byte> left, ReadOnlySpan<byte> right, StringComparison comparison)
     {
         scoped Span<char> bleft = stackalloc char[256];
         scoped Span<char> bright = stackalloc char[256];
@@ -43,7 +37,8 @@ internal static class Utf8Util
                 bleft,
                 out int bytesRead,
                 out int charsWritten,
-                replaceInvalidSequences: false);
+                replaceInvalidSequences: false
+            );
 
             if (status == OperationStatus.InvalidData)
                 break;
@@ -66,10 +61,7 @@ internal static class Utf8Util
         return false;
     }
 
-    public static bool SequenceEqual(
-        ReadOnlySpan<byte> bytes,
-        ReadOnlySpan<char> chars,
-        StringComparison comparison)
+    public static bool SequenceEqual(ReadOnlySpan<byte> bytes, ReadOnlySpan<char> chars, StringComparison comparison)
     {
         if (bytes.IsEmpty)
             return chars.IsEmpty;
@@ -104,7 +96,8 @@ internal static class Utf8Util
                 buffer,
                 out int bytesRead,
                 out int charsWritten,
-                replaceInvalidSequences: false);
+                replaceInvalidSequences: false
+            );
 
             if (status == OperationStatus.InvalidData)
                 break;
@@ -125,7 +118,8 @@ internal static class Utf8Util
     public static TResult WithBytes<TState, TResult>(
         ReadOnlySpan<byte> input,
         TState state,
-        [RequireStaticDelegate] Func<ReadOnlySpan<char>, TState, TResult> func)
+        [RequireStaticDelegate] Func<ReadOnlySpan<char>, TState, TResult> func
+    )
         where TState : allows ref struct
     {
         scoped Span<char> buffer;
@@ -145,7 +139,8 @@ internal static class Utf8Util
 
         TResult result = func(buffer[..written], state);
 
-        if (toReturn is not null) ArrayPool<char>.Shared.Return(toReturn);
+        if (toReturn is not null)
+            ArrayPool<char>.Shared.Return(toReturn);
 
         return result;
     }
@@ -153,7 +148,8 @@ internal static class Utf8Util
     public static TResult WithChars<TState, TResult>(
         ReadOnlySpan<char> input,
         TState state,
-        [RequireStaticDelegate] Func<ReadOnlySpan<byte>, TState, TResult> func)
+        [RequireStaticDelegate] Func<ReadOnlySpan<byte>, TState, TResult> func
+    )
         where TState : allows ref struct
     {
         scoped Span<byte> buffer;
@@ -173,7 +169,8 @@ internal static class Utf8Util
 
         TResult result = func(buffer[..written], state);
 
-        if (toReturn is not null) ArrayPool<byte>.Shared.Return(toReturn);
+        if (toReturn is not null)
+            ArrayPool<byte>.Shared.Return(toReturn);
 
         return result;
     }

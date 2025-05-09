@@ -3,9 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace FlameCsv.Benchmark.Utils;
 
 [SuppressMessage("Performance", "CA1835:Prefer the \'Memory\'-based overloads for \'ReadAsync\' and \'WriteAsync\'")]
-internal sealed class YieldingStream(
-    Stream inner,
-    TimeSpan ioDelay = default) : Stream
+internal sealed class YieldingStream(Stream inner, TimeSpan ioDelay = default) : Stream
 {
     public override void Flush()
     {
@@ -64,7 +62,10 @@ internal sealed class YieldingStream(
         await inner.WriteAsync(buffer, offset, count, cancellationToken);
     }
 
-    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+    public override async ValueTask WriteAsync(
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken cancellationToken = default
+    )
     {
         await Task.Delay(ioDelay, cancellationToken).ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         await inner.WriteAsync(buffer, cancellationToken);

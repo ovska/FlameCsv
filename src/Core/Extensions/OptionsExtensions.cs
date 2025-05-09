@@ -20,7 +20,8 @@ internal static class OptionsExtensions
         this ICanBeReadOnly obj,
         ref TValue field,
         TValue value,
-        [CallerMemberName] string memberName = "")
+        [CallerMemberName] string memberName = ""
+    )
     {
         if (obj.IsReadOnly)
             ThrowForIsReadOnly(memberName);
@@ -35,9 +36,7 @@ internal static class OptionsExtensions
     /// <param name="memberName">Name of the calling property or method used in exception messages</param>
     /// <exception cref="InvalidOperationException"></exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrowIfReadOnly(
-        this ICanBeReadOnly obj,
-        [CallerMemberName] string memberName = "")
+    public static void ThrowIfReadOnly(this ICanBeReadOnly obj, [CallerMemberName] string memberName = "")
     {
         if (obj.IsReadOnly)
             ThrowForIsReadOnly(memberName);

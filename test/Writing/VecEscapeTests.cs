@@ -7,11 +7,12 @@ namespace FlameCsv.Tests.Writing;
 
 public static class VecEscapeTests
 {
-    public static TheoryData<string, string> Data
-        => new()
+    public static TheoryData<string, string> Data =>
+        new()
         {
             {
-                "James |007| Bond, at Her Majesty's Secret Servce", "James ||007|| Bond, at Her Majesty's Secret Servce"
+                "James |007| Bond, at Her Majesty's Secret Servce",
+                "James ||007|| Bond, at Her Majesty's Secret Servce"
             },
             {
                 "Wilson Jones 1| Hanging DublLock\u00ae Ring Binders",
@@ -33,7 +34,8 @@ public static class VecEscapeTests
         (byte)'|',
         (byte)',',
         (byte)'\r',
-        (byte)'\n');
+        (byte)'\n'
+    );
 
     [Theory]
     [MemberData(nameof(Data))]
@@ -50,10 +52,7 @@ public static class VecEscapeTests
     {
         Assert.SkipUnless(Vec256Byte.IsSupported, "Vec256Byte is not supported on current hardware");
 
-        Impl<byte, SimdEscaperRFC<byte, Vec256Byte>, Vec256Byte>(
-            Encoding.UTF8.GetBytes(input),
-            expected,
-            in _bTokens);
+        Impl<byte, SimdEscaperRFC<byte, Vec256Byte>, Vec256Byte>(Encoding.UTF8.GetBytes(input), expected, in _bTokens);
     }
 
     static void Impl<T, TTokens, TVector>(ReadOnlySpan<T> value, string expected, in TTokens tokens)
@@ -67,11 +66,7 @@ public static class VecEscapeTests
         Span<uint> bits = Escape.GetMaskBuffer(value.Length, stackalloc uint[128], ref array);
         Assert.Null(array);
 
-        bool retVal = Escape.IsRequired<T, TTokens, TVector>(
-            value,
-            bits,
-            in tokens,
-            out int quoteCount);
+        bool retVal = Escape.IsRequired<T, TTokens, TVector>(value, bits, in tokens, out int quoteCount);
 
         Assert.True(retVal);
 
@@ -81,9 +76,7 @@ public static class VecEscapeTests
             return;
         }
 
-        string expectedBitmask = string.Join(
-            "",
-            value.ToArray().Select(x => x == T.CreateChecked('|') ? '1' : '0'));
+        string expectedBitmask = string.Join("", value.ToArray().Select(x => x == T.CreateChecked('|') ? '1' : '0'));
         string actualBitmask = ToBitString(bits, value.Length);
 
         Assert.Equal(expectedBitmask, actualBitmask);

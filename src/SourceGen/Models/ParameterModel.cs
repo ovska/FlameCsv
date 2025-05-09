@@ -106,7 +106,8 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
         ITypeSymbol targetType,
         IMethodSymbol constructor,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         List<ParameterModel> models = PooledList<ParameterModel>.Acquire();
 
@@ -137,26 +138,23 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
                     parameter,
                     parameter.Type,
                     in symbols,
-                    ref collector)
+                    ref collector
+                ),
             };
             models.Add(parameterModel);
 
             if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
             {
                 collector.AddDiagnostic(
-                    Diagnostics.RefConstructorParameter(
-                        targetType,
-                        constructor,
-                        constructor.Parameters[index]));
+                    Diagnostics.RefConstructorParameter(targetType, constructor, constructor.Parameters[index])
+                );
             }
 
             if (parameter.Type.IsRefLikeType)
             {
                 collector.AddDiagnostic(
-                    Diagnostics.RefLikeConstructorParameter(
-                        targetType,
-                        constructor,
-                        constructor.Parameters[index]));
+                    Diagnostics.RefLikeConstructorParameter(targetType, constructor, constructor.Parameters[index])
+                );
             }
 
             if (meta.IsIgnored && !parameter.HasExplicitDefaultValue)
@@ -171,5 +169,6 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
 
     // TODO: should this use Order property?
     public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
+
     public bool Equals(IMemberModel? other) => other is ParameterModel model && Equals(model);
 }

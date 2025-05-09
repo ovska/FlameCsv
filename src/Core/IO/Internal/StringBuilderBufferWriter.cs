@@ -50,9 +50,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public bool NeedsFlush => false;
 
-    public void Flush()
-    {
-    }
+    public void Flush() { }
 
     public void Complete(Exception? exception)
     {
@@ -77,11 +75,10 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (_disposed) return Throw.ObjectDisposedAsync(this);
+        if (_disposed)
+            return Throw.ObjectDisposedAsync(this);
 
-        return cancellationToken.IsCancellationRequested
-            ? ValueTask.FromCanceled(cancellationToken)
-            : default;
+        return cancellationToken.IsCancellationRequested ? ValueTask.FromCanceled(cancellationToken) : default;
     }
 
     public ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)

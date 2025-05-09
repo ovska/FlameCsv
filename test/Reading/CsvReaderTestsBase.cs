@@ -24,12 +24,12 @@ public abstract class CsvReaderTestsBase
         get
         {
             var data =
-                from crlf in (CsvNewline[]) [CsvNewline.CRLF, CsvNewline.LF]
+                from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
                 from writeHeader in GlobalData.Booleans
                 from writeTrailingNewline in GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
-                from parallel in (bool[]) [false] //GlobalData.Booleans
+                from parallel in (bool[])[false] //GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
                 select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
@@ -47,7 +47,7 @@ public abstract class CsvReaderTestsBase
                 from writeTrailingNewline in GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
-                from parallel in (bool[]) [false] // GlobalData.Booleans
+                from parallel in (bool[])[false] // GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
                 select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
@@ -257,7 +257,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                         return default;
                     },
                     options,
-                    new ParallelOptions { CancellationToken = cts.Token });
+                    new ParallelOptions { CancellationToken = cts.Token }
+                );
             }
             else
             {
@@ -270,7 +271,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                             items.Add(obj);
                     },
                     options,
-                    new ParallelOptions { CancellationToken = cts.Token });
+                    new ParallelOptions { CancellationToken = cts.Token }
+                );
             }
 
             items.Sort((a, b) => a.Id.CompareTo(b.Id));
@@ -292,9 +294,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                 {
                     items.Add(Core(record));
 
-                    if (record.GetField(0).ToString() == "818")
-                    {
-                    }
+                    if (record.GetField(0).ToString() == "818") { }
                 }
             }
         }
@@ -352,8 +352,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         };
     }
 
-    protected static IEnumerable<Obj> WrapParallel(IEnumerable<Obj> enumerable)
-        => enumerable
+    protected static IEnumerable<Obj> WrapParallel(IEnumerable<Obj> enumerable) =>
+        enumerable
             .AsParallel()
             .AsOrdered()
             .WithMergeOptions(ParallelMergeOptions.NotBuffered)
@@ -371,7 +371,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             {
                 bag.Enqueue(obj);
                 return default;
-            });
+            }
+        );
 
         foreach (var obj in bag.OrderBy(o => o.Id))
             yield return obj;

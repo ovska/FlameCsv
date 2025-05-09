@@ -13,9 +13,9 @@ public static class ReflectionExtensionsTests
         int variable = 0;
         System.Linq.Expressions.Expression<Func<int, int>> expression = x => x + variable;
 
-        Assert.Throws<UnreachableException>(() => expression
-            .ToLightExpression()
-            .CompileLambda<Func<int, int>>(throwIfClosure: true));
+        Assert.Throws<UnreachableException>(() =>
+            expression.ToLightExpression().CompileLambda<Func<int, int>>(throwIfClosure: true)
+        );
     }
 
     [Fact]

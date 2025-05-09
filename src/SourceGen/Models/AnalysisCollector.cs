@@ -5,9 +5,9 @@ namespace FlameCsv.SourceGen.Models;
 
 internal ref struct AnalysisCollector
 {
-    public override readonly string ToString()
-        => $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, " +
-            $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
+    public override readonly string ToString() =>
+        $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, "
+        + $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 
     private readonly ITypeSymbol _targetType;
 
@@ -42,7 +42,8 @@ internal ref struct AnalysisCollector
     public void Free(
         out EquatableArray<Diagnostic> diagnostics,
         out EquatableArray<int> ignoredIndexes,
-        out TypeRef? proxy)
+        out TypeRef? proxy
+    )
     {
         try
         {
@@ -54,7 +55,9 @@ internal ref struct AnalysisCollector
                         DiagnosticsStatic.TargetMemberNotFound(
                             _targetType,
                             targetAttribute.Attribute.GetLocation(),
-                            targetAttribute));
+                            targetAttribute
+                        )
+                    );
                 }
             }
 
@@ -75,7 +78,7 @@ internal ref struct AnalysisCollector
             }
 
             // do this last as diagnostics are added in this method
-            diagnostics = [..Diagnostics];
+            diagnostics = [.. Diagnostics];
         }
         finally
         {

@@ -445,11 +445,7 @@ public class CsvOptionsTests
                 }
             }
 
-            return new CsvOptions<char>
-            {
-                HasHeader = hasHeader,
-                RecordCallback = Callback,
-            };
+            return new CsvOptions<char> { HasHeader = hasHeader, RecordCallback = Callback };
         }
     }
 

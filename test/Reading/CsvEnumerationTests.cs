@@ -13,15 +13,17 @@ public sealed class CsvEnumerationTests : IDisposable
 {
     private class Shim
     {
-        [CsvIndex(0)] public int Id { get; set; }
-        [CsvIndex(1)] public string? Name { get; set; }
+        [CsvIndex(0)]
+        public int Id { get; set; }
+
+        [CsvIndex(1)]
+        public string? Name { get; set; }
     }
 
     [Fact]
     public void Should_Reset_Header()
     {
-        const string data =
-            "id,name\r\n" + "1,Bob\r\n" + "\r\n" + "name,id\r\n" + "Alice,2\r\n";
+        const string data = "id,name\r\n" + "1,Bob\r\n" + "\r\n" + "name,id\r\n" + "Alice,2\r\n";
 
         using var enumerator = new CsvRecordEnumerator<char>(CsvOptions<char>.Default, CsvBufferReader.Create(data));
 
@@ -47,7 +49,8 @@ public sealed class CsvEnumerationTests : IDisposable
 
         using var enumerator = new CsvRecordEnumerator<char>(
             new CsvOptions<char> { HasHeader = false },
-            CsvBufferReader.Create(data));
+            CsvBufferReader.Create(data)
+        );
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
@@ -69,9 +72,9 @@ public sealed class CsvEnumerationTests : IDisposable
 
         int index = 0;
 
-        foreach (var record in new CsvRecordEnumerable<char>(
-                     data.AsMemory(),
-                     new CsvOptions<char> { HasHeader = false }))
+        foreach (
+            var record in new CsvRecordEnumerable<char>(data.AsMemory(), new CsvOptions<char> { HasHeader = false })
+        )
         {
             var shim = record.ParseRecord<Shim>();
             Assert.Equal(index + 1, shim.Id);
@@ -83,8 +86,8 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Verify_Parameters()
     {
-        Assert.Throws<ArgumentNullException>(
-            () => new CsvRecordEnumerable<char>(default(ReadOnlySequence<char>), null!));
+        Assert.Throws<ArgumentNullException>(() => new CsvRecordEnumerable<char>(default(ReadOnlySequence<char>), null!)
+        );
     }
 
     [Fact]
@@ -127,7 +130,8 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.True(_3);
 
         Assert.True(
-            record.TryParseField(new NumberTextConverter<int>(record.Options, NumberStyles.Integer), 0, out _1));
+            record.TryParseField(new NumberTextConverter<int>(record.Options, NumberStyles.Integer), 0, out _1)
+        );
         Assert.Equal(1, _1);
     }
 
@@ -149,9 +153,9 @@ public sealed class CsvEnumerationTests : IDisposable
     public void Should_Return_Fields_By_Name()
     {
         using var enumerator = new CsvRecordEnumerable<char>(
-                "A,B,C\r\n1,2,3".AsMemory(),
-                new CsvOptions<char> { HasHeader = true })
-            .GetEnumerator();
+            "A,B,C\r\n1,2,3".AsMemory(),
+            new CsvOptions<char> { HasHeader = true }
+        ).GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
         CsvRecord<char> record = enumerator.Current;
@@ -181,7 +185,7 @@ public sealed class CsvEnumerationTests : IDisposable
     public void Should_Throw_If_No_Header()
     {
         Assert.Throws<NotSupportedException>(() => GetRecord().ParseField<int>("A"));
-        Assert.Throws<NotSupportedException>(() => GetRecord().ParseField(CsvIgnored.Converter<char, object>(),"A"));
+        Assert.Throws<NotSupportedException>(() => GetRecord().ParseField(CsvIgnored.Converter<char, object>(), "A"));
     }
 
     private CsvRecord<char> GetRecord()
@@ -189,12 +193,14 @@ public sealed class CsvEnumerationTests : IDisposable
         _enumerator?.Dispose();
         _enumerator = new CsvRecordEnumerator<char>(
             new CsvOptions<char> { HasHeader = false },
-            CsvBufferReader.Create("1,\"Test\",true"));
+            CsvBufferReader.Create("1,\"Test\",true")
+        );
         _enumerator.MoveNext();
         return _enumerator.Current;
     }
 
-    [HandlesResourceDisposal] private CsvRecordEnumerator<char>? _enumerator;
+    [HandlesResourceDisposal]
+    private CsvRecordEnumerator<char>? _enumerator;
 
     public void Dispose() => _enumerator?.Dispose();
 }

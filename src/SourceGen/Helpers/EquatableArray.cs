@@ -15,7 +15,8 @@ namespace FlameCsv.SourceGen.Helpers;
 /// </summary>
 /// <typeparam name="T">The type of values in the array.</typeparam>
 [CollectionBuilder(typeof(EquatableArray), nameof(EquatableArray.Create))]
-internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T> where T : IEquatable<T>
+internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
+    where T : IEquatable<T>
 {
     public static readonly EquatableArray<T> Empty = new(ImmutableArray<T>.Empty);
 
@@ -104,7 +105,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     {
         return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in _array));
     }
-    
+
     public T[]? UnsafeGetArray => _array;
 
     /// <summary>
@@ -248,11 +249,14 @@ internal static class EquatableArray
         return CreateRange(values);
     }
 
-    public static EquatableArray<T> Create<T>() where T : IEquatable<T?> => EquatableArray<T>.Empty;
+    public static EquatableArray<T> Create<T>()
+        where T : IEquatable<T?> => EquatableArray<T>.Empty;
 
-    public static EquatableArray<T> Create<T>(T item) where T : IEquatable<T?> => [item];
+    public static EquatableArray<T> Create<T>(T item)
+        where T : IEquatable<T?> => [item];
 
-    public static EquatableArray<T> CreateRange<T>(IEnumerable<T> items) where T : IEquatable<T?>
+    public static EquatableArray<T> CreateRange<T>(IEnumerable<T> items)
+        where T : IEquatable<T?>
     {
         if (items is ICollection { Count: 0 })
             return EquatableArray<T>.Empty;
@@ -260,14 +264,17 @@ internal static class EquatableArray
         return new(items.ToImmutableArray());
     }
 
-    public static EquatableArray<T> Create<T>(params T[] items) where T : IEquatable<T?>
+    public static EquatableArray<T> Create<T>(params T[] items)
+        where T : IEquatable<T?>
     {
         return Unsafe.As<T[], ImmutableArray<T>>(ref items);
     }
 
-    public static EquatableArray<T> CreateSorted<T>(ICollection<T> items) where T : IEquatable<T?>, IComparable<T>
+    public static EquatableArray<T> CreateSorted<T>(ICollection<T> items)
+        where T : IEquatable<T?>, IComparable<T>
     {
-        if (items is not { Count: > 0 }) return [];
+        if (items is not { Count: > 0 })
+            return [];
 
         T[] array = new T[items.Count];
         items.CopyTo(array, 0);
@@ -275,7 +282,8 @@ internal static class EquatableArray
         return Create(array);
     }
 
-    public static EquatableArray<T> Create<T>(ReadOnlySpan<T> items) where T : IEquatable<T?>
+    public static EquatableArray<T> Create<T>(ReadOnlySpan<T> items)
+        where T : IEquatable<T?>
     {
         if (items.IsEmpty)
             return EquatableArray<T>.Empty;

@@ -6,8 +6,8 @@ namespace FlameCsv.Tests.Reading;
 
 public class BithackTests
 {
-    public static TheoryData<ulong, ulong> TestData
-        => new()
+    public static TheoryData<ulong, ulong> TestData =>
+        new()
         {
             { 0, 0 },
             { 0b1, ulong.MaxValue },
@@ -35,17 +35,19 @@ public class BithackTests
             { 0b100000000000000000000001, 0b011111111111111111111111 },
         };
 
-    public static IEnumerable<TheoryDataRow<uint, uint>> TestData32
-        => TestData
+    public static IEnumerable<TheoryDataRow<uint, uint>> TestData32 =>
+        TestData
             .Where(x => x.Data is { Item1: <= uint.MaxValue, Item2: <= uint.MaxValue })
             .Select(x => new TheoryDataRow<uint, uint>(checked((uint)x.Data.Item1), checked((uint)x.Data.Item2)))
             .ToArray();
 
-    public static IEnumerable<TheoryDataRow<ushort, ushort>> TestData16
-        => TestData
+    public static IEnumerable<TheoryDataRow<ushort, ushort>> TestData16 =>
+        TestData
             .Where(x => x.Data is { Item1: <= ushort.MaxValue, Item2: <= ushort.MaxValue })
-            .Select(
-                x => new TheoryDataRow<ushort, ushort>(checked((ushort)x.Data.Item1), checked((ushort)x.Data.Item2)))
+            .Select(x => new TheoryDataRow<ushort, ushort>(
+                checked((ushort)x.Data.Item1),
+                checked((ushort)x.Data.Item2)
+            ))
             .ToArray();
 
     [Theory]
@@ -90,12 +92,13 @@ public class BithackTests
     [Fact]
     public static void FindQuotes64() => FindQuotesImpl<ulong>();
 
-    private static void FindQuotesImpl<TMask>() where TMask : unmanaged, IBinaryInteger<TMask>, IUnsignedNumber<TMask>
+    private static void FindQuotesImpl<TMask>()
+        where TMask : unmanaged, IBinaryInteger<TMask>, IUnsignedNumber<TMask>
     {
         const string data =
-            "The quick 'brown, fox' jumps, over the dog " +
-            "The quick, brown fox 'jumps over' the dog " +
-            "The 'quick brn fox ''jumps'' over the,'lazy";
+            "The quick 'brown, fox' jumps, over the dog "
+            + "The quick, brown fox 'jumps over' the dog "
+            + "The 'quick brn fox ''jumps'' over the,'lazy";
 
         Assert.Equal(128, data.Length);
         Assert.Equal(0, data.Length % Unsafe.SizeOf<TMask>());

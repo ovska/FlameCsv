@@ -34,9 +34,11 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         bool isOnAssembly,
         AttributeData attribute,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
-        if (attribute.AttributeClass is not { } attrSymbol) return null;
+        if (attribute.AttributeClass is not { } attrSymbol)
+            return null;
 
         string? memberName;
         bool isParameter = false;
@@ -50,32 +52,38 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
 
         if (symbols.IsCsvHeaderAttribute(attrSymbol))
         {
-            if (!TryGetMemberName(ref collector, out memberName)) return null;
+            if (!TryGetMemberName(ref collector, out memberName))
+                return null;
             ParseHeader(attribute, out headerName, out aliases);
         }
         else if (symbols.IsCsvRequiredAttribute(attrSymbol))
         {
-            if (!TryGetMemberName(ref collector, out memberName)) return null;
+            if (!TryGetMemberName(ref collector, out memberName))
+                return null;
             isRequired = true;
         }
         else if (symbols.IsCsvOrderAttribute(attrSymbol))
         {
-            if (!TryGetMemberName(ref collector, out memberName)) return null;
+            if (!TryGetMemberName(ref collector, out memberName))
+                return null;
             ParseOrder(attribute, out order);
         }
         else if (symbols.IsCsvIndexAttribute(attrSymbol))
         {
-            if (!TryGetMemberName(ref collector, out memberName)) return null;
+            if (!TryGetMemberName(ref collector, out memberName))
+                return null;
             ParseIndex(attribute, out index);
         }
         else if (symbols.IsCsvIgnoreAttribute(attrSymbol))
         {
-            if (!TryGetMemberName(ref collector, out memberName)) return null;
+            if (!TryGetMemberName(ref collector, out memberName))
+                return null;
             isIgnored = true;
         }
         else if (symbols.IsIgnoredIndexesAttribute(attrSymbol))
         {
-            if (!TryEnsureType(ref collector)) return null;
+            if (!TryEnsureType(ref collector))
+                return null;
 
             ImmutableArray<TypedConstant> indexes = [];
 
@@ -100,7 +108,8 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         }
         else if (symbols.IsTypeProxyAttribute(attrSymbol))
         {
-            if (!TryEnsureType(ref collector)) return null;
+            if (!TryEnsureType(ref collector))
+                return null;
 
             if (attribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Type, Value: ITypeSymbol proxy })
             {
@@ -203,22 +212,27 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
     public static void ParseHeader(
         AttributeData attribute,
         out string? headerName,
-        out ImmutableArray<TypedConstant> aliases)
+        out ImmutableArray<TypedConstant> aliases
+    )
     {
         aliases = default;
 
-        headerName = attribute.ConstructorArguments is [TypedConstant value, ..]
-         ? value.Value?.ToString()
-         : attribute.TryGetNamedArgument("Value", out value) ? value.Value?.ToString() : null;
+        headerName =
+            attribute.ConstructorArguments is [TypedConstant value, ..] ? value.Value?.ToString()
+            : attribute.TryGetNamedArgument("Value", out value) ? value.Value?.ToString()
+            : null;
 
-        if (attribute.ConstructorArguments.Length > 1 &&
-            attribute.ConstructorArguments[1] is { Kind: TypedConstantKind.Array } arr)
+        if (
+            attribute.ConstructorArguments.Length > 1
+            && attribute.ConstructorArguments[1] is { Kind: TypedConstantKind.Array } arr
+        )
         {
             aliases = arr.Values;
         }
         else if (
-            attribute.TryGetNamedArgument("Aliases", out var aliasesArg) &&
-            aliasesArg.Kind == TypedConstantKind.Array)
+            attribute.TryGetNamedArgument("Aliases", out var aliasesArg)
+            && aliasesArg.Kind == TypedConstantKind.Array
+        )
         {
             aliases = aliasesArg.Values;
         }

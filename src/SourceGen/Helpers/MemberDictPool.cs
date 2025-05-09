@@ -14,7 +14,8 @@ internal static class MemberDictPool
     public static void Release(SortedDictionary<int, IMemberModel?>? dictionary)
     {
         // If the dictionary is too big, don't return it to the pool.
-        if (dictionary is not { Count: < 16 }) return;
+        if (dictionary is not { Count: < 16 })
+            return;
         dictionary.Clear();
         _pool.Free(dictionary);
     }

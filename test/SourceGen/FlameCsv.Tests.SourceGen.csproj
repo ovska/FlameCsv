@@ -1,17 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis" Version="4.13.0"/>
-        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0"/>
+        <PackageReference Include="Microsoft.CodeAnalysis" Version="4.13.0" />
+        <PackageReference Include="Basic.Reference.Assemblies.Net90" Version="1.8.0" />
     </ItemGroup>
-
     <ItemGroup>
-		<ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
-        <ProjectReference Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"/>
+        <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj" />
     </ItemGroup>
-
     <ItemGroup>
-        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
-
 </Project>
