@@ -3,6 +3,7 @@ using FlameCsv.Converters.Formattable;
 
 namespace FlameCsv.Converters;
 
+// csharpier-ignore
 internal static class DefaultConverters
 {
     public static Func<CsvOptions<char>, CsvConverter<char>>? GetText(Type type)

@@ -9,22 +9,22 @@ internal static class EnumExtensions
         where T : unmanaged, IBinaryInteger<T>
         where TEnum : struct, Enum
     {
-        return
-            (uint.CreateTruncating(source[0]) - '0') <= ('9' - '0') ||
-            (
+        return (uint.CreateTruncating(source[0]) - '0') <= ('9' - '0')
+            || (
                 (
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte) ||
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(short) ||
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(int) ||
-                    typeof(TEnum).GetEnumUnderlyingType() == typeof(long)
-                ) &&
-                source[0] == T.CreateTruncating('-') // JITed away for unsigned enums
+                    typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte)
+                    || typeof(TEnum).GetEnumUnderlyingType() == typeof(short)
+                    || typeof(TEnum).GetEnumUnderlyingType() == typeof(int)
+                    || typeof(TEnum).GetEnumUnderlyingType() == typeof(long)
+                )
+                && source[0] == T.CreateTruncating('-') // JITed away for unsigned enums
             );
     }
 
     // GetEnumUnderlyingType is intrinsic, so this method will be optimized into a single TryParse
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryParseNumber<TEnum>(ReadOnlySpan<byte> source, out TEnum value) where TEnum : struct, Enum
+    public static bool TryParseNumber<TEnum>(ReadOnlySpan<byte> source, out TEnum value)
+        where TEnum : struct, Enum
     {
         if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte) && byte.TryParse(source, out byte b))
         {
@@ -80,7 +80,8 @@ internal static class EnumExtensions
 
     // GetEnumUnderlyingType is intrinsic, so this method will be optimized into a single TryParse
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryParseNumber<TEnum>(ReadOnlySpan<char> source, out TEnum value) where TEnum : struct, Enum
+    public static bool TryParseNumber<TEnum>(ReadOnlySpan<char> source, out TEnum value)
+        where TEnum : struct, Enum
     {
         if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte) && byte.TryParse(source, out byte b))
         {
@@ -135,7 +136,8 @@ internal static class EnumExtensions
     }
 
     // GetEnumUnderlyingType is intrinsic, so this method will be optimized into a single AND
-    internal static void AddFlag<TEnum>(ref this TEnum value, TEnum flag) where TEnum : struct, Enum
+    internal static void AddFlag<TEnum>(ref this TEnum value, TEnum flag)
+        where TEnum : struct, Enum
     {
         if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte))
         {
@@ -175,7 +177,8 @@ internal static class EnumExtensions
         }
     }
 
-    internal static void ClearFlag<TEnum>(ref this TEnum value, TEnum flag) where TEnum : struct, Enum
+    internal static void ClearFlag<TEnum>(ref this TEnum value, TEnum flag)
+        where TEnum : struct, Enum
     {
         if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte))
         {
@@ -215,12 +218,8 @@ internal static class EnumExtensions
         }
     }
 
-    internal static int PopCount<TEnum>(this TEnum value) where TEnum : struct, Enum
-    {
-        return BitOperations.PopCount(value.ToBitmask());
-    }
-
-    internal static ulong ToBitmask<TEnum>(this TEnum value) where TEnum : struct, Enum
+    internal static ulong ToBitmask<TEnum>(this TEnum value)
+        where TEnum : struct, Enum
     {
         return Unsafe.SizeOf<TEnum>() switch
         {
