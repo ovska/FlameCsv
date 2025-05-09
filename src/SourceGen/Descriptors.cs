@@ -142,6 +142,22 @@ internal static class Descriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    public static readonly DiagnosticDescriptor ConflictingIndex =new(
+        id: "FLAMESG210",
+        title: "Conflicting index attributes",
+        messageFormat: "Cannot generate headerless CSV support: Conflicting index attributes found on {0}: {1}",
+        category: CategoryDesign,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor GapInIndex = new(
+        id: "FLAMESG211",
+        title: "Gap in index attributes",
+        messageFormat: "Cannot generate headerless CSV support: Index {0} was not configured on {1}",
+        category: CategoryDesign,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     public static readonly DiagnosticDescriptor EnumUnsupportedToken = new(
         id: "FLAMESG501",
         title: "Cannot generate enum converter: Token type not supported",

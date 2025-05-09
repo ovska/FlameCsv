@@ -83,73 +83,6 @@ partial class TypeMapGenerator
         }
     }
 
-    internal static SortedDictionary<int, IMemberModel?>? TryGetIndexBindings(
-        bool write,
-        ref readonly TypeMapModel model,
-        ref AnalysisCollector collector)
-    {
-        SortedDictionary<int, IMemberModel?>? dict = null;
-
-        foreach (var ignored in model.IgnoredIndexes)
-        {
-            dict ??= MemberDictPool.Acquire();
-            dict[ignored] = null;
-        }
-
-        foreach (var member in model.AllMembers)
-        {
-            if (write ? !member.CanWrite : !member.CanRead) continue;
-            if (member.Index is not { } index) continue;
-
-            dict ??= MemberDictPool.Acquire();
-
-            // first on this index
-            if (!dict.TryGetValue(index, out IMemberModel? existing))
-            {
-                dict[index] = member.IsIgnored ? null : member;
-                continue;
-            }
-
-            if (member.IsIgnored)
-            {
-                // current is ignored, don't touch existing
-                continue;
-            }
-
-            // check if existing is ignored, overwrite with current
-            if (existing is null)
-            {
-                dict[index] = member;
-                continue;
-            }
-
-            // conflicting bindings
-            // TODO: diagnostic
-            MemberDictPool.Release(dict);
-            return null;
-        }
-
-        // check indexes for gaps
-        if (dict is not null)
-        {
-            int lastIndex = -1;
-            foreach (var kvp in dict)
-            {
-                if (kvp.Key != lastIndex + 1)
-                {
-                    // gap in the indexes
-                    // TODO: diagnostic
-                    MemberDictPool.Release(dict);
-                    return null;
-                }
-
-                lastIndex = kvp.Key;
-            }
-        }
-
-        return dict;
-    }
-
     private static void WriteDefaultInstance(IndentedTextWriter writer, ref readonly TypeMapModel typeMap)
     {
         writer.WriteLine("/// <summary>");
@@ -219,5 +152,85 @@ partial class TypeMapGenerator
         };
 
         return true;
+    }
+
+    internal static bool TryGetIndexBindings(
+        bool write,
+        ref readonly TypeMapModel model,
+        ref readonly FlameSymbols symbols,
+        ref AnalysisCollector collector,
+        out SortedDictionary<int, IMemberModel?>? dict)
+    {
+        dict = null;
+        bool retVal = false;
+
+        try
+        {
+            foreach (var ignored in model.IgnoredIndexes)
+            {
+                dict ??= MemberDictPool.Acquire();
+                dict[ignored] = null;
+            }
+
+            foreach (var member in model.AllMembers)
+            {
+                if (member.Index is not { } index) continue;
+                if (write ? !member.CanWrite : !member.CanRead) continue;
+
+                dict ??= MemberDictPool.Acquire();
+
+                // first on this index
+                if (!dict.TryGetValue(index, out IMemberModel? existing))
+                {
+                    dict[index] = member.IsIgnored ? null : member;
+                    continue;
+                }
+
+                if (member.IsIgnored)
+                {
+                    // current is ignored, don't touch existing
+                    continue;
+                }
+
+                // check if existing is ignored, overwrite with current
+                if (existing is null)
+                {
+                    dict[index] = member;
+                    continue;
+                }
+
+                // conflicting bindings
+                collector.AddDiagnostic(
+                    Diagnostics.ConflictingIndex(symbols.TargetType, $"{member.Identifier} ({member.Kind})"));
+                return false;
+            }
+
+            // check indexes for gaps
+            if (dict is not null)
+            {
+                int expected = 0;
+
+                foreach (var kvp in dict)
+                {
+                    if (kvp.Key != expected)
+                    {
+                        // gap in the indexes
+                        collector.AddDiagnostic(Diagnostics.GapInIndex(symbols.TargetType, expected));
+                        return false;
+                    }
+
+                    expected++;
+                }
+            }
+
+            return retVal = true;
+        }
+        finally
+        {
+            if (!retVal)
+            {
+                MemberDictPool.Release(dict);
+            }
+        }
     }
 }

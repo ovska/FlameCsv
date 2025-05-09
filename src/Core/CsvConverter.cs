@@ -46,13 +46,13 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
             if (created is null)
             {
                 Throw.InvalidOperation(
-                    $"Factory {GetType().FullName} returned null when creating parser for type {targetType.FullName}");
+                    $"Factory {GetType().FullName} returned null when creating converter for type {targetType.FullName}");
             }
 
             if (created is CsvConverterFactory<T>)
             {
                 Throw.InvalidOperation(
-                    $"Factory {GetType().FullName} returned another factory ({created.GetType().FullName}) when creating parser for type {targetType.FullName}");
+                    $"Factory {GetType().FullName} returned another factory ({created.GetType().FullName}) when creating converter for type {targetType.FullName}");
             }
 
             return created;
