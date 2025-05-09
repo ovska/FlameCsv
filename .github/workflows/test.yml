@@ -34,9 +34,9 @@ jobs:
         shell: bash
         run: |
             for project in $TEST_PROJECTS; do
-          echo "Restoring $project"
-          dotnet restore "$project"
-        done
+              echo "Restoring $project"
+              dotnet restore "$project"
+            done
 
     - name: Build test projects
       shell: bash
