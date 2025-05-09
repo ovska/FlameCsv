@@ -30,16 +30,16 @@ jobs:
       run: dotnet restore
       
     - name: Build
-      run: dotnet build FlameCsv.Core/FlameCsv.Core.csproj --configuration Release --no-restore
+      run: dotnet build src/Core/FlameCsv.Core.csproj --configuration Release --no-restore
       
     - name: Set version (if provided)
       if: ${{ github.event.inputs.version != '' }}
       run: |
-        dotnet pack FlameCsv.Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs /p:Version=${{ github.event.inputs.version }}
+        dotnet pack src/Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs /p:Version=${{ github.event.inputs.version }}
       
     - name: Create package (using project version)
       if: ${{ github.event.inputs.version == '' }}
-      run: dotnet pack FlameCsv.Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs
+      run: dotnet pack src/Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs
       
     - name: Publish to NuGet
       run: dotnet nuget push nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -30,10 +30,10 @@ jobs:
       shell: bash
       run: echo "TEST_PROJECTS=$(find . -name "*Tests*.csproj" | tr '\n' ' ')" >> $GITHUB_ENV
 
-    - name: Restore test dependencies
-      shell: bash
-      run: |
-        for project in $TEST_PROJECTS; do
+    -   name: Restore test dependencies
+        shell: bash
+        run: |
+            for project in $TEST_PROJECTS; do
           echo "Restoring $project"
           dotnet restore "$project"
         done

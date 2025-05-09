@@ -6,6 +6,7 @@ namespace FlameCsv.Intrinsics;
 /// SimdJson MIT and Apache-2.0 licenses, (c) Daniel Lemire and Geoff Langdale<br/>
 /// SimdPrune, Apache-2.0 license (c) Daniel Lemire
 /// </summary>
+// csharpier-ignore
 internal static class CompressionTables
 {
     // @formatter:off

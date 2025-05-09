@@ -20,7 +20,8 @@ static partial class CsvWriter
     public static CsvWriter<char> Create(
         TextWriter textWriter,
         CsvOptions<char>? options = null,
-        in CsvIOOptions ioOptions = default)
+        in CsvIOOptions ioOptions = default
+    )
     {
         ArgumentNullException.ThrowIfNull(textWriter);
         options ??= CsvOptions<char>.Default;
@@ -35,7 +36,8 @@ static partial class CsvWriter
     public static CsvWriter<byte> Create(
         Stream stream,
         CsvOptions<byte>? options = null,
-        in CsvIOOptions ioOptions = default)
+        in CsvIOOptions ioOptions = default
+    )
     {
         ArgumentNullException.ThrowIfNull(stream);
         Throw.IfNotWritable(stream);
@@ -51,9 +53,7 @@ static partial class CsvWriter
     /// <param name="pipeWriter">Pipe to write the CSV to</param>
     /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
     /// <returns>Writer instance</returns>
-    public static CsvWriter<byte> Create(
-        PipeWriter pipeWriter,
-        CsvOptions<byte>? options = null)
+    public static CsvWriter<byte> Create(PipeWriter pipeWriter, CsvOptions<byte>? options = null)
     {
         ArgumentNullException.ThrowIfNull(pipeWriter);
 

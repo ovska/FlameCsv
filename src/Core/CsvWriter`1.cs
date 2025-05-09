@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -98,6 +99,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     private readonly bool _validateFieldCount;
 
     /// <summary>
+    /// Returns a read-only reference to the inner writer.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public ref readonly CsvFieldWriter<T> Writer => ref _inner;
+
+    /// <summary>
     /// Initializes a new writer instance.
     /// </summary>
     /// <param name="inner">Field writer instance to write to</param>
@@ -131,7 +138,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
                         @this._previousValue = null;
                         @this._dematerializerCache.Clear();
                     }
-                });
+                }
+            );
         }
     }
 
@@ -435,7 +443,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             FieldIndex++;
         }
 
-        HeaderWritten = true;
+        HeaderWritten |= !values.IsEmpty;
         return values.Length;
     }
 
@@ -521,11 +529,10 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     private void WriteTrailingNewlineIfNeeded(Exception? exception, CancellationToken cancellationToken)
     {
         if (
-            exception is null &&
-            EnsureTrailingNewline &&
-            (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
-            &&
-            !cancellationToken.IsCancellationRequested
+            exception is null
+            && EnsureTrailingNewline
+            && (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
+            && !cancellationToken.IsCancellationRequested
         )
         {
             // don't call NextRecord as it can trigger an unnecessary auto-flush
@@ -570,7 +577,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeMap,
             state: typeMap,
-            factory: static (options, state) => ((CsvTypeMap<T, TRecord>)state!).GetDematerializer(options));
+            factory: static (options, state) => ((CsvTypeMap<T, TRecord>)state!).GetDematerializer(options)
+        );
     }
 
     /// <summary>
@@ -586,7 +594,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeof(TRecord),
             state: null,
-            factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>());
+            factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>()
+        );
     }
 
     /// <summary>
