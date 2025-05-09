@@ -35,6 +35,9 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
     [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
     internal CsvConverter<T> GetAsConverter(Type targetType, CsvOptions<T> readerOptions)
     {
+        // note: this cannot be made abstract and overridden in factory and converter classes
+        // as the trimming annotations need to be consistent, but are only needed for factories
+
         Debug.Assert(targetType is not null);
         Debug.Assert(readerOptions is not null);
         Debug.Assert(CanConvert(targetType));
