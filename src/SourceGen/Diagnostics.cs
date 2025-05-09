@@ -180,6 +180,26 @@ internal static class Diagnostics
             ]);
     }
 
+    public static Diagnostic ConflictingIndex(
+        ITypeSymbol targetType,
+        string memberName)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.ConflictingIndex,
+            location: GetLocation(targetType),
+            messageArgs: [memberName, targetType.ToDisplayString()]);
+    }
+
+    public static Diagnostic GapInIndex(ITypeSymbol targetType, int index)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.GapInIndex,
+            location: GetLocation(targetType),
+            messageArgs: [index.ToString(), targetType.ToDisplayString()]);
+    }
+
+    /**/
+
     public static Diagnostic EnumUnsupportedToken(
         ISymbol targetType,
         AttributeData attribute,

@@ -15,7 +15,7 @@ namespace FlameCsv.SourceGen.Helpers;
 /// </summary>
 /// <typeparam name="T">The type of values in the array.</typeparam>
 [CollectionBuilder(typeof(EquatableArray), nameof(EquatableArray.Create))]
-internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T> where T : IEquatable<T?>
+internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T> where T : IEquatable<T>
 {
     public static readonly EquatableArray<T> Empty = new(ImmutableArray<T>.Empty);
 

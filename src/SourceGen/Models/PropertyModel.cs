@@ -75,6 +75,8 @@ internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMe
     /// </summary>
     public required BuiltinConvertable Convertability { get; init; }
 
+    ModelKind IMemberModel.Kind => IsProperty ? ModelKind.Property : ModelKind.Field;
+
     public int CompareTo(PropertyModel other) => (Order ?? 0).CompareTo(other.Order ?? 0);
 
     public void WriteId(IndentedTextWriter writer)

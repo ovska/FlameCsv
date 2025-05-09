@@ -2,7 +2,7 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading.Internal;
 
-namespace FlameCsv.Tests;
+namespace FlameCsv.Tests.Reading;
 
 public class BithackTests
 {
