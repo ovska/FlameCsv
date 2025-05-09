@@ -9,29 +9,55 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
-    
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest] # windows-latest if needed
+    runs-on: ${{ matrix.os }}
+
     steps:
+    - name: Display runner context
+      run: echo '${{ toJSON(runner) }}'
+
     - name: Checkout code
-      uses: actions/checkout@v3
-      
+      uses: actions/checkout@v4
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.x
-        
-    - name: Restore dependencies
-      run: dotnet restore
-      
-    - name: Build solution
-      run: dotnet build --configuration Release --no-restore
-      
+
+    - name: Find test projects
+      shell: bash
+      run: echo "TEST_PROJECTS=$(find . -name "*Tests*.csproj" | tr '\n' ' ')" >> $GITHUB_ENV
+
+    -   name: Restore test dependencies
+        shell: bash
+        run: |
+            for project in $TEST_PROJECTS; do
+              echo "Restoring $project"
+              dotnet restore "$project"
+            done
+
+    - name: Build test projects
+      shell: bash
+      run: |
+        for project in $TEST_PROJECTS; do
+          echo "Building $project"
+          dotnet build --configuration Release --no-restore "$project"
+        done
+
     - name: Run tests
-      run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
-      
+      shell: bash
+      run: |
+        for project in $TEST_PROJECTS; do
+          echo "Testing $project"
+          dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo "$project" --collect:"XPlat Code Coverage"
+        done
+
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-results
+        # Make artifact name unique per job
+        name: coverage-results-${{ matrix.os }}
         path: "**/TestResults/**/coverage.cobertura.xml"
         if-no-files-found: ignore

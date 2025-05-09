@@ -14,8 +14,8 @@ However, reflection and compiled expressions are incompatible with AOT compilati
 Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are
 relatively small.
 
-The source-generated enum converter is significantly faster than `Enum.TryParse` and `TryFormat`.
-For more details, see the [benchmarks](benchmarks.md).
+The source-generated [enum converter](#enum-converter-generator) is significantly faster than `Enum.TryParse` and `TryFormat`.
+For more details, see the [benchmarks](benchmarks.md#enums).
 
 ## Type Map Generator
 
@@ -634,10 +634,14 @@ partial class UserTypeMap : global::FlameCsv.Binding.CsvTypeMap<byte, global::Us
 ## Enum Converter Generator
 
 @"FlameCsv.Attributes.CsvEnumConverterAttribute`2" can be used to generate extremely performant enum converters
-that are essentially hyper-optimized hand-written implementations specific to the enum. Simply apply the attribute
-to a `partial class`. The generated converter supports parsing and formatting numbers, enum names, @"System.Runtime.Serialization.EnumMemberAttribute",
-and case-insensitive parsing of both UTF-16 and UTF-8 data. The generator correctly handles oddities such as surrogates
-and non-ASCII data, such as emojis.
+that are essentially hyper-optimized hand-written implementations specific to the enum. The implementations
+use @"System.Runtime.CompilerServices.Unsafe" and @"System.Runtime.InteropServices.MemoryMarshal" to avoid allocations and
+optimize for performance, and they are fuzz-tested to ensure correctness.
+
+Simply apply the attribute to a `partial class`. The generated converter supports parsing and formatting numbers, enum names,
+@"System.Runtime.Serialization.EnumMemberAttribute", and case-insensitive parsing of both UTF-16 and UTF-8 data.
+The converter also correctly handles oddities on both UTF-8 and UTF-16, such as surrogates
+and non-ASCII data (emojis).
 
 ```cs
 [CsvEnumConverter<char, DayOfWeek>]
@@ -646,7 +650,7 @@ partial class DayOfWeekConverter;
 
 ### Limitations
 
-- Hex-formatted values are not supported
+- Hex-formatted values are not supported; the generator will defer to `Enum.TryFormat`
 - Custom enum names must not start with a digit or a minus
 - Custom names cannot be empty, or the same as another enum's name or custom name
 

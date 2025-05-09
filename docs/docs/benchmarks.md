@@ -26,8 +26,7 @@ The benchmarks use commonly used CSV datasets, and can be downloaded from the re
 ### Reading .NET objects
 
 The dataset is 5000 records of 10 fields of varied data, quoted fields, and escaped quotes.
-The data is read from a pre-loaded byte array to simulate real-world scenarios. FlameCSV is even faster comparatively
-when reading from a string.
+The data is read from a pre-loaded byte array to simulate real-world scenarios.
 
 | Method                | Mean     |  Ratio | Allocated | Alloc Ratio |
 |----------------------:|---------:|-------:|----------:|------------:|
@@ -214,7 +213,7 @@ Benchmarking writes using no-op destinations like @"System.IO.Stream.Null?displa
 ### Memory Usage
 
 Fewer allocations result in less garbage collector overhead. This is particularly important in web servers handling concurrent operations.
-Memory usage is best evaluated by _comparing_ libraries, since some operations (like reading strings) inherently require allocations,
+Memory usage is best evaluated by _comparing_ libraries, since some operations (like creating strings) inherently require allocations,
 so looking at the allocation numbers in isolation may not be useful.
 
 Streaming is another crucial factor. While important for servers, it's essential for handling large files that cannot fit in memory.
