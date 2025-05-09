@@ -77,8 +77,9 @@ public static class HeaderBindingTests
     [Fact]
     public static void Should_Use_Type_Proxy()
     {
-        var materializer = CsvOptions<char>.Default.TypeBinder
-            .GetMaterializer<ISomething>(["IsEnabled", "Name", "Targeted"]);
+        var materializer = CsvOptions<char>.Default.TypeBinder.GetMaterializer<ISomething>(
+            ["IsEnabled", "Name", "Targeted"]
+        );
 
         var record = new ConstantRecord<char>(["true", "Test", "1"]);
         ISomething result = materializer.Parse(ref record);
@@ -108,8 +109,11 @@ file class Something : ISomething
 [CsvHeader("_targeted", MemberName = nameof(Targeted))]
 file class Shim
 {
-    [CsvIgnore] public string? Name { get; set; }
-    [CsvHeader("Name")] public string? DisplayName { get; set; }
+    [CsvIgnore]
+    public string? Name { get; set; }
+
+    [CsvHeader("Name")]
+    public string? DisplayName { get; set; }
     public bool IsEnabled { get; set; }
     public int Targeted { get; set; }
 }
@@ -122,7 +126,8 @@ file class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
     public bool IsEnabled { get; } = isEnabled;
 }
 
-file struct ConstantRecord<T> : ICsvRecord<T> where T : unmanaged, IBinaryInteger<T>
+file struct ConstantRecord<T> : ICsvRecord<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public ConstantRecord(IEnumerable<string> values, CsvOptions<T>? options = null)
     {

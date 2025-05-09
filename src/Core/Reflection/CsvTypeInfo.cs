@@ -31,10 +31,12 @@ internal class CsvTypeInfo
                 Interlocked.Exchange(ref @this._members, null);
                 Interlocked.Exchange(ref @this._ctorParams, null);
                 Interlocked.Exchange(ref @this._proxyOrSelf, null);
-            });
+            }
+        );
     }
 
-    [DAM(Messages.ReflectionBound)] public Type Type { get; }
+    [DAM(Messages.ReflectionBound)]
+    public Type Type { get; }
 
     private object[]? _customAttributes;
     private MemberData[]? _members;
@@ -104,8 +106,7 @@ internal class CsvTypeInfo
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static MemberData[] InitPropertiesAndFields([DAM(DAMT.PublicProperties | DAMT.PublicFields)] Type type)
     {
-        return type
-            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+        return type.GetProperties(BindingFlags.Instance | BindingFlags.Public)
             .Concat<MemberInfo>(type.GetFields(BindingFlags.Instance | BindingFlags.Public))
             .Select(static m => (MemberData)m)
             .ToArray();
@@ -115,10 +116,9 @@ internal class CsvTypeInfo
     private static object[] InitCustomAttributes(Type type) => type.GetCustomAttributes(inherit: true);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)][NotNullWhen(true)] out Type? typeProxy)
+    private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)] [NotNullWhen(true)] out Type? typeProxy)
     {
-        if (Type.IsValueType ||
-            GetFromAssemblyOrType<CsvTypeProxyAttribute>() is not { } attribute)
+        if (Type.IsValueType || GetFromAssemblyOrType<CsvTypeProxyAttribute>() is not { } attribute)
         {
             typeProxy = null;
             return false;
@@ -130,14 +130,16 @@ internal class CsvTypeInfo
         {
             throw new CsvBindingException(
                 Type,
-                $"Invalid type proxy for {Type}: Type {typeProxy.FullName} cannot be instantiated.");
+                $"Invalid type proxy for {Type}: Type {typeProxy.FullName} cannot be instantiated."
+            );
         }
 
         if (!typeProxy.IsAssignableTo(Type))
         {
             throw new CsvBindingException(
                 Type,
-                $"Invalid type proxy for {Type}: Not assignable to {typeProxy.FullName}).");
+                $"Invalid type proxy for {Type}: Not assignable to {typeProxy.FullName})."
+            );
         }
 
         return true;
@@ -153,7 +155,8 @@ internal class CsvTypeInfo
             if (ctorAttr.ParameterTypes is null)
             {
                 throw new CsvConfigurationException(
-                    $"Parameter types not set for [CsvConstructor] on type {Type.FullName}");
+                    $"Parameter types not set for [CsvConstructor] on type {Type.FullName}"
+                );
             }
 
             var ctor = Type.GetConstructor(BindingFlags.Instance | BindingFlags.Public, types: ctorAttr.ParameterTypes);
@@ -162,7 +165,8 @@ internal class CsvTypeInfo
             {
                 throw new CsvBindingException(
                     Type,
-                    $"Constructor with parameter types {string.Join(", ", ctorAttr.ParameterTypes.Select(t => t.FullName))} not found.");
+                    $"Constructor with parameter types {string.Join(", ", ctorAttr.ParameterTypes.Select(t => t.FullName))} not found."
+                );
             }
 
             return GetResult(ctor.GetParameters());
@@ -170,8 +174,10 @@ internal class CsvTypeInfo
 
         var ctors = Type.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
 
-        if (ctors.Length == 0) return [];
-        if (ctors.Length == 1) return GetResult(ctors[0].GetParameters());
+        if (ctors.Length == 0)
+            return [];
+        if (ctors.Length == 1)
+            return GetResult(ctors[0].GetParameters());
 
         ParameterInfo[]? bestMatch = null;
 
@@ -194,7 +200,8 @@ internal class CsvTypeInfo
                 }
             }
 
-            if (bestMatch == parameters) break;
+            if (bestMatch == parameters)
+                break;
         }
 
         if (bestMatch is null)
@@ -204,20 +211,23 @@ internal class CsvTypeInfo
 
         return GetResult(bestMatch);
 
-        static ParameterData[] GetResult(ParameterInfo[] parameters)
-            => parameters.Select(static p => (ParameterData)p).ToArray();
+        static ParameterData[] GetResult(ParameterInfo[] parameters) =>
+            parameters.Select(static p => (ParameterData)p).ToArray();
     }
 
-    private TAttribute? GetFromAssemblyOrType<TAttribute>() where TAttribute : Attribute
+    private TAttribute? GetFromAssemblyOrType<TAttribute>()
+        where TAttribute : Attribute
     {
         foreach (var attribute in AssemblyAttributes.Get(Type))
         {
-            if (attribute is TAttribute result) return result;
+            if (attribute is TAttribute result)
+                return result;
         }
 
         foreach (var attribute in Attributes)
         {
-            if (attribute is TAttribute result) return result;
+            if (attribute is TAttribute result)
+                return result;
         }
 
         return null;
@@ -227,12 +237,14 @@ internal class CsvTypeInfo
     {
         throw new CsvBindingException(
             type,
-            $"No empty constructor or constructor with [CsvConstructor] found for type {type.FullName}");
+            $"No empty constructor or constructor with [CsvConstructor] found for type {type.FullName}"
+        );
     }
 
     private static object ThrowMemberNotFound(Type type, string memberName, bool isParameter)
     {
         throw new CsvConfigurationException(
-            $"{(isParameter ? "Parameter" : "Property/field")} {memberName} not found on type {type.FullName}");
+            $"{(isParameter ? "Parameter" : "Property/field")} {memberName} not found on type {type.FullName}"
+        );
     }
 }

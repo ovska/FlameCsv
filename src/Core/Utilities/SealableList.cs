@@ -64,7 +64,9 @@ internal sealed class SealableList<T> : IList<T>
     public void CopyTo(T[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
 
     public List<T>.Enumerator GetEnumerator() => _list.GetEnumerator();
+
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => _list.GetEnumerator();
+
     IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
 
     public int IndexOf(T item) => _list.IndexOf(item);

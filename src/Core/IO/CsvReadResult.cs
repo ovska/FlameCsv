@@ -11,7 +11,8 @@ namespace FlameCsv.IO;
 [PublicAPI]
 [DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public readonly struct CsvReadResult<T> where T : unmanaged
+public readonly struct CsvReadResult<T>
+    where T : unmanaged
 {
     /// <summary>
     /// Internal implementation detail.

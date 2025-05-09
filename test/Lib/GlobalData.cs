@@ -14,15 +14,16 @@ public static class GlobalData
     /// <c>false</c> means the guarded data is right before.
     /// </summary>
     public static bool?[] GuardedMemory { get; } =
-        OperatingSystem.IsWindows() &&
-        Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy") == "1"
+        OperatingSystem.IsWindows()
+        && Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy") == "1"
             ? [true, false, null]
             : [null];
 
+    public static T[] Enum<T>()
+        where T : struct, Enum => EnumValues<T>.Values;
 
-    public static T[] Enum<T>() where T : struct, Enum => EnumValues<T>.Values;
-
-    private static class EnumValues<T> where T : struct, Enum
+    private static class EnumValues<T>
+        where T : struct, Enum
     {
         public static T[] Values { get; } = System.Enum.GetValues<T>();
     }

@@ -11,20 +11,19 @@ public static class TypeMapBindingTests
     [Fact]
     public static void Should_Require_At_Least_One_Field()
     {
-        Assert.ThrowsAny<CsvBindingException>(
-            () => { _ = CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Default, CsvOptions<char>.Default).ToList(); });
+        Assert.ThrowsAny<CsvBindingException>(() =>
+        {
+            _ = CsvReader.Read("a,b,c\r\n", ObjTypeMap_Simple.Default, CsvOptions<char>.Default).ToList();
+        });
     }
 
     [Fact]
     public static void Should_Throw_On_Duplicate()
     {
-        Assert.ThrowsAny<CsvBindingException>(
-            () =>
-            {
-                _ = CsvReader
-                    .Read("id,name,_id\r\n", ObjTypeMap_ThrowDuplicate.Default, CsvOptions<char>.Default)
-                    .ToList();
-            });
+        Assert.ThrowsAny<CsvBindingException>(() =>
+        {
+            _ = CsvReader.Read("id,name,_id\r\n", ObjTypeMap_ThrowDuplicate.Default, CsvOptions<char>.Default).ToList();
+        });
     }
 
     [Fact]
@@ -43,8 +42,10 @@ public static class TypeMapBindingTests
         const string data =
             "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
-        Assert.ThrowsAny<CsvBindingException>(
-            () => { _ = CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Default, CsvOptions<char>.Default).ToList(); });
+        Assert.ThrowsAny<CsvBindingException>(() =>
+        {
+            _ = CsvReader.Read(data, ObjTypeMap_ThrowUnmatched.Default, CsvOptions<char>.Default).ToList();
+        });
     }
 
     [Fact]
@@ -63,32 +64,38 @@ public static class TypeMapBindingTests
 
         Assert.Same(
             ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default)
+        );
 
         // only reference equality for now for options
         Assert.NotSame(
             ObjTypeMap_Simple.Default.GetMaterializer(header, CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Default.GetMaterializer(header, new CsvOptions<char>()));
+            ObjTypeMap_Simple.Default.GetMaterializer(header, new CsvOptions<char>())
+        );
 
         // ditto for the typemap instances
         Assert.NotSame(
             new ObjTypeMap_Simple().GetMaterializer(header, CsvOptions<char>.Default),
-            new ObjTypeMap_Simple().GetMaterializer(header, CsvOptions<char>.Default));
+            new ObjTypeMap_Simple().GetMaterializer(header, CsvOptions<char>.Default)
+        );
 
         // we use the comparer used by the headers, so these two are equivalent
         Assert.Same(
             ObjTypeMap_Simple.Default.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Default.GetMaterializer(["Id", "Name"], CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(["Id", "Name"], CsvOptions<char>.Default)
+        );
 
         // test order
         Assert.NotSame(
             ObjTypeMap_Simple.Default.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
-            ObjTypeMap_Simple.Default.GetMaterializer(["name", "id"], CsvOptions<char>.Default));
+            ObjTypeMap_Simple.Default.GetMaterializer(["name", "id"], CsvOptions<char>.Default)
+        );
 
         // type map configured to not cache
         Assert.NotSame(
             ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default),
-            ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default));
+            ObjTypeMap_NoCache.Default.GetMaterializer(header, CsvOptions<char>.Default)
+        );
     }
 
     private static void AssertItems(List<Obj> items)
@@ -104,9 +111,14 @@ public static class TypeMapBindingTests
 
     public sealed class Obj
     {
-        [CsvIndex(0)] public int Id { get; set; }
-        [CsvIndex(1)] public string Name { get; set; } = string.Empty;
-        [CsvIndex(2)] public bool IsEnabled { get; set; }
+        [CsvIndex(0)]
+        public int Id { get; set; }
+
+        [CsvIndex(1)]
+        public string Name { get; set; } = string.Empty;
+
+        [CsvIndex(2)]
+        public bool IsEnabled { get; set; }
     }
 }
 

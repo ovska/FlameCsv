@@ -39,8 +39,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// Constructor parameters and their bindings. Parameters that don't have a binding are guaranteed
     /// to have a default value.
     /// </summary>
-    internal ReadOnlySpan<(ParameterCsvBinding<TValue>? binding, ParameterInfo param)> ConstructorParameters
-        => _ctorParameters.AsSpan();
+    internal ReadOnlySpan<(ParameterCsvBinding<TValue>? binding, ParameterInfo param)> ConstructorParameters =>
+        _ctorParameters.AsSpan();
 
     /// <summary>
     /// Returns <c>true</c> if the bindings will use a specific constructor.
@@ -59,8 +59,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// </summary>
     /// <seealso cref="HasConstructorParameters"/>
     /// <exception cref="InvalidOperationException">There are no constructor bindings</exception>
-    public ConstructorInfo Constructor
-        => _ctor ?? throw new InvalidOperationException("There are no constructor bindings.");
+    public ConstructorInfo Constructor =>
+        _ctor ?? throw new InvalidOperationException("There are no constructor bindings.");
 
     private readonly List<CsvBinding<TValue>> _allBindings;
     private readonly List<MemberCsvBinding<TValue>> _memberBindings;
@@ -73,9 +73,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// <param name="typeBindings">Bindings to initialize the collection with</param>
     /// <param name="write">The bindings are for writing and not reading CSV</param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
-    public CsvBindingCollection(
-        IEnumerable<CsvBinding<TValue>> typeBindings,
-        bool write)
+    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> typeBindings, bool write)
     {
         ArgumentNullException.ThrowIfNull(typeBindings);
 
@@ -103,9 +101,10 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             if (binding.Index != expectedIndex)
             {
                 throw new CsvBindingException<TValue>(
-                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} " +
-                    $"but the next binding was: {binding}",
-                    bindingsList);
+                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} "
+                        + $"but the next binding was: {binding}",
+                    bindingsList
+                );
             }
 
             if (binding.IsIgnored)
@@ -141,7 +140,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         {
             throw new CsvBindingException<TValue>(
                 $"All {bindings.Length} binding(s) for {typeof(TValue)} are ignored",
-                bindingsList);
+                bindingsList
+            );
         }
 
         ForWriting = write;
@@ -165,7 +165,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
 
     private static List<(ParameterCsvBinding<TValue>? binding, ParameterInfo param)>? GetConstructorParameters(
         List<ParameterCsvBinding<TValue>> bindingsList,
-        ConstructorInfo? ctor)
+        ConstructorInfo? ctor
+    )
     {
         if (ctor is null || bindingsList.Count == 0)
             return null;
@@ -177,7 +178,8 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         if (bindings.Length > parameters.Length)
         {
             throw new CsvBindingException<TValue>(
-                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.");
+                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters."
+            );
         }
 
         List<(ParameterCsvBinding<TValue>? ctorBinding, ParameterInfo param)> parameterInfos = new(parameters.Length);

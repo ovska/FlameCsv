@@ -5,6 +5,7 @@ namespace FlameCsv.Tests;
 public static class SyncAsyncEnumerable
 {
     public static SyncAsyncEnumerable<T> Create<T>(params T[] inner) => new(inner);
+
     public static SyncAsyncEnumerable<T> Create<T>(IEnumerable<T> inner) => new(inner);
 }
 
@@ -12,13 +13,13 @@ public sealed class SyncAsyncEnumerable<T>(IEnumerable<T> inner) : IAsyncEnumera
 {
     public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        if (!cancellationToken.CanBeCanceled) cancellationToken = TestContext.Current.CancellationToken;
+        if (!cancellationToken.CanBeCanceled)
+            cancellationToken = TestContext.Current.CancellationToken;
         return new Enumerator(inner.GetEnumerator(), cancellationToken);
     }
 
-    public sealed class Enumerator(
-        [HandlesResourceDisposal] IEnumerator<T> inner,
-        CancellationToken cancellationToken) : IAsyncEnumerator<T>
+    public sealed class Enumerator([HandlesResourceDisposal] IEnumerator<T> inner, CancellationToken cancellationToken)
+        : IAsyncEnumerator<T>
     {
         public T Current => inner.Current;
 

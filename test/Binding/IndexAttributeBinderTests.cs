@@ -30,7 +30,8 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result.Bindings.Length);
         Assert.Equal(
             [(0, "A"), (1, "B"), (2, "C")],
-            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Members>)b).Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Members>)b).Member.Name))
+        );
     }
 
     [Theory, InlineData(true), InlineData(false)]
@@ -40,7 +41,8 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result.Bindings.Length);
         Assert.Equal(
             [(0, "A"), (1, "B"), (2, "C")],
-            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Class>)b).Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Class>)b).Member.Name))
+        );
     }
 
     [Theory, InlineData(true), InlineData(false)]
@@ -50,7 +52,8 @@ public static class IndexAttributeBinderTests
         Assert.Equal(3, result.Bindings.Length);
         Assert.Equal(
             [(0, "A"), (1, "B"), (2, "C")],
-            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Mixed>)b).Member.Name)));
+            result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Mixed>)b).Member.Name))
+        );
     }
 
     [Theory, InlineData(true), InlineData(false)]
@@ -79,13 +82,15 @@ public static class IndexAttributeBinderTests
         {
             Assert.Equal(
                 [(0, "A"), (1, "B"), (2, "C")],
-                result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Params>)b).Member.Name)));
+                result.Bindings.ToArray().Select(b => (b.Index, ((MemberCsvBinding<Params>)b).Member.Name))
+            );
         }
         else
         {
             Assert.Equal(
                 [(0, "c"), (1, "b"), (2, "a")],
-                result.Bindings.ToArray().Select(b => (b.Index, ((ParameterCsvBinding<Params>)b).Parameter.Name!)));
+                result.Bindings.ToArray().Select(b => (b.Index, ((ParameterCsvBinding<Params>)b).Parameter.Name!))
+            );
         }
     }
 
@@ -107,22 +112,33 @@ public static class IndexAttributeBinderTests
     [CsvTypeProxy(typeof(ObjIFace))]
     private interface IFace
     {
-        [CsvIndex(0)] int A { get; }
-        [CsvIndex(1)] string? B { get; }
+        [CsvIndex(0)]
+        int A { get; }
+
+        [CsvIndex(1)]
+        string? B { get; }
     }
 
     [CsvIgnoredIndexes(1)]
     private class Ignored
     {
-        [CsvIndex(0)] public int A { get; set; }
-        [CsvIndex(2)] public int B { get; set; }
+        [CsvIndex(0)]
+        public int A { get; set; }
+
+        [CsvIndex(2)]
+        public int B { get; set; }
     }
 
     private class Members
     {
-        [CsvIndex(0)] public int A { get; set; }
-        [CsvIndex(1)] public string? B { get; set; }
-        [CsvIndex(2)] public bool C { get; set; }
+        [CsvIndex(0)]
+        public int A { get; set; }
+
+        [CsvIndex(1)]
+        public string? B { get; set; }
+
+        [CsvIndex(2)]
+        public bool C { get; set; }
     }
 
     [CsvIndex(0, MemberName = nameof(A))]
@@ -138,16 +154,24 @@ public static class IndexAttributeBinderTests
     [CsvIndex(1, MemberName = nameof(B))]
     private class Mixed
     {
-        [CsvIndex(0)] public int A { get; set; }
+        [CsvIndex(0)]
+        public int A { get; set; }
         public string? B { get; set; }
-        [CsvIndex(2)] public bool C { get; set; }
+
+        [CsvIndex(2)]
+        public bool C { get; set; }
     }
 
     private class Params([CsvIndex(2)] int a, [CsvIndex(1)] string? b, [CsvIndex(0)] bool c)
     {
-        [CsvIndex(0)] public int A { get; } = a;
-        [CsvIndex(1)] public string? B { get; } = b;
-        [CsvIndex(2)] public bool C { get; } = c;
+        [CsvIndex(0)]
+        public int A { get; } = a;
+
+        [CsvIndex(1)]
+        public string? B { get; } = b;
+
+        [CsvIndex(2)]
+        public bool C { get; } = c;
     }
 
     private class None

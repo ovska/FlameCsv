@@ -3,7 +3,8 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
-internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : unmanaged, IBinaryInteger<T>
+internal abstract class Dematerializer<T, TValue> : Dematerializer<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvBindingCollection<TValue> _bindings;
 
@@ -31,7 +32,8 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T> where T : 
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     protected static CsvConverter<T, TConverted> ResolveConverter<TConverted>(
         CsvOptions<T> options,
-        MemberCsvBinding<TValue> binding)
+        MemberCsvBinding<TValue> binding
+    )
     {
         if (binding.IsIgnored)
         {

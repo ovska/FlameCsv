@@ -21,23 +21,22 @@ public partial class BindingBench
 
     private static readonly CsvDataReaderOptions _sylvanOptions = new()
     {
-        CsvStyle = CsvStyle.Standard, Delimiter = ',', Quote = '"', HeaderComparer = StringComparer.OrdinalIgnoreCase,
+        CsvStyle = CsvStyle.Standard,
+        Delimiter = ',',
+        Quote = '"',
+        HeaderComparer = StringComparer.OrdinalIgnoreCase,
     };
 
     [Benchmark(Baseline = true)]
     public void _FlameCsv_SrcGen()
     {
-        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Default, CsvOptions<char>.Default))
-        {
-        }
+        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Default, CsvOptions<char>.Default)) { }
     }
 
     [Benchmark]
     public void _FlameCsv_Reflect()
     {
-        foreach (var _ in CsvReader.Read<Obj>(CSV, CsvOptions<char>.Default))
-        {
-        }
+        foreach (var _ in CsvReader.Read<Obj>(CSV, CsvOptions<char>.Default)) { }
     }
 
     [Benchmark]
@@ -46,9 +45,7 @@ public partial class BindingBench
         using var reader = new StringReader(CSV);
         using var csv = Sylvan.Data.Csv.CsvDataReader.Create(reader, _sylvanOptions);
 
-        foreach (var _ in csv.GetRecords<Entry>())
-        {
-        }
+        foreach (var _ in csv.GetRecords<Entry>()) { }
     }
 
     [Benchmark]
@@ -57,9 +54,7 @@ public partial class BindingBench
         using var reader = new StringReader(CSV);
         using var csv = new CsvHelper.CsvReader(reader, _helperCfg);
 
-        foreach (var _ in csv.GetRecords<Obj>())
-        {
-        }
+        foreach (var _ in csv.GetRecords<Obj>()) { }
     }
 
     internal struct Obj
@@ -74,4 +69,3 @@ public partial class BindingBench
     [CsvTypeMap<char, BindingBench.Obj>]
     private partial class TestTypeMap;
 }
-

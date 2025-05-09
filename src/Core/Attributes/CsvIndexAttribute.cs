@@ -8,14 +8,15 @@ namespace FlameCsv.Attributes;
 /// When placed on an assembly, <see cref="CsvConfigurationAttribute.TargetType"/> must be set.
 /// </summary>
 [AttributeUsage(
-    AttributeTargets.Property |
-    AttributeTargets.Field |
-    AttributeTargets.Parameter |
-    AttributeTargets.Class |
-    AttributeTargets.Struct |
-    AttributeTargets.Interface |
-    AttributeTargets.Assembly,
-    AllowMultiple = true)] // type and assembly need AllMultiple = true
+    AttributeTargets.Property
+        | AttributeTargets.Field
+        | AttributeTargets.Parameter
+        | AttributeTargets.Class
+        | AttributeTargets.Struct
+        | AttributeTargets.Interface
+        | AttributeTargets.Assembly,
+    AllowMultiple = true
+)] // type and assembly need AllMultiple = true
 [PublicAPI]
 public sealed class CsvIndexAttribute : CsvFieldConfigurationAttribute
 {

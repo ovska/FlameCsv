@@ -11,19 +11,24 @@ public partial class EnumParseBench
 
     private static readonly byte[][] _bStrings =
     [
-        ..Enum.GetValues<TypeCode>().Select(t => Encoding.UTF8.GetBytes(t.ToString("G")))
+        .. Enum.GetValues<TypeCode>().Select(t => Encoding.UTF8.GetBytes(t.ToString("G"))),
     ];
 
     private static readonly string[] _cNums = [.. Enum.GetValues<TypeCode>().Select(t => t.ToString("D"))];
 
     private static readonly byte[][] _bNums =
     [
-        ..Enum.GetValues<TypeCode>().Select(t => Encoding.UTF8.GetBytes(t.ToString("D")))
+        .. Enum.GetValues<TypeCode>().Select(t => Encoding.UTF8.GetBytes(t.ToString("D"))),
     ];
 
-    [Params(true, false)] public bool Bytes { get; set; }
-    [Params(true, false)] public bool IgnoreCase { get; set; }
-    [Params(true, false)] public bool ParseNumbers { get; set; }
+    [Params(true, false)]
+    public bool Bytes { get; set; }
+
+    [Params(true, false)]
+    public bool IgnoreCase { get; set; }
+
+    [Params(true, false)]
+    public bool ParseNumbers { get; set; }
 
     private string[] CharData => ParseNumbers ? _cNums : _cStrings;
     private byte[][] ByteData => ParseNumbers ? _bNums : _bStrings;

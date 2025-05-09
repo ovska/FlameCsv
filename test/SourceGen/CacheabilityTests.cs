@@ -11,11 +11,7 @@ namespace FlameCsv.Tests.SourceGen;
 [Collection(typeof(MetadataCollection))]
 public class TypeMapTests(MetadataFixture fixture)
 {
-    private readonly MetadataReference[] _metadataReferences =
-    [
-        Net90.References.SystemRuntime,
-        fixture.FlameCsvCore,
-    ];
+    private readonly MetadataReference[] _metadataReferences = [Net90.References.SystemRuntime, fixture.FlameCsvCore];
 
     [Fact]
     public void Test_Cacheability()
@@ -34,17 +30,20 @@ public class TypeMapTests(MetadataFixture fixture)
                         public string? Name { get; set; }
                     }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken),
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             _metadataReferences,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         TypeMapGenerator generator = new();
         ISourceGenerator sourceGenerator = generator.AsSourceGenerator();
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             [sourceGenerator],
-            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true));
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true)
+        );
 
         // Run the generator once
         driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
@@ -58,11 +57,13 @@ public class TypeMapTests(MetadataFixture fixture)
                 .Results.Single()
                 .TrackedOutputSteps.Single(x => x.Key != "FlameCsv_Diagnostics")
                 .Value,
-            step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New));
+            step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New)
+        );
 
         // Update the compilation and rerun the generator
         compilation = compilation.AddSyntaxTrees(
-            CSharpSyntaxTree.ParseText("// dummy", cancellationToken: TestContext.Current.CancellationToken));
+            CSharpSyntaxTree.ParseText("// dummy", cancellationToken: TestContext.Current.CancellationToken)
+        );
         driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         // Assert the driver doesn't recompute the output
@@ -74,8 +75,10 @@ public class TypeMapTests(MetadataFixture fixture)
         Assert.All(allOutputs, output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
 
         // Assert the driver use the cached result from typemap
-        ImmutableArray<(object Value, IncrementalStepRunReason Reason)> assemblyNameOutputs
-            = result.TrackedSteps["FlameCsv_TypeMap"].Single().Outputs;
+        ImmutableArray<(object Value, IncrementalStepRunReason Reason)> assemblyNameOutputs = result
+            .TrackedSteps["FlameCsv_TypeMap"]
+            .Single()
+            .Outputs;
         (object Value, IncrementalStepRunReason Reason) output2 = Assert.Single(assemblyNameOutputs);
         Assert.Equal(IncrementalStepRunReason.Cached, output2.Reason);
     }
@@ -94,13 +97,11 @@ public class TypeMapTests(MetadataFixture fixture)
                 return true;
             }
 
-            if (type.IsPrimitive ||
-                type.IsEnum ||
-                type == typeof(string))
+            if (type.IsPrimitive || type.IsEnum || type == typeof(string))
             {
                 return true;
             }
-            
+
             if (Nullable.GetUnderlyingType(type) is Type underlyingType)
             {
                 return AssertEquatable(underlyingType, handled);

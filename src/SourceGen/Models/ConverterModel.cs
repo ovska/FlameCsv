@@ -10,22 +10,26 @@ internal readonly record struct ConverterModel
         ISymbol propertyOrParameter,
         ITypeSymbol convertedType,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         ITypeSymbol? converter = null;
 
         foreach (var attributeData in propertyOrParameter.GetAttributes())
         {
-            if (attributeData.AttributeClass is { IsGenericType: true, Arity: 1 } attribute &&
-                symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType()) &&
-                IsConverterOrFactory(attribute.TypeArguments[0], token, in symbols))
+            if (
+                attributeData.AttributeClass is { IsGenericType: true, Arity: 1 } attribute
+                && symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType())
+                && IsConverterOrFactory(attribute.TypeArguments[0], token, in symbols)
+            )
             {
                 converter = attribute.TypeArguments[0];
                 break;
             }
         }
 
-        if (converter is null) return null;
+        if (converter is null)
+            return null;
 
         TypeRef converterType = new(converter);
         ConstructorArgumentType constructorArguments = default;
@@ -34,8 +38,10 @@ internal readonly record struct ConverterModel
 
         foreach (var member in converter.GetMembers())
         {
-            if (member.Kind == SymbolKind.Method &&
-                member is IMethodSymbol { MethodKind: MethodKind.Constructor } method)
+            if (
+                member.Kind == SymbolKind.Method
+                && member is IMethodSymbol { MethodKind: MethodKind.Constructor } method
+            )
             {
                 if (method.Parameters.IsEmpty)
                 {
@@ -118,10 +124,7 @@ internal readonly record struct ConverterModel
         return false;
     }
 
-    public static bool IsConverterOrFactory(
-        ITypeSymbol? type,
-        ITypeSymbol tokenType,
-        ref readonly FlameSymbols symbols)
+    public static bool IsConverterOrFactory(ITypeSymbol? type, ITypeSymbol tokenType, ref readonly FlameSymbols symbols)
     {
         while (type is not null)
         {
@@ -129,8 +132,10 @@ internal readonly record struct ConverterModel
             {
                 if (genericType.Arity == 2)
                 {
-                    if (symbols.IsCsvConverterTTValue(genericType.ConstructUnboundGenericType()) &&
-                        SymbolEqualityComparer.Default.Equals(genericType.TypeArguments[0], tokenType))
+                    if (
+                        symbols.IsCsvConverterTTValue(genericType.ConstructUnboundGenericType())
+                        && SymbolEqualityComparer.Default.Equals(genericType.TypeArguments[0], tokenType)
+                    )
                     {
                         return true;
                     }

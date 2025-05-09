@@ -7,7 +7,8 @@ using System.Runtime.Versioning;
 namespace FlameCsv.Tests;
 
 [SupportedOSPlatform("windows")]
-public sealed class GuardedMemoryManager<T> : MemoryManager<T> where T : unmanaged
+public sealed class GuardedMemoryManager<T> : MemoryManager<T>
+    where T : unmanaged
 {
     public bool IsDisposed { get; private set; }
 
@@ -51,9 +52,7 @@ public sealed class GuardedMemoryManager<T> : MemoryManager<T> where T : unmanag
         }
 
         // data either starts one page from start, or ends one page from end
-        _memoryPointer = !fromEnd
-            ? _baseAddress + _pageSize
-            : (_baseAddress + _totalSize - _pageSize - lengthInBytes);
+        _memoryPointer = !fromEnd ? _baseAddress + _pageSize : (_baseAddress + _totalSize - _pageSize - lengthInBytes);
 
         if (!Native.VirtualProtect(_baseAddress, (nuint)_pageSize, PAGE_NOACCESS, out _))
         {
@@ -151,7 +150,6 @@ public sealed class GuardedMemoryManager<T> : MemoryManager<T> where T : unmanag
     {
         nint start = _memoryPointer - _baseAddress;
         nint end = start + _length * sizeof(T);
-        return
-            $"GuardedMemoryManager<{typeof(T)}> {{ Page: {_pageSize}, Memory range: {start}..{end}, Total range: 0..{_totalSize} }}";
+        return $"GuardedMemoryManager<{typeof(T)}> {{ Page: {_pageSize}, Memory range: {start}..{end}, Total range: 0..{_totalSize} }}";
     }
 }

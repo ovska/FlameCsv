@@ -254,8 +254,8 @@ public class Utf8StreamWriterTests
         failingStream.FailOnNextWrite = true;
 
         // Act & Assert
-        await Assert.ThrowsAsync<IOException>(async () =>
-            await writer.FlushAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<IOException>(async () => await writer.FlushAsync(TestContext.Current.CancellationToken)
+        );
 
         await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
     }

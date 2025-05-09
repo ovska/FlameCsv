@@ -8,8 +8,8 @@ public static class SimdVectorTests
 
     private const string CharData = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    private static ReadOnlySpan<byte> ByteData
-        => "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
+    private static ReadOnlySpan<byte> ByteData =>
+        "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
 
     [Fact]
     public static void Vector_128_Byte() => Test<byte, Vec128Byte>(ByteData);
@@ -58,7 +58,8 @@ public static class SimdVectorTests
     /// <summary>
     /// Test for no clashes even if non-ASCII characters are in the data.
     /// </summary>
-    private static void TestNonAscii<TVector>() where TVector : struct, ISimdVector<char, TVector>
+    private static void TestNonAscii<TVector>()
+        where TVector : struct, ISimdVector<char, TVector>
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
@@ -72,7 +73,8 @@ public static class SimdVectorTests
                 Enumerable
                     .Range(0, (1024 * 8 / TVector.Count) + TVector.Count)
                     .Select(i => i == token ? (char)(i + 1) : (char)i)
-                    .ToArray());
+                    .ToArray()
+            );
 
             for (int i = 0; i < data.Length; i += TVector.Count)
             {
@@ -85,12 +87,16 @@ public static class SimdVectorTests
                 {
                     char actual = data[i + (int)eq.ExtractMostSignificantBits()];
                     Assert.Fail(
-                        $"Matched: {actual} ({(int)actual} / {(int)actual:X}) to {token} ({(int)token} / {(int)token:X})" +
-                        Environment.NewLine +
-                        $"Chars: [{data.AsSpan(i, TVector.Count)}], Bytes: " +
-                        string.Join(',', data.AsSpan(i, TVector.Count).ToArray().Select(x => ((int)x).ToString("X"))) +
-                        Environment.NewLine +
-                        $"Vec: {vec}");
+                        $"Matched: {actual} ({(int)actual} / {(int)actual:X}) to {token} ({(int)token} / {(int)token:X})"
+                            + Environment.NewLine
+                            + $"Chars: [{data.AsSpan(i, TVector.Count)}], Bytes: "
+                            + string.Join(
+                                ',',
+                                data.AsSpan(i, TVector.Count).ToArray().Select(x => ((int)x).ToString("X"))
+                            )
+                            + Environment.NewLine
+                            + $"Vec: {vec}"
+                    );
                 }
             }
         }

@@ -9,7 +9,8 @@ namespace FlameCsv.Converters.Enums;
 /// <summary>
 /// The default converter for non-flags enums.
 /// </summary>
-internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where TEnum : struct, Enum
+internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
+    where TEnum : struct, Enum
 {
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
@@ -58,8 +59,10 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
 
         scoped Span<char> chars;
 
-        if (Token<char>.CanStackalloc(maxLength) ||
-            Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source)))
+        if (
+            Token<char>.CanStackalloc(maxLength)
+            || Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source))
+        )
         {
             chars = stackalloc char[maxLength];
         }
@@ -71,8 +74,8 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
         int written = Encoding.UTF8.GetChars(source, chars);
 
         bool result =
-            Enum.TryParse(chars[..written], _ignoreCase, out value) &&
-            (_allowUndefinedValues || EnumCacheUtf8<TEnum>.IsDefinedCore(value));
+            Enum.TryParse(chars[..written], _ignoreCase, out value)
+            && (_allowUndefinedValues || EnumCacheUtf8<TEnum>.IsDefinedCore(value));
 
         if (toReturn is not null)
         {
@@ -87,15 +90,18 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum> where
     {
         OperationStatus status = _formatStrategy.TryFormat(destination, value, out charsWritten);
 
-        if (status is OperationStatus.Done) return true;
-        if (status is OperationStatus.DestinationTooSmall) return false;
+        if (status is OperationStatus.Done)
+            return true;
+        if (status is OperationStatus.DestinationTooSmall)
+            return false;
 
         // Enum doesn't support Utf8 formatting directly
         Utf8.TryWriteInterpolatedStringHandler handler = new(
             literalLength: 0,
             formattedCount: 1,
             destination: destination,
-            shouldAppend: out bool shouldAppend);
+            shouldAppend: out bool shouldAppend
+        );
 
         if (shouldAppend)
         {

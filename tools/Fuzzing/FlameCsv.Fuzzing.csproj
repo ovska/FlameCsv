@@ -1,24 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
     </PropertyGroup>
-
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
-        <PackageReference Include="SharpFuzz" Version="2.2.0"/>
+        <PackageReference Include="SharpFuzz" Version="2.2.0" />
     </ItemGroup>
-
     <ItemGroup>
-		<ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
-        <ProjectReference Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"
-                          ReferenceOutputAssembly="false"
-                          OutputItemType="Analyzer"
-                          PrivateAssets="all"/>
+        <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference
+            Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"
+            ReferenceOutputAssembly="false"
+            OutputItemType="Analyzer"
+            PrivateAssets="all"
+        />
     </ItemGroup>
-
 </Project>

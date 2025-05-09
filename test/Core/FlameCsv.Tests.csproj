@@ -1,22 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <!--Sourcegen stuff-->
     <PropertyGroup Condition="'$(Configuration)' != 'Release'">
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>
         <ReportAnalyzer>true</ReportAnalyzer>
     </PropertyGroup>
-
     <ItemGroup>
-		<ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
-        <ProjectReference Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PackAsAnalyzer="true"/>
+        <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference
+            Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"
+            OutputItemType="Analyzer"
+            ReferenceOutputAssembly="false"
+            PackAsAnalyzer="true"
+        />
         <ProjectReference Include="..\Lib\FlameCsv.Tests.Lib.csproj" />
     </ItemGroup>
-
     <ItemGroup>
-        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
-
     <ItemGroup>
         <Compile Update="Converters\EnumReflectionByteTests.cs">
             <DependentUpon>EnumTests.cs</DependentUpon>
@@ -34,5 +35,4 @@
             <DependentUpon>EnumTests.cs</DependentUpon>
         </Compile>
     </ItemGroup>
-
 </Project>

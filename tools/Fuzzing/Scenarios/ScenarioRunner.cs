@@ -4,12 +4,10 @@ namespace FlameCsv.Fuzzing.Scenarios;
 
 public static class ScenarioRunner
 {
-    private static readonly PoisonPagePlacement[] _placements =
-    [
-        PoisonPagePlacement.After, PoisonPagePlacement.Before,
-    ];
+    private static readonly PoisonPagePlacement[] _placements = [PoisonPagePlacement.After, PoisonPagePlacement.Before];
 
-    public static void Run<TScenario>(ReadOnlySpan<byte> data) where TScenario : IScenario
+    public static void Run<TScenario>(ReadOnlySpan<byte> data)
+        where TScenario : IScenario
     {
         foreach (var placement in _placements)
         {

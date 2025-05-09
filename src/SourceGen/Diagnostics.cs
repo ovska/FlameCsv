@@ -23,7 +23,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.NotPartialType,
             location: location ?? GetLocation(type),
-            messageArgs: [type.ToDisplayString(), targetMessage]);
+            messageArgs: [type.ToDisplayString(), targetMessage]
+        );
     }
 
     public static Diagnostic FileScopedType(ITypeSymbol type, Location? location)
@@ -33,7 +34,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.FileScopedType,
             location: location ?? GetLocation(type),
-            messageArgs: type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            messageArgs: type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+        );
     }
 
     public static Diagnostic NoValidConstructor(ITypeSymbol type, IMethodSymbol? constructor)
@@ -41,31 +43,36 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.NoValidConstructor,
             location: GetLocation(constructor, type),
-            messageArgs: type.ToDisplayString());
+            messageArgs: type.ToDisplayString()
+        );
     }
 
     public static Diagnostic RefConstructorParameter(
         ITypeSymbol type,
         IMethodSymbol constructor,
-        IParameterSymbol parameter)
+        IParameterSymbol parameter
+    )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.RefConstructorParameter,
             location: parameter.GetFullLocation() ?? GetLocation(constructor, parameter),
             additionalLocations: constructor?.Locations.Where(l => l.IsInSource),
-            messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
+            messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]
+        );
     }
 
     public static Diagnostic RefLikeConstructorParameter(
         ITypeSymbol type,
         IMethodSymbol constructor,
-        IParameterSymbol parameter)
+        IParameterSymbol parameter
+    )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.RefLikeConstructorParameter,
             location: parameter.GetFullLocation() ?? GetLocation(parameter, constructor, type),
             additionalLocations: constructor?.Locations.Where(l => l.IsInSource),
-            messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]);
+            messageArgs: [type.ToDisplayString(), parameter.ToDisplayString()]
+        );
     }
 
     public static Diagnostic MultipleTypeProxies(ITypeSymbol targetType, ICollection<Location?> locations)
@@ -74,7 +81,8 @@ internal static class Diagnostics
             descriptor: Descriptors.MultipleTypeProxies,
             location: locations.FirstOrDefault() ?? GetLocation(targetType),
             additionalLocations: locations.OfType<Location>(),
-            messageArgs: targetType.ToDisplayString());
+            messageArgs: targetType.ToDisplayString()
+        );
     }
 
     public static Diagnostic NoTargetTypeOnAssembly(AttributeData attribute, ITypeSymbol attributeClass)
@@ -82,7 +90,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.NoTargetTypeOnAssembly,
             location: attribute.GetLocation() ?? GetLocation(attributeClass),
-            messageArgs: [attributeClass.ToDisplayString()]);
+            messageArgs: [attributeClass.ToDisplayString()]
+        );
     }
 
     public static Diagnostic NoMemberNameOnAttribute(AttributeData attribute, bool isOnAssembly)
@@ -94,7 +103,8 @@ internal static class Diagnostics
             [
                 attribute.AttributeClass?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "<unknown>",
                 isOnAssembly ? "assembly" : "type",
-            ]);
+            ]
+        );
     }
 
     public static Diagnostic ConflictingConfiguration(
@@ -102,12 +112,14 @@ internal static class Diagnostics
         string memberType,
         string memberName,
         string configurationName,
-        Location? location)
+        Location? location
+    )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.ConflictingConfiguration,
             location: location ?? GetLocation(targetType),
-            messageArgs: [memberType, memberName, targetType.ToDisplayString(), configurationName]);
+            messageArgs: [memberType, memberName, targetType.ToDisplayString(), configurationName]
+        );
     }
 
     public static Diagnostic IgnoredParameterWithoutDefaultValue(IParameterSymbol parameter, ITypeSymbol targetType)
@@ -115,7 +127,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.IgnoredParameterWithoutDefaultValue,
             location: parameter.GetFullLocation() ?? GetLocation(parameter, parameter.ContainingSymbol, targetType),
-            messageArgs: [parameter.ToDisplayString(), targetType.ToDisplayString()]);
+            messageArgs: [parameter.ToDisplayString(), targetType.ToDisplayString()]
+        );
     }
 
     public static Diagnostic NoReadableMembers(ITypeSymbol type)
@@ -123,7 +136,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.NoReadableMembers,
             location: GetLocation(type),
-            messageArgs: type.ToDisplayString());
+            messageArgs: type.ToDisplayString()
+        );
     }
 
     public static Diagnostic NoWritableMembers(ITypeSymbol type)
@@ -131,7 +145,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.NoWritableMembers,
             location: GetLocation(type),
-            messageArgs: type.ToDisplayString());
+            messageArgs: type.ToDisplayString()
+        );
     }
 
     public static Diagnostic NoCsvFactoryConstructor(ISymbol target, string factoryType, ITypeSymbol tokenType)
@@ -139,7 +154,8 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.NoCsvFactoryConstructor,
             location: GetLocation(target),
-            messageArgs: [target.ToDisplayString(), factoryType, tokenType.ToDisplayString()]);
+            messageArgs: [target.ToDisplayString(), factoryType, tokenType.ToDisplayString()]
+        );
     }
 
     public static Diagnostic CsvConverterAbstract(ISymbol target, string converterType)
@@ -147,27 +163,32 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.CsvConverterAbstract,
             location: GetLocation(target),
-            messageArgs: [converterType, target.ToDisplayString()]);
+            messageArgs: [converterType, target.ToDisplayString()]
+        );
     }
 
     public static Diagnostic NoMatchingConstructor(
         ITypeSymbol targetType,
         IEnumerable<ITypeSymbol?> types,
-        Location? location)
+        Location? location
+    )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.NoMatchingConstructor,
             location: location ?? GetLocation(targetType),
             messageArgs:
             [
-                targetType.ToDisplayString(), string.Join(", ", types.Select(t => t?.ToDisplayString() ?? "<unknown>")),
-            ]);
+                targetType.ToDisplayString(),
+                string.Join(", ", types.Select(t => t?.ToDisplayString() ?? "<unknown>")),
+            ]
+        );
     }
 
     public static Diagnostic TargetMemberNotFound(
         ITypeSymbol targetType,
         Location? location,
-        in AttributeConfiguration configuration)
+        in AttributeConfiguration configuration
+    )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.TargetMemberNotFound,
@@ -177,17 +198,17 @@ internal static class Diagnostics
                 configuration.IsParameter ? "Parameter" : "Property/field",
                 configuration.MemberName,
                 targetType.ToDisplayString(),
-            ]);
+            ]
+        );
     }
 
-    public static Diagnostic ConflictingIndex(
-        ITypeSymbol targetType,
-        string memberName)
+    public static Diagnostic ConflictingIndex(ITypeSymbol targetType, string memberName)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.ConflictingIndex,
             location: GetLocation(targetType),
-            messageArgs: [memberName, targetType.ToDisplayString()]);
+            messageArgs: [memberName, targetType.ToDisplayString()]
+        );
     }
 
     public static Diagnostic GapInIndex(ITypeSymbol targetType, int index)
@@ -195,32 +216,33 @@ internal static class Diagnostics
         return Diagnostic.Create(
             descriptor: Descriptors.GapInIndex,
             location: GetLocation(targetType),
-            messageArgs: [index.ToString(), targetType.ToDisplayString()]);
+            messageArgs: [index.ToString(), targetType.ToDisplayString()]
+        );
     }
 
     /**/
 
-    public static Diagnostic EnumUnsupportedToken(
-        ISymbol targetType,
-        AttributeData attribute,
-        ITypeSymbol tokenType)
+    public static Diagnostic EnumUnsupportedToken(ISymbol targetType, AttributeData attribute, ITypeSymbol tokenType)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.EnumUnsupportedToken,
             location: attribute.GetLocation() ?? GetLocation(targetType),
-            messageArgs: tokenType.ToDisplayString());
+            messageArgs: tokenType.ToDisplayString()
+        );
     }
 
     public static Diagnostic EnumInvalidExplicitName(
         ISymbol enumSymbol,
         IFieldSymbol fieldSymbol,
         Location? location,
-        string explicitName)
+        string explicitName
+    )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.EnumInvalidExplicitName,
             location: location ?? GetLocation(fieldSymbol, enumSymbol),
-            messageArgs: [explicitName, enumSymbol.Name, fieldSymbol.Name]);
+            messageArgs: [explicitName, enumSymbol.Name, fieldSymbol.Name]
+        );
     }
 
     /// <summary>
@@ -230,7 +252,8 @@ internal static class Diagnostics
     {
         foreach (var symbol in symbols)
         {
-            if (symbol is null) continue;
+            if (symbol is null)
+                continue;
 
             foreach (var location in symbol.Locations)
             {
@@ -248,7 +271,8 @@ internal static class Diagnostics
         ITypeSymbol type,
         CancellationToken cancellationToken,
         List<Diagnostic> diagnostics,
-        ITypeSymbol? generationTarget = null)
+        ITypeSymbol? generationTarget = null
+    )
     {
         MemberDeclarationSyntax? firstDeclaration = null;
 
@@ -284,7 +308,8 @@ internal static class Diagnostics
     internal static void CheckIfFileScoped(
         ITypeSymbol type,
         CancellationToken cancellationToken,
-        List<Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics
+    )
     {
         foreach (var syntaxRef in type.DeclaringSyntaxReferences)
         {
@@ -306,8 +331,8 @@ internal static class Diagnostics
 
     private static Location? GetFullLocation(this IParameterSymbol symbol)
     {
-        return symbol.DeclaringSyntaxReferences
-            .Select(r => r.GetSyntax())
+        return symbol
+            .DeclaringSyntaxReferences.Select(r => r.GetSyntax())
             .OfType<ParameterSyntax>()
             .Select(s => s.GetLocation())
             .FirstOrDefault();

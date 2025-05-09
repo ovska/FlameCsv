@@ -10,8 +10,8 @@ public static class ReadExtensionTests
         Assert.Equal(expected, input.AsSpan().Trim(value).ToString());
     }
 
-    public static TheoryData<CsvFieldTrimming, string, string> TrimmingData
-        => new()
+    public static TheoryData<CsvFieldTrimming, string, string> TrimmingData =>
+        new()
         {
             { CsvFieldTrimming.None, "  abc  ", "  abc  " },
             { CsvFieldTrimming.Leading, "  abc  ", "abc  " },

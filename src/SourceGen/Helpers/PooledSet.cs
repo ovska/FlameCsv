@@ -16,7 +16,8 @@ internal static class PooledSet<T>
     public static void Release(HashSet<T>? set)
     {
         // If the set is too big, don't return it to the pool.
-        if (set is not { Count: < 256 }) return;
+        if (set is not { Count: < 256 })
+            return;
         set.Clear();
         _pool.Free(set);
     }

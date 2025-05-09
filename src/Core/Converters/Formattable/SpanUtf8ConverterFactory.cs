@@ -8,9 +8,7 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 {
     public static readonly SpanUtf8ConverterFactory Instance = new();
 
-    private SpanUtf8ConverterFactory()
-    {
-    }
+    private SpanUtf8ConverterFactory() { }
 
     public override bool CanConvert(Type type)
     {
@@ -45,7 +43,8 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
     private static Implements CheckInterfaces(Type type)
     {
         // hack, we don't want to treat char as a number
-        if (type == typeof(char)) return Implements.Both;
+        if (type == typeof(char))
+            return Implements.Both;
 
         InterfaceType? formattable = null;
         InterfaceType? parsable = null;
@@ -54,7 +53,8 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
 
         foreach (var iface in type.GetInterfaces())
         {
-            if (iface.Module != typeof(int).Module) continue;
+            if (iface.Module != typeof(int).Module)
+                continue;
 
             if (iface.IsGenericType)
             {
@@ -99,8 +99,10 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
         // ReSharper disable once ConvertSwitchStatementToSwitchExpression
         switch (isFloatingPoint)
         {
-            case true: return Implements.Float;
-            case false: return Implements.Integer;
+            case true:
+                return Implements.Float;
+            case false:
+                return Implements.Integer;
         }
 
         return (formattable, parsable) switch
@@ -116,7 +118,7 @@ internal sealed class SpanUtf8ConverterFactory : CsvConverterFactory<byte>
     private enum InterfaceType : byte
     {
         Char,
-        Byte
+        Byte,
     }
 
     private enum Implements : byte

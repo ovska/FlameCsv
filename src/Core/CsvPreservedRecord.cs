@@ -13,8 +13,7 @@ namespace FlameCsv;
 /// A preserved copy of the data in a CSV record.
 /// </summary>
 [PublicAPI]
-public class CsvPreservedRecord<T>
-    : ICsvRecord<T>, IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
+public class CsvPreservedRecord<T> : ICsvRecord<T>, IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
@@ -259,11 +258,11 @@ public class CsvPreservedRecord<T>
         return ((IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>)this).GetEnumerator();
     }
 
-    IEnumerable<CsvFieldIdentifier> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Keys
-        => Enumerable.Range(0, _fields.Length).Select(i => (CsvFieldIdentifier)i);
+    IEnumerable<CsvFieldIdentifier> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Keys =>
+        Enumerable.Range(0, _fields.Length).Select(i => (CsvFieldIdentifier)i);
 
-    IEnumerable<ReadOnlyMemory<T>> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Values
-        => _fields.Select(f => (ReadOnlyMemory<T>)f);
+    IEnumerable<ReadOnlyMemory<T>> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Values =>
+        _fields.Select(f => (ReadOnlyMemory<T>)f);
 
     bool IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.ContainsKey(CsvFieldIdentifier key)
     {

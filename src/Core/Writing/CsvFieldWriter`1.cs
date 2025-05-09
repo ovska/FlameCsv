@@ -226,7 +226,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         }
         else
         {
-
             if (typeof(T) == typeof(byte))
             {
                 destination[0] = Unsafe.BitCast<byte, T>((byte)'\n');
@@ -304,9 +303,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         }
         else
         {
-            int index = ((_fieldQuoting & CsvFieldQuoting.Auto) != 0)
-                ? written.LastIndexOfAny(_needsQuoting)
-                : -1;
+            int index = ((_fieldQuoting & CsvFieldQuoting.Auto) != 0) ? written.LastIndexOfAny(_needsQuoting) : -1;
 
             if (index != -1)
             {
@@ -361,6 +358,7 @@ file static class InvalidTokensWritten
     public static void Throw(object source, int tokensWritten, int destinationLength)
     {
         throw new InvalidOperationException(
-            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}.");
+            $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}."
+        );
     }
 }

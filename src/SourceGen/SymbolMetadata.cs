@@ -21,7 +21,8 @@ internal readonly ref struct SymbolMetadata
         string symbolActualName,
         ISymbol symbol,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         HashSet<string>? aliasSet = null;
 
@@ -31,7 +32,8 @@ internal readonly ref struct SymbolMetadata
 
         foreach (var attribute in symbol.GetAttributes())
         {
-            if (attribute.AttributeClass is not { } attrSymbol) continue;
+            if (attribute.AttributeClass is not { } attrSymbol)
+                continue;
 
             if (symbols.IsCsvHeaderAttribute(attrSymbol))
             {
@@ -89,7 +91,9 @@ internal readonly ref struct SymbolMetadata
                         memberType: isParameter ? "parameter" : "property/field",
                         memberName: symbol.Name,
                         configurationName: configNames[i],
-                        location: locations[i]));
+                        location: locations[i]
+                    )
+                );
             }
         }
 
@@ -99,7 +103,8 @@ internal readonly ref struct SymbolMetadata
 
         static void AddAliases(ref HashSet<string>? aliasSet, ImmutableArray<TypedConstant> aliases)
         {
-            if (aliases.IsDefault) return;
+            if (aliases.IsDefault)
+                return;
 
             foreach (var alias in aliases)
             {

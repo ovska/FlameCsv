@@ -36,7 +36,7 @@ internal sealed class OrdinalAsciiComparer
     {
         return Create(alternate);
     }
-    
+
     bool IEqualityComparer<string>.Equals(string? x, string? y)
     {
         if (x is null)

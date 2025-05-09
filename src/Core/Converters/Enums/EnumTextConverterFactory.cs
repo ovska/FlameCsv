@@ -16,8 +16,6 @@ internal sealed class EnumTextConverterFactory : CsvConverterFactory<char>
 
     public override CsvConverter<char> Create(Type type, CsvOptions<char> options)
     {
-        return typeof(EnumTextConverter<>)
-            .MakeGenericType(type)
-            .CreateInstance<CsvConverter<char>>(options);
+        return typeof(EnumTextConverter<>).MakeGenericType(type).CreateInstance<CsvConverter<char>>(options);
     }
 }

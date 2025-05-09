@@ -59,7 +59,8 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
     private async ValueTask FlushAsyncAwaited(
         ReadOnlyMemory<byte> bytes,
         ReadOnlyMemory<char> chars,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
     {
         await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
 
@@ -99,7 +100,8 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
                 out int charsRead,
                 out int bytesWritten,
                 replaceInvalidSequences: true,
-                isFinalBlock: true); // values should be self-contained
+                isFinalBlock: true
+            ); // values should be self-contained
 
             totalWritten += bytesWritten;
             totalRead += charsRead;
@@ -125,7 +127,8 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
     {
         ArrayPool<byte>.Shared.Return(_byteBuffer);
         _byteBuffer = [];
-        if (!_leaveOpen) _stream.Dispose();
+        if (!_leaveOpen)
+            _stream.Dispose();
     }
 
     protected override ValueTask DisposeCoreAsync()

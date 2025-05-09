@@ -22,7 +22,8 @@ public static class CsvParallel
         ICsvPipeReader<T> reader,
         Action<CsvValueRecord<T>> action,
         CsvOptions<T>? options = null,
-        ParallelOptions? parallelOptions = null)
+        ParallelOptions? parallelOptions = null
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
@@ -46,14 +47,16 @@ public static class CsvParallel
                 {
                     tracker.ReleaseRecord();
                 }
-            });
+            }
+        );
     }
 
     public static Task ForEachAsync<T>(
         ICsvPipeReader<T> reader,
         Func<CsvValueRecord<T>, CancellationToken, ValueTask> action,
         CsvOptions<T>? options = null,
-        ParallelOptions? parallelOptions = null)
+        ParallelOptions? parallelOptions = null
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(reader);
@@ -77,49 +80,65 @@ public static class CsvParallel
                 {
                     tracker.ReleaseRecord();
                 }
-            });
+            }
+        );
     }
 
-internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T>(
-    CsvOptions<T> options,
-    ICsvPipeReader<T> reader,
-    [HandlesResourceDisposal] RecordTracker trackerArg,
-    CancellationToken cancellationToken)
-    where T : unmanaged, IBinaryInteger<T>
-{
-    ArgumentNullException.ThrowIfNull(options);
-    ArgumentNullException.ThrowIfNull(reader);
-
-    using var tracker = trackerArg;
-    using var slabAllocator = new SlabAllocator<T>(options.Allocator);
-
-    using CsvParser<T> parser = CsvParser.CreateCore(
-        options,
-        reader,
-        new CsvParserOptions<T> { UnescapeAllocator = slabAllocator, MultiSegmentAllocator = slabAllocator });
-
-    using ParallelEnumerationOwner owner = new();
-
-    int line = 0;
-    long position = 0;
-    bool needsHeader = parser.Options.HasHeader;
-
-    CsvFields<T> fields;
-    CsvValueRecord<T> record;
-
-    while (parser.TryAdvanceReader())
+    internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T>(
+        CsvOptions<T> options,
+        ICsvPipeReader<T> reader,
+        [HandlesResourceDisposal] RecordTracker trackerArg,
+        CancellationToken cancellationToken
+    )
+        where T : unmanaged, IBinaryInteger<T>
     {
-        if (!parser.TryReadLine(out fields, isFinalBlock: false))
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(reader);
+
+        using var tracker = trackerArg;
+        using var slabAllocator = new SlabAllocator<T>(options.Allocator);
+
+        using CsvParser<T> parser = CsvParser.CreateCore(
+            options,
+            reader,
+            new CsvParserOptions<T> { UnescapeAllocator = slabAllocator, MultiSegmentAllocator = slabAllocator }
+        );
+
+        using ParallelEnumerationOwner owner = new();
+
+        int line = 0;
+        long position = 0;
+        bool needsHeader = parser.Options.HasHeader;
+
+        CsvFields<T> fields;
+        CsvValueRecord<T> record;
+
+        while (parser.TryAdvanceReader())
         {
-            continue;
+            if (!parser.TryReadLine(out fields, isFinalBlock: false))
+            {
+                continue;
+            }
+
+            if (TryYield(in fields, out record))
+            {
+                yield return record;
+            }
+
+            while (parser.TryGetBuffered(out fields))
+            {
+                if (TryYield(in fields, out record))
+                {
+                    yield return record;
+                }
+            }
+
+            owner.NextVersion();
+            slabAllocator.Reset();
         }
 
-        if (TryYield(in fields, out record))
-        {
-            yield return record;
-        }
-
-        while (parser.TryGetBuffered(out fields))
+        // read the final block
+        while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
         {
             if (TryYield(in fields, out record))
             {
@@ -127,55 +146,44 @@ internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T>(
             }
         }
 
-        owner.NextVersion();
-        slabAllocator.Reset();
-    }
-
-    // read the final block
-    while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
-    {
-        if (TryYield(in fields, out record))
+        bool TryYield(in CsvFields<T> fieldsLocal, out CsvValueRecord<T> recordLocal)
         {
-            yield return record;
+            bool retVal = false;
+            Interlocked.Increment(ref line);
+
+            if (needsHeader)
+            {
+                CsvFieldsRef<T> fieldsRef = new(in fieldsLocal, parser._unescapeAllocator);
+
+                owner.Header = CsvHeader.Parse(
+                    parser.Options,
+                    ref fieldsRef,
+                    options.Comparer,
+                    static (comparer, headers) => new CsvHeader(comparer, headers)
+                );
+
+                needsHeader = false;
+                recordLocal = default;
+            }
+            else
+            {
+                tracker.AddRecord();
+                recordLocal = new CsvValueRecord<T>(version: 0, position, line, in fields, options, owner);
+                retVal = true;
+            }
+
+            Interlocked.Add(ref position, fields.GetRecordLength(includeTrailingNewline: true));
+            return retVal;
         }
     }
-
-    bool TryYield(in CsvFields<T> fieldsLocal, out CsvValueRecord<T> recordLocal)
-    {
-        bool retVal = false;
-        Interlocked.Increment(ref line);
-
-        if (needsHeader)
-        {
-            CsvFieldsRef<T> fieldsRef = new(in fieldsLocal, parser._unescapeAllocator);
-
-            owner.Header = CsvHeader.Parse(
-                parser.Options,
-                ref fieldsRef,
-                options.Comparer,
-                static (comparer, headers) => new CsvHeader(comparer, headers));
-
-            needsHeader = false;
-            recordLocal = default;
-        }
-        else
-        {
-            tracker.AddRecord();
-            recordLocal = new CsvValueRecord<T>(version: 0, position, line, in fields, options, owner);
-            retVal = true;
-        }
-
-        Interlocked.Add(ref position, fields.GetRecordLength(includeTrailingNewline: true));
-        return retVal;
-    }
-}
 
     [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task")]
     internal static async IAsyncEnumerable<CsvValueRecord<T>> GetParallelQueryAsync<T>(
         CsvOptions<T> options,
         ICsvPipeReader<T> reader,
         [HandlesResourceDisposal] RecordTracker trackerArg,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -187,7 +195,8 @@ internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T>(
         await using CsvParser<T> parser = CsvParser.CreateCore(
             options,
             reader,
-            new CsvParserOptions<T> { UnescapeAllocator = slabAllocator, MultiSegmentAllocator = slabAllocator });
+            new CsvParserOptions<T> { UnescapeAllocator = slabAllocator, MultiSegmentAllocator = slabAllocator }
+        );
 
         using ParallelEnumerationOwner owner = new();
 
@@ -248,7 +257,8 @@ internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T>(
                     parser.Options,
                     ref fieldsRef,
                     options.Comparer,
-                    static (comparer, headers) => new CsvHeader(comparer, headers));
+                    static (comparer, headers) => new CsvHeader(comparer, headers)
+                );
 
                 needsHeader = false;
                 recordLocal = default;
@@ -321,18 +331,19 @@ internal static class CsvParallel
         ICsvBufferReader<T> reader,
         Action<CsvRecord<T>> action,
         CsvOptions<T>? options = null,
-        ParallelOptions? parallelOptions = null)
+        ParallelOptions? parallelOptions = null
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         throw new NotSupportedException();
-
     }
 
     public static Task ForEachAsync<T>(
         ICsvBufferReader<T> reader,
         Func<CsvRecord<T>, CancellationToken, ValueTask> action,
         CsvOptions<T>? options = null,
-        ParallelOptions? parallelOptions = null)
+        ParallelOptions? parallelOptions = null
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         throw new NotSupportedException();

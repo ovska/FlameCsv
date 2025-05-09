@@ -59,7 +59,8 @@ internal static partial class Escape
         ReadOnlySpan<T> value,
         Span<uint> masks,
         scoped ref readonly TTokens tokens,
-        out int quoteCount)
+        out int quoteCount
+    )
         where T : unmanaged, IBinaryInteger<T>
         where TTokens : struct, ISimdEscaper<T, TVector>
         where TVector : struct, ISimdVector<T, TVector>
@@ -67,7 +68,8 @@ internal static partial class Escape
         Debug.Assert(value.Length >= TVector.Count, "NeedsEscaping needs a value at least one vector's length.");
         Debug.Assert(
             masks.Length >= (value.Length + MaskSize - 1) / MaskSize,
-            "Bitbuffer is too small for the value length.");
+            "Bitbuffer is too small for the value length."
+        );
         Debug.Assert(TVector.Count == MaskSize, "TVector.Count should be 32 for this implementation.");
 
         quoteCount = 0;
@@ -125,17 +127,14 @@ internal static partial class Escape
     /// Does not write the wrapping quotes.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void FromMasks<T>(
-        ReadOnlySpan<T> source,
-        Span<T> destination,
-        Span<uint> masks,
-        T escape)
+    public static void FromMasks<T>(ReadOnlySpan<T> source, Span<T> destination, Span<uint> masks, T escape)
         where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(destination.Length > source.Length, "Destination buffer must be larger than source.");
         Debug.Assert(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
-            "Source and destination buffers must not overlap, except if they start at the same region.");
+            "Source and destination buffers must not overlap, except if they start at the same region."
+        );
 
         ref T src = ref MemoryMarshal.GetReference(source);
         ref T dst = ref MemoryMarshal.GetReference(destination);
@@ -155,7 +154,8 @@ internal static partial class Escape
                 ref src,
                 ref srcRemaining,
                 ref dst,
-                ref dstRemaining);
+                ref dstRemaining
+            );
 
             masksRemaining--;
         }
@@ -168,7 +168,8 @@ internal static partial class Escape
             ref src,
             ref srcRemaining,
             ref dst,
-            ref dstRemaining);
+            ref dstRemaining
+        );
 
         Debug.Assert(srcRemaining == 0);
         Debug.Assert(dstRemaining == 0);
@@ -181,7 +182,8 @@ internal static partial class Escape
             scoped ref T src,
             scoped ref nint srcRemaining,
             scoped ref T dst,
-            scoped ref nint dstRemaining)
+            scoped ref nint dstRemaining
+        )
         {
             int previousQuotePosition = 0;
 
@@ -218,7 +220,8 @@ internal static partial class Escape
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length);
+                byteCount: (uint)Unsafe.SizeOf<T>() * length
+            );
         }
     }
 }

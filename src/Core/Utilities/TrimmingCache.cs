@@ -11,7 +11,8 @@ namespace FlameCsv.Utilities;
 internal static class TrimmingCache
 {
     public static TrimmingCache<TKey, TValue> Create<TKey, TValue>(
-        params ReadOnlySpan<KeyValuePair<TKey, TValue>> values)
+        params ReadOnlySpan<KeyValuePair<TKey, TValue>> values
+    )
         where TKey : notnull
     {
         var cache = new TrimmingCache<TKey, TValue>();
@@ -58,7 +59,8 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
             {
                 var @this = (TrimmingCache<TKey, TValue>)state;
                 @this._entries.Clear();
-            });
+            }
+        );
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -78,7 +80,8 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
-        if (_disposed || FlameCsvGlobalOptions.CachingDisabled) return;
+        if (_disposed || FlameCsvGlobalOptions.CachingDisabled)
+            return;
 
         _entries.AddOrUpdate(
             key,
@@ -89,7 +92,8 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
                 entry.LastAccess = Environment.TickCount64;
                 return entry;
             },
-            factoryArgument: value);
+            factoryArgument: value
+        );
     }
 
     private bool _disposed;
@@ -117,7 +121,8 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
         var @this = (TrimmingCache<TKey, TValue>)state;
 
         // return false if the callback should be removed
-        if (@this._disposed) return false;
+        if (@this._disposed)
+            return false;
 
         if (!@this._entries.IsEmpty)
         {
@@ -125,9 +130,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
             if (pressure != MemoryPressure.Low)
             {
-                var threshold = pressure == MemoryPressure.High
-                    ? TimeSpan.FromSeconds(10)
-                    : TimeSpan.FromSeconds(60);
+                var threshold = pressure == MemoryPressure.High ? TimeSpan.FromSeconds(10) : TimeSpan.FromSeconds(60);
 
                 var now = Environment.TickCount64;
 
@@ -146,7 +149,8 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
     {
-        foreach ((TKey key, Entry value) in _entries) yield return new(key, value.Value);
+        foreach ((TKey key, Entry value) in _entries)
+            yield return new(key, value.Value);
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -159,7 +163,7 @@ file enum MemoryPressure
 {
     Low,
     Medium,
-    High
+    High,
 }
 
 file static class GCUtils

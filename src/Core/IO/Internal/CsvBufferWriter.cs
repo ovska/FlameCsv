@@ -7,7 +7,8 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
-internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unmanaged
+internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
+    where T : unmanaged
 {
     private readonly MemoryPool<T> _allocator;
     private readonly int _bufferSize;
@@ -64,7 +65,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
         _allocator.EnsureCapacity(
             ref _memoryOwner,
             minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
-            copyOnResize: true);
+            copyOnResize: true
+        );
         _buffer = _memoryOwner.Memory;
         return _buffer.Slice(_unflushed);
     }
@@ -80,7 +82,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (_unflushed <= 0) return default;
+        if (_unflushed <= 0)
+            return default;
 
         cancellationToken.ThrowIfCancellationRequested();
         ReadOnlyMemory<T> memory = _buffer.Slice(0, _unflushed);
@@ -90,7 +93,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
 
     public void Flush()
     {
-        if (_unflushed <= 0) return;
+        if (_unflushed <= 0)
+            return;
 
         ReadOnlyMemory<T> memory = _buffer.Slice(0, _unflushed);
         _unflushed = 0;
@@ -108,11 +112,10 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
     /// <inheritdoc cref="FlushCore"/>
     protected abstract ValueTask FlushAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken);
 
-    public async ValueTask CompleteAsync(
-        Exception? exception,
-        CancellationToken cancellationToken = default)
+    public async ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
-        if (_unflushed == -1) return;
+        if (_unflushed == -1)
+            return;
 
         if (cancellationToken.IsCancellationRequested)
             exception ??= new OperationCanceledException(cancellationToken);
@@ -135,7 +138,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
                 _unflushed = -1;
                 _memoryOwner = HeapMemoryOwner<T>.Empty;
                 _buffer = default;
-                if (!_leaveOpen) await DisposeCoreAsync().ConfigureAwait(false);
+                if (!_leaveOpen)
+                    await DisposeCoreAsync().ConfigureAwait(false);
             }
         }
 
@@ -147,7 +151,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
 
     public void Complete(Exception? exception)
     {
-        if (_unflushed == -1) return;
+        if (_unflushed == -1)
+            return;
 
         using (_memoryOwner)
         {
@@ -167,7 +172,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T> where T : unman
                 _unflushed = -1;
                 _memoryOwner = HeapMemoryOwner<T>.Empty;
                 _buffer = default;
-                if (!_leaveOpen) DisposeCore();
+                if (!_leaveOpen)
+                    DisposeCore();
             }
         }
 

@@ -10,14 +10,11 @@ using FlameCsv.Exceptions;
 namespace FlameCsv.Reading.Unescaping;
 
 [SkipLocalsInit]
-internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
+internal static class RFC4180Mode<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unescape(
-        T quote,
-        scoped Span<T> buffer,
-        ReadOnlySpan<T> field,
-        uint quotesConsumed)
+    public static void Unescape(T quote, scoped Span<T> buffer, ReadOnlySpan<T> field, uint quotesConsumed)
     {
         // Debug.Assert(quotesConsumed >= 2);
         // Debug.Assert(quotesConsumed % 2 == 0);
@@ -107,12 +104,11 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         quotesLeft -= 2;
 
-        if (quotesLeft <= 0) goto NoQuotesLeft;
+        if (quotesLeft <= 0)
+            goto NoQuotesLeft;
 
         ContinueRead:
-        while (
-            Vector256.IsHardwareAccelerated &&
-            remaining >= Vector256<T>.Count)
+        while (Vector256.IsHardwareAccelerated && remaining >= Vector256<T>.Count)
         {
             var current = Vector256.LoadUnsafe(ref src, (nuint)srcIndex);
             var equals = Vector256.Equals(current, quote256);
@@ -137,9 +133,11 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         // it's slightly faster to defer to the unrolled loop on x86 for char
         // TODO PERF: profile on ARM64 and WASM
         while (
-            Unsafe.SizeOf<T>() == sizeof(byte) && // || !Vector256.IsHardwareAccelerated ?
-            Vector128.IsHardwareAccelerated &&
-            remaining >= Vector128<T>.Count)
+            Unsafe.SizeOf<T>() == sizeof(byte)
+            && // || !Vector256.IsHardwareAccelerated ?
+            Vector128.IsHardwareAccelerated
+            && remaining >= Vector128<T>.Count
+        )
         {
             var current = Vector128.LoadUnsafe(ref src, (nuint)srcIndex);
             var equals = Vector128.Equals(current, quote128);
@@ -163,14 +161,22 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
 
         while (remaining >= 8)
         {
-            if (quote == Unsafe.Add(ref src, srcIndex + 0)) goto Found1;
-            if (quote == Unsafe.Add(ref src, srcIndex + 1)) goto Found2;
-            if (quote == Unsafe.Add(ref src, srcIndex + 2)) goto Found3;
-            if (quote == Unsafe.Add(ref src, srcIndex + 3)) goto Found4;
-            if (quote == Unsafe.Add(ref src, srcIndex + 4)) goto Found5;
-            if (quote == Unsafe.Add(ref src, srcIndex + 5)) goto Found6;
-            if (quote == Unsafe.Add(ref src, srcIndex + 6)) goto Found7;
-            if (quote == Unsafe.Add(ref src, srcIndex + 7)) goto Found8;
+            if (quote == Unsafe.Add(ref src, srcIndex + 0))
+                goto Found1;
+            if (quote == Unsafe.Add(ref src, srcIndex + 1))
+                goto Found2;
+            if (quote == Unsafe.Add(ref src, srcIndex + 2))
+                goto Found3;
+            if (quote == Unsafe.Add(ref src, srcIndex + 3))
+                goto Found4;
+            if (quote == Unsafe.Add(ref src, srcIndex + 4))
+                goto Found5;
+            if (quote == Unsafe.Add(ref src, srcIndex + 5))
+                goto Found6;
+            if (quote == Unsafe.Add(ref src, srcIndex + 6))
+                goto Found7;
+            if (quote == Unsafe.Add(ref src, srcIndex + 7))
+                goto Found8;
 
             Copy(ref src, srcIndex, ref dst, dstIndex, 8);
             srcIndex += 8;
@@ -182,7 +188,8 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         {
             if (quote == Unsafe.Add(ref src, srcIndex))
             {
-                if (quote != Unsafe.Add(ref src, ++srcIndex)) goto Fail;
+                if (quote != Unsafe.Add(ref src, ++srcIndex))
+                    goto Fail;
 
                 Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
                 srcIndex++;
@@ -190,7 +197,8 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
                 remaining -= 2;
                 quotesLeft -= 2;
 
-                if (quotesLeft <= 0) goto NoQuotesLeft;
+                if (quotesLeft <= 0)
+                    goto NoQuotesLeft;
             }
             else
             {
@@ -201,7 +209,8 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
             }
         }
 
-        if (quote == Unsafe.Add(ref src, srcIndex)) goto Fail;
+        if (quote == Unsafe.Add(ref src, srcIndex))
+            goto Fail;
         Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
 
         goto EOL;
@@ -227,15 +236,13 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
             Unsafe.CopyBlockUnaligned(
                 destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length);
+                byteCount: (uint)Unsafe.SizeOf<T>() * length
+            );
         }
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    internal static void ThrowInvalidUnescape(
-        ReadOnlySpan<T> field,
-        T quote,
-        uint quoteCount)
+    internal static void ThrowInvalidUnescape(ReadOnlySpan<T> field, T quote, uint quoteCount)
     {
         int actualCount = field.Count(quote);
 
@@ -250,7 +257,8 @@ internal static class RFC4180Mode<T> where T : unmanaged, IBinaryInteger<T>
         {
             error.Append(
                 CultureInfo.InvariantCulture,
-                $"String delimiter count {quoteCount} was invalid (actual was {actualCount}). ");
+                $"String delimiter count {quoteCount} was invalid (actual was {actualCount}). "
+            );
         }
 
         if (error.Length != 0)

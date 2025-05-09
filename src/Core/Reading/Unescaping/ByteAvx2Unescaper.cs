@@ -59,7 +59,8 @@ internal readonly struct ByteAvx2Unescaper : ISimdUnescaper<byte, uint, Vector25
                 CompressionTables.ThinEpi8[mask1],
                 CompressionTables.ThinEpi8[mask2],
                 CompressionTables.ThinEpi8[mask3],
-                CompressionTables.ThinEpi8[mask4])
+                CompressionTables.ThinEpi8[mask4]
+            )
             .AsByte();
 
         // Create a constant to add to the shuffle mask.
@@ -67,16 +68,7 @@ internal readonly struct ByteAvx2Unescaper : ISimdUnescaper<byte, uint, Vector25
         // [ 0,0,0,0,... 8,8,8,8,... 16,16,16,16,...  24,24,24,24,... ]
         // We build it here using 8 ints (element 0 is the lowest).
         Vector256<byte> addConst = Vector256
-            .Create(
-                0,
-                0,
-                0x08080808,
-                0x08080808,
-                0x10101010,
-                0x10101010,
-                0x18181818,
-                0x18181818
-            )
+            .Create(0, 0, 0x08080808, 0x08080808, 0x10101010, 0x10101010, 0x18181818, 0x18181818)
             .AsByte();
 
         // Add the constant to the shuffle mask.

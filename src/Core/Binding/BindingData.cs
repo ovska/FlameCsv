@@ -16,9 +16,12 @@ internal readonly struct BindingData : IComparable<BindingData>
     public int CompareTo(BindingData other)
     {
         int cmp = Order.CompareTo(other.Order);
-        if (cmp == 0) cmp = Required.CompareTo(other.Required);
-        if (cmp == 0) cmp = other.Ignored.CompareTo(Ignored);
-        if (cmp == 0) cmp = Comparer<int?>.Default.Compare(Index, other.Index);
+        if (cmp == 0)
+            cmp = Required.CompareTo(other.Required);
+        if (cmp == 0)
+            cmp = other.Ignored.CompareTo(Ignored);
+        if (cmp == 0)
+            cmp = Comparer<int?>.Default.Compare(Index, other.Index);
         return cmp;
     }
 }

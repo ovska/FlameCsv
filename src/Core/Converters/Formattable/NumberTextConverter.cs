@@ -19,12 +19,15 @@ internal sealed class NumberTextConverter<TValue> : CsvConverter<char, TValue>
             defaultStyles switch
             {
                 NumberStyles.Integer => typeof(TValue).IsAssignableTo(
-                    typeof(IBinaryInteger<>).MakeGenericType(typeof(TValue))),
+                    typeof(IBinaryInteger<>).MakeGenericType(typeof(TValue))
+                ),
                 NumberStyles.Float => typeof(TValue).IsAssignableTo(
-                    typeof(IFloatingPoint<>).MakeGenericType(typeof(TValue))),
+                    typeof(IFloatingPoint<>).MakeGenericType(typeof(TValue))
+                ),
                 _ => false,
             },
-            $"Unexpected default styles {defaultStyles} for {typeof(TValue)}");
+            $"Unexpected default styles {defaultStyles} for {typeof(TValue)}"
+        );
 
         _format = options.GetFormat(typeof(TValue));
         _provider = options.GetFormatProvider(typeof(TValue));

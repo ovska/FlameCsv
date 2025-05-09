@@ -13,7 +13,8 @@ namespace FlameCsv.Enumeration;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 [PublicAPI]
-public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// The 1-based line index of the current record.
@@ -27,7 +28,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// </summary>
     public long Position { get; private set; }
 
-    [HandlesResourceDisposal] private readonly CsvReader<T> _reader;
+    [HandlesResourceDisposal]
+    private readonly CsvReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
 
     /// <summary>
@@ -97,7 +99,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
             Line,
             Position,
             ref skip,
-            ref headerRead);
+            ref headerRead
+        );
 
         _callback(in args);
 
@@ -164,7 +167,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
         {
             while (_reader.TryReadLine(out slice))
             {
-                if (CallMoveNextAndIncrementPosition(in slice)) return true;
+                if (CallMoveNextAndIncrementPosition(in slice))
+                    return true;
             }
         }
 
@@ -181,7 +185,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
         {
             while (_reader.TryReadLine(out slice))
             {
-                if (CallMoveNextAndIncrementPosition(in slice)) return true;
+                if (CallMoveNextAndIncrementPosition(in slice))
+                    return true;
             }
         }
 
@@ -229,9 +234,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable where
     /// <remarks>
     /// The default implementation does nothing. Override both this and <see cref="DisposeAsyncCore"/>
     /// </remarks>
-    protected virtual void Dispose(bool disposing)
-    {
-    }
+    protected virtual void Dispose(bool disposing) { }
 
     /// <summary>
     /// Disposes resources for inheriting classes.

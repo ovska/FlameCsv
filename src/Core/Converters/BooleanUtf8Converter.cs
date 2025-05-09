@@ -45,7 +45,9 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
         if (source.Length == 4)
         {
             int dw = BinaryPrimitives.ReadInt32LittleEndian(source) & ~0x20202020;
-            if (dw == 0x45555254 /* 'EURT' */)
+            if (
+                dw == 0x45555254 /* 'EURT' */
+            )
             {
                 value = true;
                 return true;
@@ -55,7 +57,10 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
         if (source.Length == 5)
         {
             int dw = BinaryPrimitives.ReadInt32LittleEndian(source) & ~0x20202020;
-            if (dw == 0x534c4146 /* 'SLAF' */ && (source[4] & ~0x20) == 'E')
+            if (
+                dw == 0x534c4146 /* 'SLAF' */
+                && (source[4] & ~0x20) == 'E'
+            )
             {
                 value = false;
                 return true;

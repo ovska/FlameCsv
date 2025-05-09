@@ -12,9 +12,8 @@ namespace FlameCsv.Binding;
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquatable<CsvBinding<T>>
 {
-    private protected CsvBinding(int index, string? header) : base(index, header)
-    {
-    }
+    private protected CsvBinding(int index, string? header)
+        : base(index, header) { }
 
     /// <inheritdoc />
     public override Type Type => typeof(T);
@@ -76,8 +75,10 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     {
         foreach (var attribute in Attributes)
         {
-            if (attribute is CsvConverterAttribute @override &&
-                @override.TryCreateConverter(Type, options, out var converter))
+            if (
+                attribute is CsvConverterAttribute @override
+                && @override.TryCreateConverter(Type, options, out var converter)
+            )
             {
                 return (CsvConverter<TToken, TResult>)converter;
             }

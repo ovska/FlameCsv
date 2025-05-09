@@ -5,7 +5,8 @@ namespace FlameCsv.Tests;
 
 public static class IOExtensions
 {
-    public static ReadOnlyMemory<T> ReadToBuffer<T>(this ICsvBufferReader<T> reader) where T : unmanaged
+    public static ReadOnlyMemory<T> ReadToBuffer<T>(this ICsvBufferReader<T> reader)
+        where T : unmanaged
     {
         ArrayBufferWriter<T> buffer = new();
 

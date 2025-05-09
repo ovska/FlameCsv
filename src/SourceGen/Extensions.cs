@@ -24,7 +24,7 @@ internal static class Extensions
         value = default;
         return false;
     }
-    
+
     public static Location? GetLocation(this AttributeData attribute)
     {
         return attribute.ApplicationSyntaxReference?.SyntaxTree.GetLocation(attribute.ApplicationSyntaxReference.Span);
@@ -79,7 +79,7 @@ internal static class Extensions
             null => "default",
             bool b => b ? "true" : "false",
             string s => ToStringLiteral(s),
-            _ => GetLiteral(value)?.ToFullString() ?? value.ToString() ?? ""
+            _ => GetLiteral(value)?.ToFullString() ?? value.ToString() ?? "",
         };
 
         static LiteralExpressionSyntax? GetLiteral(object value)
@@ -112,7 +112,8 @@ internal static class Extensions
 
     public static bool ContainsSurrogates(this string value)
     {
-        if (string.IsNullOrEmpty(value)) return false;
+        if (string.IsNullOrEmpty(value))
+            return false;
 
         ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
 
@@ -121,10 +122,12 @@ internal static class Extensions
 
         while (remaining >= 4)
         {
-            if (char.IsSurrogate(Unsafe.Add(ref first, index)) ||
-                char.IsSurrogate(Unsafe.Add(ref first, index + 1)) ||
-                char.IsSurrogate(Unsafe.Add(ref first, index + 2)) ||
-                char.IsSurrogate(Unsafe.Add(ref first, index + 3)))
+            if (
+                char.IsSurrogate(Unsafe.Add(ref first, index))
+                || char.IsSurrogate(Unsafe.Add(ref first, index + 1))
+                || char.IsSurrogate(Unsafe.Add(ref first, index + 2))
+                || char.IsSurrogate(Unsafe.Add(ref first, index + 3))
+            )
             {
                 return true;
             }
@@ -168,7 +171,8 @@ internal static class Extensions
             do
             {
                 var mask = Unsafe.ReadUnaligned<Vector<ushort>>(
-                    ref Unsafe.As<char, byte>(ref Unsafe.Add(ref first, index)));
+                    ref Unsafe.As<char, byte>(ref Unsafe.Add(ref first, index))
+                );
 
                 if (Vector.GreaterThanOrEqualAny(mask, needle))
                 {

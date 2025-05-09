@@ -9,12 +9,14 @@ namespace FlameCsv.Reflection;
 
 [RUF(Messages.Reflection)]
 [RDC(Messages.DynamicCode)]
-internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> where T : unmanaged, IBinaryInteger<T>
+internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public static readonly ExpressionDelegateGenerator<T> Instance = new();
 
     protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
-        CsvBindingCollection<TResult> bc)
+        CsvBindingCollection<TResult> bc
+    )
     {
         ConstructorInfo ctor = Materializer<T>.GetConstructor(bc.Bindings);
 
@@ -25,14 +27,16 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
             ctor,
             ctor.GetParameters()
                 .Select(
-                    (p, i) => Expression.Convert(
-                        Expression.ArrayAccess(objArrParam, Expression.Constant(i)),
-                        p.ParameterType)));
+                    (p, i) =>
+                        Expression.Convert(Expression.ArrayAccess(objArrParam, Expression.Constant(i)), p.ParameterType)
+                )
+        );
         var lambda = Expression.Lambda<Func<object[], IMaterializer<T, TResult>>>(
 #pragma warning disable CA2263 // Prefer generic overload when type is known
             Expression.Convert(ctorInvoke, typeof(IMaterializer<T, TResult>)),
 #pragma warning restore CA2263 // Prefer generic overload when type is known
-            objArrParam);
+            objArrParam
+        );
         return lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
     }
 
@@ -51,7 +55,8 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
             {
                 var param = Expression.Parameter(
                     binding.Type,
-                    Debugger.IsAttached ? $"field_{binding.Index}_{binding.DisplayName}" : null);
+                    Debugger.IsAttached ? $"field_{binding.Index}_{binding.DisplayName}" : null
+                );
                 builder.Add(param);
             }
 
@@ -106,7 +111,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T> wher
         }
 
         // returns either just the new T(arg0, arg1) -expression
-        // -- or -- 
+        // -- or --
         // member initialization: new T(arg0, arg1) { Prop = arg1 }
         Expression GetExpressionBody()
         {

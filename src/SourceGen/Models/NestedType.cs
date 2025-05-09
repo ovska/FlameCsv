@@ -13,11 +13,13 @@ internal readonly record struct NestedType
     public static EquatableArray<NestedType> Parse(
         ITypeSymbol containingClass,
         CancellationToken cancellationToken,
-        List<Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics
+    )
     {
         INamedTypeSymbol? type = containingClass.ContainingType;
 
-        if (type is null) return [];
+        if (type is null)
+            return [];
 
         List<NestedType> wrappers = PooledList<NestedType>.Acquire();
 
@@ -32,8 +34,9 @@ internal readonly record struct NestedType
                     IsRefLikeType = type.IsRefLikeType,
                     IsAbstract = type.IsAbstract,
                     IsValueType = type.IsValueType,
-                    Name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
-                });
+                    Name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                }
+            );
 
             type = type.ContainingType;
         }

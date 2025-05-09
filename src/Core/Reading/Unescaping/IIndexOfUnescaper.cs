@@ -1,6 +1,7 @@
 ﻿namespace FlameCsv.Reading.Unescaping;
 
-internal interface IIndexOfUnescaper<T> where T : unmanaged, IBinaryInteger<T>
+internal interface IIndexOfUnescaper<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     static abstract int UnescapedLength(int fieldLength, uint specialCount);
 

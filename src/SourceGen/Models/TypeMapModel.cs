@@ -112,7 +112,8 @@ internal readonly record struct TypeMapModel
         INamedTypeSymbol containingClass,
         AttributeData attribute,
         CancellationToken cancellationToken,
-        out EquatableArray<Diagnostic> diagnostics)
+        out EquatableArray<Diagnostic> diagnostics
+    )
     {
         TypeMap = new TypeRef(containingClass);
 
@@ -124,8 +125,7 @@ internal readonly record struct TypeMapModel
 #if SOURCEGEN_USE_COMPILATION
             compilation,
 #endif
-            tokenSymbol,
-            targetType);
+            tokenSymbol, targetType);
 
         Token = new TypeRef(tokenSymbol);
         Type = new TypeRef(targetType);
@@ -169,7 +169,8 @@ internal readonly record struct TypeMapModel
                     isOnAssembly: true,
                     attr,
                     in symbols,
-                    ref collector);
+                    ref collector
+                );
 
                 if (model is not null)
                 {
@@ -181,7 +182,8 @@ internal readonly record struct TypeMapModel
                         isOnAssembly: true,
                         targetType,
                         attr,
-                        in symbols);
+                        in symbols
+                    );
                 }
             }
 #endif
@@ -196,7 +198,8 @@ internal readonly record struct TypeMapModel
                 isOnAssembly: false,
                 attr,
                 in symbols,
-                ref collector);
+                ref collector
+            );
 
             if (model is not null)
             {
@@ -208,7 +211,8 @@ internal readonly record struct TypeMapModel
                     isOnAssembly: false,
                     targetType,
                     attr,
-                    in symbols);
+                    in symbols
+                );
             }
         }
 
@@ -220,7 +224,8 @@ internal readonly record struct TypeMapModel
             typeConstructor,
             cancellationToken,
             in symbols,
-            ref collector);
+            ref collector
+        );
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -237,14 +242,19 @@ internal readonly record struct TypeMapModel
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (member.IsStatic) continue;
+                if (member.IsStatic)
+                    continue;
 
                 // private members are only considered if they are explicitly implemented properties
-                if (member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected &&
-                    member is not IPropertySymbol
-                    {
-                        CanBeReferencedByName: false, ExplicitInterfaceImplementations.IsDefaultOrEmpty: false
-                    })
+                if (
+                    member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected
+                    && member
+                        is not IPropertySymbol
+                        {
+                            CanBeReferencedByName: false,
+                            ExplicitInterfaceImplementations.IsDefaultOrEmpty: false
+                        }
+                )
                 {
                     continue;
                 }
@@ -255,13 +265,15 @@ internal readonly record struct TypeMapModel
                         tokenSymbol,
                         fieldSymbol,
                         in symbols,
-                        ref collector),
+                        ref collector
+                    ),
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
                         tokenSymbol,
                         propertySymbol,
                         in symbols,
-                        ref collector),
-                    _ => null
+                        ref collector
+                    ),
+                    _ => null,
                 };
 
                 if (property is not null)
@@ -314,19 +326,22 @@ internal readonly record struct TypeMapModel
 
 file static class MemberModelComparison
 {
-    public static readonly Comparison<IMemberModel> Value =
-        static (x, y) =>
+    public static readonly Comparison<IMemberModel> Value = static (x, y) =>
+    {
+        int cmp = (x.Order ?? 0).CompareTo(y.Order ?? 0);
+        if (cmp == 0)
+            cmp = x.IsIgnored.CompareTo(y.IsIgnored);
+        if (cmp == 0)
+            cmp = (y is ParameterModel).CompareTo(x is ParameterModel);
+        if (cmp == 0)
+            cmp = x.IsRequired.CompareTo(y.IsRequired);
+        if (cmp == 0)
         {
-            int cmp = (x.Order ?? 0).CompareTo(y.Order ?? 0);
-            if (cmp == 0) cmp = x.IsIgnored.CompareTo(y.IsIgnored);
-            if (cmp == 0) cmp = (y is ParameterModel).CompareTo(x is ParameterModel);
-            if (cmp == 0) cmp = x.IsRequired.CompareTo(y.IsRequired);
-            if (cmp == 0)
-            {
-                cmp = (x is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null })
-                    .CompareTo(y is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null });
-            }
+            cmp = (x is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null }).CompareTo(
+                y is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null }
+            );
+        }
 
-            return cmp;
-        };
+        return cmp;
+    };
 }

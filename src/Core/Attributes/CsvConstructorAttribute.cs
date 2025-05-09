@@ -10,12 +10,10 @@ namespace FlameCsv.Attributes;
 /// </remarks>
 [PublicAPI]
 [AttributeUsage(
-    AttributeTargets.Constructor |
-    AttributeTargets.Class |
-    AttributeTargets.Struct |
-    AttributeTargets.Assembly,
+    AttributeTargets.Constructor | AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Assembly,
     AllowMultiple = true, // type and assembly need AllMultiple = true
-    Inherited = false)]
+    Inherited = false
+)]
 public sealed class CsvConstructorAttribute : CsvConfigurationAttribute
 {
     private Type[]? _parameterTypes;

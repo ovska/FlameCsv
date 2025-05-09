@@ -8,7 +8,9 @@ namespace FlameCsv.Converters.Enums;
 /// Used by the <see cref="Attributes.CsvEnumConverterAttribute{T,TEnum}"/> source generator.
 /// </summary>
 [PublicAPI]
-public abstract class EnumParseStrategy<T, TEnum> where T : unmanaged, IBinaryInteger<T> where TEnum : struct, Enum
+public abstract class EnumParseStrategy<T, TEnum>
+    where T : unmanaged, IBinaryInteger<T>
+    where TEnum : struct, Enum
 {
     /// <summary>
     /// Returns a singleton strategy that always fails to parse an enum value.

@@ -7,10 +7,8 @@ internal sealed class TextBufferReader : CsvBufferReader<char>
     private readonly TextReader _reader;
     private readonly bool _leaveOpen;
 
-    public TextBufferReader(
-        TextReader reader,
-        MemoryPool<char> pool,
-        in CsvIOOptions options) : base(pool, in options)
+    public TextBufferReader(TextReader reader, MemoryPool<char> pool, in CsvIOOptions options)
+        : base(pool, in options)
     {
         _reader = reader;
         _leaveOpen = options.LeaveOpen;

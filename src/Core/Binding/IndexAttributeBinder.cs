@@ -8,15 +8,11 @@ namespace FlameCsv.Binding;
 [RDC(Messages.Reflection)]
 internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValue>
 {
-    private static readonly Lazy<CsvBindingCollection<TValue>?> _read
-        = new(() => CreateBindingCollection(false));
+    private static readonly Lazy<CsvBindingCollection<TValue>?> _read = new(() => CreateBindingCollection(false));
 
-    private static readonly Lazy<CsvBindingCollection<TValue>?> _write
-        = new(() => CreateBindingCollection(true));
+    private static readonly Lazy<CsvBindingCollection<TValue>?> _write = new(() => CreateBindingCollection(true));
 
-    public static bool TryGetBindings(
-        bool write,
-        [NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
+    public static bool TryGetBindings(bool write, [NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
     {
         return (bindings = (write ? _write : _read).Value) is not null;
     }
@@ -29,7 +25,8 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
         foreach (var data in configuration.Value)
         {
-            if (data.Index is not { } index) continue;
+            if (data.Index is not { } index)
+                continue;
 
             if (data.Ignored)
             {
@@ -45,9 +42,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
             list.Add(new IgnoredCsvBinding<TValue>(index));
         }
 
-        return list.Count > 0
-            ? new CsvBindingCollection<TValue>(FixGaps(list, write), write)
-            : null;
+        return list.Count > 0 ? new CsvBindingCollection<TValue>(FixGaps(list, write), write) : null;
     }
 
     private static IEnumerable<CsvBinding<TValue>> FixGaps(List<CsvBinding<TValue>> allBindings, bool write)
@@ -85,7 +80,8 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
             {
                 throw new CsvBindingException<TValue>(
                     $"Index {first.Index} has a mix of ignored and non-ignored bindings",
-                    bindings);
+                    bindings
+                );
             }
 
             if (!write)
@@ -100,7 +96,8 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                         {
                             throw new CsvBindingException<TValue>(
                                 $"Index {first.Index} has multiple parameter bindings",
-                                bindings);
+                                bindings
+                            );
                         }
 
                         parameter = binding;
@@ -115,7 +112,8 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                 {
                     throw new CsvBindingException<TValue>(
                         $"Index {first.Index} has multiple member bindings",
-                        bindings);
+                        bindings
+                    );
                 }
 
                 yield return parameter;
@@ -124,7 +122,8 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
             throw new CsvBindingException<TValue>(
                 $"Could not determine the binding to use for index {first.Index} ",
-                bindings);
+                bindings
+            );
         }
     }
 }

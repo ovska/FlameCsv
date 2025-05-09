@@ -10,10 +10,13 @@ namespace FlameCsv.Fuzzing.Scenarios;
 public class Converters : IScenario
 {
     public static bool SupportsUtf16 => true;
+
     public static void Run(ReadOnlyMemory<byte> data, PoisonPagePlacement placement) => TestAll(data.Span);
+
     public static void Run(ReadOnlyMemory<char> data, PoisonPagePlacement placement) => TestAll(data.Span);
 
-    private static void TestAll<T>(ReadOnlySpan<T> data) where T : unmanaged, IBinaryInteger<T>
+    private static void TestAll<T>(ReadOnlySpan<T> data)
+        where T : unmanaged, IBinaryInteger<T>
     {
         var options = CsvOptions<T>.Default;
         Test<bool>.Run(options, data);
@@ -61,7 +64,8 @@ public class Converters : IScenario
 
     private static class Test<TValue>
     {
-        public static void Run<T>(CsvOptions<T> options, ReadOnlySpan<T> data) where T : unmanaged, IBinaryInteger<T>
+        public static void Run<T>(CsvOptions<T> options, ReadOnlySpan<T> data)
+            where T : unmanaged, IBinaryInteger<T>
         {
             CsvConverter<T, TValue> converter = options.GetConverter<TValue>();
 
@@ -78,10 +82,19 @@ public class Converters : IScenario
 
     enum NonAscii
     {
-        [EnumMember(Value = "ÿÿu")] A = -1,
-        [EnumMember(Value = "__?")] B = 1234,
-        [EnumMember(Value = "!!!!")] C = 777,
-        [EnumMember(Value = "🍕")] D = 0xFF,
-        [EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩")] E = 0,
+        [EnumMember(Value = "ÿÿu")]
+        A = -1,
+
+        [EnumMember(Value = "__?")]
+        B = 1234,
+
+        [EnumMember(Value = "!!!!")]
+        C = 777,
+
+        [EnumMember(Value = "🍕")]
+        D = 0xFF,
+
+        [EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩")]
+        E = 0,
     }
 }

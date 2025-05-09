@@ -12,12 +12,23 @@ public static class OldEnumTests
 {
     public enum CustomDayOfWeek
     {
-        [EnumMember(Value = "Möndäy")] Monday = 0,
-        [EnumMember(Value = "Tuesday")] Tuesday = 1,
-        [EnumMember(Value = "wednesdaY")] Wednesday = 2,
-        [EnumMember(Value = "Thu, rs, day!")] Thursday = 3,
-        [EnumMember(Value = "_6")] Friday = 4,
-        [EnumMember(Value = "Säturday")] Saturday = 5,
+        [EnumMember(Value = "Möndäy")]
+        Monday = 0,
+
+        [EnumMember(Value = "Tuesday")]
+        Tuesday = 1,
+
+        [EnumMember(Value = "wednesdaY")]
+        Wednesday = 2,
+
+        [EnumMember(Value = "Thu, rs, day!")]
+        Thursday = 3,
+
+        [EnumMember(Value = "_6")]
+        Friday = 4,
+
+        [EnumMember(Value = "Säturday")]
+        Saturday = 5,
         Sunday = 6,
         Negative = -255,
         Large = 1234,
@@ -27,25 +38,24 @@ public static class OldEnumTests
     public static void Text()
     {
         Assertions(
-            ignoreCase => new EnumTextConverter<DayOfWeek>(
-                new CsvOptions<char> { IgnoreEnumCase = ignoreCase}),
-            ignoreCase => new EnumTextConverter<CustomDayOfWeek>(
-                new CsvOptions<char> { IgnoreEnumCase = ignoreCase }));
+            ignoreCase => new EnumTextConverter<DayOfWeek>(new CsvOptions<char> { IgnoreEnumCase = ignoreCase }),
+            ignoreCase => new EnumTextConverter<CustomDayOfWeek>(new CsvOptions<char> { IgnoreEnumCase = ignoreCase })
+        );
     }
 
     [Fact]
     public static void Utf8()
     {
         Assertions(
-            ignoreCase => new EnumUtf8Converter<DayOfWeek>(
-                new CsvOptions<byte> { IgnoreEnumCase = ignoreCase }),
-            ignoreCase => new EnumUtf8Converter<CustomDayOfWeek>(
-                new CsvOptions<byte> { IgnoreEnumCase = ignoreCase }));
+            ignoreCase => new EnumUtf8Converter<DayOfWeek>(new CsvOptions<byte> { IgnoreEnumCase = ignoreCase }),
+            ignoreCase => new EnumUtf8Converter<CustomDayOfWeek>(new CsvOptions<byte> { IgnoreEnumCase = ignoreCase })
+        );
     }
 
     private static void Assertions<T>(
         Func<bool, CsvConverter<T, DayOfWeek>> getCache,
-        Func<bool, CsvConverter<T, CustomDayOfWeek>> getCacheCustom)
+        Func<bool, CsvConverter<T, CustomDayOfWeek>> getCacheCustom
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvConverter<T, DayOfWeek> ordinalCase = getCache(false);
@@ -170,32 +180,22 @@ public static class OldEnumTests
         Assert.Equal(value, lower, comparer);
         Assert.Equal(upper, lower, comparer);
 
-        IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike> alternate
-            = (IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>)comparer;
+        IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike> alternate =
+            (IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>)comparer;
 
         Assert.True(alternate.Equals(Encoding.UTF8.GetBytes(value), value));
         Assert.True(alternate.Equals(Encoding.UTF8.GetBytes(upper), value));
         Assert.True(alternate.Equals(Encoding.UTF8.GetBytes(lower), value));
 
-        Assert.Equal(
-            comparer.GetHashCode(value),
-            comparer.GetHashCode(upper));
+        Assert.Equal(comparer.GetHashCode(value), comparer.GetHashCode(upper));
 
-        Assert.Equal(
-            comparer.GetHashCode(value),
-            comparer.GetHashCode(lower));
+        Assert.Equal(comparer.GetHashCode(value), comparer.GetHashCode(lower));
 
-        Assert.Equal(
-            comparer.GetHashCode(value),
-            alternate.GetHashCode(Encoding.UTF8.GetBytes(value)));
+        Assert.Equal(comparer.GetHashCode(value), alternate.GetHashCode(Encoding.UTF8.GetBytes(value)));
 
-        Assert.Equal(
-            comparer.GetHashCode(value),
-            alternate.GetHashCode(Encoding.UTF8.GetBytes(upper)));
+        Assert.Equal(comparer.GetHashCode(value), alternate.GetHashCode(Encoding.UTF8.GetBytes(upper)));
 
-        Assert.Equal(
-            comparer.GetHashCode(value),
-            alternate.GetHashCode(Encoding.UTF8.GetBytes(lower)));
+        Assert.Equal(comparer.GetHashCode(value), alternate.GetHashCode(Encoding.UTF8.GetBytes(lower)));
     }
 
     [Fact]
@@ -241,12 +241,14 @@ public static class OldEnumTests
         Assert.Equal("000004D2", FromT(span));
     }
 
-    private static ReadOnlySpan<T> ToT<T>(string value) where T : unmanaged, IBinaryInteger<T>
+    private static ReadOnlySpan<T> ToT<T>(string value)
+        where T : unmanaged, IBinaryInteger<T>
     {
         return CsvOptions<T>.Default.GetFromString(value).Span;
     }
 
-    private static string FromT<T>(ReadOnlySpan<T> span) where T : unmanaged, IBinaryInteger<T>
+    private static string FromT<T>(ReadOnlySpan<T> span)
+        where T : unmanaged, IBinaryInteger<T>
     {
         return CsvOptions<T>.Default.GetAsString(span);
     }
@@ -257,7 +259,8 @@ file static class Extensions
     public static bool TryGetName<T, TValue>(
         this CsvConverter<T, TValue> converter,
         TValue value,
-        out ReadOnlySpan<T> span)
+        out ReadOnlySpan<T> span
+    )
         where T : unmanaged, IBinaryInteger<T>
         where TValue : struct, Enum
     {

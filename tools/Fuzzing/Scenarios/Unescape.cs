@@ -16,14 +16,16 @@ public class Unescape : IScenario
     private static void RunCore<T>(ReadOnlySpan<T> data, PoisonPagePlacement placement)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (data.Length < 2) return;
+        if (data.Length < 2)
+            return;
 
         try
         {
             T quote = T.CreateTruncating('"');
             uint count = (uint)data.Count(quote);
 
-            if (count == 0) return;
+            if (count == 0)
+                return;
 
             using var memory = PooledBoundedMemory<T>.Rent(data.Length, placement);
             Span<T> destination = memory.Span.Slice(0, data.Length);
@@ -34,7 +36,8 @@ public class Unescape : IScenario
                     ushort.CreateTruncating(quote),
                     MemoryMarshal.Cast<T, ushort>(destination),
                     MemoryMarshal.Cast<T, ushort>(data),
-                    count);
+                    count
+                );
             }
             else
             {
@@ -51,11 +54,10 @@ public class Unescape : IScenario
             if (!assertion.SequenceEqual(destination.Slice(0, unescapedLength)))
             {
                 throw new Exception(
-                    $"Unescaped data does not match. Expected: {assertion.AsPrintableString()} Actual: {destination.Slice(0, unescapedLength).AsPrintableString()}");
+                    $"Unescaped data does not match. Expected: {assertion.AsPrintableString()} Actual: {destination.Slice(0, unescapedLength).AsPrintableString()}"
+                );
             }
         }
-        catch (CsvFormatException)
-        {
-        }
+        catch (CsvFormatException) { }
     }
 }

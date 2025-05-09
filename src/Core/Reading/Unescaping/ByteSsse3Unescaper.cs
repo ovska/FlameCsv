@@ -53,9 +53,7 @@ internal readonly struct ByteSsse3Unescaper : ISimdUnescaper<byte, ushort, Vecto
 
         // Load the 64-bit values thintable_epi8[mask1] and thintable_epi8[mask2] into a 128-bit register
         Vector128<byte> shufmask = Vector128
-            .Create(
-                CompressionTables.ThinEpi8[mask1],
-                CompressionTables.ThinEpi8[mask2] + 0x0808080808080808L)
+            .Create(CompressionTables.ThinEpi8[mask1], CompressionTables.ThinEpi8[mask2] + 0x0808080808080808L)
             .AsByte();
 
         // Shuffle the source data

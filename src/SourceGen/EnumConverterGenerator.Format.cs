@@ -8,7 +8,8 @@ partial class EnumConverterGenerator
         ref readonly EnumModel model,
         bool numbers,
         IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -17,7 +18,8 @@ partial class EnumConverterGenerator
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
-            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)");
+            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)"
+        );
         using var block = writer.WriteBlock();
 
         writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
@@ -52,8 +54,7 @@ partial class EnumConverterGenerator
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var numericValues = model
-                    .Values
-                    .DistinctBy(x => x.Value)
+                    .Values.DistinctBy(x => x.Value)
                     .OrderBy(x => x.Value)
                     .Skip(fastPathCount ?? 0)
                     .ToList();
@@ -69,7 +70,8 @@ partial class EnumConverterGenerator
                     in model,
                     cancellationToken,
                     numericValues,
-                    static value => value.Value.ToString());
+                    static value => value.Value.ToString()
+                );
             }
             else
             {
@@ -86,7 +88,8 @@ partial class EnumConverterGenerator
                 in model,
                 cancellationToken,
                 model.Values.DistinctBy(x => x.Value),
-                static value => value.DisplayName);
+                static value => value.DisplayName
+            );
         }
     }
 
@@ -95,7 +98,8 @@ partial class EnumConverterGenerator
         ref readonly EnumModel model,
         CancellationToken cancellationToken,
         IEnumerable<EnumValueModel> values,
-        Func<EnumValueModel, string> getValue)
+        Func<EnumValueModel, string> getValue
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -124,8 +128,12 @@ partial class EnumConverterGenerator
                 {
                     writer.Write("charsWritten = ");
                     writer.Write(
-                        (model.TokenType.IsByte() ? Encoding.UTF8.GetByteCount(formattedValue) : formattedValue.Length)
-                        .ToString());
+                        (
+                            model.TokenType.IsByte()
+                                ? Encoding.UTF8.GetByteCount(formattedValue)
+                                : formattedValue.Length
+                        ).ToString()
+                    );
                     writer.WriteLine(";");
                     writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
                 }
@@ -226,7 +234,8 @@ partial class EnumConverterGenerator
     private static void WriteFlagsFormat(
         ref readonly EnumModel model,
         IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -235,9 +244,12 @@ partial class EnumConverterGenerator
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
-            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)");
+            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)"
+        );
         using var block = writer.WriteBlock();
-        writer.WriteLine($"return (({model.UnderlyingType.FullyQualifiedName})value).TryFormat(destination, out charsWritten)");
+        writer.WriteLine(
+            $"return (({model.UnderlyingType.FullyQualifiedName})value).TryFormat(destination, out charsWritten)"
+        );
         writer.IncreaseIndent();
         writer.WriteLine(" ? global::System.Buffers.OperationStatus.Done");
         writer.WriteLine(" : global::System.Buffers.OperationStatus.DestinationTooSmall;");

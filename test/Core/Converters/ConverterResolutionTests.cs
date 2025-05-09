@@ -25,9 +25,14 @@ public static partial class ConverterResolutionTests
 
     private class ShimOR
     {
-        [CsvConverter<IdConverter>] public int Id { get; set; }
-        [CsvConverter<PoolingStringTextConverter>] public string? Name { get; set; }
-        [CsvConverter<IdConverter>] public int? Age { get; set; }
+        [CsvConverter<IdConverter>]
+        public int Id { get; set; }
+
+        [CsvConverter<PoolingStringTextConverter>]
+        public string? Name { get; set; }
+
+        [CsvConverter<IdConverter>]
+        public int? Age { get; set; }
     }
 
     private class IdConverter : CsvConverter<char, int>
@@ -38,7 +43,8 @@ public static partial class ConverterResolutionTests
             return true;
         }
 
-        public override bool TryFormat(Span<char> destination, int value, out int charsWritten) => throw new NotImplementedException();
+        public override bool TryFormat(Span<char> destination, int value, out int charsWritten) =>
+            throw new NotImplementedException();
     }
 
     [Fact]

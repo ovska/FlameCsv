@@ -9,8 +9,8 @@ namespace FlameCsv.Tests.Reading;
 
 public static class UnescaperTests
 {
-    public static TheoryData<string, string> UnescapeData
-        => new()
+    public static TheoryData<string, string> UnescapeData =>
+        new()
         {
             { "\"\"", "\"" },
             { "\"\"\"\"", "\"\"" },
@@ -53,8 +53,11 @@ public static class UnescaperTests
 
         Span<byte> destination = buffer.AsSpan(ByteSsse3Unescaper.Count..^ByteSsse3Unescaper.Count);
 
-        int compressedLength
-            = Unescaper.Unescape<byte, ushort, Vector128<byte>, ByteSsse3Unescaper>((byte)'"', data, destination);
+        int compressedLength = Unescaper.Unescape<byte, ushort, Vector128<byte>, ByteSsse3Unescaper>(
+            (byte)'"',
+            data,
+            destination
+        );
 
         Assert.Equal(data.Length - (quoteCount / 2), compressedLength);
         Assert.Equal(output, Encoding.UTF8.GetString(destination[..compressedLength]));
@@ -81,8 +84,11 @@ public static class UnescaperTests
 
         Span<byte> destination = buffer.AsSpan(ByteAvx2Unescaper.Count..^ByteAvx2Unescaper.Count);
 
-        int compressedLength
-            = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>((byte)'"', data, destination);
+        int compressedLength = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>(
+            (byte)'"',
+            data,
+            destination
+        );
 
         Assert.Equal(data.Length - (quoteCount / 2), compressedLength);
         Assert.Equal(output, Encoding.UTF8.GetString(destination[..compressedLength]));
@@ -107,8 +113,11 @@ public static class UnescaperTests
 
         Span<char> destination = buffer.AsSpan(CharAvxUnescaper.Count..^CharAvxUnescaper.Count);
 
-        int compressedLength
-            = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>('"', data, destination);
+        int compressedLength = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>(
+            '"',
+            data,
+            destination
+        );
 
         Assert.Equal(data.Length - (quoteCount / 2), compressedLength);
         Assert.Equal(output, new string(destination[..compressedLength]));
@@ -124,8 +133,8 @@ public static class UnescaperTests
 
     [Theory]
     [MemberData(nameof(UnescapeData))]
-    public static void Should_Unescape_Byte(string data, string output)
-        => Run<byte>(Encoding.UTF8.GetBytes(data), output);
+    public static void Should_Unescape_Byte(string data, string output) =>
+        Run<byte>(Encoding.UTF8.GetBytes(data), output);
 
     private static void Run<T>(ReadOnlySpan<T> data, string output)
         where T : unmanaged, IBinaryInteger<T>
@@ -143,11 +152,17 @@ public static class UnescaperTests
                 '"',
                 MemoryMarshal.Cast<T, ushort>(buffer.AsSpan(start: 64, length: data.Length)),
                 MemoryMarshal.Cast<T, ushort>(data),
-                (uint)quoteCount);
+                (uint)quoteCount
+            );
         }
         else
         {
-            RFC4180Mode<T>.Unescape(T.CreateChecked('"'), buffer.AsSpan(start: 64, length: data.Length), data, (uint)quoteCount);
+            RFC4180Mode<T>.Unescape(
+                T.CreateChecked('"'),
+                buffer.AsSpan(start: 64, length: data.Length),
+                data,
+                (uint)quoteCount
+            );
         }
 
         Assert.Equal(output, ((ReadOnlySpan<T>)buffer).Slice(64, unescapedLength).AsPrintableString());

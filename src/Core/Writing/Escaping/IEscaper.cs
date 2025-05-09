@@ -5,7 +5,8 @@ namespace FlameCsv.Writing.Escaping;
 /// <summary>
 /// Provides tokens and methods to escape special characters when quoting fields.
 /// </summary>
-internal interface IEscaper<T> where T : unmanaged, IBinaryInteger<T>
+internal interface IEscaper<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Gets the escape character, can be same as <see cref="Quote"/>.

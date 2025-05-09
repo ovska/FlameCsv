@@ -8,7 +8,8 @@ using FlameCsv.IO.Internal;
 namespace FlameCsv.Tests;
 
 [SupportedOSPlatform("windows")]
-public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T> where T : unmanaged
+public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T>
+    where T : unmanaged
 {
     public override int MaxBufferSize { get; } = Environment.SystemPageSize * 128;
 
@@ -30,7 +31,8 @@ public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTra
     }
 }
 
-public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T> where T : unmanaged
+public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
+    where T : unmanaged
 {
     public override int MaxBufferSize => Array.MaxLength;
 
@@ -51,7 +53,8 @@ public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<
     }
 }
 
-public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : unmanaged
+public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
+    where T : unmanaged
 {
     public static ReturnTrackingMemoryPool<T> Create(bool? guardedFromEnd = null)
     {
@@ -120,8 +123,9 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : unma
         {
             throw new InvalidOperationException(
                 $"{_values.Count} rented memory not disposed, {_returnedCount} out of {_rentedCount}. "
-                + Environment.NewLine
-                + string.Join(Environment.NewLine + Environment.NewLine, _values.Select(kvp => kvp.Value)));
+                    + Environment.NewLine
+                    + string.Join(Environment.NewLine + Environment.NewLine, _values.Select(kvp => kvp.Value))
+            );
         }
     }
 
@@ -144,7 +148,8 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T> where T : unma
         if (!TryRelease(memory))
         {
             throw new InvalidOperationException(
-                $"Memory<{typeof(T)}>[{memory.Length}] was not from {GetType().FullName}");
+                $"Memory<{typeof(T)}>[{memory.Length}] was not from {GetType().FullName}"
+            );
         }
     }
 }

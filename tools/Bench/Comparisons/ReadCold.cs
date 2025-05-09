@@ -47,9 +47,12 @@ public class ReadCold
     [Benchmark]
     public void _FlameCsv()
     {
-        foreach (var entry in new CsvValueEnumerable<byte, Entry>(
-                     _data,
-                     _flameOptions ??= new CsvOptions<byte> { Converters = { new FloatUtf8Parser() } }))
+        foreach (
+            var entry in new CsvValueEnumerable<byte, Entry>(
+                _data,
+                _flameOptions ??= new CsvOptions<byte> { Converters = { new FloatUtf8Parser() } }
+            )
+        )
         {
             _ = entry;
         }
@@ -58,10 +61,13 @@ public class ReadCold
     [Benchmark(Baseline = true)]
     public void _Flame_SrcGen()
     {
-        foreach (var entry in new CsvTypeMapEnumerable<byte, Entry>(
-                     _data,
-                     _flameSgOptions ??= new CsvOptions<byte> { Converters = { new FloatUtf8Parser() } },
-                     EntryTypeMapUtf8.Default))
+        foreach (
+            var entry in new CsvTypeMapEnumerable<byte, Entry>(
+                _data,
+                _flameSgOptions ??= new CsvOptions<byte> { Converters = { new FloatUtf8Parser() } },
+                EntryTypeMapUtf8.Default
+            )
+        )
         {
             _ = entry;
         }

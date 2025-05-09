@@ -8,7 +8,8 @@ namespace FlameCsv.Tests.Writing;
 
 public sealed class CsvFieldWriterTests : IAsyncDisposable
 {
-    [HandlesResourceDisposal] private CsvFieldWriter<char> _writer;
+    [HandlesResourceDisposal]
+    private CsvFieldWriter<char> _writer;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;
@@ -112,7 +113,8 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
             escapeMode
                 ? $"\"Test ^\"{new string('x', 114)}^\" test\""
                 : $"\"Test \"\"{new string('x', 114)}\"\" test\"",
-            Written);
+            Written
+        );
     }
 
     [Theory, InlineData(-1), InlineData(int.MaxValue)]
@@ -170,8 +172,11 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
             new TextBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, new() { BufferSize = bufferSize }),
             new CsvOptions<char>
             {
-                FieldQuoting = quoting, Null = "null", Escape = escape,
-            });
+                FieldQuoting = quoting,
+                Null = "null",
+                Escape = escape,
+            }
+        );
     }
 
     private sealed class Formatter : CsvConverter<char, string>

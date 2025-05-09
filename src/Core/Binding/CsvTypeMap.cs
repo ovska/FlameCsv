@@ -49,14 +49,12 @@ public abstract class CsvTypeMap
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected void ThrowDuplicate(
-        string member,
-        string field,
-        ImmutableArray<string> headers)
+    protected void ThrowDuplicate(string member, string field, ImmutableArray<string> headers)
     {
         throw new CsvBindingException(
             TargetType,
-            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}.");
+            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}."
+        );
     }
 
     /// <summary>
@@ -68,7 +66,10 @@ public abstract class CsvTypeMap
     [EditorBrowsable(EditorBrowsableState.Never)]
     protected void ThrowUnmatched(string field, int index, ImmutableArray<string> headers)
     {
-        throw new CsvBindingException(TargetType, $"Unmatched header field '{field}' at index {index}: [{JoinValues(headers)}]");
+        throw new CsvBindingException(
+            TargetType,
+            $"Unmatched header field '{field}' at index {index}: [{JoinValues(headers)}]"
+        );
     }
 
     /// <summary>
@@ -82,7 +83,8 @@ public abstract class CsvTypeMap
         string missingMembers = string.Join(", ", members.Select(x => $"\"{x}\""));
         throw new CsvBindingException(
             TargetType,
-            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{JoinValues(headers)}]");
+            $"Required members/parameters [{missingMembers}] were not matched to any header field: [{JoinValues(headers)}]"
+        );
     }
 
     /// <summary>
@@ -96,9 +98,10 @@ public abstract class CsvTypeMap
     {
         throw new CsvBindingException(
             TargetType,
-            $"No header fields were matched to a member or parameter: {JoinValues(headers)}");
+            $"No header fields were matched to a member or parameter: {JoinValues(headers)}"
+        );
     }
 
-    private static string JoinValues(ImmutableArray<string> values)
-        => values.IsDefaultOrEmpty ? "" : string.Join(", ", values.Select(x => $"\"{x}\""));
+    private static string JoinValues(ImmutableArray<string> values) =>
+        values.IsDefaultOrEmpty ? "" : string.Join(", ", values.Select(x => $"\"{x}\""));
 }

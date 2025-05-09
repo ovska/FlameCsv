@@ -30,14 +30,18 @@ public readonly ref struct CsvRecordCallbackArgs<T>
         long position,
         ref bool skip,
         ref bool headerRead
-    ) : this(record, header.AsSpan(), lineIndex, position, ref skip, ref headerRead)
+    )
+        : this(record, header.AsSpan(), lineIndex, position, ref skip, ref headerRead)
     {
         Throw.IfDefaultStruct(record._reader is null, typeof(CsvRecordRef<T>));
-        if (header.IsDefault) Throw.ArgumentNull(nameof(header));
+        if (header.IsDefault)
+            Throw.ArgumentNull(nameof(header));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lineIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(position);
-        if (Unsafe.IsNullRef(ref skip)) Throw.ArgumentNull(nameof(skip));
-        if (Unsafe.IsNullRef(ref headerRead)) Throw.ArgumentNull(nameof(headerRead));
+        if (Unsafe.IsNullRef(ref skip))
+            Throw.ArgumentNull(nameof(skip));
+        if (Unsafe.IsNullRef(ref headerRead))
+            Throw.ArgumentNull(nameof(headerRead));
     }
 
     internal CsvRecordCallbackArgs(

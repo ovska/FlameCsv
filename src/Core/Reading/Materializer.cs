@@ -15,7 +15,8 @@ internal abstract class Materializer<T, TValue>
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     protected static CsvConverter<T, TConverted> ResolveConverter<TConverted>(
         CsvBinding<TValue> binding,
-        CsvOptions<T> options)
+        CsvOptions<T> options
+    )
     {
         if (binding.IsIgnored)
         {

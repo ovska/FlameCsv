@@ -163,8 +163,8 @@ public partial class CsvWriterTTests
 
         using (var w = CsvWriter.Create(Stream.Null))
         {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(
-                async () => await w.NextRecordAsync(new CancellationToken(true))
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await w.NextRecordAsync(new CancellationToken(true))
             );
 
             Assert.False(w.IsCompleted);
@@ -172,8 +172,8 @@ public partial class CsvWriterTTests
             Assert.True(w.IsCompleted);
 
             Assert.Throws<ObjectDisposedException>(() => w.NextRecord());
-            await Assert.ThrowsAsync<ObjectDisposedException>(
-                async () => await w.NextRecordAsync(TestContext.Current.CancellationToken)
+            await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+                await w.NextRecordAsync(TestContext.Current.CancellationToken)
             );
         }
     }

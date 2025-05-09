@@ -5,7 +5,8 @@
 /// By default, used to resolve converters for <see langword="enum"/> and <see cref="Nullable{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-public abstract class CsvConverterFactory<T> : CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvConverterFactory<T> : CsvConverter<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Creates an instance capable of converting values of the specified type.

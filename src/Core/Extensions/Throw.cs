@@ -23,7 +23,8 @@ internal static class Throw
     [StackTraceHidden]
     public static void IfDefaultOrEmpty(
         ImmutableArray<string> array,
-        [CallerArgumentExpression(nameof(array))] string paramName = "")
+        [CallerArgumentExpression(nameof(array))] string paramName = ""
+    )
     {
         if (!array.IsDefaultOrEmpty)
             return;
@@ -107,7 +108,8 @@ internal static class Throw
     public static void InvalidOp_NoHeader(int index, Type type, MemberInfo member)
     {
         throw new InvalidOperationException(
-            $"No header name found for member {member.Name} at index {index} when writing {type.FullName}.");
+            $"No header name found for member {member.Name} at index {index} when writing {type.FullName}."
+        );
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -115,7 +117,8 @@ internal static class Throw
     {
         throw new ArgumentException(
             $"Header \"{name}\" was not found among the CSV headers: {string.Join(", ", header)}",
-            nameof(name));
+            nameof(name)
+        );
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -134,7 +137,8 @@ internal static class Throw
     {
         throw new ArgumentOutOfRangeException(
             nameof(index),
-            $"Could not get field at index {index} (there were {count} fields in the record).");
+            $"Could not get field at index {index} (there were {count} fields in the record)."
+        );
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -152,8 +156,8 @@ internal static class Throw
     public static void IfInvalidArgument(
         [DoesNotReturnIf(true)] bool condition,
         string message,
-        [CallerArgumentExpression(nameof(condition))]
-        string paramName = "")
+        [CallerArgumentExpression(nameof(condition))] string paramName = ""
+    )
     {
         if (!condition)
             return;
@@ -165,8 +169,9 @@ internal static class Throw
     public static void Config_TrueOrFalseBooleanValues(bool which)
     {
         throw new CsvConfigurationException(
-            "If custom boolean values are not empty, they must contain at least one value " +
-            $"for both true and false ({which.ToString().ToLowerInvariant()} was missing).");
+            "If custom boolean values are not empty, they must contain at least one value "
+                + $"for both true and false ({which.ToString().ToLowerInvariant()} was missing)."
+        );
     }
 
     /// <summary>
@@ -174,7 +179,8 @@ internal static class Throw
     /// </summary>
     public static void IfNotReadable(
         [NotNull] Stream? stream,
-        [CallerArgumentExpression(nameof(stream))] string paramName = "")
+        [CallerArgumentExpression(nameof(stream))] string paramName = ""
+    )
     {
         ArgumentNullException.ThrowIfNull(stream, paramName);
 
@@ -187,7 +193,8 @@ internal static class Throw
     /// </summary>
     public static void IfNotWritable(
         [NotNull] Stream? stream,
-        [CallerArgumentExpression(nameof(stream))] string paramName = "")
+        [CallerArgumentExpression(nameof(stream))] string paramName = ""
+    )
     {
         ArgumentNullException.ThrowIfNull(stream, paramName);
 

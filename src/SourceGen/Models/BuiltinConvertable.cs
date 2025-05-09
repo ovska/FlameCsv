@@ -83,15 +83,17 @@ internal static class BuiltinConvertableExtensions
                 var unbound = iface.ConstructUnboundGenericType();
 
                 if (
-                    isByte &&
-                    symbols.IsIUtf8SpanParsable(unbound) &&
-                    SymbolEqualityComparer.Default.Equals(type, iface.TypeArguments[0]))
+                    isByte
+                    && symbols.IsIUtf8SpanParsable(unbound)
+                    && SymbolEqualityComparer.Default.Equals(type, iface.TypeArguments[0])
+                )
                 {
                     result |= BuiltinConvertable.Utf8Parsable;
                 }
                 else if (
-                    symbols.IsISpanParsable(unbound) &&
-                    SymbolEqualityComparer.Default.Equals(type, iface.TypeArguments[0]))
+                    symbols.IsISpanParsable(unbound)
+                    && SymbolEqualityComparer.Default.Equals(type, iface.TypeArguments[0])
+                )
                 {
                     result |= BuiltinConvertable.Parsable;
                 }

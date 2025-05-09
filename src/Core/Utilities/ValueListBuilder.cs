@@ -66,7 +66,8 @@ internal ref struct ValueListBuilder<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Append(scoped ReadOnlySpan<T> source)
     {
-        if (source.IsEmpty) return;
+        if (source.IsEmpty)
+            return;
         int pos = _pos;
         Span<T> span = _span;
         if (source.Length == 1 && (uint)pos < (uint)span.Length)
@@ -187,7 +188,8 @@ internal ref struct ValueListBuilder<T>
         // although it'll be increased in Rent to the pool's minimum bucket size.
         int nextCapacity = Math.Max(
             _span.Length != 0 ? _span.Length * 2 : 4,
-            _span.Length + additionalCapacityRequired);
+            _span.Length + additionalCapacityRequired
+        );
 
         // If the computed doubled capacity exceeds the possible length of an array, then we
         // want to downgrade to either the maximum array length if that's large enough to hold

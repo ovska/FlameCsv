@@ -21,18 +21,22 @@ internal static class ReadExtensions
     public static bool TryParseFromUtf8<TValue>(
         ReadOnlySpan<byte> source,
         IFormatProvider? formatProvider,
-        [MaybeNullWhen(false)] out TValue value)
+        [MaybeNullWhen(false)] out TValue value
+    )
         where TValue : ISpanParsable<TValue>
     {
-        if (source.Length == 0) return TValue.TryParse([], formatProvider, out value);
+        if (source.Length == 0)
+            return TValue.TryParse([], formatProvider, out value);
 
         int maxLength = Encoding.UTF8.GetMaxCharCount(source.Length);
 
         scoped Span<char> buffer;
         char[]? toReturn = null;
 
-        if (Token<char>.CanStackalloc(maxLength) ||
-            Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source)))
+        if (
+            Token<char>.CanStackalloc(maxLength)
+            || Token<char>.CanStackalloc(maxLength = Encoding.UTF8.GetCharCount(source))
+        )
         {
             buffer = stackalloc char[maxLength];
         }
@@ -58,7 +62,8 @@ internal static class ReadExtensions
         TValue value,
         string? format,
         IFormatProvider? formatProvider,
-        out int charsWritten)
+        out int charsWritten
+    )
         where TValue : ISpanFormattable
     {
         Utf8.TryWriteInterpolatedStringHandler handler = new(
@@ -66,7 +71,8 @@ internal static class ReadExtensions
             formattedCount: 1,
             destination: destination,
             provider: formatProvider,
-            shouldAppend: out bool shouldAppend);
+            shouldAppend: out bool shouldAppend
+        );
 
         if (shouldAppend)
         {
@@ -105,7 +111,8 @@ internal static class ReadExtensions
         {
             for (; start < value.Length; start++)
             {
-                if (value[start] != space) break;
+                if (value[start] != space)
+                    break;
             }
         }
 
@@ -113,7 +120,8 @@ internal static class ReadExtensions
         {
             for (; end >= start; end--)
             {
-                if (value[end] != space) break;
+                if (value[end] != space)
+                    break;
             }
         }
 

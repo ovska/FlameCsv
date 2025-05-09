@@ -72,13 +72,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>
     private readonly int _version;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecord(
-        int version,
-        long position,
-        int lineIndex,
-        CsvSlice<T> slice,
-        IRecordOwner owner
-    )
+    internal CsvRecord(int version, long position, int lineIndex, CsvSlice<T> slice, IRecordOwner owner)
     {
         _version = version;
         Position = position;
@@ -235,6 +229,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>
     }
 
     IEnumerator<ReadOnlySpan<T>> IEnumerable<ReadOnlySpan<T>>.GetEnumerator() => GetEnumerator();
+
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <inheritdoc/>
@@ -317,9 +312,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>
             return false;
         }
 
-        void IDisposable.Dispose()
-        {
-        }
+        void IDisposable.Dispose() { }
 
         void IEnumerator.Reset()
         {
@@ -380,7 +373,9 @@ public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>
 
         var ex = new CsvParseException($"Failed to parse {type.Name} {target} using {converter.GetType().Name}.")
         {
-            Converter = converter, FieldIndex = index, Target = target,
+            Converter = converter,
+            FieldIndex = index,
+            Target = target,
         };
 
         ex.Enrich(Line, Position, in _slice);

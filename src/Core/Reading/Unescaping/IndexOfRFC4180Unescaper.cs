@@ -6,7 +6,8 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading.Unescaping;
 
-internal struct IndexOfRFC4180Unescaper<T>(T quote, uint quoteCount) : IIndexOfUnescaper<T> where T : unmanaged, IBinaryInteger<T>
+internal struct IndexOfRFC4180Unescaper<T>(T quote, uint quoteCount) : IIndexOfUnescaper<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public static int UnescapedLength(int fieldLength, uint specialCount)
     {
@@ -60,7 +61,8 @@ internal struct IndexOfRFC4180Unescaper<T>(T quote, uint quoteCount) : IIndexOfU
         {
             error.Append(
                 CultureInfo.InvariantCulture,
-                $"String delimiter count {_quoteCount} was invalid (actual was {actualCount}). ");
+                $"String delimiter count {_quoteCount} was invalid (actual was {actualCount}). "
+            );
         }
 
         if (error.Length != 0)

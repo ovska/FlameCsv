@@ -5,16 +5,19 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.IO.Internal;
 
-internal abstract class Allocator<T> : IDisposable where T : unmanaged
+internal abstract class Allocator<T> : IDisposable
+    where T : unmanaged
 {
     protected bool IsDisposed { get; private set; }
 
     protected abstract Memory<T> GetMemory(int length);
+
     public Span<T> GetSpan(int length) => GetMemory(length).Span;
 
     public void Dispose()
     {
-        if (IsDisposed) return;
+        if (IsDisposed)
+            return;
         IsDisposed = true;
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
@@ -23,7 +26,8 @@ internal abstract class Allocator<T> : IDisposable where T : unmanaged
     protected abstract void Dispose(bool disposing);
 }
 
-internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
+internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T>
+    where T : unmanaged
 {
     private IMemoryOwner<T> _memoryOwner = HeapMemoryOwner<T>.Empty;
 
@@ -57,9 +61,8 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> 
         ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
 
         // fall back to the array-backed shared pool if the requested size is larger than the max buffer size
-        var newOwner = minimumLength <= pool.MaxBufferSize
-            ? pool.Rent(minimumLength)
-            : MemoryPool<T>.Shared.Rent(minimumLength);
+        var newOwner =
+            minimumLength <= pool.MaxBufferSize ? pool.Rent(minimumLength) : MemoryPool<T>.Shared.Rent(minimumLength);
 
         Memory<T> newMemory = newOwner.Memory;
 
@@ -69,7 +72,8 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T> 
     }
 }
 
-internal sealed class StackedAllocator<T>(MemoryPool<T> pool) : Allocator<T> where T : unmanaged
+internal sealed class StackedAllocator<T>(MemoryPool<T> pool) : Allocator<T>
+    where T : unmanaged
 {
     public void Reset()
     {
@@ -87,7 +91,8 @@ internal sealed class StackedAllocator<T>(MemoryPool<T> pool) : Allocator<T> whe
     protected override Memory<T> GetMemory(int length)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        if (length == 0) return Memory<T>.Empty;
+        if (length == 0)
+            return Memory<T>.Empty;
 
         foreach (var entry in _queue)
         {

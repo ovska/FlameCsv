@@ -10,14 +10,16 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 /// <returns><c>true</c> if the exception can be ignored.</returns>
 [PublicAPI]
-public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args) where T : unmanaged, IBinaryInteger<T>;
+public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args)
+    where T : unmanaged, IBinaryInteger<T>;
 
 /// <summary>
 /// Arguments for <see cref="CsvExceptionHandler{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryInteger<T>
+public readonly struct CsvExceptionHandlerArgs<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     private readonly bool _useSlice;
     private readonly CsvSlice<T> _slice;
@@ -31,7 +33,8 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryIn
         ImmutableArray<string> header,
         Exception exception,
         int lineIndex,
-        long position)
+        long position
+    )
     {
         _slice = slice;
         Header = header;
@@ -106,9 +109,7 @@ public readonly struct CsvExceptionHandlerArgs<T> where T : unmanaged, IBinaryIn
     /// <returns>Value of the field</returns>
     public ReadOnlySpan<T> GetField(int index, bool raw = false)
     {
-        ref readonly CsvSlice<T> slice = ref _useSlice
-            ? ref _slice
-            : ref _record._slice;
+        ref readonly CsvSlice<T> slice = ref _useSlice ? ref _slice : ref _record._slice;
 
         CsvRecordRef<T> recordRef = new(in slice);
         return raw ? recordRef.GetRawSpan(index) : recordRef[index];

@@ -23,9 +23,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
             options.BooleanValues.Where(v => v.value).Select(v => v.text),
             options.BooleanValues.Where(v => !v.value).Select(v => v.text),
             GetIgnoreCaseFromOptions(options)
-        )
-    {
-    }
+        ) { }
 
     internal CustomBooleanConverter(IEnumerable<string> trueValues, IEnumerable<string> falseValues, bool ignoreCase)
     {

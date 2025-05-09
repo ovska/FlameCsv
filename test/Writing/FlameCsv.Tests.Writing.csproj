@@ -1,15 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
     <ItemGroup>
-        <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj"/>
-        <ProjectReference Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PackAsAnalyzer="true"/>
-        <ProjectReference Include="..\Lib\FlameCsv.Tests.Lib.csproj"/>
+        <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference
+            Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"
+            OutputItemType="Analyzer"
+            ReferenceOutputAssembly="false"
+            PackAsAnalyzer="true"
+        />
+        <ProjectReference Include="..\Lib\FlameCsv.Tests.Lib.csproj" />
     </ItemGroup>
-
     <ItemGroup>
         <Content Update="xunit.runner.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
-
 </Project>

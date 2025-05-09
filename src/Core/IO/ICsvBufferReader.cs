@@ -4,7 +4,8 @@ namespace FlameCsv.IO;
 /// Internal implementation detail. Reads raw data from an inner source.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable where T : unmanaged
+public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
+    where T : unmanaged
 {
     /// <summary>
     /// Reads from the inner data source.

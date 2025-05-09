@@ -23,8 +23,8 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         }
     }
 
-    public static bool HasFlagsAttribute
-        => _hasFlagsAttribute ??= typeof(TEnum).GetCustomAttribute<FlagsAttribute>() is not null;
+    public static bool HasFlagsAttribute =>
+        _hasFlagsAttribute ??= typeof(TEnum).GetCustomAttribute<FlagsAttribute>() is not null;
 
     public static TEnum AllFlags => _allFlags ??= InitFlags();
 
@@ -104,7 +104,8 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
         foreach (var f in typeof(TEnum).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
-            if (f.GetValue(null) is not TEnum value) continue;
+            if (f.GetValue(null) is not TEnum value)
+                continue;
 
             int index = -1;
 
@@ -117,32 +118,35 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
                 }
             }
 
-            if (index == -1) continue;
+            if (index == -1)
+                continue;
 
-            var enumMember = new EnumMember(
-                value,
-                names[index],
-                f.GetCustomAttribute<EnumMemberAttribute>()?.Value);
+            var enumMember = new EnumMember(value, names[index], f.GetCustomAttribute<EnumMemberAttribute>()?.Value);
 
-            if (!uniqueNames.Add(enumMember.Name) ||
-                (
-                    enumMember.ExplicitName is not null &&
-                    enumMember.ExplicitName != enumMember.Name &&
-                    !uniqueNames.Add(enumMember.ExplicitName)
-                ))
+            if (
+                !uniqueNames.Add(enumMember.Name)
+                || (
+                    enumMember.ExplicitName is not null
+                    && enumMember.ExplicitName != enumMember.Name
+                    && !uniqueNames.Add(enumMember.ExplicitName)
+                )
+            )
             {
                 duplicates.Add(enumMember);
             }
 
-            if (enumMember.ExplicitName is not null &&
-                (
-                    enumMember.ExplicitName.Length == 0 ||
-                    char.IsAsciiDigit(enumMember.ExplicitName[0]) ||
-                    enumMember.ExplicitName[0] == '-'
-                ))
+            if (
+                enumMember.ExplicitName is not null
+                && (
+                    enumMember.ExplicitName.Length == 0
+                    || char.IsAsciiDigit(enumMember.ExplicitName[0])
+                    || enumMember.ExplicitName[0] == '-'
+                )
+            )
             {
                 throw new CsvConfigurationException(
-                    $"Enum member name '{enumMember.ExplicitName}' for {typeof(TEnum).FullName} cannot be empty or start with a digit or '-' character.");
+                    $"Enum member name '{enumMember.ExplicitName}' for {typeof(TEnum).FullName} cannot be empty or start with a digit or '-' character."
+                );
             }
 
             builder.Add(enumMember);
@@ -152,7 +156,8 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         {
             duplicates.Sort((x, y) => Comparer<TEnum>.Default.Compare(x.Value, y.Value));
             throw new CsvConfigurationException(
-                $"Duplicate enum names configured for {typeof(TEnum).FullName}: {string.Join(", ", duplicates)}");
+                $"Duplicate enum names configured for {typeof(TEnum).FullName}: {string.Join(", ", duplicates)}"
+            );
         }
 
         return builder.ToImmutable();
@@ -168,7 +173,8 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
                 _hasFlagsAttribute = null;
                 _valuesAndNames = default;
                 _allFlags = null;
-            });
+            }
+        );
     }
 
     protected static char GetFormatChar(string? format)
@@ -195,7 +201,8 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
     public static void EnsureValidFlagsSeparator(char flagsSeparator)
     {
-        if (!HasFlagsAttribute) throw new UnreachableException();
+        if (!HasFlagsAttribute)
+            throw new UnreachableException();
 
         Debug.Assert(!char.IsAsciiDigit(flagsSeparator));
         Debug.Assert(!char.IsAsciiLetter(flagsSeparator));
@@ -203,11 +210,14 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
         foreach (var member in ValuesAndNames)
         {
-            if (member.Name.Contains(flagsSeparator) ||
-                (member.ExplicitName is not null && member.ExplicitName.Contains(flagsSeparator)))
+            if (
+                member.Name.Contains(flagsSeparator)
+                || (member.ExplicitName is not null && member.ExplicitName.Contains(flagsSeparator))
+            )
             {
                 throw new CsvConfigurationException(
-                    $"Enum {typeof(TEnum).FullName}.{member.Name} name contains the flags-separator character '{flagsSeparator}'.");
+                    $"Enum {typeof(TEnum).FullName}.{member.Name} name contains the flags-separator character '{flagsSeparator}'."
+                );
             }
         }
     }

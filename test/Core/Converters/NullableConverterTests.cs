@@ -13,7 +13,8 @@ public static class NullableConverterTests
     {
         NullableConverter<char, int> converter = new(
             new SpanTextConverter<int>(CsvOptions<char>.Default),
-            "".AsMemory());
+            "".AsMemory()
+        );
 
         Assert.True(converter.TryParse("", out var value1));
         Assert.Null(value1);
@@ -34,7 +35,8 @@ public static class NullableConverterTests
 
         var emptyOptions = new CsvOptions<char>
         {
-            Converters = { factory, new SpanTextConverter<int>(CsvOptions<char>.Default) }, Null = "null",
+            Converters = { factory, new SpanTextConverter<int>(CsvOptions<char>.Default) },
+            Null = "null",
         };
         var parser = (CsvConverter<char, int?>)factory.Create(typeof(int?), emptyOptions);
         Assert.True(parser.TryParse("null", out var value));
@@ -87,9 +89,7 @@ public static class NullableConverterTests
 
 file class FakeMemoryManager(int length) : MemoryManager<char>
 {
-    protected override void Dispose(bool disposing)
-    {
-    }
+    protected override void Dispose(bool disposing) { }
 
     public override Span<char> GetSpan() => new char[length];
 

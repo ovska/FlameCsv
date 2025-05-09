@@ -107,7 +107,12 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     {
         if (_metaBuffer.TryPop(out ArraySegment<Meta> meta))
         {
-            slice = new() { Reader = this, Data = _buffer, Fields = meta };
+            slice = new()
+            {
+                Reader = this,
+                Data = _buffer,
+                Fields = meta,
+            };
             return true;
         }
 
@@ -139,7 +144,12 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
                 || (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true))
             )
             {
-                slice = new() { Reader = this, Data = _buffer, Fields = meta };
+                slice = new()
+                {
+                    Reader = this,
+                    Data = _buffer,
+                    Fields = meta,
+                };
                 return true;
             }
 

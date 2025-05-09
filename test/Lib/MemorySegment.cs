@@ -30,7 +30,7 @@ public class MemorySegment<T> : ReadOnlySequenceSegment<T>
 
     public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
     {
-        var segment = new MemorySegment<T>(memory) { RunningIndex = RunningIndex + Memory.Length, };
+        var segment = new MemorySegment<T>(memory) { RunningIndex = RunningIndex + Memory.Length };
 
         Next = segment;
         return segment;
@@ -42,10 +42,7 @@ public class MemorySegment<T> : ReadOnlySequenceSegment<T>
     /// <param name="data">Source data</param>
     /// <param name="bufferSize">Segment max length, -1 to always return a single segment</param>
     /// <param name="emptyFrequency">How often should an empty segment be inserted</param>
-    public static ReadOnlySequence<T> AsSequence(
-        ReadOnlyMemory<T> data,
-        int bufferSize,
-        int emptyFrequency = 0)
+    public static ReadOnlySequence<T> AsSequence(ReadOnlyMemory<T> data, int bufferSize, int emptyFrequency = 0)
     {
         if (bufferSize == -1 || data.Length <= bufferSize)
         {
@@ -81,7 +78,8 @@ public class MemorySegment<T> : ReadOnlySequenceSegment<T>
         int bufferSize,
         int emptyFrequency,
         MemoryPool<T>? pool,
-        out ReadOnlySequence<T> sequence)
+        out ReadOnlySequence<T> sequence
+    )
     {
         DisposableCollection owners = new();
 

@@ -21,10 +21,12 @@ public class ModelTests(MetadataFixture fixture)
                     class First;
                     class Second;
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var first = compilation.GetTypeByMetadataName("First")!;
         var second = compilation.GetTypeByMetadataName("Second")!;
@@ -60,10 +62,12 @@ public class ModelTests(MetadataFixture fixture)
 
                     abstract class AbstractClass { }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
@@ -73,7 +77,8 @@ public class ModelTests(MetadataFixture fixture)
                 .DescendantNodes()
                 .OfType<EnumDeclarationSyntax>()
                 .Single(),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
         var enumRef = new TypeRef(enumType);
         Assert.Equal(enumRef, new TypeRef(enumType));
         Assert.True(enumRef.IsEnumOrNullableEnum);
@@ -92,7 +97,8 @@ public class ModelTests(MetadataFixture fixture)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
                 .Single(c => c.Identifier.Text == "TestClass"),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
         var classRef = new TypeRef(classType);
         Assert.Equal(classRef, new TypeRef(classType));
         Assert.False(classRef.IsEnumOrNullableEnum);
@@ -108,7 +114,8 @@ public class ModelTests(MetadataFixture fixture)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
                 .Single(c => c.Identifier.Text == "AbstractClass"),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
         var baseRef = new TypeRef(baseType);
         Assert.Equal(baseRef, new TypeRef(baseType));
         Assert.True(baseRef.IsAbstract);
@@ -131,10 +138,12 @@ public class ModelTests(MetadataFixture fixture)
                         ref string d,
                         bool b = true) { }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
@@ -144,32 +153,33 @@ public class ModelTests(MetadataFixture fixture)
                 .DescendantNodes()
                 .OfType<LocalFunctionStatementSyntax>()
                 .Single(),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
 
         // get token symbol for System.Char
         var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
         var flameSymbols = GetFlameSymbols(compilation, charSymbol);
         AnalysisCollector collector = new(charSymbol);
 
-        var parameters = ParameterModel.Create(
-            charSymbol,
-            charSymbol,
-            method,
-            in flameSymbols,
-            ref collector);
+        var parameters = ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector);
 
         Assert.Equal([Descriptors.RefConstructorParameter.Id], collector.Diagnostics.Select(d => d.Id));
 
-        (string name, bool hasDefaultValue, object? defaultValue, RefKind refKind, string[] aliases, int? order)[]
-            expected
-                =
-                [
-                    ("a", false, null, RefKind.None, ["_a"], null),
-                    ("b", false, null, RefKind.None, [], 1),
-                    ("c", false, null, RefKind.In, [], null),
-                    ("d", false, null, RefKind.Ref, [], null),
-                    ("b", true, true, RefKind.None, [], null),
-                ];
+        (
+            string name,
+            bool hasDefaultValue,
+            object? defaultValue,
+            RefKind refKind,
+            string[] aliases,
+            int? order
+        )[] expected =
+        [
+            ("a", false, null, RefKind.None, ["_a"], null),
+            ("b", false, null, RefKind.None, [], 1),
+            ("c", false, null, RefKind.In, [], null),
+            ("d", false, null, RefKind.Ref, [], null),
+            ("b", true, true, RefKind.None, [], null),
+        ];
 
         for (int i = 0; i < parameters.Length; i++)
         {
@@ -183,14 +193,7 @@ public class ModelTests(MetadataFixture fixture)
         }
 
         // equality
-        Assert.Equal(
-            parameters,
-            ParameterModel.Create(
-                charSymbol,
-                charSymbol,
-                method,
-                in flameSymbols,
-                ref collector));
+        Assert.Equal(parameters, ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector));
 
         collector.Free(out _, out _, out _);
     }
@@ -223,10 +226,12 @@ public class ModelTests(MetadataFixture fixture)
                         public int Field;
                     }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
@@ -238,7 +243,8 @@ public class ModelTests(MetadataFixture fixture)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
                 .Single(),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
@@ -254,7 +260,14 @@ public class ModelTests(MetadataFixture fixture)
             (name: "GetOnly", canRead: false, canWrite: true, isRequired: false, isExplicit: false, isProperty: true),
             (name: "SetOnly", canRead: true, canWrite: false, isRequired: false, isExplicit: false, isProperty: true),
             (name: "InitOnly", canRead: true, canWrite: true, isRequired: true, isExplicit: false, isProperty: true),
-            (name: "ISomething_Explicit", canRead: true, canWrite: true, isRequired: false, isExplicit: true, isProperty: true),
+            (
+                name: "ISomething_Explicit",
+                canRead: true,
+                canWrite: true,
+                isRequired: false,
+                isExplicit: true,
+                isProperty: true
+            ),
             (name: "Field", canRead: true, canWrite: true, isRequired: false, isExplicit: false, isProperty: false),
         ];
         // @formatter:on
@@ -288,13 +301,15 @@ public class ModelTests(MetadataFixture fixture)
                         charSymbol,
                         propertySymbol,
                         in symbols,
-                        ref collector),
+                        ref collector
+                    ),
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
                         charSymbol,
                         fieldSymbol,
                         in symbols,
-                        ref collector),
-                    _ => null
+                        ref collector
+                    ),
+                    _ => null,
                 };
 
                 if (model is not null)
@@ -364,10 +379,12 @@ public class ModelTests(MetadataFixture fixture)
                     {
                     }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
@@ -375,12 +392,12 @@ public class ModelTests(MetadataFixture fixture)
         var objectSymbol = compilation.GetTypeByMetadataName("System.Object")!;
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
-                .SyntaxTree
-                .GetRoot(TestContext.Current.CancellationToken)
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
                 .Single(s => s.Identifier.Text == "TestClass"),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
@@ -422,14 +439,16 @@ public class ModelTests(MetadataFixture fixture)
         // need to do this here as we jam more diagnostics into the collector in the equality check below
         Assert.Equal(
             [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id],
-            collector.Diagnostics.Select(d => d.Id));
+            collector.Diagnostics.Select(d => d.Id)
+        );
 
         // equality
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
             Assert.Equal(
                 ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector),
-                ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector));
+                ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector)
+            );
         }
 
         collector.Free(out _, out _, out _);
@@ -461,21 +480,23 @@ public class ModelTests(MetadataFixture fixture)
                         }
                     }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
-                .SyntaxTree
-                .GetRoot(TestContext.Current.CancellationToken)
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<ClassDeclarationSyntax>()
                 .Single(s => s.Identifier.Text == "Target"),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
         Assert.NotNull(classSymbol);
 
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
@@ -489,7 +510,8 @@ public class ModelTests(MetadataFixture fixture)
                 isOnAssembly: true,
                 attr,
                 in flameSymbols,
-                ref collector);
+                ref collector
+            );
 
             if (model is not null)
             {
@@ -501,7 +523,8 @@ public class ModelTests(MetadataFixture fixture)
                     isOnAssembly: true,
                     classSymbol,
                     attr,
-                    in flameSymbols);
+                    in flameSymbols
+                );
             }
         }
 
@@ -544,21 +567,23 @@ public class ModelTests(MetadataFixture fixture)
                         }
                     }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
         var nestedSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
-                .SyntaxTree
-                .GetRoot(TestContext.Current.CancellationToken)
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<TypeDeclarationSyntax>()
                 .Single(s => s.Identifier.Text == "Target"),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
 
         var actual = NestedType.Parse(nestedSymbol, CancellationToken.None, []);
 
@@ -570,7 +595,7 @@ public class ModelTests(MetadataFixture fixture)
                 IsRefLikeType = false,
                 IsAbstract = false,
                 IsValueType = false,
-                Name = "TestClass"
+                Name = "TestClass",
             },
             new()
             {
@@ -578,7 +603,7 @@ public class ModelTests(MetadataFixture fixture)
                 IsRefLikeType = false,
                 IsAbstract = true,
                 IsValueType = false,
-                Name = "Nested1"
+                Name = "Nested1",
             },
             new()
             {
@@ -586,7 +611,7 @@ public class ModelTests(MetadataFixture fixture)
                 IsRefLikeType = false,
                 IsAbstract = false,
                 IsValueType = true,
-                Name = "Nested2"
+                Name = "Nested2",
             },
             new()
             {
@@ -594,7 +619,7 @@ public class ModelTests(MetadataFixture fixture)
                 IsRefLikeType = true,
                 IsAbstract = false,
                 IsValueType = true,
-                Name = "Nested3"
+                Name = "Nested3",
             },
             new()
             {
@@ -602,7 +627,7 @@ public class ModelTests(MetadataFixture fixture)
                 IsRefLikeType = false,
                 IsAbstract = false,
                 IsValueType = true,
-                Name = "Nested4"
+                Name = "Nested4",
             },
         ];
 
@@ -639,21 +664,23 @@ public class ModelTests(MetadataFixture fixture)
                     abstract class Utf8Parse : IUtf8SpanParsable<Utf8Parse>, ISpanFormattable;
                     abstract class Utf16Both : ISpanParsable<Utf16Both>, ISpanFormattable;
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
-                .SyntaxTree
-                .GetRoot(TestContext.Current.CancellationToken)
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
                 .DescendantNodes()
                 .OfType<TypeDeclarationSyntax>()
                 .Single(s => s.Identifier.Text == "Target"),
-            cancellationToken: TestContext.Current.CancellationToken)!;
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
 
         var symbols = GetFlameSymbols(compilation, classSymbol, isChar: charToken);
         AnalysisCollector collector = new(classSymbol);
@@ -680,22 +707,22 @@ public class ModelTests(MetadataFixture fixture)
         {
             expected =
             [
-                ..expected,
+                .. expected,
                 ("Both8", BuiltinConvertable.None),
                 ("Format8", BuiltinConvertable.Parsable),
                 ("Parse8", BuiltinConvertable.Formattable),
-                ("Both16", BuiltinConvertable.Both)
+                ("Both16", BuiltinConvertable.Both),
             ];
         }
         else
         {
             expected =
             [
-                ..expected,
+                .. expected,
                 ("Both8", BuiltinConvertable.Utf8Both),
                 ("Format8", BuiltinConvertable.Utf8Formattable | BuiltinConvertable.Parsable),
                 ("Parse8", BuiltinConvertable.Utf8Parsable | BuiltinConvertable.Formattable),
-                ("Both16", BuiltinConvertable.Both)
+                ("Both16", BuiltinConvertable.Both),
             ];
         }
 
@@ -710,6 +737,7 @@ public class ModelTests(MetadataFixture fixture)
             compilation,
 #endif
             tokenType: compilation.GetTypeByMetadataName(isChar ? "System.Char" : "System.Byte")!,
-            arg);
+            arg
+        );
     }
 }

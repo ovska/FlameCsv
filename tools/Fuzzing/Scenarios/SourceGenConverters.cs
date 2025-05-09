@@ -8,10 +8,13 @@ namespace FlameCsv.Fuzzing.Scenarios;
 public partial class SourceGenConverters : IScenario
 {
     public static bool SupportsUtf16 => true;
+
     public static void Run(ReadOnlyMemory<byte> data, PoisonPagePlacement placement) => TestAll(data.Span);
+
     public static void Run(ReadOnlyMemory<char> data, PoisonPagePlacement placement) => TestAll(data.Span);
 
-    private static void TestAll<T>(ReadOnlySpan<T> data) where T : unmanaged, IBinaryInteger<T>
+    private static void TestAll<T>(ReadOnlySpan<T> data)
+        where T : unmanaged, IBinaryInteger<T>
     {
         foreach (var configure in ConfigureOptions<T>.Configure)
         {
@@ -49,7 +52,8 @@ public partial class SourceGenConverters : IScenario
 
     private static class Test<TValue>
     {
-        public static void Run<T>(CsvOptions<T> options, ReadOnlySpan<T> data) where T : unmanaged, IBinaryInteger<T>
+        public static void Run<T>(CsvOptions<T> options, ReadOnlySpan<T> data)
+            where T : unmanaged, IBinaryInteger<T>
         {
             CsvConverter<T, TValue> converter = options.GetConverter<TValue>();
 
@@ -63,7 +67,6 @@ public partial class SourceGenConverters : IScenario
             }
         }
     }
-
 
     [CsvEnumConverter<byte, DayOfWeek>]
     partial class EnumByteDof;
@@ -85,25 +88,37 @@ public partial class SourceGenConverters : IScenario
 
     enum NonAscii
     {
-        [EnumMember(Value = "ÿÿu")] A = -1,
-        [EnumMember(Value = "__?")] B = 1234,
-        [EnumMember(Value = "!!!!")] C = 777,
-        [EnumMember(Value = "🍕")] D = 0xFF,
-        [EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩")] E = 0,
+        [EnumMember(Value = "ÿÿu")]
+        A = -1,
+
+        [EnumMember(Value = "__?")]
+        B = 1234,
+
+        [EnumMember(Value = "!!!!")]
+        C = 777,
+
+        [EnumMember(Value = "🍕")]
+        D = 0xFF,
+
+        [EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩")]
+        E = 0,
     }
 
-    private static class ConfigureOptions<T> where T : unmanaged, IBinaryInteger<T>
+    private static class ConfigureOptions<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
         public static readonly Action<CsvOptions<T>>[] Configure = (
-            from ignoreCase in (bool[]) [true, false]
-            from allowUndefinedEnumValues in (bool[]) [true, false]
-            from enumFormat in (string?[]) [null, "G", "D", "X", "F"]
-            select (Action<CsvOptions<T>>)(o =>
-            {
-                o.IgnoreEnumCase = ignoreCase;
-                o.AllowUndefinedEnumValues = allowUndefinedEnumValues;
-                o.EnumFormat = enumFormat;
-            })
+            from ignoreCase in (bool[])[true, false]
+            from allowUndefinedEnumValues in (bool[])[true, false]
+            from enumFormat in (string?[])[null, "G", "D", "X", "F"]
+            select (Action<CsvOptions<T>>)(
+                o =>
+                {
+                    o.IgnoreEnumCase = ignoreCase;
+                    o.AllowUndefinedEnumValues = allowUndefinedEnumValues;
+                    o.EnumFormat = enumFormat;
+                }
+            )
         ).ToArray();
     }
 }

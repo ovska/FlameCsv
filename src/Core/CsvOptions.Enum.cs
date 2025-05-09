@@ -57,8 +57,9 @@ public partial class CsvOptions<T>
             {
                 Throw.Argument(
                     nameof(value),
-                    "To avoid ambiguity with numeric values, enum names, and whitespace, " +
-                    "the enum flags separator cannot be an ASCII digit, letter, space, or the '-' character.");
+                    "To avoid ambiguity with numeric values, enum names, and whitespace, "
+                        + "the enum flags separator cannot be an ASCII digit, letter, space, or the '-' character."
+                );
             }
 
             this.SetValue(ref _enumFlagsSeparator, value);

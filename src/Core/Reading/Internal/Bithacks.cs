@@ -14,7 +14,8 @@ internal static class Bithacks
     /// Whether the previous iteration ended in a quote; all bits 1 if ended in a quote; otherwise, zero
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T FindQuoteMask<T>(T quoteBits, ref T prevIterInsideQuote) where T : unmanaged, IBinaryInteger<T>
+    internal static T FindQuoteMask<T>(T quoteBits, ref T prevIterInsideQuote)
+        where T : unmanaged, IBinaryInteger<T>
     {
         T quoteMask = ComputeQuoteMask(quoteBits);
 
@@ -28,7 +29,8 @@ internal static class Bithacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T ComputeQuoteMask<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
+    internal static T ComputeQuoteMask<T>(T quoteBits)
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (Pclmulqdq.IsSupported && (Avx2.IsSupported || Sse2.IsSupported))
         {
@@ -36,7 +38,8 @@ internal static class Bithacks
                 .CarrylessMultiply(
                     Vector128.Create(ulong.CreateTruncating(quoteBits), 0UL),
                     Vector128.Create((byte)0xFF).AsUInt64(),
-                    0)
+                    0
+                )
                 .GetElement(0);
             return T.CreateTruncating(quoteMask);
         }
@@ -49,14 +52,18 @@ internal static class Bithacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T ComputeQuoteMaskSoftwareFallback<T>(T quoteBits) where T : unmanaged, IBinaryInteger<T>
+    internal static T ComputeQuoteMaskSoftwareFallback<T>(T quoteBits)
+        where T : unmanaged, IBinaryInteger<T>
     {
         T mask = quoteBits ^ (quoteBits << 1);
         mask ^= (mask << 2);
         mask ^= (mask << 4);
-        if (Unsafe.SizeOf<T>() >= sizeof(ushort)) mask ^= (mask << 8);
-        if (Unsafe.SizeOf<T>() >= sizeof(uint)) mask ^= (mask << 16);
-        if (Unsafe.SizeOf<T>() >= sizeof(ulong)) mask ^= (mask << 32);
+        if (Unsafe.SizeOf<T>() >= sizeof(ushort))
+            mask ^= (mask << 8);
+        if (Unsafe.SizeOf<T>() >= sizeof(uint))
+            mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() >= sizeof(ulong))
+            mask ^= (mask << 32);
         return mask;
     }
 }
