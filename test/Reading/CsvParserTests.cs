@@ -36,7 +36,7 @@ public class CsvReaderTests
     [MemberData(nameof(ReadLineData))]
     public void Should_Read_Lines(CsvNewline newline, Mode mode, bool trailingNewline)
     {
-        string nlt = newline == CsvNewline.LF ? "\n" : "\r\n";
+        string nlt = newline.AsString();
         string data = Data.ReplaceLineEndings(nlt);
 
         if (!trailingNewline)

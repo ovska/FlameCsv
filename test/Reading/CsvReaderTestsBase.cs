@@ -231,7 +231,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         int index = 0;
         long tokenPosition = 0;
 
-        int newlineLength = newline == CsvNewline.LF ? 1 : 2;
+        int newlineLength = newline.IsCRLF() ? 2 : 1;
 
         if (hasHeader)
         {

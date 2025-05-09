@@ -2,6 +2,7 @@
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
+using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
 using Xunit.Sdk;
 
@@ -57,7 +58,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         Assert.True(output.TryGetBuffer(out var buffer));
 
-        Validate(buffer, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
+        Validate(buffer, escape.HasValue, newline.IsCRLF(), header, quoting);
     }
 
     [Theory, MemberData(nameof(Args))]
@@ -135,7 +136,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         Assert.True(output.TryGetBuffer(out var buffer));
 
-        Validate(buffer, escape.HasValue, newline == CsvNewline.CRLF, header, quoting);
+        Validate(buffer, escape.HasValue, newline.IsCRLF(), header, quoting);
     }
 
     private static void Validate(
