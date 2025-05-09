@@ -78,10 +78,11 @@ await CsvWriter.WriteAsync(
 - *Breaking*: `CsvOptions<T>` is now sealed
 - *Breaking*: Removed `in` and `ref struct` modifier from exception handler
 - *Breaking:* Renamed `CsvRecord` -> `CsvPreservedRecord` and `CsvValueRecord` -> `CsvRecord`
-- Parsing performance improvements for all architectures (especially Avx512BW when reading `char`)
+- Added support for headerless CSV with the source generator
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding
 - Added hot reload support for enum changes
+- Parsing performance improvements for all architectures (especially Avx512BW when reading `char`)
 - Removed explicit dependency to `System.IO.Pipelines` package
 - Fixed unreachable code warnings in some source generated enum byte converters
 - Fixed potential parsing error when reading broken data on ARM64 platforms

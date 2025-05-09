@@ -2,10 +2,17 @@
 
 namespace FlameCsv.SourceGen.Models;
 
+internal enum ModelKind : byte
+{
+    Property,
+    Field,
+    Parameter,
+}
+
 internal interface IMemberModel : IEquatable<IMemberModel?>
 {
     /// <inheritdoc cref="ParameterModel.IsRequired"/>
-    bool IsRequired {get; }
+    bool IsRequired { get; }
 
     /// <inheritdoc cref="PropertyModel.IsIgnored"/>
     bool IsIgnored { get; }
@@ -39,6 +46,9 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
 
     /// <inheritdoc cref="PropertyModel.Convertability"/>
     BuiltinConvertable Convertability { get; }
+
+    /// <summary>Returns whether the member is a parameter, property, or a field.</summary>
+    ModelKind Kind { get; }
 
     void WriteId(IndentedTextWriter writer);
     void WriteConverterName(IndentedTextWriter writer);

@@ -2,7 +2,7 @@
 using FlameCsv.Attributes;
 using FlameCsv.Reflection;
 
-namespace FlameCsv.Tests;
+namespace FlameCsv.Tests.Binding;
 
 // ReSharper disable UnusedParameter.Local
 // ReSharper disable UnusedMember.Local

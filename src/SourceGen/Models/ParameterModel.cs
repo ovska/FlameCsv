@@ -82,6 +82,7 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
     bool IMemberModel.CanRead => !IsIgnored;
     bool IMemberModel.CanWrite => false;
     TypeRef IMemberModel.Type => ParameterType;
+    ModelKind IMemberModel.Kind => ModelKind.Parameter;
 
     /// <summary>
     /// Whether the type has interfaces that support builtin conversion.

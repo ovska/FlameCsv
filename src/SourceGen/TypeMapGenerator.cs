@@ -15,7 +15,6 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
     const string EditorBrowsableNever
         = "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> typeMapDiagnostics

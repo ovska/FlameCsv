@@ -54,8 +54,7 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine();
-            writer.WriteLine(
-                "if (!anyBound)");
+            writer.WriteLine("if (!anyBound)");
 
             using (writer.WriteBlock())
             {
@@ -75,8 +74,15 @@ partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine(
-                "throw new global::System.NotSupportedException(\"Index binding is not yet supported for the source generator.\");");
+            if (typeMap.IndexesForReading.Length != 0)
+            {
+                WriteReadingIndexes(writer, in typeMap, cancellationToken);
+            }
+            else
+            {
+                writer.WriteLine(
+                    "throw new global::System.NotSupportedException(\"No valid index binding configuration.\");");
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -158,7 +164,6 @@ partial class TypeMapGenerator
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine();
                     writer.WriteLine("bool result = targets[target] switch");
                     writer.WriteLine("{");
                     writer.IncreaseIndent();
@@ -539,5 +544,49 @@ partial class TypeMapGenerator
                 }
             }
         }
+    }
+
+    private static void WriteReadingIndexes(
+        IndentedTextWriter writer,
+        in TypeMapModel typeMap,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        writer.Write("TypeMapMaterializer materializer = new TypeMapMaterializer(");
+        writer.Write(typeMap.IndexesForReading.Length.ToString());
+        writer.WriteLine(")");
+        writer.WriteLine("{");
+        writer.IncreaseIndent();
+
+        foreach (var member in typeMap.IndexesForReading)
+        {
+            member.WriteConverterName(writer);
+            writer.Write(" = ");
+            WriteConverter(writer, typeMap.Token.Name, member);
+            writer.WriteLine(",");
+        }
+
+        writer.DecreaseIndent();
+        writer.WriteLine("};");
+
+        for (int index = 0; index < typeMap.IndexesForReading.Length; index++)
+        {
+            IMemberModel? member = typeMap.IndexesForReading[index];
+            writer.Write("materializer.Targets[");
+            writer.Write(index.ToString());
+            writer.Write("] = ");
+
+            if (member is null)
+            {
+                writer.WriteLine("-1;");
+                continue;
+            }
+
+            member.WriteId(writer);
+            writer.WriteLine(";");
+        }
+
+        writer.WriteLine("return materializer;");
     }
 }

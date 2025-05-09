@@ -32,7 +32,6 @@ public abstract class CsvReaderTestsBase
                 from parallel in (bool[]) [false] //GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
-                where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
                 select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
             return [.. data];
         }
@@ -51,7 +50,6 @@ public abstract class CsvReaderTestsBase
                 from parallel in (bool[]) [false] // GlobalData.Booleans
                 from sourceGen in GlobalData.Booleans
                 from guarded in GlobalData.GuardedMemory
-                where writeHeader || !sourceGen // headerless csv not yet supported on sourcegen
                 select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, parallel, sourceGen, guarded);
 
             return [.. data];

@@ -14,97 +14,121 @@ partial class TypeMapGenerator
 
         writer.WriteLine();
 
-        WriteDematerializerCtor(
-            writer,
-            typeMap.Token.FullyQualifiedName,
-            typeMap.Type.FullyQualifiedName,
-            typeMap.AllMembers,
-            out int writableCount);
+        WriteDematerializerCtor(writer, in typeMap, out int writableCount);
 
         writer.WriteLine();
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        writer.WriteLine(GlobalConstants.CodeDomAttribute);
-        writer.WriteLine(EditorBrowsableNever);
-        writer.WriteLine(
-            $"internal sealed partial class TypeMapDematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
-
-        using (writer.WriteBlock())
+        foreach (var hasHeader in stackalloc bool[] { true, false })
         {
-            writer.WriteLine($"public int FieldCount => {writableCount};");
-            writer.WriteLine();
-
-            foreach (var property in typeMap.AllMembers)
+            if (!hasHeader)
             {
-                if (!property.CanWrite) continue;
-                writer.Write(
-                    $"public required global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {property.Type.FullyQualifiedName}> ");
-                property.WriteConverterName(writer);
-                writer.WriteLine(" { get; init; }");
-            }
-
-            writer.WriteLine();
-            cancellationToken.ThrowIfCancellationRequested();
-
-            writer.WriteLine(
-                $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer, {typeMap.Type.FullyQualifiedName} obj)");
-
-            using (writer.WriteBlock())
-            {
-                bool first = true;
-
-                foreach (var member in typeMap.AllMembers)
+                if (typeMap.IndexesForWriting.Length == 0)
                 {
-                    if (member is not PropertyModel { CanWrite: true } property) continue;
-
-                    writer.WriteLineIf(!first, "writer.WriteDelimiter();");
-                    writer.Write("writer.WriteField(");
-                    property.WriteConverterName(writer);
-
-                    if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
-                    {
-                        writer.Write(", ((");
-                        writer.Write(property.ExplicitInterfaceOriginalDefinitionName.AsSpan());
-                        writer.Write(")obj).");
-                    }
-                    else
-                    {
-                        writer.Write(", obj.");
-                    }
-
-                    writer.Write(property.HeaderName);
-                    writer.WriteLine(");");
-                    first = false;
+                    break;
                 }
+
+                writer.WriteLine();
             }
 
-            writer.WriteLine();
             cancellationToken.ThrowIfCancellationRequested();
 
+            writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLine(EditorBrowsableNever);
+            writer.Write("internal sealed partial class TypeMap");
+            if (!hasHeader)
+            {
+                writer.Write("Index");
+            }
+
             writer.WriteLine(
-                $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer)");
+                $"Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>");
+
             using (writer.WriteBlock())
             {
-                bool first = true;
+                int count = hasHeader ? writableCount : typeMap.IndexesForWriting.Length;
 
-                // write directly to the writer for char and byte
-                (string suffix, string method) = typeMap.Token.SpecialType switch
+                writer.WriteLine($"public int FieldCount => {count};");
+                writer.WriteLine();
+
+                var membersToWrite = hasHeader ? typeMap.AllMembers : typeMap.IndexesForWriting;
+                foreach (var property in membersToWrite)
                 {
-                    SpecialType.System_Char => ("", "WriteRaw"),
-                    SpecialType.System_Byte => ("u8", "WriteRaw"),
-                    _ => ("", "WriteText"),
-                };
+                    if (!property.CanWrite) continue;
+                    writer.Write(
+                        $"public required global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {property.Type.FullyQualifiedName}> ");
+                    property.WriteConverterName(writer);
+                    writer.WriteLine(" { get; init; }");
+                }
 
-                foreach (var member in typeMap.AllMembers)
+                writer.WriteLine();
+                cancellationToken.ThrowIfCancellationRequested();
+
+                writer.WriteLine(
+                    $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer, {typeMap.Type.FullyQualifiedName} obj)");
+
+                using (writer.WriteBlock())
                 {
-                    if (member is not PropertyModel { CanWrite: true } property) continue;
+                    bool first = true;
 
-                    writer.WriteLineIf(!first, "writer.WriteDelimiter();");
-                    writer.Write($"writer.{method}(");
-                    writer.Write(property.HeaderName.ToStringLiteral());
-                    writer.WriteLine($"{suffix});");
-                    first = false;
+                    foreach (var member in membersToWrite)
+                    {
+                        if (member is not PropertyModel { CanWrite: true } property) continue;
+
+                        writer.WriteLineIf(!first, "writer.WriteDelimiter();");
+                        writer.Write("writer.WriteField(");
+                        property.WriteConverterName(writer);
+
+                        if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
+                        {
+                            writer.Write(", ((");
+                            writer.Write(property.ExplicitInterfaceOriginalDefinitionName.AsSpan());
+                            writer.Write(")obj).");
+                        }
+                        else
+                        {
+                            writer.Write(", obj.");
+                        }
+
+                        writer.Write(property.HeaderName);
+                        writer.WriteLine(");");
+                        first = false;
+                    }
+                }
+
+                writer.WriteLine();
+                cancellationToken.ThrowIfCancellationRequested();
+
+                writer.WriteLine(
+                    $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer)");
+                using (writer.WriteBlock())
+                {
+                    if (!hasHeader)
+                    {
+                        writer.WriteLine(
+                            "throw new global::System.NotSupportedException(\"This instance is not configured to write a header record.\");");
+                        break;
+                    }
+
+                    bool first = true;
+
+                    // write directly to the writer for char and byte
+                    (string suffix, string method) = typeMap.Token.SpecialType switch
+                    {
+                        SpecialType.System_Char => ("", "WriteRaw"),
+                        SpecialType.System_Byte => ("u8", "WriteRaw"),
+                        _ => ("", "WriteText"),
+                    };
+
+                    foreach (var member in typeMap.AllMembers)
+                    {
+                        if (member is not PropertyModel { CanWrite: true } property) continue;
+
+                        writer.WriteLineIf(!first, "writer.WriteDelimiter();");
+                        writer.Write($"writer.{method}(");
+                        writer.Write(property.HeaderName.ToStringLiteral());
+                        writer.WriteLine($"{suffix});");
+                        first = false;
+                    }
                 }
             }
         }
@@ -112,37 +136,64 @@ partial class TypeMapGenerator
 
     internal static void WriteDematerializerCtor(
         IndentedTextWriter writer,
-        string token,
-        string targetType,
-        EquatableArray<IMemberModel> members,
+        in TypeMapModel typeMap,
         out int writableCount)
     {
         writer.WriteLine(
-            $"protected override global::FlameCsv.Writing.IDematerializer<{token}, {targetType}> BindForWriting(global::FlameCsv.CsvOptions<{token}> options)");
+            $"protected override global::FlameCsv.Writing.IDematerializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForWriting(global::FlameCsv.CsvOptions<{typeMap.Token.Name}> options)");
 
         writableCount = 0;
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine("return new TypeMapDematerializer");
-
-            writer.WriteLine("{");
-            writer.IncreaseIndent();
-
-            foreach (var property in members)
+            writer.WriteLine("if (options.HasHeader)");
+            using (writer.WriteBlock())
             {
-                if (!property.CanWrite) continue;
+                writer.WriteLine("return new TypeMapDematerializer");
 
-                property.WriteConverterName(writer);
-                writer.Write(" = ");
-                WriteConverter(writer, token, property);
-                writer.WriteLine(",");
+                writer.WriteLine("{");
+                writer.IncreaseIndent();
 
-                writableCount++;
+                foreach (var property in typeMap.AllMembers)
+                {
+                    if (!property.CanWrite) continue;
+
+                    property.WriteConverterName(writer);
+                    writer.Write(" = ");
+                    WriteConverter(writer, typeMap.Token.Name, property);
+                    writer.WriteLine(",");
+
+                    writableCount++;
+                }
+
+                writer.DecreaseIndent();
+                writer.WriteLine("};");
             }
 
-            writer.DecreaseIndent();
-            writer.WriteLine("};");
+            writer.WriteLine();
+            if (typeMap.IndexesForWriting.Length == 0)
+            {
+                writer.WriteLine(
+                    "throw new global::System.NotSupportedException(\"No valid index binding configuration.\");");
+            }
+            else
+            {
+                writer.WriteLine("return new TypeMapIndexDematerializer");
+
+                writer.WriteLine("{");
+                writer.IncreaseIndent();
+
+                foreach (var property in typeMap.IndexesForWriting)
+                {
+                    property.WriteConverterName(writer);
+                    writer.Write(" = ");
+                    WriteConverter(writer, typeMap.Token.Name, property);
+                    writer.WriteLine(",");
+                }
+
+                writer.DecreaseIndent();
+                writer.WriteLine("};");
+            }
         }
     }
 }

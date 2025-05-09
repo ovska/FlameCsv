@@ -80,6 +80,16 @@ internal readonly record struct TypeMapModel
     public EquatableArray<int> IgnoredIndexes { get; }
 
     /// <summary>
+    /// Index bindings for reading.
+    /// </summary>
+    public EquatableArray<IMemberModel> IndexesForReading { get; }
+
+    /// <summary>
+    /// Index bindings for writing.
+    /// </summary>
+    public EquatableArray<IMemberModel> IndexesForWriting { get; }
+
+    /// <summary>
     /// Proxy used when creating the type.
     /// </summary>
     public TypeRef? Proxy { get; }
@@ -290,6 +300,10 @@ internal readonly record struct TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        IndexesForReading = IndexBindingModel.Resolve(false, in symbols, AllMembers, ref collector);
+        IndexesForWriting = IndexBindingModel.Resolve(true, in symbols, AllMembers, ref collector);
+
+        // clean up
         collector.Free(out diagnostics, out var ignoredHeaders, out var proxy);
 
         CanGenerateCode = diagnostics.IsEmpty;
