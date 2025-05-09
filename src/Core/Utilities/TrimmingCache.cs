@@ -7,6 +7,7 @@ namespace FlameCsv.Utilities;
 
 // https://github.com/dotnet/runtime/blob/4c224ab16d287c17dbc54236638db91266071465/src/libraries/System.Private.CoreLib/src/System/Buffers/Utilities.cs
 
+[ExcludeFromCodeCoverage]
 internal static class TrimmingCache
 {
     public static TrimmingCache<TKey, TValue> Create<TKey, TValue>(

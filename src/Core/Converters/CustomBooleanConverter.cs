@@ -25,8 +25,6 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
             GetIgnoreCaseFromOptions(options)
         )
     {
-        if (!options.HasBooleanValues)
-            Throw.Argument(nameof(CsvOptions<T>.BooleanValues), "No values defined");
     }
 
     internal CustomBooleanConverter(IEnumerable<string> trueValues, IEnumerable<string> falseValues, bool ignoreCase)

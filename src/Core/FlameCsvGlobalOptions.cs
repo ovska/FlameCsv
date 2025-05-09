@@ -10,6 +10,7 @@ namespace FlameCsv;
 /// </summary>
 [PublicAPI]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[ExcludeFromCodeCoverage]
 public static class FlameCsvGlobalOptions
 {
     /// <summary>

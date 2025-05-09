@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
@@ -21,6 +22,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <summary>
     /// Initializes a new instance of <see cref="CsvRecordCallbackArgs{T}"/>.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public CsvRecordCallbackArgs(
         CsvRecordRef<T> record,
         ImmutableArray<string> header,

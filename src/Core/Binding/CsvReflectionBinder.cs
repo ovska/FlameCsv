@@ -92,7 +92,7 @@ public abstract class CsvReflectionBinder
 
         for (int i = 0; i < bindings.Length; i++)
         {
-            (MemberExpression memberExpression, _) = bindings[i].Member.GetAsMemberExpression(valueParam);
+            MemberExpression memberExpression = bindings[i].Member.GetAsMemberExpression(valueParam);
             var lambda = Expression.Lambda(memberExpression, valueParam);
             parameters[i + 2] = lambda.CompileLambda<Delegate>(throwIfClosure: false);
         }

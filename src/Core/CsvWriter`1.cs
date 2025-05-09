@@ -131,8 +131,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
                         @this._previousValue = null;
                         @this._dematerializerCache.Clear();
                     }
-                }
-            );
+                });
         }
     }
 
@@ -231,7 +230,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public ValueTask NextRecordAsync(CancellationToken cancellationToken = default)
     {
         if (IsCompleted)
-            return ObjectDisposedValueTask();
+            return Throw.ObjectDisposedAsync(this);
 
         if (cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled(cancellationToken);
@@ -522,10 +521,11 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     private void WriteTrailingNewlineIfNeeded(Exception? exception, CancellationToken cancellationToken)
     {
         if (
-            exception is null
-            && EnsureTrailingNewline
-            && (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
-            && !cancellationToken.IsCancellationRequested
+            exception is null &&
+            EnsureTrailingNewline &&
+            (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
+            &&
+            !cancellationToken.IsCancellationRequested
         )
         {
             // don't call NextRecord as it can trigger an unnecessary auto-flush
@@ -556,7 +556,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        return IsCompleted ? ObjectDisposedValueTask() : _inner.Writer.FlushAsync(cancellationToken);
+        return IsCompleted ? Throw.ObjectDisposedAsync(this) : _inner.Writer.FlushAsync(cancellationToken);
     }
 
     /// <summary>
@@ -570,8 +570,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeMap,
             state: typeMap,
-            factory: static (options, state) => ((CsvTypeMap<T, TRecord>)state!).GetDematerializer(options)
-        );
+            factory: static (options, state) => ((CsvTypeMap<T, TRecord>)state!).GetDematerializer(options));
     }
 
     /// <summary>
@@ -587,8 +586,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         return GetDematerializerAndIncrementFieldCountCore(
             cacheKey: typeof(TRecord),
             state: null,
-            factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>()
-        );
+            factory: static (options, _) => options.TypeBinder.GetDematerializer<TRecord>());
     }
 
     /// <summary>
@@ -674,12 +672,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     ValueTask IAsyncDisposable.DisposeAsync()
     {
         return CompleteAsync();
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ValueTask ObjectDisposedValueTask()
-    {
-        return ValueTask.FromException(new ObjectDisposedException(typeof(CsvWriter<T>).Name));
     }
 }
 

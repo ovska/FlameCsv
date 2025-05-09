@@ -3,7 +3,7 @@ using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Attributes;
 using FlameCsv.Converters;
 
-namespace FlameCsv.Tests.Converters;
+namespace FlameCsv.Tests.Binding;
 
 public static class StringPoolAttributeConverterTests
 {

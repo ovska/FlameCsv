@@ -1,7 +1,9 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Metrics;
 
 namespace FlameCsv;
 
+[ExcludeFromCodeCoverage]
 internal static class Metrics
 {
     public const string MeterName = "FlameCsv";

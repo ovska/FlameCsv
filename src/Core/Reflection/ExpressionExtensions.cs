@@ -15,6 +15,7 @@ internal static class ExpressionExtensions
     ;
 
     [DoesNotReturn]
+    [ExcludeFromCodeCoverage]
     private static void ThrowForClosure(Expression expression)
     {
         string asString;
@@ -49,12 +50,12 @@ internal static class ExpressionExtensions
         return fn ?? lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
     }
 
-    public static (MemberExpression, Type) GetAsMemberExpression(this MemberInfo memberInfo, Expression target)
+    public static MemberExpression GetAsMemberExpression(this MemberInfo memberInfo, Expression target)
     {
         return memberInfo switch
         {
-            PropertyInfo { CanRead: true } property => (Expression.Property(target, property), property.PropertyType),
-            FieldInfo field => (Expression.Field(target, field), field.FieldType),
+            PropertyInfo { CanRead: true } property => Expression.Property(target, property),
+            FieldInfo field => Expression.Field(target, field),
             _ => throw new ArgumentException(
                 $"Parameter must be a readable property or field: {memberInfo}",
                 paramName: nameof(memberInfo)),
