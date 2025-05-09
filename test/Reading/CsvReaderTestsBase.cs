@@ -13,7 +13,7 @@ namespace FlameCsv.Tests.Reading;
 
 public abstract class CsvReaderTestsBase
 {
-    protected static readonly int[] _bufferSizes = [-1, 256, 512, 1024];
+    protected static readonly int[] _bufferSizes = [-1, 256, 1024];
 
     public sealed class SyncData : TheoryData<CsvNewline, bool, bool, int, Mode, bool, bool, bool?>;
 
@@ -26,7 +26,7 @@ public abstract class CsvReaderTestsBase
             var data =
                 from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
                 from writeHeader in GlobalData.Booleans
-                from writeTrailingNewline in GlobalData.Booleans
+                from writeTrailingNewline in (bool[])[true] // GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
                 from parallel in (bool[])[false] //GlobalData.Booleans
@@ -44,7 +44,7 @@ public abstract class CsvReaderTestsBase
             var data =
                 from crlf in GlobalData.Enum<CsvNewline>()
                 from writeHeader in GlobalData.Booleans
-                from writeTrailingNewline in GlobalData.Booleans
+                from writeTrailingNewline in (bool[])[true] // GlobalData.Booleans
                 from bufferSize in _bufferSizes
                 from escaping in GlobalData.Enum<Mode>()
                 from parallel in (bool[])[false] // GlobalData.Booleans

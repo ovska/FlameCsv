@@ -41,6 +41,7 @@
     "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "fullSolution",
     "dotnet.backgroundAnalysis.compilerDiagnosticsScope": "fullSolution",
     "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": true,
+    "dotnet.unitTests.runSettingsPath": "test/.runsettings",
     "dotnet.quickInfo.showRemarksInQuickInfo": true,
     "dotnet.server.useServerGC": true,
     "files.watcherExclude": {
