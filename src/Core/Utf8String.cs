@@ -19,5 +19,6 @@ internal sealed class Utf8String
     }
 
     public static implicit operator Utf8String(string? value) => new(value);
+
     public static implicit operator string?(Utf8String? value) => value?.String;
 }

@@ -5,6 +5,7 @@ internal static class Descriptors
     private const string CategoryDesign = "Design";
 
     private const string CategoryUsage = "Usage";
+
     // 1XX - Types and parameters
     // 2XX - Configuration
     // 3XX - Converters
@@ -17,7 +18,8 @@ internal static class Descriptors
         messageFormat: "Type {0} must be declared as partial to participate in source generation{1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor FileScopedType = new(
         id: "FLAMESG101",
@@ -25,16 +27,17 @@ internal static class Descriptors
         messageFormat: "File-scoped type {0} cannot participate in source generation",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoValidConstructor = new(
         id: "FLAMESG102",
         title: "No usable constructor found",
-        messageFormat:
-        "Cannot generate reading code: Could not find a valid public constructor for {0}: must have a constructor with [CsvConstructor], a single public constructor, or a parameterless constructor",
+        messageFormat: "Cannot generate reading code: Could not find a valid public constructor for {0}: must have a constructor with [CsvConstructor], a single public constructor, or a parameterless constructor",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor RefConstructorParameter = new(
         id: "FLAMESG103",
@@ -42,7 +45,8 @@ internal static class Descriptors
         messageFormat: "Cannot generate reading code: {0} had a constructor parameter with invalid kind: {1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor RefLikeConstructorParameter = new(
         id: "FLAMESG104",
@@ -50,16 +54,17 @@ internal static class Descriptors
         messageFormat: "Cannot generate reading code: {0} had a ref-like constructor parameter: {1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoReadableMembers = new(
         id: "FLAMESG105",
         title: "No valid members/parameters for reading",
-        messageFormat:
-        "Cannot generate reading code: {0} had no properties, fields, or parameters that support writing their value",
+        messageFormat: "Cannot generate reading code: {0} had no properties, fields, or parameters that support writing their value",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoWritableMembers = new(
         id: "FLAMESG106",
@@ -67,7 +72,8 @@ internal static class Descriptors
         messageFormat: "Cannot generate writing code: {0} had no properties or fields that support reading their value",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor ConflictingConfiguration = new(
         id: "FLAMESG201",
@@ -75,7 +81,8 @@ internal static class Descriptors
         messageFormat: "Conflicting configuration for {0} {1} in type {2}: {3}",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor TargetMemberNotFound = new(
         id: "FLAMESG202",
@@ -83,7 +90,8 @@ internal static class Descriptors
         messageFormat: "{0} '{1}' not found on type {2}",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoMatchingConstructor = new(
         id: "FLAMESG203",
@@ -91,7 +99,8 @@ internal static class Descriptors
         messageFormat: "No constructor found for {0} with the parameter types [{1}]",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor IgnoredParameterWithoutDefaultValue = new(
         id: "FLAMESG204",
@@ -99,7 +108,8 @@ internal static class Descriptors
         messageFormat: "Cannot generate reading code: Ignored parameter {0} on type {1} must have a default value",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor MultipleTypeProxies = new(
         id: "FLAMESG205",
@@ -107,16 +117,17 @@ internal static class Descriptors
         messageFormat: "Cannot generate reading code: Multiple type proxies found for {0}",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoCsvFactoryConstructor = new(
         id: "FLAMESG206",
         title: "CsvConverterFactory with no valid constructor",
-        messageFormat:
-        "Overridden converter factory type {0} on {1} must have an empty public constructor, or a constructor accepting CsvOptions<{2}>",
+        messageFormat: "Overridden converter factory type {0} on {1} must have an empty public constructor, or a constructor accepting CsvOptions<{2}>",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor CsvConverterAbstract = new(
         id: "FLAMESG207",
@@ -124,7 +135,8 @@ internal static class Descriptors
         messageFormat: "CsvConverter {0} for {1} must not be abstract",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoTargetTypeOnAssembly = new(
         id: "FLAMESG208",
@@ -132,7 +144,8 @@ internal static class Descriptors
         messageFormat: "Attribute {0} applied to assembly must have a TargetType",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor NoMemberNameOnAttribute = new(
         id: "FLAMESG209",
@@ -140,15 +153,17 @@ internal static class Descriptors
         messageFormat: "Attribute {0} applied to {1} must have a MemberName",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
-    public static readonly DiagnosticDescriptor ConflictingIndex =new(
+    public static readonly DiagnosticDescriptor ConflictingIndex = new(
         id: "FLAMESG210",
         title: "Conflicting index attributes",
         messageFormat: "Cannot generate headerless CSV support: Conflicting index attributes found on {0}: {1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor GapInIndex = new(
         id: "FLAMESG211",
@@ -156,7 +171,8 @@ internal static class Descriptors
         messageFormat: "Cannot generate headerless CSV support: Index {0} was not configured on {1}",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor EnumUnsupportedToken = new(
         id: "FLAMESG501",
@@ -164,16 +180,17 @@ internal static class Descriptors
         messageFormat: "{0} is not a supported token type (must be char or byte)",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     public static readonly DiagnosticDescriptor EnumInvalidExplicitName = new(
         id: "FLAMESG502",
         title: "Invalid explicit enum name",
-        messageFormat:
-        "Cannot generate enum converter: Explicit enum name \"{0}\" for {1}.{2} is not supported: value must not be empty, and must not start with a digit, plus, or minus",
+        messageFormat: "Cannot generate enum converter: Explicit enum name \"{0}\" for {1}.{2} is not supported: value must not be empty, and must not start with a digit, plus, or minus",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true
+    );
 
     // DEPRECATED: FLAMESG503 EnumFlagsNotSupported
 }

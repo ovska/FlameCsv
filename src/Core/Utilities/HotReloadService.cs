@@ -20,8 +20,9 @@ internal static class HotReloadService
     /// <summary>
     /// Contains registered callbacks for cache clearing.
     /// </summary>
-    private static readonly ConditionalWeakTable<object, Action<object>> _callbacks
-        = MetadataUpdater.IsSupported ? [] : null!;
+    private static readonly ConditionalWeakTable<object, Action<object>> _callbacks = MetadataUpdater.IsSupported
+        ? []
+        : null!;
 
     /// <summary>
     /// Clears the cache by invoking all registered hot reload callbacks.
@@ -29,7 +30,8 @@ internal static class HotReloadService
     /// <remarks>Called by the framework</remarks>
     internal static void ClearCache(Type[]? types)
     {
-        if (_callbacks is null) return; // should never happen
+        if (_callbacks is null)
+            return; // should never happen
 
         foreach ((object state, Action<object> callback) in _callbacks)
         {
@@ -43,9 +45,7 @@ internal static class HotReloadService
     /// <param name="instance">The instance to register.</param>
     /// <param name="onHotReload">The callback to invoke on the instance when a hot reload occurs.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void RegisterForHotReload(
-        object instance,
-        [RequireStaticDelegate] Action<object> onHotReload)
+    public static void RegisterForHotReload(object instance, [RequireStaticDelegate] Action<object> onHotReload)
     {
         if (MetadataUpdater.IsSupported)
         {

@@ -9,7 +9,8 @@ namespace FlameCsv.IO;
 /// </summary>
 [PublicAPI]
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
+public interface ICsvBufferWriter<T> : IBufferWriter<T>
+    where T : unmanaged
 {
     /// <summary>
     /// Whether the possible internal buffer is nearly full and should be flushed.
@@ -33,7 +34,5 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T> where T : unmanaged
     ValueTask FlushAsync(CancellationToken cancellationToken = default);
 
     /// <inheritdoc cref="Complete" />
-    ValueTask CompleteAsync(
-        Exception? exception,
-        CancellationToken cancellationToken = default);
+    ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default);
 }

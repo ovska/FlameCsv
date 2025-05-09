@@ -6,9 +6,8 @@ namespace FlameCsv.Binding;
 
 internal sealed class MemberCsvBinding<T>(int index, MemberData member, string header) : CsvBinding<T>(index, header)
 {
-    public MemberCsvBinding(int index, MemberData member) : this(index, member, member.Value.Name)
-    {
-    }
+    public MemberCsvBinding(int index, MemberData member)
+        : this(index, member, member.Value.Name) { }
 
     public MemberInfo Member => member.Value;
 
@@ -26,6 +25,6 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
         vsb.Append(member.Value.Name);
     }
 
-    protected internal override string DisplayName
-        => $"{member.Value.Name} ({(member.IsProperty ? "Property" : "Field")})";
+    protected internal override string DisplayName =>
+        $"{member.Value.Name} ({(member.IsProperty ? "Property" : "Field")})";
 }

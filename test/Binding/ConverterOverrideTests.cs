@@ -8,9 +8,11 @@ public static class ConverterOverrideTests
 {
     private class TestObj
     {
-        [CsvConverter<CurrencyConverter>] public double Dollars { get; set; }
+        [CsvConverter<CurrencyConverter>]
+        public double Dollars { get; set; }
 
-        [CsvStringPooling] public string? Pooled { get; set; }
+        [CsvStringPooling]
+        public string? Pooled { get; set; }
     }
 
     private sealed class CurrencyConverter : CsvConverter<char, double>

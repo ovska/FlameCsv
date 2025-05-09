@@ -157,6 +157,7 @@ public sealed class TextBufferWriterTests : IAsyncDisposable
         _writer = new TextBufferWriter(
             _textWriter = new StringWriter(),
             HeapMemoryPool<char>.Instance,
-            new() { BufferSize = bufferSize });
+            new() { BufferSize = bufferSize }
+        );
     }
 }

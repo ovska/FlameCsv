@@ -15,16 +15,12 @@ public sealed class CsvEnumFlagsTextFormatStrategy<TEnum> : CsvEnumFlagsFormatSt
 
     static CsvEnumFlagsTextFormatStrategy()
     {
-        HotReloadService.RegisterForHotReload(
-            typeof(TEnum),
-            static _ => _zero = null);
+        HotReloadService.RegisterForHotReload(typeof(TEnum), static _ => _zero = null);
     }
 
     /// <inheritdoc />
     public CsvEnumFlagsTextFormatStrategy(CsvOptions<char> options, EnumFormatStrategy<char, TEnum> inner)
-        : base(options, inner)
-    {
-    }
+        : base(options, inner) { }
 
     /// <inheritdoc />
     protected override ReadOnlySpan<char> Zero => _zero ?? InitSharedZero();

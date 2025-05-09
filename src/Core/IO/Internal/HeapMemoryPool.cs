@@ -34,7 +34,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
 
     // ReSharper disable once UnusedMember.Global
     [Obsolete("Use HeapMemoryPool<T>.Instance instead", true)]
-    public new static MemoryPool<T> Shared => throw new UnreachableException();
+    public static new MemoryPool<T> Shared => throw new UnreachableException();
 }
 
 internal class HeapMemoryOwner<T>(T[] array) : IMemoryOwner<T>

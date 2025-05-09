@@ -5,7 +5,8 @@ namespace FlameCsv.IO.Internal;
 /// <summary>
 /// Performance optimization for reading from a constant data source to avoid unnecessary copying.
 /// </summary>
-internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T> where T : unmanaged
+internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
+    where T : unmanaged
 {
     private ReadOnlyMemory<T> _data;
     private ReadOnlyMemory<T> _originalData;
@@ -25,7 +26,8 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T> where T : un
         ReadOnlyMemory<T> data,
         bool leaveOpen = false,
         IDisposable? state = null,
-        [RequireStaticDelegate] Action<IDisposable?, int>? onRead = null)
+        [RequireStaticDelegate] Action<IDisposable?, int>? onRead = null
+    )
     {
         _state = state;
         _data = _originalData = data;
@@ -69,7 +71,8 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T> where T : un
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+            return;
 
         _disposed = true;
 
@@ -85,7 +88,8 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T> where T : un
 
     public ValueTask DisposeAsync()
     {
-        if (_disposed) return default;
+        if (_disposed)
+            return default;
 
         _disposed = true;
 

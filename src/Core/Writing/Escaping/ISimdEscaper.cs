@@ -18,5 +18,6 @@ internal interface ISimdEscaper<out T, TVector>
     /// <param name="value">Value to search in</param>
     /// <param name="needsQuoting">Vector reference of values that require the value to be quoted.</param>
     /// <returns>Bitmask containing characters that need to be escaped</returns>
-    [Pure] uint FindEscapable(ref readonly TVector value, ref TVector needsQuoting);
+    [Pure]
+    uint FindEscapable(ref readonly TVector value, ref TVector needsQuoting);
 }

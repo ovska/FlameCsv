@@ -8,10 +8,10 @@ public static class RecordEnumerationTests
     public static async Task Should_Preserve(bool isAsync)
     {
         const string data = """
-                            1,2,3
-                            4,5,6
-                            7,8,9
-                            """;
+            1,2,3
+            4,5,6
+            7,8,9
+            """;
 
         var enumerable = new CsvRecordEnumerable<char>(data.AsMemory(), new CsvOptions<char> { HasHeader = false });
 

@@ -10,19 +10,21 @@ internal readonly record struct EnumModel
         AttributeData attributeData,
         CancellationToken cancellationToken,
         out EquatableArray<Diagnostic> diagnostics,
-        out EnumModel model)
+        out EnumModel model
+    )
     {
         List<Diagnostic> diagList = PooledList<Diagnostic>.Acquire();
 
-        if (converterSymbol is INamedTypeSymbol converterType &&
-            attributeData.AttributeClass is
-            {
-                TypeArguments:
-                [
-                    { } tokenType,
-                    INamedTypeSymbol { CanBeReferencedByName: true, EnumUnderlyingType: not null } enumType
-                ]
-            })
+        if (
+            converterSymbol is INamedTypeSymbol converterType
+            && attributeData.AttributeClass
+                is {
+                    TypeArguments: [
+                        { } tokenType,
+                        INamedTypeSymbol { CanBeReferencedByName: true, EnumUnderlyingType: not null } enumType,
+                    ]
+                }
+        )
         {
             if (tokenType.SpecialType is not (SpecialType.System_Byte or SpecialType.System_Char))
             {
@@ -38,7 +40,8 @@ internal readonly record struct EnumModel
                 tokenType: tokenType,
                 converterType: converterType,
                 cancellationToken,
-                diagList);
+                diagList
+            );
 
             if (diagList.Count == 0)
             {
@@ -81,7 +84,8 @@ internal readonly record struct EnumModel
         ITypeSymbol tokenType,
         ITypeSymbol converterType,
         CancellationToken cancellationToken,
-        List<Diagnostic> diagnostics)
+        List<Diagnostic> diagnostics
+    )
     {
         TokenType = new TypeRef(tokenType);
         ConverterType = new TypeRef(converterType);
@@ -93,11 +97,12 @@ internal readonly record struct EnumModel
         List<EnumValueModel> values = PooledList<EnumValueModel>.Acquire();
         HashSet<BigInteger> uniqueValues = PooledSet<BigInteger>.Acquire();
 
-        bool isUnsigned = enumType.EnumUnderlyingType?.SpecialType
-            is SpecialType.System_Byte
-            or SpecialType.System_UInt16
-            or SpecialType.System_UInt32
-            or SpecialType.System_UInt64;
+        bool isUnsigned =
+            enumType.EnumUnderlyingType?.SpecialType
+                is SpecialType.System_Byte
+                    or SpecialType.System_UInt16
+                    or SpecialType.System_UInt32
+                    or SpecialType.System_UInt64;
 
         // loop over the enum's values
         foreach (var member in enumType.GetMembers())
@@ -166,8 +171,10 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
             // Check named arguments
             foreach (var namedArg in attribute.NamedArguments)
             {
-                if (string.Equals(namedArg.Key, "Value", StringComparison.Ordinal) &&
-                    namedArg.Value.Value is string value)
+                if (
+                    string.Equals(namedArg.Key, "Value", StringComparison.Ordinal)
+                    && namedArg.Value.Value is string value
+                )
                 {
                     ExplicitName = value;
                     break;
@@ -176,8 +183,7 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                 index++;
             }
 
-            if (ExplicitName is not null &&
-                (ExplicitName == "" || ExplicitName[0] is >= '0' and <= '9' or '+' or '-'))
+            if (ExplicitName is not null && (ExplicitName == "" || ExplicitName[0] is >= '0' and <= '9' or '+' or '-'))
             {
                 Location? location = (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)
                     ?.ArgumentList?.Arguments.ElementAtOrDefault(index)
@@ -188,7 +194,9 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                         enumValue.ContainingSymbol,
                         enumValue,
                         location ?? attribute.GetLocation(),
-                        ExplicitName));
+                        ExplicitName
+                    )
+                );
             }
 
             break;
@@ -198,8 +206,10 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
     public int CompareTo(EnumValueModel other)
     {
         int cmp = Value.CompareTo(other.Value);
-        if (cmp == 0) cmp = StringComparer.Ordinal.Compare(Name, other.Name);
-        if (cmp == 0) cmp = StringComparer.Ordinal.Compare(ExplicitName, other.ExplicitName);
+        if (cmp == 0)
+            cmp = StringComparer.Ordinal.Compare(Name, other.Name);
+        if (cmp == 0)
+            cmp = StringComparer.Ordinal.Compare(ExplicitName, other.ExplicitName);
         return cmp;
     }
 }

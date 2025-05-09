@@ -12,7 +12,8 @@ internal static class MaterializerExtensions
 {
     [RUF(Messages.Reflection)]
     [RDC(Messages.DynamicCode)]
-    private static class ForType<T, TResult> where T : unmanaged, IBinaryInteger<T>
+    private static class ForType<T, TResult>
+        where T : unmanaged, IBinaryInteger<T>
     {
         /// <summary>
         /// Cached bindings for headerless CSV.
@@ -27,7 +28,8 @@ internal static class MaterializerExtensions
     [RDC(Messages.DynamicCode)]
     public static IMaterializer<T, TResult> CreateMaterializerFrom<T, [DAM(Messages.ReflectionBound)] TResult>(
         this CsvOptions<T> options,
-        CsvBindingCollection<TResult> bindingCollection)
+        CsvBindingCollection<TResult> bindingCollection
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         return ExpressionDelegateGenerator<T>.Instance.GetMaterializerFactory(bindingCollection)(options);
@@ -39,15 +41,18 @@ internal static class MaterializerExtensions
     [RUF(Messages.Reflection)]
     [RDC(Messages.DynamicCode)]
     public static IMaterializer<T, TResult> GetMaterializerNoHeader<T, [DAM(Messages.ReflectionBound)] TResult>(
-        this CsvOptions<T> options)
+        this CsvOptions<T> options
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         DelegateGenerator<T>.MaterializerFactory<TResult>? factory = ForType<T, TResult>.Cached;
 
         if (factory is null)
         {
-            if (TryGetTupleBindings<T, TResult>(write: false, out var bindings) ||
-                IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings))
+            if (
+                TryGetTupleBindings<T, TResult>(write: false, out var bindings)
+                || IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings)
+            )
             {
                 factory = ExpressionDelegateGenerator<T>.Instance.GetMaterializerFactory(bindings);
             }
@@ -55,8 +60,9 @@ internal static class MaterializerExtensions
             {
                 // Don't cache nulls since its unlikely they will be attempted many times
                 throw new CsvBindingException<TResult>(
-                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no " +
-                    "[CsvIndex]-attributes and no built-in configuration.");
+                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no "
+                        + "[CsvIndex]-attributes and no built-in configuration."
+                );
             }
 
             factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null) ?? factory;
@@ -69,15 +75,16 @@ internal static class MaterializerExtensions
 
     internal static bool IsTuple(Type type)
     {
-        return !type.IsGenericTypeDefinition &&
-            type.IsGenericType &&
-            type.Module == typeof(ValueTuple<>).Module &&
-            type.IsAssignableTo(typeof(ITuple));
+        return !type.IsGenericTypeDefinition
+            && type.IsGenericType
+            && type.Module == typeof(ValueTuple<>).Module
+            && type.IsAssignableTo(typeof(ITuple));
     }
 
     internal static bool TryGetTupleBindings<T, [DAM(DAMT.PublicConstructors | DAMT.PublicFields)] TTuple>(
         bool write,
-        [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection)
+        [NotNullWhen(true)] out CsvBindingCollection<TTuple>? bindingCollection
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         if (!IsTuple(typeof(TTuple)))
@@ -91,10 +98,7 @@ internal static class MaterializerExtensions
         if (write)
         {
             var fields = typeof(TTuple).GetFields();
-            fields
-                .AsSpan()
-                .Sort(
-                    static (a, b) => StringComparer.Ordinal.Compare(a.Name, b.Name)); // ensure order Item1, Item2 etc.
+            fields.AsSpan().Sort(static (a, b) => StringComparer.Ordinal.Compare(a.Name, b.Name)); // ensure order Item1, Item2 etc.
 
             bindingsList = new(fields.Length);
 
@@ -103,7 +107,8 @@ internal static class MaterializerExtensions
                 bindingsList.Add(
                     fields[i].FieldType == typeof(CsvIgnored)
                         ? new IgnoredCsvBinding<TTuple>(index: i)
-                        : new MemberCsvBinding<TTuple>(index: i, (MemberData)fields[i]));
+                        : new MemberCsvBinding<TTuple>(index: i, (MemberData)fields[i])
+                );
             }
         }
         else
@@ -116,7 +121,8 @@ internal static class MaterializerExtensions
                 bindingsList.Add(
                     parameter.ParameterType == typeof(CsvIgnored)
                         ? new IgnoredCsvBinding<TTuple>(index: parameter.Position)
-                        : new ParameterCsvBinding<TTuple>(index: parameter.Position, parameter));
+                        : new ParameterCsvBinding<TTuple>(index: parameter.Position, parameter)
+                );
             }
         }
 

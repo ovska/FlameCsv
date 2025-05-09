@@ -6,9 +6,11 @@ using System.Text;
 
 namespace FlameCsv.Tests.Converters;
 
-public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class EnumTests<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
-    private delegate CsvConverter<T, TEnum> Factory<TEnum>(bool numeric, bool ignoreCase) where TEnum : struct, Enum;
+    private delegate CsvConverter<T, TEnum> Factory<TEnum>(bool numeric, bool ignoreCase)
+        where TEnum : struct, Enum;
 
     protected static CsvOptions<T> GetOpts(bool numeric, bool ignoreCase)
     {
@@ -256,8 +258,10 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplParse(FlagsEnum.CustomName, "CustomName", converter);
 
             ImplParse(FlagsEnum.CustomName, "Custom Name", converter);
-            if (ignoreCase) ImplParse(FlagsEnum.CustomName, "cuSToM NaME", converter);
-            else ImplNotParsable("cuSToM NaME", converter);
+            if (ignoreCase)
+                ImplParse(FlagsEnum.CustomName, "cuSToM NaME", converter);
+            else
+                ImplNotParsable("cuSToM NaME", converter);
 
             if (ignoreCase)
             {
@@ -314,11 +318,7 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
             ImplFormat(FlagsEnum.SecondAndThird, format, converter, "SecondAndThird");
             ImplFormat(FlagsEnum.CustomName, format, converter, "Custom Name");
             ImplFormat(FlagsEnum.First | FlagsEnum.CustomName, format, converter, "First|Custom Name");
-            ImplFormat(
-                FlagsEnum.First | FlagsEnum.Second | FlagsEnum.Third,
-                format,
-                converter,
-                "First|SecondAndThird");
+            ImplFormat(FlagsEnum.First | FlagsEnum.Second | FlagsEnum.Third, format, converter, "First|SecondAndThird");
             ImplFormat((FlagsEnum)16, format, converter);
         }
     }
@@ -339,7 +339,8 @@ public abstract class EnumTests<T> where T : unmanaged, IBinaryInteger<T>
         TEnum value,
         string format,
         CsvConverter<T, TEnum> converter,
-        string? expected = null)
+        string? expected = null
+    )
         where TEnum : struct, Enum
     {
         if (expected is null || format == "D")

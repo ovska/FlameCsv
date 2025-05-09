@@ -70,30 +70,47 @@ internal readonly ref struct FlameSymbols
     private static readonly SymbolEqualityComparer _seq = SymbolEqualityComparer.Default;
 
     public bool IsCsvConverterTTValue([NNW(true)] ISymbol? symbol) => _seq.Equals(_converter, symbol);
+
     public bool IsCsvConverterOfTAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_converterOfTAttribute, symbol);
+
     public bool IsCsvHeaderAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_headerAttribute, symbol);
+
     public bool IsCsvIgnoreAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoreAttribute, symbol);
+
     public bool IsCsvIndexAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_indexAttribute, symbol);
+
     public bool IsCsvConstructorAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_constructorAttribute, symbol);
+
     public bool IsCsvOrderAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_orderAttribute, symbol);
+
     public bool IsCsvRequiredAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_requiredAttribute, symbol);
+
     public bool IsCsvOptionsOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_options, symbol);
+
     public bool IsCsvConverterFactoryOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_converterFactory, symbol);
+
     public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_typeProxyAttribute, symbol);
+
     public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoredIndexesAttribute, symbol);
 
     public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemDateTimeOffset, symbol);
+
     public bool IsTimeSpan([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemTimeSpan, symbol);
+
     public bool IsGuid([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemGuid, symbol);
+
     public bool IsISpanParsable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemISpanParsable, symbol);
+
     public bool IsIUtf8SpanParsable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemIUtf8SpanParsable, symbol);
+
     public bool IsISpanFormattable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemISpanFormattable, symbol);
+
     public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemIUtf8SpanFormattable, symbol);
 
     private static INamedTypeSymbol Get(Compilation compilation, string name)
     {
-        return compilation.GetTypeByMetadataName(name) ??
-            throw new InvalidOperationException("Type not found by metadata name: " + name);
+        return compilation.GetTypeByMetadataName(name)
+            ?? throw new InvalidOperationException("Type not found by metadata name: " + name);
     }
 
     private static INamedTypeSymbol GetUnbound(Compilation compilation, string name)
@@ -103,22 +120,37 @@ internal readonly ref struct FlameSymbols
 #else
     // ReSharper disable MemberCanBeMadeStatic.Global
     public bool IsCsvConverterTTValue([NNW(true)] ISymbol? symbol) => _converterTTValue.IsEqual(symbol);
+
     public bool IsCsvConverterOfTAttribute([NNW(true)] ISymbol? symbol) => _converterOfTAttribute.IsEqual(symbol);
+
     public bool IsCsvHeaderAttribute([NNW(true)] ISymbol? symbol) => _headerAttribute.IsEqual(symbol);
+
     public bool IsCsvIgnoreAttribute([NNW(true)] ISymbol? symbol) => _ignoreAttribute.IsEqual(symbol);
+
     public bool IsCsvIndexAttribute([NNW(true)] ISymbol? symbol) => _indexAttribute.IsEqual(symbol);
+
     public bool IsCsvConstructorAttribute([NNW(true)] ISymbol? symbol) => _constructorAttribute.IsEqual(symbol);
+
     public bool IsCsvOrderAttribute([NNW(true)] ISymbol? symbol) => _orderAttribute.IsEqual(symbol);
+
     public bool IsCsvRequiredAttribute([NNW(true)] ISymbol? symbol) => _requiredAttribute.IsEqual(symbol);
+
     public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _typeProxyAttribute.IsEqual(symbol);
+
     public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _ignoredIndexesAttribute.IsEqual(symbol);
 
     public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => _systemDateTimeOffset.IsEqual(symbol);
+
     public bool IsTimeSpan([NNW(true)] ISymbol? symbol) => _systemTimeSpan.IsEqual(symbol);
+
     public bool IsGuid([NNW(true)] ISymbol? symbol) => _systemGuid.IsEqual(symbol);
+
     public bool IsISpanParsable([NNW(true)] ISymbol? symbol) => _systemISpanParsable.IsEqual(symbol);
+
     public bool IsIUtf8SpanParsable([NNW(true)] ISymbol? symbol) => _systemIUtf8SpanParsable.IsEqual(symbol);
+
     public bool IsISpanFormattable([NNW(true)] ISymbol? symbol) => _systemISpanFormattable.IsEqual(symbol);
+
     public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => _systemIUtf8SpanFormattable.IsEqual(symbol);
 
     private static readonly TypeData _converterTTValue = new("FlameCsv.CsvConverter", 2);
@@ -160,12 +192,12 @@ internal readonly ref struct FlameSymbols
         string tokenString = tokenType.ToDisplayString();
         string symbolString = symbol.ToDisplayString();
 
-        return
-            symbolString.Length == tokenString.Length + prefix.Length + 1 &&
-            symbolString.StartsWith(prefix) &&
-            symbolString.IndexOf(tokenString, StringComparison.Ordinal) == prefix.Length &&
-            symbolString[prefix.Length + tokenString.Length] == '>';
+        return symbolString.Length == tokenString.Length + prefix.Length + 1
+            && symbolString.StartsWith(prefix)
+            && symbolString.IndexOf(tokenString, StringComparison.Ordinal) == prefix.Length
+            && symbolString[prefix.Length + tokenString.Length] == '>';
     }
+
     // ReSharper restore MemberCanBeMadeStatic.Global
 
     internal readonly struct TypeData
@@ -187,7 +219,10 @@ internal readonly ref struct FlameSymbols
         {
             if (symbol is not null)
             {
-                if (symbol.Name == Name && (Arity == 0 || symbol is INamedTypeSymbol namedType && namedType.Arity == Arity))
+                if (
+                    symbol.Name == Name
+                    && (Arity == 0 || symbol is INamedTypeSymbol namedType && namedType.Arity == Arity)
+                )
                 {
                     return symbol.ContainingNamespace.ToDisplayString() == Namespace;
                 }
@@ -198,4 +233,3 @@ internal readonly ref struct FlameSymbols
     }
 #endif
 }
-

@@ -9,14 +9,19 @@ public partial class EnumFormatBench
 {
     private static readonly TypeCode[] _dof =
     [
-        ..Enum.GetValues<TypeCode>(), ..Enum.GetValues<TypeCode>(), ..Enum.GetValues<TypeCode>()
+        .. Enum.GetValues<TypeCode>(),
+        .. Enum.GetValues<TypeCode>(),
+        .. Enum.GetValues<TypeCode>(),
     ];
 
     private static readonly char[] _charBuffer = new char[256];
     private static readonly byte[] _byteBuffer = new byte[256];
 
-    [Params(false, true)] public bool Numeric { get; set; }
-    [Params(true, false)] public bool Bytes { get; set; }
+    [Params(false, true)]
+    public bool Numeric { get; set; }
+
+    [Params(true, false)]
+    public bool Bytes { get; set; }
 
     [Benchmark(Baseline = true)]
     public void TryFormat()
@@ -31,7 +36,8 @@ public partial class EnumFormatBench
                     literalLength: 0,
                     formattedCount: 1,
                     destination: _byteBuffer,
-                    shouldAppend: out bool shouldAppend);
+                    shouldAppend: out bool shouldAppend
+                );
 
                 if (shouldAppend)
                 {

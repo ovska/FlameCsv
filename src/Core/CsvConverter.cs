@@ -12,7 +12,8 @@ namespace FlameCsv;
 /// Converter instances must be safe to use concurrently.
 /// </remarks>
 /// <typeparam name="T">Token type</typeparam>
-public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvConverter<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns whether the type can be handled by this converter, or a suitable converter can be
@@ -25,9 +26,7 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
     /// <summary>
     /// Constructor to prevent direct inheritance.
     /// </summary>
-    private protected CsvConverter()
-    {
-    }
+    private protected CsvConverter() { }
 
     /// <summary>
     /// Returns the converter instance, of creates a new one if the current instance is a factory.
@@ -49,13 +48,15 @@ public abstract class CsvConverter<T> where T : unmanaged, IBinaryInteger<T>
             if (created is null)
             {
                 Throw.InvalidOperation(
-                    $"Factory {GetType().FullName} returned null when creating converter for type {targetType.FullName}");
+                    $"Factory {GetType().FullName} returned null when creating converter for type {targetType.FullName}"
+                );
             }
 
             if (created is CsvConverterFactory<T>)
             {
                 Throw.InvalidOperation(
-                    $"Factory {GetType().FullName} returned another factory ({created.GetType().FullName}) when creating converter for type {targetType.FullName}");
+                    $"Factory {GetType().FullName} returned another factory ({created.GetType().FullName}) when creating converter for type {targetType.FullName}"
+                );
             }
 
             return created;

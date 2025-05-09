@@ -4,5 +4,5 @@ internal enum ConstructorArgumentType
 {
     Invalid = 0,
     Empty = 1,
-    Options = 2
+    Options = 2,
 }

@@ -18,32 +18,34 @@ namespace FlameCsv.Binding;
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Record type</typeparam>
 [PublicAPI]
-public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IBinaryInteger<T>
+public abstract class CsvTypeMap<T, TValue> : CsvTypeMap
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc/>
     protected sealed override Type TargetType => typeof(TValue);
 
     /// <inheritdoc cref="GetMaterializer(ImmutableArray{string},CsvOptions{T})"/>
-    protected virtual IMaterializer<T, TValue> BindForReading(
-        ImmutableArray<string> headers,
-        CsvOptions<T> options)
+    protected virtual IMaterializer<T, TValue> BindForReading(ImmutableArray<string> headers, CsvOptions<T> options)
     {
         throw new CsvBindingException(
-            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForReading)}(ReadOnlySpan<string>, CsvOptions<{typeof(T)}>) is not overridden by {GetType().FullName}.");
+            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForReading)}(ReadOnlySpan<string>, CsvOptions<{typeof(T)}>) is not overridden by {GetType().FullName}."
+        );
     }
 
     /// <inheritdoc cref="GetMaterializer(CsvOptions{T})"/>
     protected virtual IMaterializer<T, TValue> BindForReading(CsvOptions<T> options)
     {
         throw new CsvBindingException(
-            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForReading)}() is not overridden by {GetType().FullName}.");
+            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForReading)}() is not overridden by {GetType().FullName}."
+        );
     }
 
     /// <inheritdoc cref="GetDematerializer"/>
     protected virtual IDematerializer<T, TValue> BindForWriting(CsvOptions<T> options)
     {
         throw new CsvBindingException(
-            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForWriting)}() is not overridden by {GetType().FullName}.");
+            $"CsvTypeMap<{typeof(T)},{typeof(TValue)}>.{nameof(BindForWriting)}() is not overridden by {GetType().FullName}."
+        );
     }
 
     /// <summary>
@@ -58,11 +60,13 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
         ArgumentOutOfRangeException.ThrowIfZero(headers.Length);
         Throw.IfInvalidArgument(!options.HasHeader, "Options is configured to read without a header.");
 
-        if (NoCaching) return BindForReading(headers, options);
+        if (NoCaching)
+            return BindForReading(headers, options);
         return options.GetMaterializer(
             this,
             headers,
-            static (options, typeMap, headers) => typeMap.BindForReading(headers, options));
+            static (options, typeMap, headers) => typeMap.BindForReading(headers, options)
+        );
     }
 
     /// <summary>
@@ -76,11 +80,9 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
         ArgumentNullException.ThrowIfNull(options);
         Throw.IfInvalidArgument(options.HasHeader, "Options is not configured to read without a header.");
 
-        if (NoCaching) return BindForReading(options);
-        return options.GetMaterializer(
-            this,
-            [],
-            static (options, typeMap, _) => typeMap.BindForReading(options));
+        if (NoCaching)
+            return BindForReading(options);
+        return options.GetMaterializer(this, [], static (options, typeMap, _) => typeMap.BindForReading(options));
     }
 
     /// <summary>
@@ -96,7 +98,8 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap where T : unmanaged, IB
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (NoCaching) return BindForWriting(options);
+        if (NoCaching)
+            return BindForWriting(options);
 
         return options.GetDematerializer(this, static (options, typeMap) => typeMap.BindForWriting(options));
     }

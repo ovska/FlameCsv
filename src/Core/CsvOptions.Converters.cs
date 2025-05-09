@@ -45,8 +45,8 @@ partial class CsvOptions<T>
     /// <summary>
     /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
     /// </summary>
-    internal ConcurrentDictionary<Type, CsvConverter<T>> ConverterCache { get; }
-        = new(ReferenceEqualityComparer.Instance);
+    internal ConcurrentDictionary<Type, CsvConverter<T>> ConverterCache { get; } =
+        new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
     /// Returns a converter for <typeparamref name="TResult"/>.
@@ -72,15 +72,18 @@ partial class CsvOptions<T>
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public CsvConverter<T> GetConverter(Type resultType)
     {
-        if (!TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created) &&
-            UseDefaultConverters)
+        if (
+            !TryGetExistingOrCustomConverter(resultType, out CsvConverter<T>? converter, out bool created)
+            && UseDefaultConverters
+        )
         {
             if (TryCreateDefaultConverter(resultType, out var builtin))
             {
                 Debug.Assert(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
                 Debug.Assert(
                     builtin is not CsvConverterFactory<T>,
-                    $"{resultType} default converter returned a factory");
+                    $"{resultType} default converter returned a factory"
+                );
                 converter = builtin;
                 created = true;
             }
@@ -90,7 +93,8 @@ partial class CsvOptions<T>
             }
         }
 
-        if (converter is null) CsvConverterMissingException.Throw(resultType);
+        if (converter is null)
+            CsvConverterMissingException.Throw(resultType);
 
         if (created)
         {
@@ -105,7 +109,8 @@ partial class CsvOptions<T>
     private bool TryGetExistingOrCustomConverter(
         Type resultType,
         [NotNullWhen(true)] out CsvConverter<T>? converter,
-        out bool created)
+        out bool created
+    )
     {
         ArgumentNullException.ThrowIfNull(resultType);
         MakeReadOnly();

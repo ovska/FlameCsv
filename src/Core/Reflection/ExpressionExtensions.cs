@@ -7,8 +7,8 @@ namespace FlameCsv.Reflection;
 
 internal static class ExpressionExtensions
 {
-    private const CompilerFlags DefaultCompilerFlags
-        = CompilerFlags.ThrowOnNotSupportedExpression
+    private const CompilerFlags DefaultCompilerFlags =
+        CompilerFlags.ThrowOnNotSupportedExpression
 #if DEBUG
         | CompilerFlags.EnableDelegateDebugInfo
 #endif
@@ -31,7 +31,10 @@ internal static class ExpressionExtensions
             inner = e;
         }
 
-        throw new UnreachableException($"Expected lambda to have no closure, but compiling it failed: {asString}", inner);
+        throw new UnreachableException(
+            $"Expected lambda to have no closure, but compiling it failed: {asString}",
+            inner
+        );
     }
 
     /// <summary>
@@ -58,7 +61,8 @@ internal static class ExpressionExtensions
             FieldInfo field => Expression.Field(target, field),
             _ => throw new ArgumentException(
                 $"Parameter must be a readable property or field: {memberInfo}",
-                paramName: nameof(memberInfo)),
+                paramName: nameof(memberInfo)
+            ),
         };
     }
 
@@ -70,18 +74,22 @@ internal static class ExpressionExtensions
             return member;
 
         // Func<T, object?> turns into implicit conversion e.g. x => (object)x.Id
-        if (memberExpression.ReturnType == typeof(object)
-            && memberExpression.Body is System.Linq.Expressions.UnaryExpression
-            {
-                NodeType: System.Linq.Expressions.ExpressionType.Convert,
-                Operand: System.Linq.Expressions.MemberExpression inner,
-            })
+        if (
+            memberExpression.ReturnType == typeof(object)
+            && memberExpression.Body
+                is System.Linq.Expressions.UnaryExpression
+                {
+                    NodeType: System.Linq.Expressions.ExpressionType.Convert,
+                    Operand: System.Linq.Expressions.MemberExpression inner,
+                }
+        )
         {
             return inner.Member;
         }
 
         throw new ArgumentException(
             $"Parameter must be an expression targeting a property or field: {memberExpression}",
-            nameof(memberExpression));
+            nameof(memberExpression)
+        );
     }
 }

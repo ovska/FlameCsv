@@ -63,7 +63,8 @@ internal static class Unescaper
         mask <<= padding;
         TMask oddIndex = FindOddBackslashSequences(mask, ref carry);
 
-        if (oddIndex != TMask.Zero) goto Invalid;
+        if (oddIndex != TMask.Zero)
+            goto Invalid;
 
         // shift the mask back so we work from the beginning of the value
         mask >>= padding;
@@ -96,7 +97,8 @@ internal static class Unescaper
             mask = TUnescaper.FindQuotes(data, quoteVector);
             oddIndex = FindOddBackslashSequences(mask, ref carry);
 
-            if (oddIndex != TMask.Zero) goto Invalid;
+            if (oddIndex != TMask.Zero)
+                goto Invalid;
 
             // merge the bits of each quote pair
             mask = ShiftMask32(mask);
@@ -117,7 +119,8 @@ internal static class Unescaper
             remaining -= TUnescaper.Count;
         }
 
-        if (carry != TMask.Zero) goto Invalid;
+        if (carry != TMask.Zero)
+            goto Invalid;
 
         return (int)dstOffset;
 
@@ -139,7 +142,8 @@ internal static class Unescaper
         }
 
         throw new CsvFormatException(
-            $"Field had an unpaired quote at index {(int)offset + long.CreateTruncating(TMask.PopCount(oddIndex))}: {value}");
+            $"Field had an unpaired quote at index {(int)offset + long.CreateTruncating(TMask.PopCount(oddIndex))}: {value}"
+        );
     }
 
     #region Bithacks

@@ -15,7 +15,8 @@ namespace FlameCsv.Attributes;
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class)]
 [PublicAPI]
-public sealed class CsvTypeMapAttribute<T, TValue> : Attribute where T : unmanaged, IBinaryInteger<T>
+public sealed class CsvTypeMapAttribute<T, TValue> : Attribute
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="CsvTypeMap.IgnoreUnmatched"/>
     public bool IgnoreUnmatched { get; set; }

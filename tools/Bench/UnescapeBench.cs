@@ -22,7 +22,8 @@ public class UnescapeBench
     private readonly byte[] _byteBuffer = new byte[1024];
     private readonly char[] _charBuffer = new char[1024];
 
-    [Params(true, false)] public bool Bytes { get; set; }
+    [Params(true, false)]
+    public bool Bytes { get; set; }
 
     /// <summary>
     /// Naive IndexOf-based unescaping.
@@ -66,10 +67,7 @@ public class UnescapeBench
             foreach ((int start, int length, _) in _byteFields)
             {
                 var field = new ReadOnlySpan<byte>(_bytes, start, length);
-                _ = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>(
-                    (byte)'"',
-                    field,
-                    _byteBuffer);
+                _ = Unescaper.Unescape<byte, uint, Vector256<byte>, ByteAvx2Unescaper>((byte)'"', field, _byteBuffer);
             }
         }
         else
@@ -78,11 +76,7 @@ public class UnescapeBench
             {
                 var field = _chars.AsSpan(start, length);
 
-
-                _ = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>(
-                    '"',
-                    field,
-                    _charBuffer);
+                _ = Unescaper.Unescape<char, ushort, Vector256<short>, CharAvxUnescaper>('"', field, _charBuffer);
             }
         }
     }
@@ -118,7 +112,8 @@ public class UnescapeBench
                         (byte)'"',
                         _byteBuffer.AsSpan(0, len),
                         field,
-                        quoteCount);
+                        quoteCount
+                    );
                 }
             }
         }
@@ -200,12 +195,14 @@ public class UnescapeBench
                     '"',
                     MemoryMarshal.Cast<char, ushort>(_charBuffer.AsSpan(0, len)),
                     MemoryMarshal.Cast<char, ushort>(field),
-                    quoteCount);
+                    quoteCount
+                );
             }
         }
     }
 
-    private static Field[] ReadFields<T>(ReadOnlyMemory<T> data) where T : unmanaged, IBinaryInteger<T>
+    private static Field[] ReadFields<T>(ReadOnlyMemory<T> data)
+        where T : unmanaged, IBinaryInteger<T>
     {
         List<Field> byteFields = [];
 
@@ -218,14 +215,15 @@ public class UnescapeBench
         {
             for (int i = 0; i < fields.FieldCount; i++)
             {
-                if (fields.Fields[i + 1].SpecialCount <= 2) continue;
+                if (fields.Fields[i + 1].SpecialCount <= 2)
+                    continue;
 
                 var field = fields.GetField(i, raw: true)[1..^1];
 
                 // if (field.Length < 32) continue;
 
-                var start = Unsafe.ByteOffset(ref startOfData, ref MemoryMarshal.GetReference(field)) /
-                    Unsafe.SizeOf<T>();
+                var start =
+                    Unsafe.ByteOffset(ref startOfData, ref MemoryMarshal.GetReference(field)) / Unsafe.SizeOf<T>();
                 var length = field.Length;
                 byteFields.Add(new(checked((int)start), length, (uint)field.Count(T.CreateTruncating('"'))));
             }
@@ -234,176 +232,186 @@ public class UnescapeBench
         return byteFields.ToArray();
     }
 
-    private static class OldUnescaper<T> where T : unmanaged, IBinaryInteger<T>
+    private static class OldUnescaper<T>
+        where T : unmanaged, IBinaryInteger<T>
     {
-            [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unescape<TVector>(
-        T quote,
-        scoped Span<T> buffer,
-        ReadOnlySpan<T> field,
-        uint quotesConsumed)
-        where TVector : struct, ISimdVector<T, TVector>
-    {
-        int quotesLeft = (int)quotesConsumed;
-
-        nint srcIndex = 0;
-        nint dstIndex = 0;
-        nint srcLength = field.Length;
-
-        TVector quoteVector = TVector.Create(quote);
-
-        // leave 1 space for the second quote
-        nint searchSpaceEnd = field.Length - 1;
-        nint unrolledEnd = field.Length - 8 - 1;
-        nint vectorizedEnd = field.Length - TVector.Count - 1;
-
-        ref T src = ref MemoryMarshal.GetReference(field);
-        ref T dst = ref MemoryMarshal.GetReference(buffer);
-
-        goto ContinueRead;
-
-    Found1:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        srcIndex += 1;
-        dstIndex += 1;
-        goto FoundLong;
-    Found2:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
-        srcIndex += 2;
-        dstIndex += 2;
-        goto FoundLong;
-    Found3:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
-        Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
-        srcIndex += 3;
-        dstIndex += 3;
-        goto FoundLong;
-    Found4:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
-        Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
-        Unsafe.Add(ref dst, dstIndex + 3) = Unsafe.Add(ref src, srcIndex + 3);
-        srcIndex += 4;
-        dstIndex += 4;
-        goto FoundLong;
-    Found5:
-        Copy(ref src, srcIndex, ref dst, dstIndex, 5);
-        srcIndex += 5;
-        dstIndex += 5;
-        goto FoundLong;
-    Found6:
-        Copy(ref src, srcIndex, ref dst, dstIndex, 6);
-        srcIndex += 6;
-        dstIndex += 6;
-        goto FoundLong;
-    Found7:
-        Copy(ref src, srcIndex, ref dst, dstIndex, 7);
-        srcIndex += 7;
-        dstIndex += 7;
-        goto FoundLong;
-    Found8:
-        Copy(ref src, srcIndex, ref dst, dstIndex, 8);
-        srcIndex += 8;
-        dstIndex += 8;
-
-    FoundLong:
-        if (quote != Unsafe.Add(ref src, srcIndex)) goto Fail;
-
-        srcIndex++;
-
-        quotesLeft -= 2;
-
-        if (quotesLeft <= 0) goto NoQuotesLeft;
-
-    ContinueRead:
-        while (TVector.IsSupported && srcIndex < vectorizedEnd)
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        public static void Unescape<TVector>(T quote, scoped Span<T> buffer, ReadOnlySpan<T> field, uint quotesConsumed)
+            where TVector : struct, ISimdVector<T, TVector>
         {
-            TVector current = TVector.LoadUnaligned(ref src, (nuint)srcIndex);
-            TVector equals = TVector.Equals(current, quoteVector);
+            int quotesLeft = (int)quotesConsumed;
 
-            if (equals == TVector.Zero)
-            {
-                Copy(ref src, srcIndex, ref dst, dstIndex, (uint)TVector.Count);
-                srcIndex += TVector.Count;
-                dstIndex += TVector.Count;
-                continue;
-            }
+            nint srcIndex = 0;
+            nint dstIndex = 0;
+            nint srcLength = field.Length;
 
-            nuint mask = equals.ExtractMostSignificantBits();
-            int charpos = BitOperations.TrailingZeroCount(mask) + 1;
+            TVector quoteVector = TVector.Create(quote);
 
-            Copy(ref src, srcIndex, ref dst, dstIndex, (uint)charpos);
-            srcIndex += charpos;
-            dstIndex += charpos;
+            // leave 1 space for the second quote
+            nint searchSpaceEnd = field.Length - 1;
+            nint unrolledEnd = field.Length - 8 - 1;
+            nint vectorizedEnd = field.Length - TVector.Count - 1;
+
+            ref T src = ref MemoryMarshal.GetReference(field);
+            ref T dst = ref MemoryMarshal.GetReference(buffer);
+
+            goto ContinueRead;
+
+            Found1:
+            Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+            srcIndex += 1;
+            dstIndex += 1;
             goto FoundLong;
-        }
-
-        while (srcIndex < unrolledEnd)
-        {
-            if (quote == Unsafe.Add(ref src, srcIndex + 0)) goto Found1;
-            if (quote == Unsafe.Add(ref src, srcIndex + 1)) goto Found2;
-            if (quote == Unsafe.Add(ref src, srcIndex + 2)) goto Found3;
-            if (quote == Unsafe.Add(ref src, srcIndex + 3)) goto Found4;
-            if (quote == Unsafe.Add(ref src, srcIndex + 4)) goto Found5;
-            if (quote == Unsafe.Add(ref src, srcIndex + 5)) goto Found6;
-            if (quote == Unsafe.Add(ref src, srcIndex + 6)) goto Found7;
-            if (quote == Unsafe.Add(ref src, srcIndex + 7)) goto Found8;
-
+            Found2:
+            Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+            Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
+            srcIndex += 2;
+            dstIndex += 2;
+            goto FoundLong;
+            Found3:
+            Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+            Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
+            Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
+            srcIndex += 3;
+            dstIndex += 3;
+            goto FoundLong;
+            Found4:
+            Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+            Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
+            Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
+            Unsafe.Add(ref dst, dstIndex + 3) = Unsafe.Add(ref src, srcIndex + 3);
+            srcIndex += 4;
+            dstIndex += 4;
+            goto FoundLong;
+            Found5:
+            Copy(ref src, srcIndex, ref dst, dstIndex, 5);
+            srcIndex += 5;
+            dstIndex += 5;
+            goto FoundLong;
+            Found6:
+            Copy(ref src, srcIndex, ref dst, dstIndex, 6);
+            srcIndex += 6;
+            dstIndex += 6;
+            goto FoundLong;
+            Found7:
+            Copy(ref src, srcIndex, ref dst, dstIndex, 7);
+            srcIndex += 7;
+            dstIndex += 7;
+            goto FoundLong;
+            Found8:
             Copy(ref src, srcIndex, ref dst, dstIndex, 8);
             srcIndex += 8;
             dstIndex += 8;
-        }
 
-        while (srcIndex < searchSpaceEnd)
-        {
-            if (quote == Unsafe.Add(ref src, srcIndex))
+            FoundLong:
+            if (quote != Unsafe.Add(ref src, srcIndex))
+                goto Fail;
+
+            srcIndex++;
+
+            quotesLeft -= 2;
+
+            if (quotesLeft <= 0)
+                goto NoQuotesLeft;
+
+            ContinueRead:
+            while (TVector.IsSupported && srcIndex < vectorizedEnd)
             {
-                if (quote != Unsafe.Add(ref src, ++srcIndex)) goto Fail;
+                TVector current = TVector.LoadUnaligned(ref src, (nuint)srcIndex);
+                TVector equals = TVector.Equals(current, quoteVector);
 
-                Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-                srcIndex++;
-                dstIndex++;
+                if (equals == TVector.Zero)
+                {
+                    Copy(ref src, srcIndex, ref dst, dstIndex, (uint)TVector.Count);
+                    srcIndex += TVector.Count;
+                    dstIndex += TVector.Count;
+                    continue;
+                }
 
-                quotesLeft -= 2;
+                nuint mask = equals.ExtractMostSignificantBits();
+                int charpos = BitOperations.TrailingZeroCount(mask) + 1;
 
-                if (quotesLeft <= 0) goto NoQuotesLeft;
+                Copy(ref src, srcIndex, ref dst, dstIndex, (uint)charpos);
+                srcIndex += charpos;
+                dstIndex += charpos;
+                goto FoundLong;
             }
-            else
+
+            while (srcIndex < unrolledEnd)
             {
-                Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-                srcIndex++;
-                dstIndex++;
+                if (quote == Unsafe.Add(ref src, srcIndex + 0))
+                    goto Found1;
+                if (quote == Unsafe.Add(ref src, srcIndex + 1))
+                    goto Found2;
+                if (quote == Unsafe.Add(ref src, srcIndex + 2))
+                    goto Found3;
+                if (quote == Unsafe.Add(ref src, srcIndex + 3))
+                    goto Found4;
+                if (quote == Unsafe.Add(ref src, srcIndex + 4))
+                    goto Found5;
+                if (quote == Unsafe.Add(ref src, srcIndex + 5))
+                    goto Found6;
+                if (quote == Unsafe.Add(ref src, srcIndex + 6))
+                    goto Found7;
+                if (quote == Unsafe.Add(ref src, srcIndex + 7))
+                    goto Found8;
+
+                Copy(ref src, srcIndex, ref dst, dstIndex, 8);
+                srcIndex += 8;
+                dstIndex += 8;
             }
-        }
 
-        goto EOL;
+            while (srcIndex < searchSpaceEnd)
+            {
+                if (quote == Unsafe.Add(ref src, srcIndex))
+                {
+                    if (quote != Unsafe.Add(ref src, ++srcIndex))
+                        goto Fail;
 
-        // Copy remaining data
-    NoQuotesLeft:
-        Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(srcLength - srcIndex));
+                    Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+                    srcIndex++;
+                    dstIndex++;
 
-    EOL:
-        if (quotesLeft != 0)
-        {
+                    quotesLeft -= 2;
+
+                    if (quotesLeft <= 0)
+                        goto NoQuotesLeft;
+                }
+                else
+                {
+                    Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+                    srcIndex++;
+                    dstIndex++;
+                }
+            }
+
+            goto EOL;
+
+            // Copy remaining data
+            NoQuotesLeft:
+            Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(srcLength - srcIndex));
+
+            EOL:
+            if (quotesLeft != 0)
+            {
+                RFC4180Mode<T>.ThrowInvalidUnescape(field, quote, quotesConsumed);
+            }
+
+            return;
+
+            Fail:
             RFC4180Mode<T>.ThrowInvalidUnescape(field, quote, quotesConsumed);
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            static void Copy(ref T src, nint srcIndex, ref T dst, nint dstIndex, uint length)
+            {
+                Unsafe.CopyBlockUnaligned(
+                    destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
+                    source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
+                    byteCount: (uint)Unsafe.SizeOf<T>() * length
+                );
+            }
         }
-
-        return;
-
-    Fail:
-        RFC4180Mode<T>.ThrowInvalidUnescape(field, quote, quotesConsumed);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void Copy(ref T src, nint srcIndex, ref T dst, nint dstIndex, uint length)
-        {
-            Unsafe.CopyBlockUnaligned(
-                destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
-                source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
-                byteCount: (uint)Unsafe.SizeOf<T>() * length);
-        }
-    }
     }
 }
 #endif

@@ -20,7 +20,7 @@ public class EnumGenTests(MetadataFixture fixture)
                     """
                     [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
                     partial class EnumConverter;
-                    
+
                     enum TestEnum
                     {
                         Dog,
@@ -29,10 +29,12 @@ public class EnumGenTests(MetadataFixture fixture)
                         Zebra,
                     }
                     """,
-                    cancellationToken: TestContext.Current.CancellationToken)
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
             ],
             [fixture.FlameCsvCore, .. Net90.References.All],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));
 
@@ -45,7 +47,9 @@ public class EnumGenTests(MetadataFixture fixture)
                 attribute,
                 TestContext.Current.CancellationToken,
                 out var diagnostics,
-                out var model));
+                out var model
+            )
+        );
         Assert.Empty(diagnostics);
 
         Assert.Equal("byte", model.TokenType.Name);
@@ -72,7 +76,8 @@ public class EnumGenTests(MetadataFixture fixture)
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             [sourceGenerator],
-            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true));
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true)
+        );
 
         // Run the generator once
         driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
@@ -83,11 +88,13 @@ public class EnumGenTests(MetadataFixture fixture)
                 .Results.Single()
                 .TrackedOutputSteps.Single(x => x.Key != "FlameCsv_EnumSourceGen_Diagnostics")
                 .Value,
-            step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New));
+            step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New)
+        );
 
         // Update the compilation and rerun the generator
         compilation = compilation.AddSyntaxTrees(
-            CSharpSyntaxTree.ParseText("// dummy", cancellationToken: TestContext.Current.CancellationToken));
+            CSharpSyntaxTree.ParseText("// dummy", cancellationToken: TestContext.Current.CancellationToken)
+        );
         driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
 
         // Assert the driver doesn't recompute the output
@@ -99,8 +106,10 @@ public class EnumGenTests(MetadataFixture fixture)
         Assert.All(allOutputs, output => Assert.Equal(IncrementalStepRunReason.Cached, output.Reason));
 
         // Assert the driver use the cached result from typemap
-        ImmutableArray<(object Value, IncrementalStepRunReason Reason)> assemblyNameOutputs
-            = result.TrackedSteps["FlameCsv_EnumSourceGen_Model"].Single().Outputs;
+        ImmutableArray<(object Value, IncrementalStepRunReason Reason)> assemblyNameOutputs = result
+            .TrackedSteps["FlameCsv_EnumSourceGen_Model"]
+            .Single()
+            .Outputs;
         (object Value, IncrementalStepRunReason Reason) output2 = Assert.Single(assemblyNameOutputs);
         Assert.Equal(IncrementalStepRunReason.Cached, output2.Reason);
     }

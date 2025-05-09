@@ -53,7 +53,7 @@ internal readonly record struct TypeRef : IEquatable<TypeRef>, IComparable<TypeR
         {
             SpecialType.System_Char => "char",
             SpecialType.System_Byte => "byte",
-            _ => type.Name
+            _ => type.Name,
         };
 
         FullyQualifiedName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -62,16 +62,19 @@ internal readonly record struct TypeRef : IEquatable<TypeRef>, IComparable<TypeR
         IsValueType = type.IsValueType;
         IsAbstract = type.IsAbstract;
         Kind = type.TypeKind;
-        IsEnumOrNullableEnum = type.TypeKind is TypeKind.Enum ||
-        (
-            (type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T) &&
-            ((INamedTypeSymbol)type).TypeArguments[0].TypeKind is TypeKind.Enum
-        );
+        IsEnumOrNullableEnum =
+            type.TypeKind is TypeKind.Enum
+            || (
+                (type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T)
+                && ((INamedTypeSymbol)type).TypeArguments[0].TypeKind is TypeKind.Enum
+            );
     }
 
     public override string ToString() => $"{{ TypeRef: {Name} }}";
 
     public int CompareTo(TypeRef other) => StringComparer.Ordinal.Compare(FullyQualifiedName, other.FullyQualifiedName);
+
     public bool Equals(TypeRef other) => FullyQualifiedName == other.FullyQualifiedName;
+
     public override int GetHashCode() => FullyQualifiedName.GetHashCode();
 }

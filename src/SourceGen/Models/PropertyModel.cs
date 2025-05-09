@@ -2,7 +2,7 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMemberModel
+internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
     /// Property/field name, including a possible interface name, e.g. "ISomething_Prop"
@@ -95,7 +95,8 @@ internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMe
         ITypeSymbol token,
         IPropertySymbol propertySymbol,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         if (propertySymbol.IsIndexer || propertySymbol.RefKind != RefKind.None)
         {
@@ -129,7 +130,8 @@ internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMe
             explicitPropertyOriginalName ?? propertySymbol.Name,
             propertySymbol,
             in symbols,
-            ref collector);
+            ref collector
+        );
 
         return new PropertyModel
         {
@@ -139,18 +141,22 @@ internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMe
             IsProperty = true,
             IsIgnored = meta.IsIgnored,
             IsRequired =
-                meta.IsRequired ||
-                propertySymbol.IsRequired ||
-                propertySymbol.SetMethod is { IsInitOnly: true },
+                meta.IsRequired || propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
             Aliases = meta.Aliases,
             Order = meta.Order,
             Index = meta.Index,
             CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true,
-            OverriddenConverter
-                = ConverterModel.Create(token, propertySymbol, propertySymbol.Type, in symbols, ref collector),
-            ExplicitInterfaceOriginalDefinitionName
-                = explicitInterface?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            OverriddenConverter = ConverterModel.Create(
+                token,
+                propertySymbol,
+                propertySymbol.Type,
+                in symbols,
+                ref collector
+            ),
+            ExplicitInterfaceOriginalDefinitionName = explicitInterface?.ToDisplayString(
+                SymbolDisplayFormat.FullyQualifiedFormat
+            ),
             Convertability = propertySymbol.Type.GetBuiltinConvertability(in symbols),
         };
     }
@@ -159,7 +165,8 @@ internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMe
         ITypeSymbol token,
         IFieldSymbol fieldSymbol,
         ref readonly FlameSymbols symbols,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         // a lot of these are unspeakable backing fields
         if (!fieldSymbol.CanBeReferencedByName || fieldSymbol.RefKind != RefKind.None || fieldSymbol.IsConst)
@@ -189,7 +196,8 @@ internal readonly record struct  PropertyModel : IComparable<PropertyModel>, IMe
                 fieldSymbol,
                 fieldSymbol.Type,
                 in symbols,
-                ref collector)
+                ref collector
+            ),
         };
     }
 

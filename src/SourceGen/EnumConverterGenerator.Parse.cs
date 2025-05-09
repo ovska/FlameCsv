@@ -8,7 +8,8 @@ partial class EnumConverterGenerator
     private static void WriteParseMethod(
         ref readonly EnumModel model,
         IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -29,8 +30,12 @@ partial class EnumConverterGenerator
         // write the fast path if:
         // - enum is small and contiguous from 0 (implies: has no duplicate values)
         // - enum has no names or explicit names that are only 1 char
-        if (model is { ContiguousFromZero: true, Values.Length: <= 10 } &&
-            model.Values.AsImmutableArray().All(static v => v.Name.Length != 1 && v.ExplicitName is not { Length: 1 }))
+        if (
+            model is { ContiguousFromZero: true, Values.Length: <= 10 }
+            && model
+                .Values.AsImmutableArray()
+                .All(static v => v.Name.Length != 1 && v.ExplicitName is not { Length: 1 })
+        )
         {
             writer.DebugLine("Fast path taken (under 10 contiguous values and no 1-char names)");
             writer.WriteLine("// Enum is small and contiguous from 0, try to use fast path");
@@ -46,7 +51,6 @@ partial class EnumConverterGenerator
             writer.DebugLine("Fast path not taken (10 contiguous values and no 1-char names)");
             WriteNumberCheck(in model, writer, cancellationToken);
         }
-
 
         // flags enums can be valid even though the value is not defined, e.g. 1 | 2
         writer.WriteLine();
@@ -78,7 +82,8 @@ partial class EnumConverterGenerator
     private static void WriteNumberCheck(
         ref readonly EnumModel model,
         IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -87,18 +92,14 @@ partial class EnumConverterGenerator
         writer.WriteLine("// check if value starts with a digit");
         writer.Write("if ((uint)(first - '0') <= 9u");
 
-        writer.WriteLine(
-            model.Values.AsImmutableArray().Any(static v => v.Value < 0)
-                ? " || first == '-')"
-                : ")");
+        writer.WriteLine(model.Values.AsImmutableArray().Any(static v => v.Value < 0) ? " || first == '-')" : ")");
 
         using IndentedTextWriter.Block block1 = writer.WriteBlock();
         writer.WriteLine("switch (source.Length)");
         using IndentedTextWriter.Block block2 = writer.WriteBlock();
 
         IEnumerable<IGrouping<int, (string name, BigInteger value)>> entries = model
-            .UniqueValues
-            .Select(m => (name: m.ToString(), value: m))
+            .UniqueValues.Select(m => (name: m.ToString(), value: m))
             .GroupBy(m => m.name.Length)
             .ToList();
 
@@ -188,14 +189,16 @@ partial class EnumConverterGenerator
         ref readonly EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.DebugLine(nameof(WriteSwitch));
 
         writer.WriteLine(
-            $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)");
+            $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)"
+        );
         using var block = writer.WriteBlock();
 
         writer.WriteLine($"ref {model.TokenType.Name} first = ref __MemoryMarshal.GetReference(source);");
@@ -223,46 +226,43 @@ partial class EnumConverterGenerator
                     {
                         if (!ignoreCase)
                         {
-                            WriteStringMatchByteAsciiOrdinal(
-                                in model,
-                                writer,
-                                lengthGroup,
-                                cancellationToken);
+                            WriteStringMatchByteAsciiOrdinal(in model, writer, lengthGroup, cancellationToken);
                         }
                         else if (lengthGroup.All(e => e.Name.IsAscii()))
                         {
                             WriteStringMatchByte(in model, writer, ignoreCase, lengthGroup, cancellationToken);
                         }
-                        else if (lengthGroup.All(
-                                     g => g.Name.ToLowerInvariant() == g.Name && g.Name.ToUpperInvariant() == g.Name))
+                        else if (
+                            lengthGroup.All(g =>
+                                g.Name.ToLowerInvariant() == g.Name && g.Name.ToUpperInvariant() == g.Name
+                            )
+                        )
                         {
                             WriteStringMatchByteAsciiOrdinal(
                                 in model,
                                 writer,
                                 lengthGroup,
                                 cancellationToken,
-                                forceIfChain: true);
+                                forceIfChain: true
+                            );
                         }
                         else
                         {
                             int len = Math.Min(32, lengthGroup.Max(e => e.Name.Length));
                             len = (int)Math.Pow(2, Math.Ceiling(Math.Log(len) / Math.Log(2)));
-                            
+
                             writer.DebugLine("Slow path: not ascii and not case-agnostic");
                             writer.WriteLine(
-                                $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{len}], out char[]? toReturn);");
+                                $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{len}], out char[]? toReturn);"
+                            );
                             writer.WriteLine("bool retVal = false;");
                             writer.WriteLine("__Unsafe.SkipInit(out value);");
                             writer.WriteLine();
-                            WriteStringMatchChar(
-                                in model,
-                                writer,
-                                ignoreCase,
-                                lengthGroup,
-                                cancellationToken);
+                            WriteStringMatchChar(in model, writer, ignoreCase, lengthGroup, cancellationToken);
 
                             writer.WriteLine(
-                                "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);");
+                                "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);"
+                            );
 
                             writer.WriteLine("if (retVal) return true;");
                             writer.WriteLine("break;");
@@ -270,12 +270,7 @@ partial class EnumConverterGenerator
                     }
                     else
                     {
-                        WriteStringMatchChar(
-                            in model,
-                            writer,
-                            ignoreCase,
-                            lengthGroup,
-                            cancellationToken);
+                        WriteStringMatchChar(in model, writer, ignoreCase, lengthGroup, cancellationToken);
                     }
                 }
             }
@@ -296,7 +291,8 @@ partial class EnumConverterGenerator
         IndentedTextWriter writer,
         bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -373,9 +369,7 @@ partial class EnumConverterGenerator
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var key = ignoreCase
-                    ? char.ToLowerInvariant(group.Key)
-                    : group.Key;
+                var key = ignoreCase ? char.ToLowerInvariant(group.Key) : group.Key;
 
                 int groupCount = group.Count();
                 bool writeBreak = groupCount > 1 || group.All(e => e.Name.Length > 1);
@@ -383,7 +377,6 @@ partial class EnumConverterGenerator
                 writer.WriteLine($"case {key.ToCharLiteral()}:");
                 using (writer.WriteBlock())
                 {
-
                     // the unrolled Equals for chars automatically does length checks
                     foreach (var entry in group)
                     {
@@ -423,15 +416,14 @@ partial class EnumConverterGenerator
         IndentedTextWriter writer,
         IGrouping<int, Entry> entriesByLength,
         CancellationToken cancellationToken,
-        bool forceIfChain = false)
+        bool forceIfChain = false
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.DebugLine(nameof(WriteStringMatchByteAsciiOrdinal));
 
-        if (forceIfChain ||
-            entriesByLength.Count() < 3 ||
-            entriesByLength.Any(e => e.Name.ContainsSurrogates()))
+        if (forceIfChain || entriesByLength.Count() < 3 || entriesByLength.Any(e => e.Name.ContainsSurrogates()))
         {
             writer.DebugLineIf(forceIfChain, "if-chain forced");
             writer.DebugLineIf(!forceIfChain, "< 3 values, or contains surrogates");
@@ -515,7 +507,8 @@ partial class EnumConverterGenerator
         IndentedTextWriter writer,
         bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -528,14 +521,12 @@ partial class EnumConverterGenerator
         WriteNestedAsciiSwitch(0, outerEntries);
         PooledList<Entry>.Release(outerEntries);
         writer.WriteLine("break;");
-        
+
         void WriteNestedAsciiSwitch(int depth, List<Entry> entries)
         {
             bool isMaxDepth = depth == (entriesByLength.Key) - 1;
 
-            if (isMaxDepth ||
-                entries.Count <= 3 ||
-                entries.TrueForAll(m => m.Name[depth] == entries[0].Name[depth]))
+            if (isMaxDepth || entries.Count <= 3 || entries.TrueForAll(m => m.Name[depth] == entries[0].Name[depth]))
             {
                 writer.DebugLine("Less than 3 entries, reached max depth, or all same char");
 
@@ -567,13 +558,19 @@ partial class EnumConverterGenerator
                                 writer.WriteIf(compare.IsAsciiLetter(), '(');
                                 writer.Write(i == 0 ? "first" : $"source[{i}]");
                                 writer.Write(compare.IsAsciiLetter() ? " | 0x20) == " : " == ");
-                                writer.Write(compare.IsAsciiLetter() ? char.ToLowerInvariant(compare).ToCharLiteral() : compare.ToCharLiteral());
+                                writer.Write(
+                                    compare.IsAsciiLetter()
+                                        ? char.ToLowerInvariant(compare).ToCharLiteral()
+                                        : compare.ToCharLiteral()
+                                );
                             }
                             else
                             {
-                                writer.Write(i == 0
-                                    ? $"first == {compare.ToCharLiteral()}"
-                                    : $"source[{i}] == {compare.ToCharLiteral()}");
+                                writer.Write(
+                                    i == 0
+                                        ? $"first == {compare.ToCharLiteral()}"
+                                        : $"source[{i}] == {compare.ToCharLiteral()}"
+                                );
                             }
 
                             i++;
@@ -603,7 +600,8 @@ partial class EnumConverterGenerator
 
                         Span<char> chars = stackalloc char[count];
                         entry.Name.AsSpan(i, count).CopyTo(chars);
-                        foreach (ref char c in chars) c = char.ToLowerInvariant(c);
+                        foreach (ref char c in chars)
+                            c = char.ToLowerInvariant(c);
                         var littleEndian = chars.ToString().ToStringLiteral();
 
                         writer.Write($"{littleEndian}u8)");
@@ -632,7 +630,8 @@ partial class EnumConverterGenerator
                             {
                                 bool isLetter = entry.Name[i + byteIndex].IsAsciiLetter();
                                 bytes[byteIndex] = isLetter;
-                                if (!isLetter) allLetters = false;
+                                if (!isLetter)
+                                    allLetters = false;
                             }
 
                             bytes.Reverse();
@@ -644,14 +643,16 @@ partial class EnumConverterGenerator
 
                             writer.Write("0x");
 
-                            foreach (var b in bytes) writer.Write(b ? "20" : "00");
+                            foreach (var b in bytes)
+                                writer.Write(b ? "20" : "00");
                             writer.Write(count == 8 ? "UL" : "U");
 
                             if (!allLetters)
                             {
                                 writer.Write(" : 0x");
                                 bytes.Reverse();
-                                foreach (var b in bytes) writer.Write(b ? "20" : "00");
+                                foreach (var b in bytes)
+                                    writer.Write(b ? "20" : "00");
                                 writer.Write(count == 8 ? "UL)" : "U)");
                             }
 
@@ -674,8 +675,9 @@ partial class EnumConverterGenerator
 
                 using (writer.WriteBlock())
                 {
-                    foreach (var firstChar in entries.GroupBy(
-                                 e => ignoreCase ? char.ToLowerInvariant(e.Name[0]) : e.Name[0]))
+                    foreach (
+                        var firstChar in entries.GroupBy(e => ignoreCase ? char.ToLowerInvariant(e.Name[0]) : e.Name[0])
+                    )
                     {
                         innerEntries.Clear();
                         innerEntries.AddRange(firstChar);
@@ -694,40 +696,38 @@ partial class EnumConverterGenerator
         }
     }
 
-    private static void WriteParseSlow(
-        IndentedTextWriter writer,
-        CancellationToken cancellationToken)
+    private static void WriteParseSlow(IndentedTextWriter writer, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.DebugLine(nameof(WriteParseSlow));
 
         writer.WriteLine(
-            "global::System.ReadOnlySpan<char> chars = GetChars(source, stackalloc char[32], out char[]? toReturn);");
+            "global::System.ReadOnlySpan<char> chars = GetChars(source, stackalloc char[32], out char[]? toReturn);"
+        );
         writer.WriteLine(
-            "bool retVal = global::System.Enum.TryParse(chars, _ignoreCase, out value) && (_allowUndefinedValues || IsDefined(value));");
+            "bool retVal = global::System.Enum.TryParse(chars, _ignoreCase, out value) && (_allowUndefinedValues || IsDefined(value));"
+        );
         writer.WriteLine(
-            "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);");
+            "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);"
+        );
         writer.WriteLine("return retVal;");
     }
 
-    private readonly record struct Entry(char FirstChar, string Name, string MemberName)
-        : IComparable<Entry>
+    private readonly record struct Entry(char FirstChar, string Name, string MemberName) : IComparable<Entry>
     {
         public int Length => Name.Length;
 
         public int CompareTo(Entry other)
         {
             int cmp = Length.CompareTo(other.Length);
-            if (cmp == 0) cmp = FirstChar.CompareTo(other.FirstChar);
+            if (cmp == 0)
+                cmp = FirstChar.CompareTo(other.FirstChar);
             return cmp;
         }
     }
 
-    private static IEnumerable<Entry> GetEntries(
-        EnumModel model,
-        bool ignoreCase,
-        CancellationToken cancellationToken)
+    private static IEnumerable<Entry> GetEntries(EnumModel model, bool ignoreCase, CancellationToken cancellationToken)
     {
         foreach (var value in model.Values)
         {
@@ -754,7 +754,8 @@ partial class EnumConverterGenerator
         writer.WriteLine("int length = global::System.Text.Encoding.UTF8.GetMaxCharCount(source.Length);");
         writer.WriteLine();
         writer.WriteLine(
-            "if (length <= buffer.Length || (length = global::System.Text.Encoding.UTF8.GetCharCount(source)) <= buffer.Length)");
+            "if (length <= buffer.Length || (length = global::System.Text.Encoding.UTF8.GetCharCount(source)) <= buffer.Length)"
+        );
         using (writer.WriteBlock())
         {
             writer.WriteLine("destination = buffer;");
@@ -778,7 +779,8 @@ partial class EnumConverterGenerator
         int offset,
         IndentedTextWriter writer,
         IEnumerable<(string name, BigInteger value)> values,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -789,8 +791,10 @@ partial class EnumConverterGenerator
 
         writer.Write($"switch (__Unsafe.ReadUnaligned<{type}>(ref ");
         writer.WriteIf(!model.TokenType.IsByte(), "__Unsafe.As<char, byte>(ref ");
-        if (offset == 0) writer.Write("first)");
-        else writer.Write($"__Unsafe.Add(ref first, {offset}))");
+        if (offset == 0)
+            writer.Write("first)");
+        else
+            writer.Write($"__Unsafe.Add(ref first, {offset}))");
         writer.WriteIf(!model.TokenType.IsByte(), ")");
         writer.WriteLine(")");
 

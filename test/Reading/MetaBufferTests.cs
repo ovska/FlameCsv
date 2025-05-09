@@ -41,7 +41,8 @@ public class MetaBufferTests
         Assert.Equal(9, buffer.Reset());
         Assert.Equal(
             [Meta.StartOfData, Meta.Plain(1), Meta.Plain(11), Meta.Plain(21), Meta.Plain(31)],
-            buffer.UnsafeGetArrayRef().AsSpan(0, 5));
+            buffer.UnsafeGetArrayRef().AsSpan(0, 5)
+        );
 
         buffer.GetUnreadBuffer(out startIndex)[0] = Meta.Plain(41, isEOL: true, 2);
         consumed = buffer.SetFieldsRead(1);

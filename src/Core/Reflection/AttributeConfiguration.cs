@@ -12,12 +12,11 @@ namespace FlameCsv.Reflection;
 
 internal static class AttributeConfiguration
 {
-    internal static readonly TrimmingCache<Type, HeaderDataEntry> Cache
-        = FlameCsvGlobalOptions.CachingDisabled ? null! : [];
+    internal static readonly TrimmingCache<Type, HeaderDataEntry> Cache = FlameCsvGlobalOptions.CachingDisabled
+        ? null!
+        : [];
 
-    internal sealed class HeaderData(
-        List<BindingData> candidates,
-        ImmutableArray<int> ignoredIndexes)
+    internal sealed class HeaderData(List<BindingData> candidates, ImmutableArray<int> ignoredIndexes)
     {
         public ReadOnlySpan<BindingData> Value => candidates.AsSpan();
         public ReadOnlySpan<int> IgnoredIndexes => ignoredIndexes.AsSpan();
@@ -48,7 +47,8 @@ internal static class AttributeConfiguration
         {
             entry = new HeaderDataEntry(
                 read: static () => Create(CsvTypeInfo<TValue>.Value.ProxyOrSelf, write: false),
-                write: static () => Create(CsvTypeInfo<TValue>.Value, write: true));
+                write: static () => Create(CsvTypeInfo<TValue>.Value, write: true)
+            );
 
             if (!FlameCsvGlobalOptions.CachingDisabled)
             {
@@ -69,17 +69,20 @@ internal static class AttributeConfiguration
         void AddAttribute(
             CsvFieldConfigurationAttribute baseAttr,
             string? knownName = null,
-            bool? knownParameter = null)
+            bool? knownParameter = null
+        )
         {
             string name = knownName ?? baseAttr.MemberName;
             bool isParameter = knownParameter ?? baseAttr.IsParameter;
 
-            if (write && isParameter) return;
+            if (write && isParameter)
+                return;
 
             if (string.IsNullOrEmpty(name))
             {
                 throw new CsvConfigurationException(
-                    $"The {baseAttr.GetType().Name} attribute must specify a member name (on type {typeInfo.Type.FullName}).");
+                    $"The {baseAttr.GetType().Name} attribute must specify a member name (on type {typeInfo.Type.FullName})."
+                );
             }
 
             ref var list = ref CollectionsMarshal.GetValueRefOrAddDefault(dict, (name, isParameter), out _);
@@ -118,7 +121,8 @@ internal static class AttributeConfiguration
 
         foreach (var member in typeInfo.Members)
         {
-            if (!write && member.IsReadOnly) continue;
+            if (!write && member.IsReadOnly)
+                continue;
 
             bool found = false;
 
@@ -140,7 +144,8 @@ internal static class AttributeConfiguration
                         Name = member.Value.Name,
                         Target = member.Value,
                         Aliases = [],
-                    });
+                    }
+                );
             }
         }
 
@@ -166,7 +171,8 @@ internal static class AttributeConfiguration
                         Name = parameter.Value.Name!,
                         Target = parameter.Value,
                         Aliases = [],
-                    });
+                    }
+                );
             }
         }
 
@@ -200,7 +206,8 @@ internal static class AttributeConfiguration
                     {
                         throw new CsvBindingException(
                             typeInfo.Type,
-                            $"Multiple {nameof(CsvHeaderAttribute)} attributes found for {name}.");
+                            $"Multiple {nameof(CsvHeaderAttribute)} attributes found for {name}."
+                        );
                     }
                 }
                 else if (attr is CsvOrderAttribute orderAttr)
@@ -211,9 +218,7 @@ internal static class AttributeConfiguration
                     }
                     else
                     {
-                        throw new CsvBindingException(
-                            typeInfo.Type,
-                            $"Multiple order attributes found for {name}.");
+                        throw new CsvBindingException(typeInfo.Type, $"Multiple order attributes found for {name}.");
                     }
                 }
                 else if (attr is CsvIndexAttribute indexAttr)
@@ -224,9 +229,7 @@ internal static class AttributeConfiguration
                     }
                     else
                     {
-                        throw new CsvBindingException(
-                            typeInfo.Type,
-                            $"Multiple index attributes found for {name}.");
+                        throw new CsvBindingException(typeInfo.Type, $"Multiple index attributes found for {name}.");
                     }
                 }
             }
@@ -234,7 +237,8 @@ internal static class AttributeConfiguration
             if (ignored && required)
             {
                 throw new CsvBindingException(
-                    $"A CSV field cannot be both required and ignored ({(isParameter ? "param" : "member")} {name}).");
+                    $"A CSV field cannot be both required and ignored ({(isParameter ? "param" : "member")} {name})."
+                );
             }
 
             candidates.Add(
@@ -247,7 +251,8 @@ internal static class AttributeConfiguration
                     Ignored = ignored,
                     Required = required,
                     Index = index,
-                });
+                }
+            );
         }
 
         foreach (var parameter in !write ? typeInfo.ConstructorParameters : default)
@@ -258,11 +263,13 @@ internal static class AttributeConfiguration
             {
                 BindingData existing = candidates[i];
 
-                if (existing.Target is PropertyInfo prop &&
-                    prop.Name == parameter.Value.Name &&
-                    prop.PropertyType == parameter.Value.ParameterType &&
-                    prop.SetMethod is { ReturnParameter: var rp } &&
-                    rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+                if (
+                    existing.Target is PropertyInfo prop
+                    && prop.Name == parameter.Value.Name
+                    && prop.PropertyType == parameter.Value.ParameterType
+                    && prop.SetMethod is { ReturnParameter: var rp }
+                    && rp.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit))
+                )
                 {
                     candidates.RemoveAt(i);
                 }

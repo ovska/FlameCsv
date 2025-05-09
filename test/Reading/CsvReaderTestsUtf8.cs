@@ -16,6 +16,7 @@ public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>
         return CsvBufferReader.Create(
             stream,
             options.Allocator,
-            new() { BufferSize = bufferSize, MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2 });
+            new() { BufferSize = bufferSize, MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2 }
+        );
     }
 }

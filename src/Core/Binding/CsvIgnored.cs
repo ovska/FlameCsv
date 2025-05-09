@@ -20,10 +20,10 @@ public readonly struct CsvIgnored
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static CsvConverter<T, TResult> Converter<T, TResult>()
-        where T : unmanaged, IBinaryInteger<T>
-        => IgnoredConverter<T, TResult>.Instance;
+        where T : unmanaged, IBinaryInteger<T> => IgnoredConverter<T, TResult>.Instance;
 
-    private sealed class IgnoredConverter<T, TResult> : CsvConverter<T, TResult> where T : unmanaged, IBinaryInteger<T>
+    private sealed class IgnoredConverter<T, TResult> : CsvConverter<T, TResult>
+        where T : unmanaged, IBinaryInteger<T>
     {
         public static readonly IgnoredConverter<T, TResult> Instance = new();
 

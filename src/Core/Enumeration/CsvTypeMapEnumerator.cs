@@ -24,7 +24,8 @@ public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, 
         CsvOptions<T> options,
         CsvTypeMap<T, TValue> typeMap,
         ICsvBufferReader<T> reader,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
         : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(typeMap);

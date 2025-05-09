@@ -9,7 +9,8 @@ namespace FlameCsv.Reading;
 [DebuggerDisplay("{ToString(),nq}")]
 [DebuggerTypeProxy(typeof(CsvSlice<>.CsvSliceDebugView))]
 [SkipLocalsInit]
-internal readonly struct CsvSlice<T> where T : unmanaged, IBinaryInteger<T>
+internal readonly struct CsvSlice<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     public CsvReader<T> Reader { get; init; }
     public ReadOnlyMemory<T> Data { get; init; }

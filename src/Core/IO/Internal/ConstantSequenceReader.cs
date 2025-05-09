@@ -2,7 +2,8 @@
 
 namespace FlameCsv.IO.Internal;
 
-internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T> where T : unmanaged
+internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
+    where T : unmanaged
 {
     private ReadOnlySequence<T> _data;
     private ReadOnlySequence<T> _originalData;
@@ -25,7 +26,8 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T> where T : u
     {
         int dataLength = (int)long.Min(int.MaxValue, _data.Length);
 
-        if (dataLength == 0) return 0;
+        if (dataLength == 0)
+            return 0;
 
         int length = Math.Min(dataLength, buffer.Length);
         _data.Slice(0, length).CopyTo(buffer.Span);
@@ -33,9 +35,7 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T> where T : u
         return length;
     }
 
-    protected override ValueTask<int> ReadAsyncCore(
-        Memory<T> buffer,
-        CancellationToken cancellationToken)
+    protected override ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken)
     {
         return new ValueTask<int>(ReadCore(buffer));
     }

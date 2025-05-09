@@ -7,9 +7,8 @@ namespace FlameCsv.Utilities;
 
 internal class TypeStringDictionary : TypeDictionary<Utf8String?>, IDictionary<Type, string?>
 {
-    public TypeStringDictionary(ICanBeReadOnly owner, TypeDictionary<Utf8String?>? source = null) : base(owner, source)
-    {
-    }
+    public TypeStringDictionary(ICanBeReadOnly owner, TypeDictionary<Utf8String?>? source = null)
+        : base(owner, source) { }
 
     IEnumerator<KeyValuePair<Type, string?>> IEnumerable<KeyValuePair<Type, string?>>.GetEnumerator()
     {

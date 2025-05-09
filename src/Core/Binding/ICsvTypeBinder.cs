@@ -9,7 +9,8 @@ namespace FlameCsv.Binding;
 /// Instance that binds CSV fields to members when reading and writing.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public interface ICsvTypeBinder<T> where T : unmanaged, IBinaryInteger<T>
+public interface ICsvTypeBinder<T>
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Returns a materializer for <typeparamref name="TValue"/> bound to a CSV header.

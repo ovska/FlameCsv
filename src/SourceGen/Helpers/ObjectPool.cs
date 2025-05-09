@@ -19,14 +19,16 @@ namespace FlameCsv.SourceGen.Helpers;
 
 internal static class ObjectPool
 {
-    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this HashSet<T> set) where T : IEquatable<T?>
+    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this HashSet<T> set)
+        where T : IEquatable<T?>
     {
         var result = set.Count == 0 ? [] : set.ToEquatableArray();
         PooledSet<T>.Release(set);
         return result;
     }
 
-    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this List<T> list) where T : IEquatable<T?>
+    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this List<T> list)
+        where T : IEquatable<T?>
     {
         var result = list.Count == 0 ? [] : list.ToEquatableArray();
         PooledList<T>.Release(list);
@@ -34,7 +36,8 @@ internal static class ObjectPool
     }
 }
 
-internal class ObjectPool<T> where T : class
+internal class ObjectPool<T>
+    where T : class
 {
     [DebuggerDisplay("{Value,nq}")]
     private struct Element
@@ -45,7 +48,6 @@ internal class ObjectPool<T> where T : class
     private T? _firstItem;
     private readonly Element[] _items;
     private readonly Func<T> _factory;
-
 
     internal ObjectPool(Func<T> factory, int size = 16)
     {
@@ -159,7 +161,8 @@ internal class ObjectPool<T> where T : class
         {
             var trace = CaptureStackTrace();
             Debug.WriteLine(
-                $"TRACEOBJECTPOOLLEAKS_BEGIN\nObject of type {typeof(T)} was freed, but was not from pool. \n Callstack: \n {trace} TRACEOBJECTPOOLLEAKS_END");
+                $"TRACEOBJECTPOOLLEAKS_BEGIN\nObject of type {typeof(T)} was freed, but was not from pool. \n Callstack: \n {trace} TRACEOBJECTPOOLLEAKS_END"
+            );
         }
 
         if (replacement != null)
@@ -236,7 +239,8 @@ internal class ObjectPool<T> where T : class
                 // and has not been returned back. This is not critical, but turns pool into rather
                 // inefficient kind of "new".
                 Debug.WriteLine(
-                    $"TRACEOBJECTPOOLLEAKS_BEGIN\nPool detected potential leaking of {typeof(T)}. \n Location of the leak: \n {GetTrace()} TRACEOBJECTPOOLLEAKS_END");
+                    $"TRACEOBJECTPOOLLEAKS_BEGIN\nPool detected potential leaking of {typeof(T)}. \n Location of the leak: \n {GetTrace()} TRACEOBJECTPOOLLEAKS_END"
+                );
             }
         }
     }

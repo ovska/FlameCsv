@@ -22,9 +22,7 @@ public static class BuiltinBindingTests
     [Fact]
     public static void Should_Bind_To_Tuple()
     {
-        var items = CsvReader
-            .Read<Tuple<int, bool, string>>(Data, new CsvOptions<char> { HasHeader = false })
-            .ToList();
+        var items = CsvReader.Read<Tuple<int, bool, string>>(Data, new CsvOptions<char> { HasHeader = false }).ToList();
 
         Assert.Equal(2, items.Count);
         Assert.Equal(new Tuple<int, bool, string>(1, true, "Alice"), items[0]);
@@ -47,8 +45,8 @@ public static class BuiltinBindingTests
         Assert.Equal(expected, actual);
     }
 
-    public static TheoryData<Type, bool> TupleTestData()
-        => new()
+    public static TheoryData<Type, bool> TupleTestData() =>
+        new()
         {
             { typeof(bool), false },
             { typeof(object), false },

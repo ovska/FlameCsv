@@ -14,32 +14,22 @@ public static class TypeInfoTests
     [CsvConstructor(ParameterTypes = [typeof(int)])]
     private class OnType
     {
-        public OnType(int _)
-        {
-        }
+        public OnType(int _) { }
 
-        public OnType(int i, bool b)
-        {
-        }
+        public OnType(int i, bool b) { }
     }
 
     private class OnCtor
     {
         [CsvConstructor]
-        public OnCtor(int _)
-        {
-        }
+        public OnCtor(int _) { }
 
-        public OnCtor()
-        {
-        }
+        public OnCtor() { }
     }
 
     private class OneCtor
     {
-        public OneCtor(int _)
-        {
-        }
+        public OneCtor(int _) { }
     }
 
     private class NoCtor;
@@ -47,22 +37,16 @@ public static class TypeInfoTests
     private class EmptyCtor
     {
         // ReSharper disable once EmptyConstructor
-        public EmptyCtor()
-        {
-        }
+        public EmptyCtor() { }
     }
 
     [CsvConstructor(ParameterTypes = [typeof(int)])]
     private class Both
     {
-        public Both(int _)
-        {
-        }
+        public Both(int _) { }
 
         [CsvConstructor]
-        public Both(int i, bool b)
-        {
-        }
+        public Both(int i, bool b) { }
     }
 
     [Fact]
@@ -102,18 +86,24 @@ public static class TypeInfoTests
 
         Assert.Contains(
             m1,
-            m => m.Value == typeof(Obj).GetProperty("Id") &&
-                m.MemberType == typeof(int) &&
-                m is { IsProperty: true, IsReadOnly: false, Attributes: [] });
+            m =>
+                m.Value == typeof(Obj).GetProperty("Id")
+                && m.MemberType == typeof(int)
+                && m is { IsProperty: true, IsReadOnly: false, Attributes: [] }
+        );
         Assert.Contains(
             m1,
-            m => m.Value == typeof(Obj).GetProperty("Name") &&
-                m.MemberType == typeof(string) &&
-                m is { IsProperty: true, IsReadOnly: true, Attributes: [] });
+            m =>
+                m.Value == typeof(Obj).GetProperty("Name")
+                && m.MemberType == typeof(string)
+                && m is { IsProperty: true, IsReadOnly: true, Attributes: [] }
+        );
         Assert.Contains(
             m1,
-            m => m.Value == typeof(Obj).GetField("Field") &&
-                m is { IsProperty: false, IsReadOnly: false, Attributes: [CsvIgnoreAttribute] });
+            m =>
+                m.Value == typeof(Obj).GetField("Field")
+                && m is { IsProperty: false, IsReadOnly: false, Attributes: [CsvIgnoreAttribute] }
+        );
 
         foreach (var member in m1)
         {
@@ -149,9 +139,8 @@ public static class TypeInfoTests
 [method: CsvConstructor]
 file class Obj2(bool b, int i)
 {
-    public Obj2(string s) : this(s is null, 0)
-    {
-    }
+    public Obj2(string s)
+        : this(s is null, 0) { }
 
     public bool B { get; set; } = b;
     public int I { get; set; } = i;
@@ -166,11 +155,11 @@ file class Obj
     }
 
     [CsvConstructor]
-    public Obj()
-    {
-    }
+    public Obj() { }
 
     public int Id { get; set; }
     public string? Name { get; }
-    [CsvIgnore] public bool Field = true;
+
+    [CsvIgnore]
+    public bool Field = true;
 }

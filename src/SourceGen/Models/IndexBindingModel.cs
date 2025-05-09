@@ -9,7 +9,8 @@ internal static class IndexBindingModel
         bool write,
         in FlameSymbols symbols,
         EquatableArray<IMemberModel> members,
-        ref AnalysisCollector collector)
+        ref AnalysisCollector collector
+    )
     {
         // we don't bother checking these if there are errors already
         // this also avoids returning index binding problems twice
@@ -30,8 +31,10 @@ internal static class IndexBindingModel
 
             foreach (var member in members)
             {
-                if (member.Index is not { } index) continue;
-                if (write ? !member.CanWrite : !member.CanRead) continue;
+                if (member.Index is not { } index)
+                    continue;
+                if (write ? !member.CanWrite : !member.CanRead)
+                    continue;
 
                 dict ??= MemberDictPool.Acquire();
 
@@ -57,7 +60,8 @@ internal static class IndexBindingModel
 
                 // conflicting bindings
                 collector.AddDiagnostic(
-                    Diagnostics.ConflictingIndex(symbols.TargetType, $"{member.Identifier} ({member.Kind})"));
+                    Diagnostics.ConflictingIndex(symbols.TargetType, $"{member.Identifier} ({member.Kind})")
+                );
                 return [];
             }
 

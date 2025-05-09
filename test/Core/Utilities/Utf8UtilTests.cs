@@ -11,10 +11,10 @@ public static class Utf8UtilTests
     private static readonly string _strAbc = "abcdefghijklmnopqrstuvwxyzoäö^üñ";
     private static readonly byte[] _byteAbc = ToUTF8(_strAbc);
 
-    private static ReadOnlySpan<byte> WeirdnessU8
-        => "Ḽơᶉëᶆ ȋṕšᶙṁ ḍỡḽǭᵳ ʂǐť ӓṁệẗ, ĉṓɲṩḙċťᶒțûɾ ấɖḯƥĭṩčįɳġ ḝłįʈ, șếᶑ ᶁⱺ ẽḭŭŝḿꝋď ṫĕᶆᶈṓɍ ỉñḉīḑȋᵭṵńť ṷŧ ḹẩḇőꝛế éȶ đꝍꞎôꝛȇ ᵯáꞡᶇā ąⱡîɋṹẵ. Юникод!"u8;
-    private const string Weirdness
-        = "Ḽơᶉëᶆ ȋṕšᶙṁ ḍỡḽǭᵳ ʂǐť ӓṁệẗ, ĉṓɲṩḙċťᶒțûɾ ấɖḯƥĭṩčįɳġ ḝłįʈ, șếᶑ ᶁⱺ ẽḭŭŝḿꝋď ṫĕᶆᶈṓɍ ỉñḉīḑȋᵭṵńť ṷŧ ḹẩḇőꝛế éȶ đꝍꞎôꝛȇ ᵯáꞡᶇā ąⱡîɋṹẵ. Юникод!";
+    private static ReadOnlySpan<byte> WeirdnessU8 =>
+        "Ḽơᶉëᶆ ȋṕšᶙṁ ḍỡḽǭᵳ ʂǐť ӓṁệẗ, ĉṓɲṩḙċťᶒțûɾ ấɖḯƥĭṩčįɳġ ḝłįʈ, șếᶑ ᶁⱺ ẽḭŭŝḿꝋď ṫĕᶆᶈṓɍ ỉñḉīḑȋᵭṵńť ṷŧ ḹẩḇőꝛế éȶ đꝍꞎôꝛȇ ᵯáꞡᶇā ąⱡîɋṹẵ. Юникод!"u8;
+    private const string Weirdness =
+        "Ḽơᶉëᶆ ȋṕšᶙṁ ḍỡḽǭᵳ ʂǐť ӓṁệẗ, ĉṓɲṩḙċťᶒțûɾ ấɖḯƥĭṩčįɳġ ḝłįʈ, șếᶑ ᶁⱺ ẽḭŭŝḿꝋď ṫĕᶆᶈṓɍ ỉñḉīḑȋᵭṵńť ṷŧ ḹẩḇőꝛế éȶ đꝍꞎôꝛȇ ᵯáꞡᶇā ąⱡîɋṹẵ. Юникод!";
 
     [Fact]
     public static void Should_Equals_Empty()
@@ -42,7 +42,9 @@ public static class Utf8UtilTests
         Assert.True(Utf8Util.SequenceEqual(_byteAbc, _strAbc, StringComparison.OrdinalIgnoreCase));
 
         Assert.True(Utf8Util.SequenceEqual(_byteAbc.AsSpan(..^2), _strAbc.AsSpan(..^1), StringComparison.Ordinal));
-        Assert.True(Utf8Util.SequenceEqual(_byteAbc.AsSpan(..^2), _strAbc.AsSpan(..^1), StringComparison.OrdinalIgnoreCase));
+        Assert.True(
+            Utf8Util.SequenceEqual(_byteAbc.AsSpan(..^2), _strAbc.AsSpan(..^1), StringComparison.OrdinalIgnoreCase)
+        );
 
         Assert.False(Utf8Util.SequenceEqual(_byteAbc, _strAbc.ToUpper(), StringComparison.Ordinal));
         Assert.True(Utf8Util.SequenceEqual(_byteAbc, _strAbc.ToUpper(), StringComparison.OrdinalIgnoreCase));
@@ -76,8 +78,8 @@ public static class Utf8UtilTests
         Assert.True(Utf8Util.SequenceEqual(WeirdnessU8, Weirdness.ToUpper(), StringComparison.OrdinalIgnoreCase));
 
         Assert.False(Utf8Util.SequenceEqual(WeirdnessU8, ToUTF8(Weirdness.ToUpper()), StringComparison.Ordinal));
-        Assert.True(Utf8Util.SequenceEqual(WeirdnessU8, ToUTF8(Weirdness.ToUpper()), StringComparison.OrdinalIgnoreCase));
+        Assert.True(
+            Utf8Util.SequenceEqual(WeirdnessU8, ToUTF8(Weirdness.ToUpper()), StringComparison.OrdinalIgnoreCase)
+        );
     }
-
-
 }

@@ -20,10 +20,9 @@ public sealed class CsvValueEnumerator<T, TValue> : CsvValueEnumeratorBase<T, TV
     public CsvValueEnumerator(
         CsvOptions<T> options,
         ICsvBufferReader<T> reader,
-        CancellationToken cancellationToken = default)
-        : base(options, reader, cancellationToken)
-    {
-    }
+        CancellationToken cancellationToken = default
+    )
+        : base(options, reader, cancellationToken) { }
 
     /// <inheritdoc/>
     protected override IMaterializer<T, TValue> BindToHeaders(ImmutableArray<string> headers)

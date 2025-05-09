@@ -20,7 +20,9 @@ namespace FlameCsv.Enumeration;
 /// </remarks>
 [MustDisposeResource]
 public abstract class CsvValueEnumeratorBase<T, TValue>
-    : CsvEnumeratorBase<T>, IEnumerator<TValue>, IAsyncEnumerator<TValue>
+    : CsvEnumeratorBase<T>,
+        IEnumerator<TValue>,
+        IAsyncEnumerator<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -29,6 +31,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     public TValue Current { get; private set; }
 
     object? IEnumerator.Current => Current;
+
     void IEnumerator.Reset() => ResetCore();
 
     /// <summary>
@@ -54,7 +57,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         get => field;
         set
         {
-            if (!Options.HasHeader) Throw.NotSupported_CsvHasNoHeader();
+            if (!Options.HasHeader)
+                Throw.NotSupported_CsvHasNoHeader();
 
             if (value.IsDefaultOrEmpty || !Headers.AsSpan().SequenceEqual(value.AsSpan(), Options.Comparer))
             {
@@ -79,7 +83,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     protected CsvValueEnumeratorBase(
         CsvOptions<T> options,
         ICsvBufferReader<T> reader,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken
+    )
         : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -118,7 +123,9 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 cfe.Position ??= Position;
                 cfe.Record = slice.RawValue.AsPrintableString();
             }
-            catch { /* ignore */ }
+            catch
+            { /* ignore */
+            }
             throw;
         }
         catch (Exception ex)
@@ -127,8 +134,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
             CsvExceptionHandler<T>? handler = ExceptionHandler;
 
-            if (handler is not null &&
-                handler(new CsvExceptionHandlerArgs<T>(in slice, Headers, ex, Line, Position)))
+            if (handler is not null && handler(new CsvExceptionHandlerArgs<T>(in slice, Headers, ex, Line, Position)))
             {
                 // try again
                 return false;

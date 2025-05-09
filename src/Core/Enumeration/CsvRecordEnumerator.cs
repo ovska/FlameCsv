@@ -21,7 +21,10 @@ namespace FlameCsv.Enumeration;
 /// </remarks>
 [MustDisposeResource]
 public sealed class CsvRecordEnumerator<T>
-    : CsvEnumeratorBase<T>, IEnumerator<CsvRecord<T>>, IAsyncEnumerator<CsvRecord<T>>, IRecordOwner
+    : CsvEnumeratorBase<T>,
+        IEnumerator<CsvRecord<T>>,
+        IAsyncEnumerator<CsvRecord<T>>,
+        IRecordOwner
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -51,6 +54,7 @@ public sealed class CsvRecordEnumerator<T>
     CsvRecord<T> IEnumerator<CsvRecord<T>>.Current => _current;
     CsvRecord<T> IAsyncEnumerator<CsvRecord<T>>.Current => _current;
     object IEnumerator.Current => _current;
+
     void IEnumerator.Reset() => ResetCore();
 
     /// <summary>
@@ -62,7 +66,8 @@ public sealed class CsvRecordEnumerator<T>
     public CsvRecordEnumerator(
         CsvOptions<T> options,
         ICsvBufferReader<T> reader,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default
+    )
         : base(options, reader, cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -74,7 +79,8 @@ public sealed class CsvRecordEnumerator<T>
         // clear the materializer cache on hot reload
         HotReloadService.RegisterForHotReload(
             this,
-            static state => ((CsvRecordEnumerator<T>)state)._materializerCache = null);
+            static state => ((CsvRecordEnumerator<T>)state)._materializerCache = null
+        );
     }
 
     private int _version;
@@ -86,8 +92,8 @@ public sealed class CsvRecordEnumerator<T>
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
-    IDictionary<object, object> IRecordOwner.MaterializerCache
-        => _materializerCache ??= new(ReferenceEqualityComparer.Instance);
+    IDictionary<object, object> IRecordOwner.MaterializerCache =>
+        _materializerCache ??= new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
     /// Current header value. May be null if a header is not yet read, header is reset, or if the CSV has no header.

@@ -8,9 +8,7 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
 {
     public static readonly SpanTextConverterFactory Instance = new();
 
-    private SpanTextConverterFactory()
-    {
-    }
+    private SpanTextConverterFactory() { }
 
     public override bool CanConvert(Type type) => CanConvertCore(type, out _);
 
@@ -20,9 +18,7 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
         if (!CanConvertCore(type, out bool? isFloatingPoint))
             throw new NotSupportedException("The type is not supported.");
 
-        Type toCreate = isFloatingPoint.HasValue
-            ? typeof(NumberTextConverter<>)
-            : typeof(SpanTextConverter<>);
+        Type toCreate = isFloatingPoint.HasValue ? typeof(NumberTextConverter<>) : typeof(SpanTextConverter<>);
 
         object?[] parameters = isFloatingPoint switch
         {
@@ -42,7 +38,8 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
 
         foreach (var iface in type.GetInterfaces())
         {
-            if (iface.Module != typeof(int).Module) continue;
+            if (iface.Module != typeof(int).Module)
+                continue;
 
             if (iface.IsGenericType)
             {
