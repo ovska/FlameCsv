@@ -26,10 +26,19 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
             .Sort(
                 static (a, b) =>
                 {
-                    int cmp = b.PopCount().CompareTo(a.PopCount());
-                    if (cmp == 0) cmp = b.ToBitmask().CompareTo(a.ToBitmask());
-                    return cmp;
-                });
+                    ulong aMask = a.ToBitmask();
+                    ulong bMask = b.ToBitmask();
+                    int aBits = BitOperations.PopCount(aMask);
+                    int bBits = BitOperations.PopCount(bMask);
+
+                    if (aBits != bBits)
+                    {
+                        return bBits.CompareTo(aBits);
+                    }
+
+                    return bMask.CompareTo(aMask);
+                }
+            );
     }
 
     private readonly T _separator;
@@ -104,7 +113,8 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
                 }
             }
 
-            if (current == -1) return OperationStatus.InvalidData;
+            if (current == -1)
+                return OperationStatus.InvalidData;
             foundValues[count++] = current;
         }
 
@@ -123,7 +133,8 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
             }
             else
             {
-                if (destination.IsEmpty) return OperationStatus.DestinationTooSmall;
+                if (destination.IsEmpty)
+                    return OperationStatus.DestinationTooSmall;
                 destination[0] = _separator;
                 destination = destination.Slice(1);
                 charsWritten++;
