@@ -49,6 +49,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Reading", "t
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Binding", "test\Binding\FlameCsv.Tests.Binding.csproj", "{7828141A-97A5-468B-8038-8AC8ECD75848}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{FE9B0D8B-AAA4-4C0C-9052-7DADC48BB873}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\docs.yml = .github\workflows\docs.yml
+		.github\workflows\publish.yml = .github\workflows\publish.yml
+		.github\workflows\test.yml = .github\workflows\test.yml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

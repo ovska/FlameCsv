@@ -39,7 +39,7 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
   - Supports trimming to reduce application size
   - Debuggable source code instead of compiled expressions
   - Compile-time diagnostics instead of runtime errors
-  - Feature parity with reflection-based code paths (soon)
+  - Feature parity with reflection-based code paths
   - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting
 
 # Example

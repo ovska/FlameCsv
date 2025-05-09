@@ -23,7 +23,8 @@ public static partial class CsvWriter
             FileAccess.Write,
             FileShare.None,
             ioOptions.BufferSize,
-            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None));
+            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
+        );
     }
 
     private static ICsvBufferWriter<char> GetFileBufferWriter(
@@ -46,7 +47,8 @@ public static partial class CsvWriter
             return new TextBufferWriter(
                 new StreamWriter(stream, encoding, ioOptions.BufferSize, leaveOpen: false),
                 memoryPool ?? MemoryPool<char>.Shared,
-                ioOptions);
+                ioOptions
+            );
         }
         catch
         {
@@ -214,7 +216,8 @@ public static partial class CsvWriter
     /// </summary>
     private static void WriteHeaderIfNeeded<T, TValue>(
         IDematerializer<T, TValue> dematerializer,
-        ref readonly CsvFieldWriter<T> writer)
+        ref readonly CsvFieldWriter<T> writer
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         if (writer.Options.HasHeader)
