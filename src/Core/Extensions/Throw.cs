@@ -7,8 +7,16 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
 
+[ExcludeFromCodeCoverage]
 internal static class Throw
 {
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static ValueTask ObjectDisposedAsync(object instance)
+    {
+        return ValueTask.FromException(new ObjectDisposedException(instance.GetType().FullName));
+    }
+
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
     public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
 

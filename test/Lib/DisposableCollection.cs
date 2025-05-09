@@ -2,6 +2,9 @@
 
 namespace FlameCsv.Tests;
 
+/// <summary>
+/// A collection that disposes its items when disposed.
+/// </summary>
 public sealed class DisposableCollection : Collection<IDisposable?>, IDisposable
 {
     public void Dispose()

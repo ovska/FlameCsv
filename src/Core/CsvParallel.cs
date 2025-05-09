@@ -312,6 +312,7 @@ internal sealed class RecordTracker : IDisposable
 }
 #else
 // ReSharper disable All
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class CsvParallel
 {
     private static ParallelOptions DefaultParallelOptions { get; } = new();

@@ -3,10 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv;
 
+[ExcludeFromCodeCoverage]
 internal static class Token<T>
     where T : unmanaged
 {
-    [ExcludeFromCodeCoverage]
     public static string Name =>
         typeof(T) == typeof(char) ? "char"
         : typeof(T) == typeof(byte) ? "byte"

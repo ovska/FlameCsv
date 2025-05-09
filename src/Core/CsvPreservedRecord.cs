@@ -14,9 +14,7 @@ namespace FlameCsv;
 /// </summary>
 [PublicAPI]
 public class CsvPreservedRecord<T>
-    : ICsvRecord<T>,
-        IReadOnlyList<ReadOnlyMemory<T>>,
-        IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
+    : ICsvRecord<T>, IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
@@ -85,10 +83,6 @@ public class CsvPreservedRecord<T>
 
         _fields = buffer.Preserve();
     }
-
-    int IReadOnlyCollection<ReadOnlyMemory<T>>.Count => FieldCount;
-
-    ReadOnlyMemory<T> IReadOnlyList<ReadOnlyMemory<T>>.this[int index] => this[index];
 
     /// <summary>
     /// Parses the record into an instance of <typeparamref name="TRecord"/> using reflection.
@@ -244,6 +238,7 @@ public class CsvPreservedRecord<T>
     }
 
     /// <inheritdoc/>
+    [ExcludeFromCodeCoverage]
     public override string ToString()
     {
         return $"{{ CsvPreservedRecord[{FieldCount}] \"{Options.GetAsString(RawRecord.Span)}\" }}";
@@ -255,39 +250,20 @@ public class CsvPreservedRecord<T>
         KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>
     >.GetEnumerator()
     {
-        for (int i = 0; i < _fields.Length; i++)
-        {
-            yield return new KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>(i, _fields[i]);
-        }
+        return _fields.Select((f, i) => new KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>(i, f)).GetEnumerator();
     }
 
-    IEnumerator<ReadOnlyMemory<T>> IEnumerable<ReadOnlyMemory<T>>.GetEnumerator()
+    [ExcludeFromCodeCoverage]
+    IEnumerator IEnumerable.GetEnumerator()
     {
-        for (int i = 0; i < _fields.Length; i++)
-        {
-            yield return _fields[i];
-        }
+        return ((IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>)this).GetEnumerator();
     }
-
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<ReadOnlyMemory<T>>)this).GetEnumerator();
 
     IEnumerable<CsvFieldIdentifier> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Keys
-    {
-        get
-        {
-            for (int i = 0; i < _fields.Length; i++)
-                yield return i;
-        }
-    }
+        => Enumerable.Range(0, _fields.Length).Select(i => (CsvFieldIdentifier)i);
 
     IEnumerable<ReadOnlyMemory<T>> IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.Values
-    {
-        get
-        {
-            foreach (var f in _fields)
-                yield return f;
-        }
-    }
+        => _fields.Select(f => (ReadOnlyMemory<T>)f);
 
     bool IReadOnlyDictionary<CsvFieldIdentifier, ReadOnlyMemory<T>>.ContainsKey(CsvFieldIdentifier key)
     {

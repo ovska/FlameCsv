@@ -53,10 +53,7 @@ public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>
 
         if (!id.TryGetIndex(out int index, out string? name))
         {
-            if (_owner.Header?.TryGetValue(name, out index) != true)
-            {
-                return false;
-            }
+            return _owner.Header?.ContainsKey(name) ?? false;
         }
 
         return (uint)index < (uint)_slice.FieldCount;

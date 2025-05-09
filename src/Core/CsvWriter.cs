@@ -67,22 +67,15 @@ public static partial class CsvWriter
 
         try
         {
+            WriteHeaderIfNeeded(dematerializer, in writer);
+
             if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
             {
-                if (writer.Options.HasHeader)
-                    dematerializer.WriteHeader(in writer);
-
-                writer.WriteNewline();
+                EnsureTrailingNewline(in writer);
                 return;
             }
 
-            if (writer.Options.HasHeader)
-            {
-                dematerializer.WriteHeader(in writer);
-                writer.WriteNewline();
-            }
-
-            using var enumerator = values.GetEnumerator();
+            using IEnumerator<TValue> enumerator = values.GetEnumerator();
 
             if (!enumerator.MoveNext())
             {
@@ -128,22 +121,15 @@ public static partial class CsvWriter
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            WriteHeaderIfNeeded(dematerializer, in writer);
+
             if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
             {
-                if (writer.Options.HasHeader)
-                    dematerializer.WriteHeader(in writer);
-
-                writer.WriteNewline();
+                EnsureTrailingNewline(in writer);
                 return;
             }
 
-            if (writer.Options.HasHeader)
-            {
-                dematerializer.WriteHeader(in writer);
-                writer.WriteNewline();
-            }
-
-            using var enumerator = values.GetEnumerator();
+            using IEnumerator<TValue> enumerator = values.GetEnumerator();
 
             if (!enumerator.MoveNext())
             {
@@ -187,13 +173,9 @@ public static partial class CsvWriter
 
         try
         {
-            if (writer.Options.HasHeader)
-            {
-                dematerializer.WriteHeader(in writer);
-                writer.WriteNewline();
-            }
+            WriteHeaderIfNeeded(dematerializer, in writer);
 
-            var enumerator = values.GetAsyncEnumerator(cancellationToken);
+            IAsyncEnumerator<TValue> enumerator = values.GetAsyncEnumerator(cancellationToken);
 
             await using (enumerator)
             {
@@ -227,6 +209,24 @@ public static partial class CsvWriter
         }
     }
 
+    /// <summary>
+    /// Writes the header record if <see cref="CsvOptions{T}.HasHeader"/> is <c>true</c>.
+    /// </summary>
+    private static void WriteHeaderIfNeeded<T, TValue>(
+        IDematerializer<T, TValue> dematerializer,
+        ref readonly CsvFieldWriter<T> writer)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (writer.Options.HasHeader)
+        {
+            dematerializer.WriteHeader(in writer);
+            writer.WriteNewline();
+        }
+    }
+
+    /// <summary>
+    /// If a header record hasn't been written, writes a single newline.
+    /// </summary>
     private static void EnsureTrailingNewline<T>(ref readonly CsvFieldWriter<T> writer)
         where T : unmanaged, IBinaryInteger<T>
     {
