@@ -1,6 +1,7 @@
 ﻿<RunSettings>
     <RunConfiguration>
-        <EnvironmentVariables>
+          <MaxCpuCount>0</MaxCpuCount>
+  <EnvironmentVariables>
             <!-- 128-bit vector operations -->
 <!--            <DOTNET_EnableSSE>0</DOTNET_EnableSSE>-->
 <!--            <DOTNET_EnableSSE2>0</DOTNET_EnableSSE2>-->
