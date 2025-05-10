@@ -15,7 +15,7 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-BenchmarkRunner.Run<CsvEnumerateBench>(new Config(), args);
+BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
 
 namespace FlameCsv.Benchmark
 {

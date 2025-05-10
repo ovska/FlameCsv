@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Text;
+﻿using System.Text;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
 
@@ -15,7 +14,7 @@ public class CsvEnumerateBench
     [Params(true, false)]
     public bool AltData { get; set; }
 
-    [Params(true, false)]
+    [Params(true)]
     public bool CRLF { get; set; }
 
     [GlobalSetup]
@@ -24,10 +23,7 @@ public class CsvEnumerateBench
         string path = AltData ? @"Comparisons/Data/65K_Records_Data.csv" : @"Comparisons/Data/SampleCSVFile_556kb.csv";
 
         _string = File.ReadAllText(path, Encoding.UTF8).ReplaceLineEndings(CRLF ? "\r\n" : "\n");
-
-        _byteArray = Encoding.UTF8.GetBytes(_string);
-        _byteSeq = new ReadOnlySequence<byte>(_byteArray);
-        _charSeq = new ReadOnlySequence<char>(_string.AsMemory());
+        _byteArray = Encoding.UTF8.GetBytes(_string); // can't read the bytes directly as we need to replace line endings
 
         _optionsByteLF = new() { Newline = CsvNewline.LF };
         _optionsCharLF = new() { Newline = CsvNewline.LF };
@@ -37,8 +33,6 @@ public class CsvEnumerateBench
 
     private byte[] _byteArray = [];
     private string _string = "";
-    private ReadOnlySequence<byte> _byteSeq;
-    private ReadOnlySequence<char> _charSeq;
 
     private CsvOptions<byte> _optionsByteLF = null!;
     private CsvOptions<char> _optionsCharLF = null!;
@@ -51,7 +45,7 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
-        foreach (var record in new CsvReader<byte>(OptionsByte, in _byteSeq).ParseRecords())
+        foreach (var record in new CsvReader<byte>(OptionsByte, _byteArray).ParseRecords())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -63,7 +57,7 @@ public class CsvEnumerateBench
     [Benchmark]
     public void Flame_char()
     {
-        foreach (var record in new CsvReader<char>(OptionsChar, in _charSeq).ParseRecords())
+        foreach (var record in new CsvReader<char>(OptionsChar, _string.AsMemory()).ParseRecords())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {
@@ -72,28 +66,28 @@ public class CsvEnumerateBench
         }
     }
 
-    [Benchmark]
-    public void Sep_byte()
-    {
-        using var reader = Sep.Reader(o =>
-                o with
-                {
-                    Sep = new Sep(','),
-                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-                    HasHeader = false,
-                    Unescape = true,
-                }
-            )
-            .From(_byteArray);
+    // [Benchmark]
+    // public void Sep_byte()
+    // {
+    //     using var reader = Sep.Reader(o =>
+    //             o with
+    //             {
+    //                 Sep = new Sep(','),
+    //                 CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+    //                 HasHeader = false,
+    //                 Unescape = true,
+    //             }
+    //         )
+    //         .From(_byteArray);
 
-        foreach (var row in reader)
-        {
-            for (int i = 0; i < row.ColCount; i++)
-            {
-                _ = row[i].Span;
-            }
-        }
-    }
+    //     foreach (var row in reader)
+    //     {
+    //         for (int i = 0; i < row.ColCount; i++)
+    //         {
+    //             _ = row[i].Span;
+    //         }
+    //     }
+    // }
 
     [Benchmark]
     public void Sep_char()
