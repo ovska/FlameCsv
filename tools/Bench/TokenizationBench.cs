@@ -10,55 +10,83 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "RatioSD")]
 public class TokenizationBench
 {
-    [Params(true, false)]
+    [Params(true)]
+    public bool CRLF { get; set; }
+
+    [Params(false)]
     public bool Alt { get; set; }
 
-    [Params(true, false)]
+    [Params(false)]
     public bool Chars { get; set; }
 
-    private readonly Meta[] _metaBuffer = new Meta[24 * 65535];
-    private readonly string _chars0 = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv", Encoding.UTF8);
-    private readonly string _chars1 = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv", Encoding.UTF8);
-    private readonly byte[] _bytes0 = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
-    private readonly byte[] _bytes1 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
+    private static readonly Meta[] _metaBuffer = new Meta[24 * 65535];
+    private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
+    private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
+    private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
+    private static readonly byte[] _bytes1LF = Encoding.UTF8.GetBytes(_chars1LF);
+    private static readonly string _chars0CRLF = _chars0LF.ReplaceLineEndings("\r\n");
+    private static readonly string _chars1CRLF = _chars1LF.ReplaceLineEndings("\r\n");
+    private static readonly byte[] _bytes0CRLF = Encoding.UTF8.GetBytes(_chars0CRLF);
+    private static readonly byte[] _bytes1CRLF = Encoding.UTF8.GetBytes(_chars1CRLF);
 
-    private string CharData => Alt ? _chars1 : _chars0;
-    private byte[] ByteData => Alt ? _bytes1 : _bytes0;
+    private string CharData => Alt ? (CRLF ? _chars1CRLF : _chars1LF) : (CRLF ? _chars0CRLF : _chars0LF);
+    private byte[] ByteData => Alt ? (CRLF ? _bytes1CRLF : _bytes1LF) : (CRLF ? _bytes0CRLF : _bytes0LF);
 
-    private static readonly CsvOptions<char> _dialectChar = new CsvOptions<char>
+    private static readonly CsvOptions<char> _dCharLF = new CsvOptions<char>
     {
         Delimiter = ',',
         Quote = '"',
         Newline = CsvNewline.LF,
     };
 
-    private static readonly CsvOptions<byte> _dialectByte = new CsvOptions<byte>
+    private static readonly CsvOptions<byte> _dByteCRLF = new CsvOptions<byte>
+    {
+        Delimiter = ',',
+        Quote = '"',
+        Newline = CsvNewline.CRLF,
+    };
+
+    private static readonly CsvOptions<byte> _dByteLF = new CsvOptions<byte>
     {
         Delimiter = ',',
         Quote = '"',
         Newline = CsvNewline.LF,
     };
 
-    private readonly SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char> _t128 = new(_dialectChar);
-
-    private readonly SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char> _t256 = new(_dialectChar);
-
-    private readonly SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char> _t512 = new(_dialectChar);
-
-    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte> _t128b = new(_dialectByte);
-
-    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte> _t256b = new(_dialectByte);
-
-    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte> _t512b = new(_dialectByte);
-
-    [Benchmark(Baseline = true)]
-    public int V128()
+    private static readonly CsvOptions<char> _dCharCRLF = new CsvOptions<char>
     {
-        if (!Vector128.IsHardwareAccelerated)
-            throw new NotSupportedException();
+        Delimiter = ',',
+        Quote = '"',
+        Newline = CsvNewline.CRLF,
+    };
 
-        return Chars ? _t128.Tokenize(_metaBuffer, CharData, 0) : _t128b.Tokenize(_metaBuffer, ByteData, 0);
-    }
+    private readonly SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char> _t256LF = new(_dCharLF);
+    private readonly SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char> _t512LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte> _t128bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte> _t256bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte> _t512bLF = new(_dByteLF);
+
+    private readonly SimdTokenizer<byte, NewlineCRLF<byte, Vec128Byte>, Vec128Byte> _t128bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<byte, NewlineCRLF<byte, Vec256Byte>, Vec256Byte> _t256bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<byte, NewlineCRLF<byte, Vec512Byte>, Vec512Byte> _t512bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<char, NewlineCRLF<char, Vec128Char>, Vec128Char> _t128CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, NewlineCRLF<char, Vec256Char>, Vec256Char> _t256CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, NewlineCRLF<char, Vec512Char>, Vec512Char> _t512CRLF = new(_dCharCRLF);
+
+    // [Benchmark(Baseline = true)]
+    // public int V128()
+    // {
+    //     if (!Vector128.IsHardwareAccelerated)
+    //         throw new NotSupportedException();
+
+    //     if (CRLF)
+    //     {
+    //         return Chars ? _t128CRLF.Tokenize(_metaBuffer, CharData, 0) : _t128bCRLF.Tokenize(_metaBuffer, ByteData, 0);
+    //     }
+
+    //     return Chars ? _t128LF.Tokenize(_metaBuffer, CharData, 0) : _t128bLF.Tokenize(_metaBuffer, ByteData, 0);
+    // }
 
     [Benchmark]
     public int V256()
@@ -66,15 +94,25 @@ public class TokenizationBench
         if (!Vector256.IsHardwareAccelerated)
             throw new NotSupportedException();
 
-        return Chars ? _t256.Tokenize(_metaBuffer, CharData, 0) : _t256b.Tokenize(_metaBuffer, ByteData, 0);
+        if (CRLF)
+        {
+            return Chars ? _t256CRLF.Tokenize(_metaBuffer, CharData, 0) : _t256bCRLF.Tokenize(_metaBuffer, ByteData, 0);
+        }
+
+        return Chars ? _t256LF.Tokenize(_metaBuffer, CharData, 0) : _t256bLF.Tokenize(_metaBuffer, ByteData, 0);
     }
 
-    [Benchmark]
-    public int V512()
-    {
-        if (!Vector512.IsHardwareAccelerated)
-            throw new NotSupportedException();
+    // [Benchmark]
+    // public int V512()
+    // {
+    //     if (!Vector512.IsHardwareAccelerated)
+    //         throw new NotSupportedException();
 
-        return Chars ? _t512.Tokenize(_metaBuffer, CharData, 0) : _t512b.Tokenize(_metaBuffer, ByteData, 0);
-    }
+    //     if (CRLF)
+    //     {
+    //         return Chars ? _t512CRLF.Tokenize(_metaBuffer, CharData, 0) : _t512bCRLF.Tokenize(_metaBuffer, ByteData, 0);
+    //     }
+
+    //     return Chars ? _t512LF.Tokenize(_metaBuffer, CharData, 0) : _t512bLF.Tokenize(_metaBuffer, ByteData, 0);
+    // }
 }

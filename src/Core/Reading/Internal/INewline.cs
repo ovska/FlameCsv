@@ -155,9 +155,15 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
         {
             ref byte v = ref Unsafe.As<T, byte>(ref value);
 
-            if (v == '\r' || v == '\n')
+            if (v == '\r')
             {
-                isMultitoken = v == '\r' && Unsafe.Add(ref v, 1) == '\n';
+                // Highly predictable branch - almost always true
+                isMultitoken = Unsafe.Add(ref v, 1) == '\n';
+                return true;
+            }
+            if (v == '\n')
+            {
+                isMultitoken = false;
                 return true;
             }
         }
@@ -165,9 +171,15 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
         {
             ref char v = ref Unsafe.As<T, char>(ref value);
 
-            if (v == '\r' || v == '\n')
+            if (v == '\r')
             {
-                isMultitoken = v == '\r' && Unsafe.Add(ref v, 1) == '\n';
+                // Highly predictable branch - almost always true
+                isMultitoken = Unsafe.Add(ref v, 1) == '\n';
+                return true;
+            }
+            if (v == '\n')
+            {
+                isMultitoken = false;
                 return true;
             }
         }

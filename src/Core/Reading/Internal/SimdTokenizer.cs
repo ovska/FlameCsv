@@ -346,6 +346,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
+        // can't lift out the EOL check to here, as we might have a quote after the last EOL leaving it in the wrong state
+
         return ref currentMeta;
     }
 
