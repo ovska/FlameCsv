@@ -48,14 +48,9 @@ internal interface INewline<T, TVector> : INewline<T>
     where TVector : struct
 {
     /// <summary>
-    /// Loads the newline vectors.
-    /// </summary>
-    static abstract void Load(out TVector v0, out TVector v1);
-
-    /// <summary>
     /// Checks if the input vector contains a newline.
     /// </summary>
-    static abstract TVector HasNewline(TVector input, TVector v0, TVector v1);
+    static abstract TVector HasNewline(TVector input);
 }
 
 [SkipLocalsInit]
@@ -100,16 +95,9 @@ internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Load(out TVector v0, out TVector v1)
+    public static TVector HasNewline(TVector input)
     {
-        v0 = TVector.Create((byte)'\n');
-        Unsafe.SkipInit(out v1);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TVector HasNewline(TVector input, TVector v0, TVector v1)
-    {
-        return TVector.Equals(input, v0);
+        return TVector.Equals(input, TVector.Create((byte)'\n'));
     }
 }
 
@@ -198,15 +186,8 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Load(out TVector v0, out TVector v1)
+    public static TVector HasNewline(TVector input)
     {
-        v0 = TVector.Create((byte)'\r');
-        v1 = TVector.Create((byte)'\n');
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TVector HasNewline(TVector input, TVector v0, TVector v1)
-    {
-        return TVector.Equals(input, v0) | TVector.Equals(input, v1);
+        return TVector.Equals(input, TVector.Create((byte)'\r')) | TVector.Equals(input, TVector.Create((byte)'\n'));
     }
 }

@@ -48,7 +48,6 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         T quote = _quote;
         TVector delimiterVec = TVector.Create(_delimiter);
         TVector quoteVec = TVector.Create(_quote);
-        TNewline.Load(out TVector newline1, out TVector newline2);
         uint quotesConsumed = 0;
 
         TVector nextVector = TVector.LoadUnaligned(in first, runningIndex);
@@ -61,7 +60,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
             TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
             TVector hasQuote = TVector.Equals(vector, quoteVec);
-            TVector hasNewline = TNewline.HasNewline(vector, newline1, newline2);
+            TVector hasNewline = TNewline.HasNewline(vector);
             TVector hasAny = hasNewline | hasDelimiter | hasQuote;
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
