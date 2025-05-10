@@ -77,13 +77,7 @@ internal readonly struct Meta : IEquatable<Meta>
             ThrowInvalidRFC(quoteCount, false);
         }
 
-        return Unsafe.BitCast<long, Meta>(
-            (uint)end
-                | // end position
-                ((long)quoteCount << 35)
-                | // quote count
-                (1L << 32)
-        ); // delimiter
+        return Unsafe.BitCast<long, Meta>((uint)end | ((long)quoteCount << 35) | (1L << 32));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,11 +90,7 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return Unsafe.BitCast<long, Meta>(
-            (uint)end
-                | // end position
-                unchecked((uint)EOLMask)
-                | (((long)(uint)newlineLength) << 32)
-                | ((long)quoteCount << 35)
+            (uint)end | unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32) | ((long)quoteCount << 35)
         );
     }
 
@@ -113,17 +103,11 @@ internal readonly struct Meta : IEquatable<Meta>
             ThrowInvalidRFC(quoteCount, isEOL);
         }
 
-        long mask = unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32);
+        long newlineMask = unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32);
         long isEolMask = isEOL.ToBitwiseMask64();
         return Unsafe.BitCast<long, Meta>(
-            (uint)end
-                | // end position
-                ((long)quoteCount << 35)
-                | // quote count
-                ((1L << 32) & ~isEolMask)
-                | // delimiter, zero if EOL
-                (mask & isEolMask)
-        ); // newline length + EOLMask, or zero if not EOL
+            (uint)end | ((long)quoteCount << 35) | ((1L << 32) & ~isEolMask) | (newlineMask & isEolMask)
+        );
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
