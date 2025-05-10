@@ -41,7 +41,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             ref MemoryMarshal.GetReference(metaBuffer);
         scoped ref readonly Meta metaEnd = ref Unsafe.Add(
             ref MemoryMarshal.GetReference(metaBuffer),
-            metaBuffer.Length - (TVector.Count * 2)
+            metaBuffer.Length - TVector.Count
         );
 
         // load the constants into registers
