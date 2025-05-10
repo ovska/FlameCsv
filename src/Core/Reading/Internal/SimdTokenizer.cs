@@ -79,7 +79,16 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             {
                 if (quotesConsumed != 0)
                     goto TrySkipQuoted;
-                currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+
+                // ParseDelimiters
+                do
+                {
+                    int offset = BitOperations.TrailingZeroCount(maskDelimiter);
+                    maskDelimiter &= (maskDelimiter - 1); // clear lowest bit
+                    currentMeta = Meta.Plain((int)runningIndex + offset);
+                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                } while (maskDelimiter != 0); // no bounds-check, meta-buffer always has space for a full vector
+
                 goto ContinueRead;
             }
 
@@ -109,7 +118,15 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                         if (firstDelimiter < firstNewline)
                         {
                             // All delimiters are before any newlines
-                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+
+                            // ParseDelimiters
+                            do
+                            {
+                                int offset = BitOperations.TrailingZeroCount(maskDelimiter);
+                                maskDelimiter &= (maskDelimiter - 1); // clear lowest bit
+                                currentMeta = Meta.Plain((int)runningIndex + offset);
+                                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                            } while (maskDelimiter != 0);
 
                             // Fall through to parse line ends
                             maskNewlineOrDelimiter = maskNewline;
@@ -126,7 +143,15 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                             );
 
                             // Process delimiters afterward
-                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+
+                            // ParseDelimiters
+                            do
+                            {
+                                int offset = BitOperations.TrailingZeroCount(maskDelimiter);
+                                maskDelimiter &= (maskDelimiter - 1); // clear lowest bit
+                                currentMeta = Meta.Plain((int)runningIndex + offset);
+                                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                            } while (maskDelimiter != 0);
                             goto ContinueRead;
                         }
                     }
@@ -194,10 +219,11 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             runningIndex += (nuint)TVector.Count;
         }
 
-        return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta)
-            / Unsafe.SizeOf<Meta>();
+        nint byteOffset = Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta);
+        return (int)byteOffset / Unsafe.SizeOf<Meta>();
     }
 
+#if false
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref Meta ParseDelimiters(nuint mask, nuint runningIndex, ref Meta currentMeta)
     {
@@ -211,6 +237,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
         return ref currentMeta;
     }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref Meta ParseLineEnds(
