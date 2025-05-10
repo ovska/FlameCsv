@@ -150,6 +150,8 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNewline(ref T value, out bool isMultitoken)
     {
+        isMultitoken = false;
+
         // this type check produces less ASM code than simple generics: 42 vs 50 for byte, 43 vs 50 for char
         if (Unsafe.SizeOf<T>() is sizeof(byte))
         {
@@ -163,7 +165,6 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
             }
             if (v == '\n')
             {
-                isMultitoken = false;
                 return true;
             }
         }
@@ -179,7 +180,6 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
             }
             if (v == '\n')
             {
-                isMultitoken = false;
                 return true;
             }
         }
