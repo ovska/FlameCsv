@@ -100,11 +100,10 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             // Indices should be gapless and start from zero
             if (binding.Index != expectedIndex)
             {
-                throw new CsvBindingException<TValue>(
-                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} "
-                        + $"but the next binding was: {binding}",
-                    bindingsList
-                );
+                throw new CsvBindingException(
+                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} " +
+                    $"but the next binding was: {binding}",
+                    bindingsList) { TargetType = typeof(TValue) };
             }
 
             if (binding.IsIgnored)
@@ -124,7 +123,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                 }
                 else if (!ctor.Equals(parameterBinding.Constructor))
                 {
-                    throw new CsvBindingException<TValue>(typeof(TValue), ctor, parameterBinding.Constructor);
+                    throw new CsvBindingException(typeof(TValue), ctor, parameterBinding.Constructor);
                 }
 
                 ThrowIfDuplicate(ctorBindings, parameterBinding);
@@ -138,10 +137,9 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
 
         if (memberBindings.Count == 0 && ctorBindings.Count == 0)
         {
-            throw new CsvBindingException<TValue>(
+            throw new CsvBindingException(
                 $"All {bindings.Length} binding(s) for {typeof(TValue)} are ignored",
-                bindingsList
-            );
+                bindingsList) { TargetType = typeof(TValue) };
         }
 
         ForWriting = write;
@@ -157,7 +155,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             {
                 if (duplicate.TargetEquals(binding))
                 {
-                    throw new CsvBindingException<TValue>(duplicate, binding);
+                    throw new CsvBindingException(duplicate, binding) { TargetType = typeof(TValue) };
                 }
             }
         }
@@ -177,9 +175,11 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         // Guard against some weirdness possible by custom header binders
         if (bindings.Length > parameters.Length)
         {
-            throw new CsvBindingException<TValue>(
-                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters."
-            );
+            throw new CsvBindingException(
+                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.")
+            {
+                TargetType = typeof(TValue)
+            };
         }
 
         List<(ParameterCsvBinding<TValue>? ctorBinding, ParameterInfo param)> parameterInfos = new(parameters.Length);
@@ -200,7 +200,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             // Default value is required
             if (match is null && !parameter.HasDefaultValue)
             {
-                throw new CsvBindingException<TValue>(parameter, bindingsList);
+                throw new CsvBindingException(parameter, bindingsList) { TargetType = typeof(TValue) };
             }
 
             parameterInfos.Add((match, parameter));

@@ -4,19 +4,26 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Exceptions;
 
-/// <inheritdoc cref="CsvBindingException{T}"/>
+/// <summary>
+/// Represents errors in CSV member binding configuration, such as invalid member types or fields.
+/// </summary>
 [PublicAPI]
-public class CsvBindingException : CsvConfigurationException
+public sealed class CsvBindingException : CsvConfigurationException
 {
     /// <summary>
     /// Target type of the attempted binding.
     /// </summary>
-    public virtual Type? TargetType { get; }
+    public Type? TargetType { get; set; }
 
     /// <summary>
     /// Bindings that relate to the exception (if known).
     /// </summary>
-    public virtual IReadOnlyList<CsvBinding> Bindings => [];
+    public IEnumerable<CsvBinding>? Bindings { get; set; }
+
+    /// <summary>
+    /// Headers that were used to bind the CSV.
+    /// </summary>
+    public IEnumerable<string>? Headers { get; set; }
 
     /// <summary>
     /// Initializes a new instance.
@@ -32,36 +39,13 @@ public class CsvBindingException : CsvConfigurationException
     /// </summary>
     public CsvBindingException(string? message = null, Exception? innerException = null)
         : base(message, innerException) { }
-}
-
-/// <summary>
-/// Represents errors in CSV member binding configuration, such as invalid member types or fields.
-/// </summary>
-public sealed class CsvBindingException<T> : CsvBindingException
-{
-    /// <summary>
-    /// Target type of the attempted binding.
-    /// </summary>
-    public override Type TargetType => typeof(T);
-
-    /// <summary>
-    /// Possible bindings that caused the exception.
-    /// </summary>
-    public override IReadOnlyList<CsvBinding> Bindings { get; }
-
-    /// <inheritdoc/>
-    public CsvBindingException(string? message = null, Exception? innerException = null)
-        : base(message, innerException)
-    {
-        Bindings = [];
-    }
 
     /// <summary>
     /// Initializes a <see cref="CsvBindingException"/> for invalid bindings.
     /// </summary>
     /// <param name="message"></param>
     /// <param name="bindings"></param>
-    public CsvBindingException(string message, IReadOnlyList<CsvBinding<T>> bindings)
+    public CsvBindingException(string message, IEnumerable<CsvBinding> bindings)
         : base(message)
     {
         Bindings = bindings;
@@ -70,8 +54,8 @@ public sealed class CsvBindingException<T> : CsvBindingException
     /// <summary>
     /// Throws an exception for conflicting bindings.
     /// </summary>
-    public CsvBindingException(CsvBinding<T> first, CsvBinding<T> second)
-        : base($"Conflicting bindings for {typeof(T)}: {first} and {second}")
+    public CsvBindingException(CsvBinding first, CsvBinding second)
+        : base($"Conflicting bindings: {first} and {second}")
     {
         Bindings = [first, second];
     }
@@ -82,7 +66,6 @@ public sealed class CsvBindingException<T> : CsvBindingException
     public CsvBindingException(Type target, ConstructorInfo first, ConstructorInfo second)
         : base($"Multiple constructors {target}: {first} and {second}")
     {
-        Bindings = [];
     }
 
     /// <summary>
