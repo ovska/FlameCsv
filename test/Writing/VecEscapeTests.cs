@@ -28,9 +28,9 @@ public static class VecEscapeTests
             { "|012345678901234abcdefghijklmnopqrstuvwxyz|", "||012345678901234abcdefghijklmnopqrstuvwxyz||" },
         };
 
-    private static readonly SimdEscaperRFC<char, Vec256Char> _cTokens = new('|', ',', '\r', '\n');
+    private static readonly SimdEscaperRFC<char, Vec256<char>> _cTokens = new('|', ',', '\r', '\n');
 
-    private static readonly SimdEscaperRFC<byte, Vec256Byte> _bTokens = new(
+    private static readonly SimdEscaperRFC<byte, Vec256<byte>> _bTokens = new(
         (byte)'|',
         (byte)',',
         (byte)'\r',
@@ -41,18 +41,18 @@ public static class VecEscapeTests
     [MemberData(nameof(Data))]
     public static void Should_Escape_Char(string input, string expected)
     {
-        Assert.SkipUnless(Vec256Char.IsSupported, "Vec256Char is not supported on current hardware");
+        Assert.SkipUnless(Vec256<char>.IsSupported, "Vec256<char> is not supported on current hardware");
 
-        Impl<char, SimdEscaperRFC<char, Vec256Char>, Vec256Char>(input, expected, in _cTokens);
+        Impl<char, SimdEscaperRFC<char, Vec256<char>>, Vec256<char>>(input, expected, in _cTokens);
     }
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Byte(string input, string expected)
     {
-        Assert.SkipUnless(Vec256Byte.IsSupported, "Vec256Byte is not supported on current hardware");
+        Assert.SkipUnless(Vec256<byte>.IsSupported, "Vec256<byte> is not supported on current hardware");
 
-        Impl<byte, SimdEscaperRFC<byte, Vec256Byte>, Vec256Byte>(Encoding.UTF8.GetBytes(input), expected, in _bTokens);
+        Impl<byte, SimdEscaperRFC<byte, Vec256<byte>>, Vec256<byte>>(Encoding.UTF8.GetBytes(input), expected, in _bTokens);
     }
 
     static void Impl<T, TTokens, TVector>(ReadOnlySpan<T> value, string expected, in TTokens tokens)
