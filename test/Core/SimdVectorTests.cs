@@ -8,35 +8,35 @@ public static class SimdVectorTests
 
     private const string CharData = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    private static ReadOnlySpan<byte> ByteData =>
-        "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
+    private static ReadOnlySpan<byte> ByteData
+        => "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
 
     [Fact]
-    public static void Vector_128_Byte() => Test<byte, Vec128Byte>(ByteData);
+    public static void Vector_128_Byte() => Test<byte, Vec128<byte>>(ByteData);
 
     [Fact]
-    public static void Vector_256_Byte() => Test<byte, Vec256Byte>(ByteData);
+    public static void Vector_256_Byte() => Test<byte, Vec256<byte>>(ByteData);
 
     [Fact]
-    public static void Vector_512_Byte() => Test<byte, Vec512Byte>(ByteData);
+    public static void Vector_512_Byte() => Test<byte, Vec512<byte>>(ByteData);
 
     [Fact]
-    public static void Vector_128_Char() => Test<char, Vec128Char>(CharData);
+    public static void Vector_128_Char() => Test<char, Vec128<char>>(CharData);
 
     [Fact]
-    public static void Vector_256_Char() => Test<char, Vec256Char>(CharData);
+    public static void Vector_256_Char() => Test<char, Vec256<char>>(CharData);
 
     [Fact]
-    public static void Vector_512_Char() => Test<char, Vec512Char>(CharData);
+    public static void Vector_512_Char() => Test<char, Vec512<char>>(CharData);
 
     [Fact]
-    public static void NonAscii_128() => TestNonAscii<Vec128Char>();
+    public static void NonAscii_128() => TestNonAscii<Vec128<char>>();
 
     [Fact]
-    public static void NonAscii_256() => TestNonAscii<Vec256Char>();
+    public static void NonAscii_256() => TestNonAscii<Vec256<char>>();
 
     [Fact]
-    public static void NonAscii_512() => TestNonAscii<Vec512Char>();
+    public static void NonAscii_512() => TestNonAscii<Vec512<char>>();
 
     private static void Test<T, TVector>(ReadOnlySpan<T> data)
         where T : unmanaged, IBinaryInteger<T>
@@ -73,8 +73,7 @@ public static class SimdVectorTests
                 Enumerable
                     .Range(0, (1024 * 8 / TVector.Count) + TVector.Count)
                     .Select(i => i == token ? (char)(i + 1) : (char)i)
-                    .ToArray()
-            );
+                    .ToArray());
 
             for (int i = 0; i < data.Length; i += TVector.Count)
             {
@@ -87,16 +86,14 @@ public static class SimdVectorTests
                 {
                     char actual = data[i + (int)eq.ExtractMostSignificantBits()];
                     Assert.Fail(
-                        $"Matched: {actual} ({(int)actual} / {(int)actual:X}) to {token} ({(int)token} / {(int)token:X})"
-                            + Environment.NewLine
-                            + $"Chars: [{data.AsSpan(i, TVector.Count)}], Bytes: "
-                            + string.Join(
-                                ',',
-                                data.AsSpan(i, TVector.Count).ToArray().Select(x => ((int)x).ToString("X"))
-                            )
-                            + Environment.NewLine
-                            + $"Vec: {vec}"
-                    );
+                        $"Matched: {actual} ({(int)actual} / {(int)actual:X}) to {token} ({(int)token} / {(int)token:X})" +
+                        Environment.NewLine +
+                        $"Chars: [{data.AsSpan(i, TVector.Count)}], Bytes: " +
+                        string.Join(
+                            ',',
+                            data.AsSpan(i, TVector.Count).ToArray().Select(x => ((int)x).ToString("X"))) +
+                        Environment.NewLine +
+                        $"Vec: {vec}");
                 }
             }
         }

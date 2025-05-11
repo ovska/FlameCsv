@@ -7,7 +7,7 @@ internal abstract class CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Number of characters deemed
+    /// Number of Tacters deemed
     /// </summary>
     public abstract int PreferredLength { get; }
 
@@ -43,27 +43,40 @@ internal abstract class CsvTokenizer<T>
 
 internal static class CsvTokenizer
 {
-    public static CsvPartialTokenizer<T>? CreateSimd<T>(CsvOptions<T> dialect)
+    public static CsvPartialTokenizer<T>? CreateSimd<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (dialect.Escape.HasValue)
+        if (options.Escape.HasValue)
         {
             return null;
         }
 
-        object? result = null;
+        // on x86 with AVX512, 256 is faster in all cases except 3% slower on dense non-quoted data
+        // and up to 6% slower on dense or quoted data
 
-        if (typeof(T) == typeof(byte))
+        // use "else" instead of just "if" to reduce JITted code size if multiple SIMD types are supported
+        if (Vec256<T>.IsSupported)
         {
-            result = ForByte.CreateSimd((CsvOptions<byte>)(object)dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<T, NewlineCRLF<T, Vec256<T>>, Vec256<T>>(options)
+                : new SimdTokenizer<T, NewlineLF<T, Vec256<T>>, Vec256<T>>(options);
         }
 
-        if (typeof(T) == typeof(char))
+        if (Vec512<T>.IsSupported)
         {
-            result = ForChar.CreateSimd((CsvOptions<char>)(object)dialect);
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<T, NewlineCRLF<T, Vec512<T>>, Vec512<T>>(options)
+                : new SimdTokenizer<T, NewlineLF<T, Vec512<T>>, Vec512<T>>(options);
         }
 
-        return result as CsvPartialTokenizer<T>;
+        if (Vec128<T>.IsSupported)
+        {
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<T, NewlineCRLF<T, Vec128<T>>, Vec128<T>>(options)
+                : new SimdTokenizer<T, NewlineLF<T, Vec128<T>>, Vec128<T>>(options);
+        }
+
+        return null;
     }
 
     public static CsvTokenizer<T> Create<T>(CsvOptions<T> options)
@@ -80,74 +93,8 @@ internal static class CsvTokenizer
     }
 }
 
-file static class ForChar
-{
-    public static CsvPartialTokenizer<char>? CreateSimd(CsvOptions<char> options)
-    {
-        // TODO: benchmark 256 vs 512 on non-x86 platforms; RuntimeInformation.ProcessArchitecture is X86 or X64.. etc
-        // on x86 with AVX512, 256 is faster in all cases except 3% slower on dense non-quoted data
-        // and up to 6% slower on dense or quoted data
-
-        // use "else" instead of just "if" to reduce JITted code size if multiple SIMD types are supported
-        if (Vec256Char.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineCRLF<char, Vec256Char>, Vec256Char>(options)
-                : new SimdTokenizer<char, NewlineLF<char, Vec256Char>, Vec256Char>(options);
-        }
-
-        if (Vec512Char.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineCRLF<char, Vec512Char>, Vec512Char>(options)
-                : new SimdTokenizer<char, NewlineLF<char, Vec512Char>, Vec512Char>(options);
-        }
-
-        if (Vec128Char.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<char, NewlineCRLF<char, Vec128Char>, Vec128Char>(options)
-                : new SimdTokenizer<char, NewlineLF<char, Vec128Char>, Vec128Char>(options);
-        }
-
-        return null;
-    }
-}
-
-file static class ForByte
-{
-    public static CsvPartialTokenizer<byte>? CreateSimd(CsvOptions<byte> options)
-    {
-        // TODO: benchmark 256 vs 512 on non-x86 platforms
-
-        // use if-else to reduce JITted code size if multiple SIMD types are supported
-        if (Vec256Byte.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec256Byte>, Vec256Byte>(options)
-                : new SimdTokenizer<byte, NewlineLF<byte, Vec256Byte>, Vec256Byte>(options);
-        }
-
-        if (Vec512Byte.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec512Byte>, Vec512Byte>(options)
-                : new SimdTokenizer<byte, NewlineLF<byte, Vec512Byte>, Vec512Byte>(options);
-        }
-
-        if (Vec128Byte.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<byte, NewlineCRLF<byte, Vec128Byte>, Vec128Byte>(options)
-                : new SimdTokenizer<byte, NewlineLF<byte, Vec128Byte>, Vec128Byte>(options);
-        }
-
-        return null;
-    }
-}
-
 /*
-| Method | Alt   | Chars | Mean       | StdDev  | Ratio |
+| Method | Alt   | Ts | Mean       | StdDev  | Ratio |
 |------- |------ |------ |-----------:|--------:|------:|
 | V128   | False | False | 1,539.0 us | 2.98 us |  1.00 |
 | V256   | False | False | 1,149.3 us | 9.75 us |  0.75 |
