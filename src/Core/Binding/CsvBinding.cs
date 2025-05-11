@@ -80,7 +80,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// Returns a binding for the specified member.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <exception cref="CsvBindingException{T}"></exception>
+    /// <exception cref="CsvBindingException"></exception>
     [RDC(Messages.Reflection)]
     public static CsvBinding<T> ForMember<[DAM(Messages.ReflectionBound)] T>(
         int index,
@@ -110,13 +110,16 @@ public abstract class CsvBinding : IComparable<CsvBinding>
             }
         }
 
-        throw new CsvBindingException<T>($"Member {member} is not applicable for type {typeof(T)}");
+        throw new CsvBindingException($"Member {member} is not applicable for type {typeof(T)}")
+        {
+            TargetType = typeof(T)
+        };
     }
 
     /// <summary>
     /// Returns a binding for the specified parameter.
     /// </summary>
-    /// <exception cref="CsvBindingException{T}"></exception>
+    /// <exception cref="CsvBindingException"></exception>
     public static CsvBinding<T> ForParameter<[DAM(Messages.ReflectionBound)] T>(int index, ParameterInfo parameter)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index);
@@ -128,7 +131,10 @@ public abstract class CsvBinding : IComparable<CsvBinding>
                 return new ParameterCsvBinding<T>(index, data);
         }
 
-        throw new CsvBindingException<T>($"Parameter {parameter} was not found on the constructor of {typeof(T)}");
+        throw new CsvBindingException($"Parameter {parameter} was not found on the constructor of {typeof(T)}")
+        {
+            TargetType = typeof(T),
+        };
     }
 
     /// <summary>

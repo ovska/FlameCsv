@@ -26,6 +26,8 @@ public abstract class CsvReflectionBinder
         var configuration = AttributeConfiguration.GetFor<TValue>(write: false);
         List<CsvBinding<TValue>> foundBindings = new(headerFields.Length);
 
+        bool matchedAny = false;
+
         foreach (string field in headerFields)
         {
             int index = foundBindings.Count;
@@ -47,6 +49,7 @@ public abstract class CsvReflectionBinder
                 if (match)
                 {
                     binding = CsvBinding.FromBindingData<TValue>(index, in data);
+                    matchedAny = true;
                     break;
                 }
             }
@@ -54,11 +57,25 @@ public abstract class CsvReflectionBinder
             if (binding is null && !ignoreUnmatched)
             {
                 throw new CsvBindingException(
-                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}"
-                );
+                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}")
+                {
+                    TargetType = typeof(TValue),
+                    Headers = headerFields,
+                };
             }
 
+            matchedAny |= binding is not null;
+
             foundBindings.Add(binding ?? CsvBinding.Ignore<TValue>(index: foundBindings.Count));
+        }
+
+        if (!matchedAny)
+        {
+            throw new CsvBindingException("No bindings matched.")
+            {
+                    TargetType = typeof(TValue),
+                Headers = headerFields
+            };
         }
 
         return new CsvBindingCollection<TValue>(foundBindings, write: false);
@@ -82,10 +99,11 @@ public abstract class CsvReflectionBinder
             && !IndexAttributeBinder<TValue>.TryGetBindings(write: true, out bindingCollection)
         )
         {
-            throw new CsvBindingException<TValue>(
-                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no "
-                    + "[CsvIndex]-attributes."
-            );
+            throw new CsvBindingException(
+                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no [CsvIndex]-attributes.")
+            {
+                TargetType = typeof(TValue),
+            };
         }
 
         var bindings = bindingCollection.MemberBindings;
