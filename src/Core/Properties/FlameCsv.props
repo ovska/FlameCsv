@@ -1,0 +1,5 @@
+<Project>
+    <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+        <DefineConstants>$(DefineConstants);AOT</DefineConstants>
+    </PropertyGroup>
+</Project>
