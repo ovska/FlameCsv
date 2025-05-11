@@ -57,6 +57,7 @@
         />
         <None Include="Properties/icon.png" Pack="true" PackagePath="" />
         <None Include="Properties/README.md" Pack="true" PackagePath="" />
+        <None Include="Properties/FlameCsv.props" Pack="true" PackagePath="build/" />
         <None Update="Reading\Materializer.Generated.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
