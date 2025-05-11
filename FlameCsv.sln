@@ -39,6 +39,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{0C88DD14-F
 	ProjectSection(SolutionItems) = preProject
 		test\Directory.Build.props = test\Directory.Build.props
 		test\.editorconfig = test\.editorconfig
+		test\.runsettings = test\.runsettings
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlameCsv.Tests.Lib", "test\Lib\FlameCsv.Tests.Lib.csproj", "{59F86B78-F628-4376-A2A5-4E57871AE2F0}"
