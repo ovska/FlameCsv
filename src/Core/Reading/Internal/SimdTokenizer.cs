@@ -50,13 +50,13 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         TVector quoteVec = TVector.Create(_quote);
         uint quotesConsumed = 0;
 
-        TVector nextVector = TVector.LoadUnaligned(in first, runningIndex);
+        TVector nextVector = TVector.LoadUnaligned(ref first, runningIndex);
 
         while (Unsafe.IsAddressLessThan(in currentMeta, in metaEnd) && runningIndex <= searchSpaceEnd)
         {
             // prefetch the next vector so we can process the current without waiting for it to load
             TVector vector = nextVector;
-            nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
 
             TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
             TVector hasQuote = TVector.Equals(vector, quoteVec);
@@ -270,7 +270,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 {
                     // do not reorder
                     runningIndex += TNewline.OffsetFromEnd;
-                    nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -315,7 +315,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         {
             // do not reorder
             runningIndex += TNewline.OffsetFromEnd;
-            nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
         }
 
         return ref currentMeta;
@@ -367,7 +367,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 {
                     // do not reorder
                     runningIndex += TNewline.OffsetFromEnd;
-                    nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
@@ -411,7 +411,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 {
                     // do not reorder
                     runningIndex += TNewline.OffsetFromEnd;
-                    nextVector = TVector.LoadUnaligned(in first, runningIndex + (nuint)TVector.Count);
+                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
