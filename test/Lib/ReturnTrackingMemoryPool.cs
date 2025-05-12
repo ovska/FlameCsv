@@ -1,15 +1,17 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using FlameCsv.Extensions;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests;
 
 [SupportedOSPlatform("windows")]
 public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     public override int MaxBufferSize { get; } = Environment.SystemPageSize * 128;
 
@@ -32,19 +34,35 @@ public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTra
 }
 
 public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     public override int MaxBufferSize => Array.MaxLength;
 
+    private const int Boundaries = 128;
+
     protected override Memory<T> Initialize(int length)
     {
-        return ArrayPool<T>.Shared.Rent(length);
+        T[] array = ArrayPool<T>.Shared.Rent(length + Boundaries * 2);
+
+        array.AsSpan().Fill(T.AllBitsSet);
+
+        return array.AsMemory(Boundaries, length);
     }
 
     protected override bool TryRelease(Memory<T> memory)
     {
         if (MemoryMarshal.TryGetArray<T>(memory, out var segment))
         {
+            T[] array = segment.Array!;
+
+            if (
+                array.AsSpan(..Boundaries).ContainsAnyExcept(T.AllBitsSet)
+                || array.AsSpan(Boundaries + memory.Length).ContainsAnyExcept(T.AllBitsSet)
+            )
+            {
+                throw new InvalidOperationException($"OOB write detected");
+            }
+
             ArrayPool<T>.Shared.Return(segment.Array!);
             return true;
         }
@@ -54,7 +72,7 @@ public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<
 }
 
 public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     public static ReturnTrackingMemoryPool<T> Create(bool? guardedFromEnd = null)
     {
