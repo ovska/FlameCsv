@@ -52,7 +52,7 @@ internal interface ISimdVector<T, TVector>
     /// <summary>
     /// Loads a vector from the specified address.
     /// </summary>
-    static abstract TVector LoadUnaligned(ref readonly T source, nuint offset);
+    static abstract TVector LoadUnaligned(ref T source, nuint offset);
 
     /// <summary>
     /// Returns a bitwise OR of the two input vectors.
@@ -129,11 +129,11 @@ internal readonly struct Vec128<T> : ISimdVector<T, Vec128<T>> where T : unmanag
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static Vec128<T> LoadUnaligned(ref readonly T source, nuint offset)
+    public static Vec128<T> LoadUnaligned(ref T source, nuint offset)
     {
         if (typeof(T) == typeof(byte))
         {
-            return Vector128.LoadUnsafe(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in source)), offset);
+            return Vector128.LoadUnsafe(ref Unsafe.As<T, byte>(ref source), offset);
         }
 
         if (typeof(T) != typeof(char))
@@ -143,12 +143,12 @@ internal readonly struct Vec128<T> : ISimdVector<T, Vec128<T>> where T : unmanag
 
         if (Avx512BW.VL.IsSupported)
         {
-            var v = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset);
+            var v = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
             return Avx512BW.VL.ConvertToVector128ByteWithSaturation(v);
         }
 
-        var v0 = Vector128.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset);
-        var v1 = Vector128.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector128<byte>.Count / sizeof(ushort)));
+        var v0 = Vector128.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+        var v1 = Vector128.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset + ((nuint)Vector128<byte>.Count / sizeof(ushort)));
 
         // prefer architecture specific intrinsic as they don't perform additional AND like Vector128.Narrow does
         if (Sse2.IsSupported)
@@ -253,11 +253,11 @@ internal readonly struct Vec256<T> : ISimdVector<T, Vec256<T>> where T : unmanag
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static Vec256<T> LoadUnaligned(ref readonly T source, nuint offset)
+    public static Vec256<T> LoadUnaligned(ref T source, nuint offset)
     {
         if (typeof(T) == typeof(byte))
         {
-            return Vector256.LoadUnsafe(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in source)), offset);
+            return Vector256.LoadUnsafe(ref Unsafe.As<T, byte>(ref source), offset);
         }
 
         if (typeof(T) != typeof(char))
@@ -267,12 +267,12 @@ internal readonly struct Vec256<T> : ISimdVector<T, Vec256<T>> where T : unmanag
 
         if (Avx512BW.IsSupported)
         {
-            var v = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset);
+            var v = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
             return Avx512BW.ConvertToVector256ByteWithSaturation(v);
         }
 
-        var v0 = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset);
-        var v1 = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)));
+        var v0 = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+        var v1 = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset + ((nuint)Vector256<byte>.Count / sizeof(ushort)));
 
         if (Avx2.IsSupported)
         {
@@ -371,11 +371,11 @@ internal readonly struct Vec512<T> : ISimdVector<T, Vec512<T>> where T : unmanag
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public static Vec512<T> LoadUnaligned(ref readonly T source, nuint offset)
+    public static Vec512<T> LoadUnaligned(ref T source, nuint offset)
     {
         if (typeof(T) == typeof(byte))
         {
-            return Vector512.LoadUnsafe(ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in source)), offset);
+            return Vector512.LoadUnsafe(ref Unsafe.As<T, byte>(ref source), offset);
         }
 
         if (typeof(T) != typeof(char))
@@ -383,8 +383,8 @@ internal readonly struct Vec512<T> : ISimdVector<T, Vec512<T>> where T : unmanag
             throw new NotSupportedException();
         }
 
-        var v0 = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset);
-        var v1 = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref Unsafe.AsRef(in source)), offset + ((nuint)Vector512<byte>.Count / sizeof(ushort)));
+        var v0 = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+        var v1 = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset + ((nuint)Vector512<byte>.Count / sizeof(ushort)));
 
        if (Avx512BW.IsSupported && Avx512F.IsSupported)
        {
@@ -444,7 +444,7 @@ internal readonly struct NoOpVector<T> : ISimdVector<T, NoOpVector<T>> where T :
     public static NoOpVector<T> Equals(NoOpVector<T> left, NoOpVector<T> right) => default;
     public static NoOpVector<T> Create(T value) => default;
     public static NoOpVector<T> Create(byte value) => default;
-    public static NoOpVector<T> LoadUnaligned(ref readonly T source, nuint offset) => default;
+    public static NoOpVector<T> LoadUnaligned(ref T source, nuint offset) => default;
     public static NoOpVector<T> LoadAligned(ref T source, nuint offset) => default;
     public nuint ExtractMostSignificantBits() => 0;
     public NoOpVector<T> WithZeroFirstElement() => default;

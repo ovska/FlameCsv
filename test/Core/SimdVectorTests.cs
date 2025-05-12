@@ -1,4 +1,6 @@
-﻿using FlameCsv.Intrinsics;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Tests;
 
@@ -8,8 +10,8 @@ public static class SimdVectorTests
 
     private const string CharData = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
-    private static ReadOnlySpan<byte> ByteData
-        => "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
+    private static ReadOnlySpan<byte> ByteData =>
+        "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
 
     [Fact]
     public static void Vector_128_Byte() => Test<byte, Vec128<byte>>(ByteData);
@@ -38,17 +40,19 @@ public static class SimdVectorTests
     [Fact]
     public static void NonAscii_512() => TestNonAscii<Vec512<char>>();
 
-    private static void Test<T, TVector>(ReadOnlySpan<T> data)
+    private static void Test<T, TVector>(ReadOnlySpan<T> dataROS)
         where T : unmanaged, IBinaryInteger<T>
         where TVector : struct, ISimdVector<T, TVector>
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
+        Span<T> data = MemoryMarshal.CreateSpan(ref Unsafe.AsRef(in dataROS[0]), dataROS.Length);
+
         // loading and equality (also tests narrowing in char-data)
-        var abcVec = TVector.LoadUnaligned(in data[0], 0);
+        var abcVec = TVector.LoadUnaligned(ref data[0], 0);
         var aVec = TVector.Create(data[0]);
 
-        Assert.True(abcVec == TVector.LoadUnaligned(in data[0], 0));
+        Assert.True(abcVec == TVector.LoadUnaligned(ref data[0], 0));
         Assert.True(aVec == TVector.Create(data[0]));
         Assert.False(abcVec == aVec);
         Assert.Equal(ByteData.Slice(0, TVector.Count), abcVec.ToArray());
@@ -69,15 +73,14 @@ public static class SimdVectorTests
         {
             Assert.True(char.IsAscii(token));
 
-            var data = new string(
-                Enumerable
-                    .Range(0, (1024 * 8 / TVector.Count) + TVector.Count)
-                    .Select(i => i == token ? (char)(i + 1) : (char)i)
-                    .ToArray());
+            var data = Enumerable
+                .Range(0, (1024 * 8 / TVector.Count) + TVector.Count)
+                .Select(i => i == token ? (char)(i + 1) : (char)i)
+                .ToArray();
 
             for (int i = 0; i < data.Length; i += TVector.Count)
             {
-                var vec = TVector.LoadUnaligned(in data.AsSpan()[i], 0);
+                var vec = TVector.LoadUnaligned(ref data[i], 0);
                 var commaCheck = TVector.Create(token);
 
                 var eq = TVector.Equals(vec, commaCheck);
@@ -86,26 +89,30 @@ public static class SimdVectorTests
                 {
                     char actual = data[i + (int)eq.ExtractMostSignificantBits()];
                     Assert.Fail(
-                        $"Matched: {actual} ({(int)actual} / {(int)actual:X}) to {token} ({(int)token} / {(int)token:X})" +
-                        Environment.NewLine +
-                        $"Chars: [{data.AsSpan(i, TVector.Count)}], Bytes: " +
-                        string.Join(
-                            ',',
-                            data.AsSpan(i, TVector.Count).ToArray().Select(x => ((int)x).ToString("X"))) +
-                        Environment.NewLine +
-                        $"Vec: {vec}");
+                        $"Matched: {actual} ({(int)actual} / {(int)actual:X}) to {token} ({(int)token} / {(int)token:X})"
+                            + Environment.NewLine
+                            + $"Chars: [{data.AsSpan(i, TVector.Count)}], Bytes: "
+                            + string.Join(
+                                ',',
+                                data.AsSpan(i, TVector.Count).ToArray().Select(x => ((int)x).ToString("X"))
+                            )
+                            + Environment.NewLine
+                            + $"Vec: {vec}"
+                    );
                 }
             }
         }
 
+        Span<char> span = stackalloc char[TVector.Count];
+
         // ensure narrowing saturates or zeroes out, instead of just discarding high bits
+        foreach (char control in (char[])[',', '"', '\n', '\r', '\t', '\\'])
         {
-            const char weirdComma = (char)(',' | ',' << 8);
-            Span<char> span = stackalloc char[TVector.Count];
+            char weirdComma = (char)(control | control << 8);
             span.Fill(weirdComma);
-            TVector vec = TVector.LoadUnaligned(in span[0], 0);
-            var commaCheck = TVector.Create(',');
-            var eq = TVector.Equals(vec, commaCheck);
+            TVector vec = TVector.LoadUnaligned(ref span[0], 0);
+            TVector commaCheck = TVector.Create(control);
+            TVector eq = TVector.Equals(vec, commaCheck);
             Assert.True(eq == TVector.Zero, $"Matched: {vec} to {commaCheck}");
         }
     }
