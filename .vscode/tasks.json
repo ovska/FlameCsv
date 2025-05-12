@@ -29,6 +29,29 @@
             },
             "group": "build",
             "detail": "Regenerates the currently open T4 template file"
-        }
+        },
+        {
+            "label": "Serve DocFX Documentation",
+            "type": "shell",
+            "command": "docfx docfx.json --serve",
+            "options": {
+                "cwd": "${workspaceFolder}/docs"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true,
+                "close": true,
+            },
+            "group": "build",
+            "detail": "Serves the documentation website locally using DocFX"
+        },
+        {
+            "label": "📚 Docs: Start Local Server",
+            "dependsOn": "Serve DocFX Documentation",
+            "problemMatcher": [],
+            "group": "build"
+        },
     ]
 }

@@ -83,7 +83,7 @@ In the unfortunate case that the output buffer is just large enough to fit the u
 plus 2 for the wrapping quotes), a temporary buffer is used to copy the value, before writing the escaped value
 to a large enough buffer.
 
-Still to-do is a separate writing routine for @"FlameCsv.Writing.CsvFieldQuoting.Always?displayProperty=nameWithType"
+Still to-do is a separate writing routine for @"FlameCsv.CsvFieldQuoting.Always?displayProperty=nameWithType"
 that leaves off extra space at the start of the output buffer since a quote will be always written there. It has not
 been implemented yet, with the expectation that this configuration is relatively rare.
 
@@ -109,8 +109,7 @@ or you intentionally use a small @"FlameCsv.IO.CsvIOOptions.BufferSize?displayPr
 
 To optimize performance and maintain simplicity, runtime code generation is minimized.
 Where possible, code is generated at _compile-time_ using T4 templates.
-For example, the types that [read](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Materializer.Generated.cs)
-and [write](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Runtime/Dematerializer.Generated.cs) objects are generated this way.
+For example, the types read and write objects are generated this way.
 This allows the JIT compiler to optimize much of the code as if it were handwritten.
 Thanks to the JIT optimizations possible, if the reflection-based types are in cache, they are actually more performant
 than the source generated version.

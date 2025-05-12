@@ -46,9 +46,7 @@ For more details, see @"configuration#dialect". The configuration is identical b
 
 ### .NET types
 
-Use the static @"FlameCsv.CsvReader" class for reading CSV data. The `Read` and `ReadAsync` methods accept various data sources and return an enumerable that works with `foreach` or LINQ. When `options` is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
-
-The `Read` and `ReadAsync` methods return an enumerable-object that can be used with `foreach` or LINQ.
+Use the static @"FlameCsv.CsvReader" class for reading CSV data. The `Read`-methods accept various data sources and return an object that can be used with `foreach`, `await foreach`, or LINQ. When `options` is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
 
 The library supports both @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8) data through C# generics. For bytes, the library expects UTF-8 encoded text (which includes ASCII).
 
@@ -65,7 +63,7 @@ string csv = "id,name,isadmin\r\n1,Bob,true\r\n2,Alice,false\r\n";
 List<User> users = CsvReader.Read<User>(csv).ToList();
 
 // async
-await foreach (var user in CsvReader.ReadAsync<User>(new TextReader(csv)))
+await foreach (var user in CsvReader.Read<User>(csv))
 {
     ProcessUser(user);
 }
@@ -78,7 +76,7 @@ byte[] csv = "id,name,isadmin\r\n1,Bob,true\r\n2,Alice,false\r\n"u8.ToArray();
 List<User> users = CsvReader.Read<User>(csv).ToList();
 
 // async
-await foreach (var user in CsvReader.ReadAsync<User>(new MemoryStream(csv)))
+await foreach (var user in CsvReader.Read<User>(csv))
 {
     ProcessUser(user);
 }
@@ -91,74 +89,86 @@ await foreach (var user in CsvReader.ReadAsync<User>(new MemoryStream(csv)))
 
 ### CSV records and fields
 
-The @"FlameCsv.CsvReader" class contains the `Enumerate` and `EnumerateAsync` methods to read @"FlameCsv.CsvValueRecord`1" that wraps the CSV data, and can be used to inspect details about the records, such has field counts, unescaped record or field, line numbers, and exact character/byte offsets in the file.
+The @"FlameCsv.CsvReader" class contains the `Enumerate`-methods to read @"FlameCsv.CsvRecord`1" that wraps the CSV data, and can be used to inspect details about the records, such has field counts, unescaped record or field, line numbers, and exact character/byte offsets in the file.
 
-Fields can be accessed directly using the @"FlameCsv.CsvFieldIdentifier"-struct, which is implicitly convertible from @"System.String" and @"System.Int32". In the example below, passing `"id"` and `0` to `ParseField` are functionally equivalent. The string-overload however includes and additional array/dictionary-lookup. The @"FlameCsv.CsvValueRecord`1.Header" and @"FlameCsv.CsvValueRecord`1.FieldCount" properties can be used to determine if a specific field can be accessed, along with @"FlameCsv.CsvValueRecord`1.Contains(FlameCsv.CsvFieldIdentifier)".
+Fields can be accessed directly using the @"FlameCsv.CsvFieldIdentifier"-struct, which is implicitly convertible from @"System.String" and @"System.Int32". In the example below, passing `"id"` and `0` to `ParseField` are functionally equivalent. The string-overload however includes and additional array/dictionary-lookup. The @"FlameCsv.CsvRecord`1.Header" and @"FlameCsv.CsvRecord`1.FieldCount" properties can be used to determine if a specific field can be accessed, along with @"FlameCsv.CsvRecord`1.Contains(FlameCsv.CsvFieldIdentifier)".
 
-The @"FlameCsv.CsvValueRecord`1" struct can also be used in a `foreach`-statement to iterate the escaped field values.
+The @"FlameCsv.CsvRecord`1" struct can also be used in a `foreach`-statement to iterate the escaped field values.
 
+# [Type binding](#tab/example-types)
 ```cs
-foreach (var rec in CsvReader.Enumerate(csv))
+foreach (ref readonly CsvRecord<char> record in CsvReader.Enumerate(csv))
 {
-    Console.WriteLine("Fields: {0}", rec.FieldCount);
-    Console.WriteLine("Line in file: {0}", rec.Line);
-    Console.WriteLine("Start offset: {0}", rec.Position);
+    Console.WriteLine("Fields: {0}",         record.FieldCount);
+    Console.WriteLine("Line in file: {0}",   record.Line);
+    Console.WriteLine("Start position: {0}", record.Position);
 
-    // all three calls below are equivalent if using default binding options
-    yield return new User
-    {
-        Id = rec.ParseField<int>("id"),
-        Name = rec.ParseField<string?>("name"),
-        IsAdmin = rec.ParseField<bool>("isadmin"),
-    };
-
-    yield return new User
-    {
-        Id = rec.ParseField<int>(0),
-        Name = rec.ParseField<string?>(1),
-        IsAdmin = rec.ParseField<bool>(2),
-    };
-
-    yield return rec.ParseRecord<User>();
+    yield return record.ParseRecord<User>();
 }
 ```
 
+# [Manual](#tab/example-manual)
+```cs
+foreach (ref readonly CsvRecord<char> record in CsvReader.Enumerate(csv))
+{
+    Console.WriteLine("Fields: {0}",         record.FieldCount);
+    Console.WriteLine("Line in file: {0}",   record.Line);
+    Console.WriteLine("Start position: {0}", record.Position);
+
+    yield return new User
+    {
+        Id = record.ParseField<int>("id"),
+        Name = record.ParseField<string?>("name"),
+        IsAdmin = record.ParseField<bool>("isadmin"),
+    };
+
+    // or
+    yield return new User
+    {
+        Id = record.ParseField<int>(0),
+        Name = record.ParseField<string?>(1),
+        IsAdmin = record.ParseField<bool>(2),
+    };
+}
+```
+
+---
+
 > [!WARNING]
-> A @"FlameCsv.CsvValueRecord`1" instance is only valid until `MoveNext()` is called on the enumerator. The struct is a thin wrapper around the actual data, and may use invalid or pooled memory if used after its intended lifetime. A runtime exception will be thrown if it is accessed after the enumeration has continued or ended. See @"FlameCsv.CsvRecord`1" for an alternative.
+> A @"FlameCsv.CsvRecord`1" instance is only valid until `MoveNext()` is called on the enumerator. The struct is a thin wrapper around the actual data, and may use invalid or pooled memory if used after its intended lifetime. A runtime exception will be thrown if it is accessed after the enumeration has continued or ended. See @"FlameCsv.CsvPreservedRecord`1" for an alternative.
 
 ### Reading raw CSV data
 
 For advanced performance-critical scenarios, you can create a @"FlameCsv.Reading.CsvReader`1".
-This is the type that is used internally to tokenize the CSV data.
+This is the type that is used internally to tokenize the CSV data. @"FlameCsv.Reading.CsvReader`1.ParseRecords" and @"FlameCsv.Reading.CsvReader`1.ParseRecordsAsync(System.Threading.CancellationToken)" can be used to read the tokenized CSV (field and record spans).
 
 # [UTF-16](#tab/utf16)
 ```cs
-foreach (var @record in new CsvReader<char>(CsvOptions<char>, textReader).ParseRecords())
+foreach (CsvRecordRef<char> record in new CsvReader<char>(CsvOptions<char>, textReader).ParseRecords())
 {
-    for (int i = 0; i < @record.FieldCount; i++)
+    for (int i = 0; i < record.FieldCount; i++)
     {
-        ReadOnlySpan<char> @field = @record[i];
-        ProcessField(i, @field);
+        ReadOnlySpan<char> f = record[i]; // or record.GetRawSpan(i) to skip unescaping
+        // use the field
     }
 }
 ```
 
 # [UTF-8](#tab/utf8)
 ```cs
-foreach (var @record in new CsvReader<byte>(CsvOptions<byte>, stream).ParseRecords())
+foreach (CsvRecordRef<byte> record in new CsvReader<byte>(CsvOptions<byte>, stream).ParseRecords())
 {
-    for (int i = 0; i < @record.FieldCount; i++)
+    for (int i = 0; i < record.FieldCount; i++)
     {
-        ReadOnlySpan<byte> @field = @record[i];
-        ProcessField(i, @field);
+        ReadOnlySpan<byte> f = record[i]; // or record.GetRawSpan(i) to skip unescaping
+        // use the field
     }
 }
 ```
 ---
 
-Only one field may be read at a time, as unescaping the fields uses a shared buffer.
-You should process fields one by one before reading the next one. In actuality, if the field
-isn't unescaped, multiple fields can be read at once, but this is an implementation detail and not guaranteed.
+Only one field may be read at a time, as unescaping the fields uses a shared buffer, and you should process fields one by one before reading the next one.
+Fields that don't need escaping or are fetched with `GetRawSpan` can be handled concurrently.
 
 ## Writing
 
@@ -191,58 +201,38 @@ or unescaped raw data directly into your output, while taking care of field
 quoting, delimiters, and escaping. The writer can be flushed manually, or
 be configured to flush automatically if the library detects that the internal buffers are getting saturated.
 
-# [UTF-16](#tab/utf16)
+# [Type binding](#tab/example-types)
 ```cs
 using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 {
-    // header can be writted manually or automatically
-    writer.WriteField("id");
-    writer.WriteField("name");
-    writer.WriteField("isadmin");
-    writer.NextRecord();
-
-    // alternative
     writer.WriteHeader<User>();
-    writer.NextRecord();
-
-    // fields can be written one by one, or as whole records
-    writer.WriteField<int>(1);
-    writer.WriteField<string>("Bob");
-    writer.WriteField<bool>(true);
     writer.NextRecord();
 
     writer.WriteRecord(new User { Id = 1, Name = "Bob", IsAdmin = true });
     writer.NextRecord();
+
+    writer.Complete(exception: null);
 }
 ```
 
-# [UTF-8](#tab/utf8)
+# [Manual](#tab/example-manual)
 ```cs
-using (CsvWriter<byte> writer = CsvWriter.Create(Stream.Null))
+using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 {
-    // header can be writted manually or automatically
-    writer.WriteField("id"u8);      // values can be written as strings,
-    writer.WriteField("name"u8);    // or directly as T (bytes) to avoid
-    writer.WriteField("isadmin"u8); // the runtime transcoding cost
+    writer.WriteHeader("id", "name", "isadmin");
     writer.NextRecord();
 
-    // alternative
-    writer.WriteHeader<User>();
+    writer.WriteField(1);
+    writer.WriteField("Bob"); // you can use "Bob"u8 when writing directly as UTF-8
+    writer.WriteField(true);
     writer.NextRecord();
 
-    // fields can be written one by one, or as whole records
-    writer.WriteField<int>(1);
-    writer.WriteField<string>("Bob");
-    writer.WriteField<bool>(true);
-    writer.NextRecord();
-
-    writer.WriteRecord(new User { Id = 1, Name = "Bob", IsAdmin = true });
-    writer.NextRecord();
+    writer.Complete(exception: null);
 }
 ```
 ---
 
-After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.CsvWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)" should be called to properly dispose of resources used by the writer instance.
+After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.CsvWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)" should be called to flush buffered data and properly dispose of resources used by the writer instance.
 
 > [!NOTE]
 > The @"System.Exception" parameter is used to suppress flushing any remaining data if the write operation errored. A `using`-statement or `Dispose` can be used to clean up the writer instance similarly, but you lose the aforementioned benefit by only disposing. You can safely wrap a manually completed writer in a `using` block, since multiple completions are harmless.
@@ -264,7 +254,13 @@ class User
 
 CsvOptions<char> options = new() { HasHeader = false };
 
-foreach (var user in CsvReader.Read<User>(csv, options))
+const string csv =
+    """
+    1,Bob,true
+    2,Alice,false
+    """;
+
+foreach (User user in CsvReader.Read<User>(csv, options))
 {
     ProcessUser(user);
 }
@@ -358,25 +354,25 @@ Thanks to the @"System.Numerics.IBinaryInteger`1"-constraint,
 we can create the separator for both token without having to resort to `typeof`-checks and/or casts/unsafe.
 Alternatively, the factory could pass the separator as a constructor parameter.
 
-# [UTF-16](#tab/utf16)
 ```cs
-CsvOptions<char> options = new() { Converters = { new EnumerableConverterFactory() } };
+CsvOptions<byte> options = new() { Converters = { new EnumerableConverterFactory<byte>() } };
 
 // reads and writes values in the form of "1;2;3"
 var converter = options.GetConverter<IEnumerable<int>>();
 
-class EnumerableConverterFactory : CsvConverterFactory<char>
+class EnumerableConverterFactory<T> : CsvConverterFactory<T>
+    where T : unmanaged, System.Numerics.IBinaryInteger<T>
 {
     public override bool CanConvert(Type type)
     {
         return IsIEnumerable(type) || type.GetInterfaces().Any(IsIEnumerable);
     }
 
-    public override CsvConverter<char> Create(Type type, CsvOptions<char> options)
+    public override CsvConverter<byte> Create(Type type, CsvOptions<T> options)
     {
         var elementType = type.GetInterfaces().First(IsIEnumerable).GetGenericArguments()[0];
-        return (CsvConverter<char>)Activator.CreateInstance(
-            typeof(EnumerableConverterFactory<,>).MakeGenericType(typeof(char), elementType),
+        return (CsvConverter<T>)Activator.CreateInstance(
+            typeof(EnumerableConverterFactory<,>).MakeGenericType(typeof(T), elementType),
             args: [options])!;
     }
 
@@ -385,42 +381,8 @@ class EnumerableConverterFactory : CsvConverterFactory<char>
            type.IsGenericType &&
            type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
 }
-```
 
-# [UTF-8](#tab/utf8)
-```cs
-CsvOptions<byte> options = new() { Converters = { new EnumerableConverterFactory() } };
-
-// reads and writes values in the form of "1;2;3"
-var converter = options.GetConverter<IEnumerable<int>>();
-
-class EnumerableConverterFactory : CsvConverterFactory<byte>
-{
-    public override bool CanConvert(Type type)
-    {
-        return IsIEnumerable(type) || type.GetInterfaces().Any(IsIEnumerable);
-    }
-
-    public override CsvConverter<byte> Create(Type type, CsvOptions<byte> options)
-    {
-        var elementType = type.GetInterfaces().First(IsIEnumerable).GetGenericArguments()[0];
-        return (CsvConverter<byte>)Activator.CreateInstance(
-            typeof(EnumerableConverterFactory<,>).MakeGenericType(typeof(byte), elementType),
-            args: [options])!;
-    }
-
-    private static bool IsIEnumerable(Type type)
-        => type.IsInterface &&
-           type.IsGenericType &&
-           type.GetGenericTypeDefinition() == typeof(IEnumerable<>);
-}
-```
-
----
-
-```cs
-class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
-    : CsvConverter<T, IEnumerable<TElement>>
+class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options) : CsvConverter<T, IEnumerable<TElement>>
     where T : unmanaged, System.Numerics.IBinaryInteger<T>
 {
     private readonly CsvConverter<T, TElement> _elementConverter = options.GetConverter<TElement>();
@@ -429,6 +391,12 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
         ReadOnlySpan<T> source,
         [MaybeNullWhen(false)] out IEnumerable<TElement> value)
     {
+        if (source.IsEmpty)
+        {
+            value = [];
+            return true;
+        }
+
         List<TElement> result = [];
 
         foreach (Range range in source.Split(T.CreateTruncating(';')))
@@ -451,6 +419,7 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
         IEnumerable<TElement> value,
         out int charsWritten)
     {
+        // keep track of total characters written
         charsWritten = 0;
         bool first = true;
 
@@ -484,4 +453,4 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options)
 ```
 ---
 
-Note how the `System.Numerics.IBinaryInteger`1` constraint allows us to use the same character for both UTF16 and UTF8.
+Note how the @"System.Numerics.IBinaryInteger`1" constraint allows us to use the same character for both UTF16 and UTF8.
