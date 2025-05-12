@@ -6,6 +6,7 @@ uid: benchmarks
 
 This page contains benchmarks comparing the performance of FlameCsv with other popular CSV libraries.
 If a library doesn't provide built-in data binding, it is not benchmarked for reading full records as .NET objects.
+RecordParser is not in the benchmarks; it does not support async, and was very unergonomic to use compared to the other libraries. Its performance generally falls between Sylvan and CsvHelper.
 
 The benchmarks below are done with the following setup
 using the default configuration in BenchmarkDotNet v0.14.0 (unless otherwise stated).
@@ -18,8 +19,7 @@ AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
   DefaultJob : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
 ```
 
-The benchmarks use commonly used CSV datasets, and can be downloaded from the repository. You can browse the code and datasets
-[here](https://github.com/ovska/FlameCsv/tree/96e4d5b6317495f1f2c8c6e525b8e817738872a2/FlameCsv.Benchmark/Comparisons).
+The benchmarks use commonly used CSV datasets, and can be downloaded from the repository.
 
 ## Results
 
@@ -38,6 +38,8 @@ The data is read from a pre-loaded byte array to simulate real-world scenarios.
 
 <img src="../data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" class="chart-light" />
 <img src="../data/charts/read_dark.svg" alt="Reading 5000 records into .NET objects" class="chart-dark" />
+
+> Sep does not support binding to .NET objects.
 
 ### Reading without processing all fields
 
@@ -73,10 +75,6 @@ The objects are pre-loaded to an array.
 <img src="../data/charts/write_dark.svg" alt="Writing 5000 records" class="chart-dark" />
 
 > Note that the Y axis for "Mean" doesn't start from 0 in this chart (this is Excel's default behavior for this dataset)
-
-### Cold-start
-
-> TODO: implement cold-start benchmarks
 
 ### Async
 
@@ -116,7 +114,7 @@ regarding different values and names.
 The generated converter especially excels at small enums that start from 0 without any gaps, and have only ASCII
 characters in their name. More esoteric configurations such as emojis as display names are supported as well.
 
-The benchmarks below are for handling the @"System.TypeCode"-enum, either in `byte` or `char` (the Bytes-column).
+The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`) or UTF16 (`char`).
 
 #### Parsing
 
@@ -232,7 +230,6 @@ However, cold start performance matters more for:
 
 Reflection-based code (like compiled expression delegates) typically performs poorly on cold starts compared to handwritten or source-generated code,
 though these differences diminish in long-running operations.
-
 
 ### Why not NCsvPerf
 

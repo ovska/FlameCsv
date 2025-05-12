@@ -21,9 +21,22 @@ Reading CSV data is as simple as:
 IEnumerable<User> users = CsvReader.Read<User>("id,name\n1,John\n2,Jane");
 
 // Reading from a file
-await foreach (var user in CsvReader.ReadAsync<User>(File.OpenRead("users.csv"))
+await foreach (User user in CsvReader.ReadFromFile<User>("users.csv").WithCancellation(cancellationToken))
 {
     Console.WriteLine(user.Name);
+}
+
+// Peeking fields directly from the underlying data
+double sum = 0;
+
+foreach (CsvRecordRef<byte> record in new CsvReader<byte>(options, (ReadOnlyMemory<byte>)csv).ParseRecords())
+{
+    ReadOnlySpan<byte> field = record[3];
+        
+    if (double.TryParse(field, out double value))
+    {
+        sum += value;
+    }
 }
 ```
 
@@ -53,16 +66,18 @@ FlameCsv is highly configurable. Common options include:
 Example of custom configuration:
 
 ```cs
-var options = new CsvOptions<char>
+CsvOptions<char> options = new()
 {
     Delimiter = ';',
     Quote = '"',
     Trimming = CsvFieldTrimming.Leading,
     HasHeader = true,
+    Comparer = StringComparer.Ordinal,
 };
 ```
 
 The configuration object is identical for `char` and `byte`, and UTF16 <-> UTF8 conversion is handled automatically.
+Only differences are the converters, which are separate for `char` and `byte`.
 
 ## Next Steps
 
@@ -74,14 +89,12 @@ The configuration object is identical for `char` and `byte`, and UTF16 <-> UTF8 
 
 ## Comparisons to other libraries
 
-|                     | FlameCsv   | CsvHelper          | Sylvan   | Sep     | RecordParser |
-| ------------------- | ---------- | ------------------ | -------- | ------- | ------------ |
-| License             | Apache 2.0 | MS-PL / Apache 2.0 | MIT      | MIT     | MIT          |
-| Performance         | Fast       | Slow               | Fast     | Fast    | Moderate     |
-| Memory use          | Near-zero  | High               | Moderate | Low     | High         |
-| Async support       | Yes        | Yes                | Yes      | Partial |              |
-| Type binding        | Yes        | Yes                | Yes      |         |              |
-| AOT compatible      | Yes        |                    |          | Yes     |              |
-| Reading API         | Simple     | Simple             | Simple   | Simple  | Complex      |
-| Writing API         | Simple     | Simple             | Simple   | Complex | Complex      |
-| Broken data support | No         | Yes                | Yes      | Yes     | Unknown      |
+|                     | FlameCsv    | CsvHelper          | Sylvan     | Sep        | RecordParser |
+| ------------------- | ----------- | ------------------ | ---------- | ---------- | ------------ |
+| License             | Apache 2.0  | MS-PL / Apache 2.0 | MIT        | MIT        | MIT          |
+| Performance         | 🐇 Fast      | 🐌 Slow             | 🐇 Fast     | 🐇 Fast     | 🐟 Moderate   |
+| Memory use          | 😎 Near-zero | 🤯 High             | 🤐 Moderate | 😌 Low      | 🤯 High       |
+| Async support       | ✔️ Yes       | ✔️ Yes              | ✔️ Yes      | 〽️ Partial | ❌ No         |
+| Type binding        | ✔️ Yes       | ✔️ Yes              | ✔️ Yes      | ❌ No       | ❌ No         |
+| AOT compatible      | ✔️ Yes       | ❌ No               | ❌ No       | ✔️ Yes      | ❌ No         |
+| Broken data support | ❌ No        | ✔️ Yes              | ✔️ Yes      | ✔️ Yes      | ❔ Unknown    |
