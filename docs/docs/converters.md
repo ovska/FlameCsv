@@ -17,7 +17,7 @@ The `TryFormat` method should attempt to write the specified value to the provid
 If the buffer is not large enough, the method must return `false`. If the value is invalid (e.g., it can never be written),
 the method must throw an exception instead.
 
-You can find converter examples in the [repository](https://github.com/ovska/FlameCsv/tree/main/FlameCsv.Core/Converters).
+You can find converter examples in the [repository](https://github.com/ovska/FlameCsv/tree/main/src/Core/Converters).
 
 ## Factories
 
@@ -83,7 +83,7 @@ _ = options.GetFormatProvider(typeof(double?)); // invariant
 ```
 
 > [!NOTE]
-> All the type-indexed dictionaries consider value types and their nullable counterparts [equal](https://github.com/ovska/FlameCsv/blob/main/FlameCsv.Core/Utilities/NullableTypeEqualityComparer.cs), e.g., you only need to add either `int` or `int?` to the dictionary.
+> All the type-indexed dictionaries consider value types and their nullable counterparts [equal](https://github.com/ovska/FlameCsv/blob/main/src/Core/Utilities/Comparers/NullableTypeEqualityComparer.cs), e.g., you only need to add either `int` or `int?` to the dictionary.
 
 ### Primitives
 

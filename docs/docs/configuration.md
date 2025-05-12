@@ -32,7 +32,8 @@ The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayPro
 The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCsv is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
 
 ### Trimming
-The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.Reading.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both.
+The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both. For compliance with other CSV libraries, other whitespace characters are not trimmed.
+
 This property is only used when reading CSV, and has no effect when writing, see @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" for writing.
 
 ### Escape
@@ -63,8 +64,6 @@ CsvOptions<byte> options = new()
 
 The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is `true` by default, which expects a header record on the first line/record. Header names are matched using the @"FlameCsv.CsvOptions`1.Comparer"-property, which defaults to @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
 
-For more information on which methods transcode the data into @"System.String", see [Transcoding](#transcoding).
-
 ```cs
 const string csv = "id,name\n1,Bob\n2,Alice\n";
 
@@ -77,7 +76,7 @@ See @"converters" for an overview on converter configuration, implementation, an
 
 ## Quoting fields when writing
 
-The @"FlameCsv.Writing.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" property are used to configure the behavior when writing CSV. The default, @"FlameCsv.Writing.CsvFieldQuoting.Auto?displayProperty=nameWithType" only quotes fields if they contain special characters or whitespace.
+The @"FlameCsv.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" property are used to configure the behavior when writing CSV. The default, @"FlameCsv.CsvFieldQuoting.Auto?displayProperty=nameWithType" only quotes fields if they contain special characters or whitespace.
 
 ```cs
 // quote all fields, e.g., for noncompliant 3rd party libraries
@@ -89,7 +88,7 @@ StringBuilder result = CsvWriter.WriteToString(
 // "1","Bob","true"
 ```
 
-If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.Writing.CsvFieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
+If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvFieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
 
 
 ## Skipping records or resetting headers
@@ -128,11 +127,11 @@ For example, even if you configure the callback to skip rows that start with `#`
 
 @"FlameCsv.CsvOptions`1.ValidateFieldCount?displayProperty=nameWithType" can be used to validate the field count both when reading and writing.
 
-When reading @"FlameCsv.CsvValueRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
+When reading @"FlameCsv.CsvRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
 The expected field count is reset if you [reset the headers with a callback](#skipping-records-or-resetting-headers).
 
 This property also ensures that all records written with @"FlameCsv.CsvWriter`1" have the same field count.
-Alternatively, you can use the @"FlameCsv.CsvAsyncWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
+Alternatively, you can use the @"FlameCsv.CsvWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
 for example when writing multiple CSV documents into one output.
 
 ## Advanced topics
