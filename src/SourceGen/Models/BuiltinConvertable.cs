@@ -34,11 +34,6 @@ internal static class BuiltinConvertableExtensions
 {
     public static BuiltinConvertable GetBuiltinConvertability(this ITypeSymbol type, ref readonly FlameSymbols symbols)
     {
-        if (symbols.TokenType.SpecialType is not (SpecialType.System_Byte or SpecialType.System_Char))
-        {
-            return BuiltinConvertable.None;
-        }
-
         bool isByte = symbols.TokenType.SpecialType == SpecialType.System_Byte;
 
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault

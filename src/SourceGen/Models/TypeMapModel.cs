@@ -312,8 +312,8 @@ internal readonly record struct TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        IndexesForReading = IndexBindingModel.Resolve(false, in symbols, AllMembers, ref collector);
-        IndexesForWriting = IndexBindingModel.Resolve(true, in symbols, AllMembers, ref collector);
+        IndexesForReading = IndexBindingModel.Resolve(write: false, in symbols, AllMembers, ref collector);
+        IndexesForWriting = IndexBindingModel.Resolve(write: true, in symbols, AllMembers, ref collector);
 
         // clean up
         collector.Free(out diagnostics, out var ignoredHeaders, out var proxy);
