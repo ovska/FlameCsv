@@ -786,8 +786,7 @@ partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteSwitchOverMask));
 
-        string type = model.TokenType.IsByte() ? "ushort" : "uint";
-        int shift = model.TokenType.IsByte() ? 8 : 16;
+        (string type, int shift) = model.TokenType.IsByte() ? ("ushort", 8) : ("uint", 16);
 
         writer.Write($"switch (__Unsafe.ReadUnaligned<{type}>(ref ");
         writer.WriteIf(!model.TokenType.IsByte(), "__Unsafe.As<char, byte>(ref ");

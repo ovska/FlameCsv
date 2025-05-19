@@ -13,6 +13,9 @@ public static class ExtensionTests
     [InlineData('a', "'a'")]
     [InlineData(true, "true")]
     [InlineData(false, "false")]
+    [InlineData("", "\"\"")]
+    [InlineData("test\\a", "\"test\\\\a\"")]
+    [InlineData(-1, "-1")]
     public static void Test_ToLiteral(object? value, string expected)
     {
         Assert.Equal(expected, value.ToLiteral());

@@ -294,7 +294,7 @@ internal readonly record struct TypeMapModel
 
         Array.Sort(allMembersArray, MemberModelComparison.Value);
 
-        AllMembers = new EquatableArray<IMemberModel>(ImmutableCollectionsMarshal.AsImmutableArray(allMembersArray));
+        AllMembers = ImmutableCollectionsMarshal.AsImmutableArray(allMembersArray);
 
         if (Array.TrueForAll(allMembersArray, static m => !m.CanRead))
         {
