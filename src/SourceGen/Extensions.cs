@@ -78,7 +78,7 @@ internal static class Extensions
         {
             null => "default",
             bool b => b ? "true" : "false",
-            string s => ToStringLiteral(s),
+            "" => "\"\"",
             _ => GetLiteral(value)?.ToFullString() ?? value.ToString() ?? "",
         };
 

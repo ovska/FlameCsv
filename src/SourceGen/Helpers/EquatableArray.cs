@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 // ReSharper disable all
 
@@ -32,7 +33,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     [OverloadResolutionPriority(-1)]
     public EquatableArray(ImmutableArray<T> array)
     {
-        _array = Unsafe.As<ImmutableArray<T>, T[]?>(ref array);
+        _array = ImmutableCollectionsMarshal.AsArray(array);
     }
 
     public EquatableArray(scoped ReadOnlySpan<T> span)
@@ -103,7 +104,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ImmutableArray<T> AsImmutableArray()
     {
-        return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in _array));
+        return ImmutableCollectionsMarshal.AsImmutableArray(_array);
     }
 
     public T[]? UnsafeArray => _array;
@@ -267,7 +268,7 @@ internal static class EquatableArray
     public static EquatableArray<T> Create<T>(params T[] items)
         where T : IEquatable<T?>
     {
-        return Unsafe.As<T[], ImmutableArray<T>>(ref items);
+        return ImmutableCollectionsMarshal.AsImmutableArray(items);
     }
 
     public static EquatableArray<T> CreateSorted<T>(ICollection<T> items)
