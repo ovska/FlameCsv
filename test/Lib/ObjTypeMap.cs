@@ -3,7 +3,7 @@
 namespace FlameCsv.Tests;
 
 [CsvTypeMap<char, TestData.Obj>]
-internal partial class ObjCharTypeMap;
+public partial class ObjCharTypeMap;
 
 [CsvTypeMap<byte, TestData.Obj>]
-internal partial class ObjByteTypeMap;
+public partial class ObjByteTypeMap;

@@ -3,8 +3,6 @@ using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 
-// ReSharper disable all
-
 [assembly: CsvHeader("_id", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped), MemberName = "Id")]
 [assembly: CsvHeader("_name", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped), MemberName = "Name")]
 
@@ -105,6 +103,8 @@ file class Something : ISomething
     public bool IsEnabled { get; set; }
     public int Targeted { get; set; }
 }
+
+// ReSharper disable all
 
 [CsvHeader("_targeted", MemberName = nameof(Targeted))]
 file class Shim

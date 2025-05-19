@@ -1,10 +1,8 @@
 ﻿using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using FlameCsv.Extensions;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests;

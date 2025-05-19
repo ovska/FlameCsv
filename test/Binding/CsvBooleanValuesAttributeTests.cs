@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using FlameCsv.Attributes;
 using FlameCsv.Converters;
