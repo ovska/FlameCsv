@@ -8,5 +8,11 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference
+            Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"
+            OutputItemType="Analyzer"
+            ReferenceOutputAssembly="false"
+            PackAsAnalyzer="true"
+        />
     </ItemGroup>
 </Project>

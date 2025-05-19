@@ -2,7 +2,6 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics.X86;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Writing.Escaping;
