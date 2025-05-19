@@ -183,7 +183,7 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                 index++;
             }
 
-            if (ExplicitName is not null && (ExplicitName == "" || ExplicitName[0] is >= '0' and <= '9' or '+' or '-'))
+            if (ExplicitName is not null && (ExplicitName is "" || ExplicitName[0].IsAsciiNumeric()))
             {
                 Location? location = (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)
                     ?.ArgumentList?.Arguments.ElementAtOrDefault(index)

@@ -110,6 +110,14 @@ internal static class Extensions
 
     public static bool IsAsciiLetter(this char c) => (c | 0x20) is >= 'a' and <= 'z';
 
+    public static bool IsAsciiNumeric(this char c)
+        => c switch
+        {
+            >= '0' and <= '9' => true,
+            '-' or '+' => true,
+            _ => false,
+        };
+
     public static bool ContainsSurrogates(this string value)
     {
         if (string.IsNullOrEmpty(value))
