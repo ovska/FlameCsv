@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen.Models;
 
 internal ref struct AnalysisCollector
 {
-    public override readonly string ToString() =>
+    public readonly override string ToString() =>
         $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, "
         + $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 

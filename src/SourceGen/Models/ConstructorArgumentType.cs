@@ -1,6 +1,6 @@
 ﻿namespace FlameCsv.SourceGen.Models;
 
-internal enum ConstructorArgumentType
+internal enum ConstructorArgumentType : byte
 {
     Invalid = 0,
     Empty = 1,

@@ -218,7 +218,7 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         aliases = default;
 
         headerName =
-            attribute.ConstructorArguments is [TypedConstant value, ..] ? value.Value?.ToString()
+            attribute.ConstructorArguments is [var value, ..] ? value.Value?.ToString()
             : attribute.TryGetNamedArgument("Value", out value) ? value.Value?.ToString()
             : null;
 

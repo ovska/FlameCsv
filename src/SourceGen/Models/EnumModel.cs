@@ -118,7 +118,7 @@ internal readonly record struct EnumModel
         values.Sort();
         Values = values.ToEquatableArrayAndFree();
         UniqueValues = uniqueValues.ToEquatableArrayAndFree();
-        Array.Sort(UniqueValues.UnsafeGetArray!);
+        Array.Sort(UniqueValues.UnsafeArray!);
 
         int expected = 0;
         bool isContiguous = true;

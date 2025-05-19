@@ -6,10 +6,8 @@
 // make everything about 2-3x slower
 //
 
-#define TRACE_LEAKS
-
-// define DETECT_LEAKS to detect possible leaks
 #if DEBUG
+#define TRACE_LEAKS
 #define DETECT_LEAKS //for now always enable DETECT_LEAKS in debug.
 #endif
 using System.Diagnostics;
@@ -148,7 +146,6 @@ internal class ObjectPool<T>
     }
 
     [Conditional("DEBUG")]
-    [SuppressMessage("ReSharper", "UnusedParameter.Global")]
     internal void ForgetTrackedObject(T old, T? replacement = null)
     {
 #if DETECT_LEAKS
@@ -161,8 +158,7 @@ internal class ObjectPool<T>
         {
             var trace = CaptureStackTrace();
             Debug.WriteLine(
-                $"TRACEOBJECTPOOLLEAKS_BEGIN\nObject of type {typeof(T)} was freed, but was not from pool. \n Callstack: \n {trace} TRACEOBJECTPOOLLEAKS_END"
-            );
+                $"TRACEOBJECTPOOLLEAKS_BEGIN\nObject of type {typeof(T)} was freed, but was not from pool. \n Callstack: \n {trace} TRACEOBJECTPOOLLEAKS_END");
         }
 
         if (replacement != null)
@@ -174,11 +170,9 @@ internal class ObjectPool<T>
     }
 
 #if DETECT_LEAKS
-    private static readonly Lazy<Type> _stackTraceType = new(() => Type.GetType("System.Diagnostics.StackTrace"));
-
     private static object CaptureStackTrace()
     {
-        return Activator.CreateInstance(_stackTraceType.Value);
+        return Activator.CreateInstance(StackTraceType.Lazy.Value);
     }
 #endif
 
@@ -239,10 +233,16 @@ internal class ObjectPool<T>
                 // and has not been returned back. This is not critical, but turns pool into rather
                 // inefficient kind of "new".
                 Debug.WriteLine(
-                    $"TRACEOBJECTPOOLLEAKS_BEGIN\nPool detected potential leaking of {typeof(T)}. \n Location of the leak: \n {GetTrace()} TRACEOBJECTPOOLLEAKS_END"
-                );
+                    $"TRACEOBJECTPOOLLEAKS_BEGIN\nPool detected potential leaking of {typeof(T)}. \n Location of the leak: \n {GetTrace()} TRACEOBJECTPOOLLEAKS_END");
             }
         }
     }
 #endif
 }
+
+#if DETECT_LEAKS
+file static class StackTraceType
+{
+    public static readonly Lazy<Type> Lazy = new(() => Type.GetType("System.Diagnostics.StackTrace"));
+}
+#endif

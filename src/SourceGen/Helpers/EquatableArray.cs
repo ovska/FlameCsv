@@ -106,7 +106,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
         return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in _array));
     }
 
-    public T[]? UnsafeGetArray => _array;
+    public T[]? UnsafeArray => _array;
 
     /// <summary>
     /// Creates an <see cref="EquatableArray{T}"/> instance from a given <see cref="ImmutableArray{T}"/>.
