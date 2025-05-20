@@ -15,37 +15,51 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T>
     public static readonly ExpressionDelegateGenerator<T> Instance = new();
 
     protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
-        CsvBindingCollection<TResult> bc
+        CsvBindingCollection<TResult> bc,
+        out Type factoryType
     )
     {
         ConstructorInfo ctor = Materializer<T>.GetConstructor(bc.Bindings);
 
         var objArrParam = Expression.Parameter(typeof(object[]), "args");
 
-        // new Materializer(args[0], args[1], args[2], ...))
-        var ctorInvoke = Expression.New(
-            ctor,
-            ctor.GetParameters()
-                .Select(
-                    (p, i) =>
-                        Expression.Convert(Expression.ArrayAccess(objArrParam, Expression.Constant(i)), p.ParameterType)
+        var ctorParams = ctor.GetParameters();
+        factoryType = ctorParams[0].ParameterType;
+
+        ReadOnlyCollectionBuilder<Expression> parameters = new(ctorParams.Length);
+
+        for (int i = 0; i < ctorParams.Length; i++)
+        {
+            parameters.Add(
+                Expression.Convert(
+                    Expression.ArrayAccess(objArrParam, Expression.Constant(i)),
+                    ctorParams[i].ParameterType
                 )
-        );
+            );
+        }
+
+        // new Materializer(args[0], args[1], args[2], ...))
+        var ctorInvoke = Expression.New(ctor, parameters);
         var lambda = Expression.Lambda<Func<object[], IMaterializer<T, TResult>>>(
-#pragma warning disable CA2263 // Prefer generic overload when type is known
-            Expression.Convert(ctorInvoke, typeof(IMaterializer<T, TResult>)),
-#pragma warning restore CA2263 // Prefer generic overload when type is known
+            Expression.Convert<IMaterializer<T, TResult>>(ctorInvoke),
             objArrParam
         );
+
         return lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
     }
 
-    protected override Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(CsvBindingCollection<TResult> bc)
+    protected override Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(
+        CsvBindingCollection<TResult> bc,
+        Type factoryType
+    )
     {
         ReadOnlyCollectionBuilder<ParameterExpression> parameters = GetParametersByBindingIndex();
         NewExpression newExpr = GetObjectInitialization();
         Expression body = GetExpressionBody();
-        return Expression.Lambda(body, parameters).CompileLambda<Delegate>(throwIfClosure: true);
+
+        return Expression
+            .Lambda(factoryType, body, parameters, typeof(TResult))
+            .CompileLambda<Delegate>(throwIfClosure: true);
 
         ReadOnlyCollectionBuilder<ParameterExpression> GetParametersByBindingIndex()
         {

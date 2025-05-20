@@ -4,7 +4,7 @@
 <#@ import namespace="System.Linq" #>
 <#
     // Max supported generics
-    const int TotalCount = 16;
+    const int TotalCount = 24;
     var genericTypes = Enumerable.Range(0, TotalCount).Select(i => $"T{i}").ToArray();
     var converters = Enumerable.Range(0, TotalCount).Select(i => $"CsvConverter<T, T{i}> converter{i}").ToArray();
     var getters = Enumerable.Range(0, TotalCount).Select(i => $"Func<TValue, T{i}> getter{i}").ToArray();
