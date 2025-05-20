@@ -103,7 +103,9 @@ internal static class Extensions
                 ushort us => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(us)),
                 byte b => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(b)),
                 sbyte sb => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(sb)),
-                _ => null,
+                nint n => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(n)),
+                nuint nu => SyntaxFactory.LiteralExpression(numericLiteral, SyntaxFactory.Literal(nu)),
+                _ => null, // enums show up as their numeric value so no need to handle them
             };
         }
     }

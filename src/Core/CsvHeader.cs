@@ -9,7 +9,7 @@ using JetBrains.Annotations;
 
 namespace FlameCsv;
 
-// note: we don't need to clear HeaderPool on hot-reload as the values are always the same
+// note: we don't _need_ to clear HeaderPool on hot-reload as the values are always the same
 
 /// <summary>
 /// Read-only CSV header record.
@@ -28,21 +28,22 @@ public sealed class CsvHeader
     public static StringPool? HeaderPool { get; } =
         FlameCsvGlobalOptions.CachingDisabled ? null : new StringPool(minimumSize: 128);
 
-    internal static ImmutableArray<string> Parse<T>(CsvOptions<T> options, ref CsvRecordRef<T> record)
+    internal static ImmutableArray<string> Parse<T>(ref readonly CsvSlice<T> slice)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (record.FieldCount == 0)
+        if (slice.FieldCount == 0)
         {
             CsvFormatException.Throw("CSV header was empty");
         }
 
+        CsvRecordRef<T> record = new(in slice);
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
         Span<char> charBuffer = stackalloc char[128];
 
         for (int field = 0; field < record.FieldCount; field++)
         {
-            list.Append(Get(options, record[field], charBuffer));
+            list.Append(Get(record._reader.Options, record[field], charBuffer));
         }
 
         return [.. list.AsSpan()];
