@@ -47,6 +47,14 @@ internal abstract partial class Dematerializer<T>
             16 => typeof(Dematerializer<,,,,,,,,,,,,,,,>),
             17 => typeof(Dematerializer<,,,,,,,,,,,,,,,,>),
             18 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,>),
+            19 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,>),
+            20 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,>),
+            21 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,,>),
+            22 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,,,>),
+            23 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,,,,>),
+            24 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,,,,,>),
+            25 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,,,,,,>),
+            26 => typeof(Dematerializer<,,,,,,,,,,,,,,,,,,,,,,,,,>),
             _ => throw new ArgumentException($"Unsupported type param count: {bindings.Length}"),
         }).MakeGenericType(types).GetConstructors()[0];
     }
@@ -1353,6 +1361,1330 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
         writer.WriteField(converter14, getter14(value));
         writer.WriteDelimiter();
         writer.WriteField(converter15, getter15(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 17;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 18;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 19;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17,
+        Func<TValue, T18> getter18)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.converter18 = ResolveConverter<T18>(options, bindings[18]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+        this.getter18 = getter18;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly CsvConverter<T, T18> converter18;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+    private readonly Func<TValue, T18> getter18;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter18, getter18(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 20;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17,
+        Func<TValue, T18> getter18,
+        Func<TValue, T19> getter19)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.converter18 = ResolveConverter<T18>(options, bindings[18]);
+        this.converter19 = ResolveConverter<T19>(options, bindings[19]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+        this.getter18 = getter18;
+        this.getter19 = getter19;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly CsvConverter<T, T18> converter18;
+    private readonly CsvConverter<T, T19> converter19;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+    private readonly Func<TValue, T18> getter18;
+    private readonly Func<TValue, T19> getter19;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter18, getter18(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter19, getter19(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 21;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17,
+        Func<TValue, T18> getter18,
+        Func<TValue, T19> getter19,
+        Func<TValue, T20> getter20)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.converter18 = ResolveConverter<T18>(options, bindings[18]);
+        this.converter19 = ResolveConverter<T19>(options, bindings[19]);
+        this.converter20 = ResolveConverter<T20>(options, bindings[20]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+        this.getter18 = getter18;
+        this.getter19 = getter19;
+        this.getter20 = getter20;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly CsvConverter<T, T18> converter18;
+    private readonly CsvConverter<T, T19> converter19;
+    private readonly CsvConverter<T, T20> converter20;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+    private readonly Func<TValue, T18> getter18;
+    private readonly Func<TValue, T19> getter19;
+    private readonly Func<TValue, T20> getter20;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter18, getter18(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter19, getter19(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter20, getter20(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 22;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17,
+        Func<TValue, T18> getter18,
+        Func<TValue, T19> getter19,
+        Func<TValue, T20> getter20,
+        Func<TValue, T21> getter21)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.converter18 = ResolveConverter<T18>(options, bindings[18]);
+        this.converter19 = ResolveConverter<T19>(options, bindings[19]);
+        this.converter20 = ResolveConverter<T20>(options, bindings[20]);
+        this.converter21 = ResolveConverter<T21>(options, bindings[21]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+        this.getter18 = getter18;
+        this.getter19 = getter19;
+        this.getter20 = getter20;
+        this.getter21 = getter21;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly CsvConverter<T, T18> converter18;
+    private readonly CsvConverter<T, T19> converter19;
+    private readonly CsvConverter<T, T20> converter20;
+    private readonly CsvConverter<T, T21> converter21;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+    private readonly Func<TValue, T18> getter18;
+    private readonly Func<TValue, T19> getter19;
+    private readonly Func<TValue, T20> getter20;
+    private readonly Func<TValue, T21> getter21;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter18, getter18(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter19, getter19(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter20, getter20(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter21, getter21(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 23;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17,
+        Func<TValue, T18> getter18,
+        Func<TValue, T19> getter19,
+        Func<TValue, T20> getter20,
+        Func<TValue, T21> getter21,
+        Func<TValue, T22> getter22)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.converter18 = ResolveConverter<T18>(options, bindings[18]);
+        this.converter19 = ResolveConverter<T19>(options, bindings[19]);
+        this.converter20 = ResolveConverter<T20>(options, bindings[20]);
+        this.converter21 = ResolveConverter<T21>(options, bindings[21]);
+        this.converter22 = ResolveConverter<T22>(options, bindings[22]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+        this.getter18 = getter18;
+        this.getter19 = getter19;
+        this.getter20 = getter20;
+        this.getter21 = getter21;
+        this.getter22 = getter22;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly CsvConverter<T, T18> converter18;
+    private readonly CsvConverter<T, T19> converter19;
+    private readonly CsvConverter<T, T20> converter20;
+    private readonly CsvConverter<T, T21> converter21;
+    private readonly CsvConverter<T, T22> converter22;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+    private readonly Func<TValue, T18> getter18;
+    private readonly Func<TValue, T19> getter19;
+    private readonly Func<TValue, T20> getter20;
+    private readonly Func<TValue, T21> getter21;
+    private readonly Func<TValue, T22> getter22;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter18, getter18(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter19, getter19(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter20, getter20(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter21, getter21(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter22, getter22(value));
+    }
+}
+
+/// <inheritdoc />
+[ExcludeFromCodeCoverage]
+[System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, TValue>
+    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+{
+    public int FieldCount => 24;
+
+    public Dematerializer(
+        CsvBindingCollection<TValue> bindingCollection,
+        CsvOptions<T> options,
+        Func<TValue, T0> getter0,
+        Func<TValue, T1> getter1,
+        Func<TValue, T2> getter2,
+        Func<TValue, T3> getter3,
+        Func<TValue, T4> getter4,
+        Func<TValue, T5> getter5,
+        Func<TValue, T6> getter6,
+        Func<TValue, T7> getter7,
+        Func<TValue, T8> getter8,
+        Func<TValue, T9> getter9,
+        Func<TValue, T10> getter10,
+        Func<TValue, T11> getter11,
+        Func<TValue, T12> getter12,
+        Func<TValue, T13> getter13,
+        Func<TValue, T14> getter14,
+        Func<TValue, T15> getter15,
+        Func<TValue, T16> getter16,
+        Func<TValue, T17> getter17,
+        Func<TValue, T18> getter18,
+        Func<TValue, T19> getter19,
+        Func<TValue, T20> getter20,
+        Func<TValue, T21> getter21,
+        Func<TValue, T22> getter22,
+        Func<TValue, T23> getter23)
+        : base(bindingCollection)
+    {
+        ReadOnlySpan<MemberCsvBinding<TValue>> bindings = bindingCollection.MemberBindings;
+        this.converter0 = ResolveConverter<T0>(options, bindings[0]);
+        this.converter1 = ResolveConverter<T1>(options, bindings[1]);
+        this.converter2 = ResolveConverter<T2>(options, bindings[2]);
+        this.converter3 = ResolveConverter<T3>(options, bindings[3]);
+        this.converter4 = ResolveConverter<T4>(options, bindings[4]);
+        this.converter5 = ResolveConverter<T5>(options, bindings[5]);
+        this.converter6 = ResolveConverter<T6>(options, bindings[6]);
+        this.converter7 = ResolveConverter<T7>(options, bindings[7]);
+        this.converter8 = ResolveConverter<T8>(options, bindings[8]);
+        this.converter9 = ResolveConverter<T9>(options, bindings[9]);
+        this.converter10 = ResolveConverter<T10>(options, bindings[10]);
+        this.converter11 = ResolveConverter<T11>(options, bindings[11]);
+        this.converter12 = ResolveConverter<T12>(options, bindings[12]);
+        this.converter13 = ResolveConverter<T13>(options, bindings[13]);
+        this.converter14 = ResolveConverter<T14>(options, bindings[14]);
+        this.converter15 = ResolveConverter<T15>(options, bindings[15]);
+        this.converter16 = ResolveConverter<T16>(options, bindings[16]);
+        this.converter17 = ResolveConverter<T17>(options, bindings[17]);
+        this.converter18 = ResolveConverter<T18>(options, bindings[18]);
+        this.converter19 = ResolveConverter<T19>(options, bindings[19]);
+        this.converter20 = ResolveConverter<T20>(options, bindings[20]);
+        this.converter21 = ResolveConverter<T21>(options, bindings[21]);
+        this.converter22 = ResolveConverter<T22>(options, bindings[22]);
+        this.converter23 = ResolveConverter<T23>(options, bindings[23]);
+        this.getter0 = getter0;
+        this.getter1 = getter1;
+        this.getter2 = getter2;
+        this.getter3 = getter3;
+        this.getter4 = getter4;
+        this.getter5 = getter5;
+        this.getter6 = getter6;
+        this.getter7 = getter7;
+        this.getter8 = getter8;
+        this.getter9 = getter9;
+        this.getter10 = getter10;
+        this.getter11 = getter11;
+        this.getter12 = getter12;
+        this.getter13 = getter13;
+        this.getter14 = getter14;
+        this.getter15 = getter15;
+        this.getter16 = getter16;
+        this.getter17 = getter17;
+        this.getter18 = getter18;
+        this.getter19 = getter19;
+        this.getter20 = getter20;
+        this.getter21 = getter21;
+        this.getter22 = getter22;
+        this.getter23 = getter23;
+    }
+
+    private readonly CsvConverter<T, T0> converter0;
+    private readonly CsvConverter<T, T1> converter1;
+    private readonly CsvConverter<T, T2> converter2;
+    private readonly CsvConverter<T, T3> converter3;
+    private readonly CsvConverter<T, T4> converter4;
+    private readonly CsvConverter<T, T5> converter5;
+    private readonly CsvConverter<T, T6> converter6;
+    private readonly CsvConverter<T, T7> converter7;
+    private readonly CsvConverter<T, T8> converter8;
+    private readonly CsvConverter<T, T9> converter9;
+    private readonly CsvConverter<T, T10> converter10;
+    private readonly CsvConverter<T, T11> converter11;
+    private readonly CsvConverter<T, T12> converter12;
+    private readonly CsvConverter<T, T13> converter13;
+    private readonly CsvConverter<T, T14> converter14;
+    private readonly CsvConverter<T, T15> converter15;
+    private readonly CsvConverter<T, T16> converter16;
+    private readonly CsvConverter<T, T17> converter17;
+    private readonly CsvConverter<T, T18> converter18;
+    private readonly CsvConverter<T, T19> converter19;
+    private readonly CsvConverter<T, T20> converter20;
+    private readonly CsvConverter<T, T21> converter21;
+    private readonly CsvConverter<T, T22> converter22;
+    private readonly CsvConverter<T, T23> converter23;
+    private readonly Func<TValue, T0> getter0;
+    private readonly Func<TValue, T1> getter1;
+    private readonly Func<TValue, T2> getter2;
+    private readonly Func<TValue, T3> getter3;
+    private readonly Func<TValue, T4> getter4;
+    private readonly Func<TValue, T5> getter5;
+    private readonly Func<TValue, T6> getter6;
+    private readonly Func<TValue, T7> getter7;
+    private readonly Func<TValue, T8> getter8;
+    private readonly Func<TValue, T9> getter9;
+    private readonly Func<TValue, T10> getter10;
+    private readonly Func<TValue, T11> getter11;
+    private readonly Func<TValue, T12> getter12;
+    private readonly Func<TValue, T13> getter13;
+    private readonly Func<TValue, T14> getter14;
+    private readonly Func<TValue, T15> getter15;
+    private readonly Func<TValue, T16> getter16;
+    private readonly Func<TValue, T17> getter17;
+    private readonly Func<TValue, T18> getter18;
+    private readonly Func<TValue, T19> getter19;
+    private readonly Func<TValue, T20> getter20;
+    private readonly Func<TValue, T21> getter21;
+    private readonly Func<TValue, T22> getter22;
+    private readonly Func<TValue, T23> getter23;
+
+    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    {
+        writer.WriteField(converter0, getter0(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter1, getter1(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter2, getter2(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter3, getter3(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter4, getter4(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter5, getter5(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter6, getter6(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter7, getter7(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter8, getter8(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter9, getter9(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter10, getter10(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter11, getter11(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter12, getter12(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter13, getter13(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter14, getter14(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter15, getter15(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter16, getter16(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter17, getter17(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter18, getter18(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter19, getter19(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter20, getter20(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter21, getter21(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter22, getter22(value));
+        writer.WriteDelimiter();
+        writer.WriteField(converter23, getter23(value));
     }
 }
 

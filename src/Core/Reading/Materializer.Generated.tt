@@ -4,7 +4,7 @@
 <#@ import namespace="System.Linq" #>
 <#
     // Max supported generics
-    const int TotalCount = 16;
+    const int TotalCount = 24;
     var genericTypes = Enumerable.Range(0, TotalCount).Select(i => $"T{i}").ToArray();
     var converters = Enumerable.Range(0, TotalCount).Select(i => $"CsvConverter<T, T{i}> converter{i}").ToArray();
     var values = Enumerable.Range(0, TotalCount).Select(i => $"v{i}").ToArray();
@@ -57,8 +57,7 @@ internal static class Materializer<T>
         WriteLine(">),");
     }
 #>
-            > <#= TotalCount + 2#> => throw new NotSupportedException($"Type params up to {bindings.Length} are not supported (max: <#= TotalCount #>)"),
-            _ => throw new ArgumentException($"Unsupported typeparam count: {bindings.Length}"),
+            _ => throw new NotSupportedException($"Unsupported type param count (max: <#= TotalCount #>, got: {types.Length - 2})"),
         }).MakeGenericType(types).GetConstructors()[0];
     }
 }
@@ -74,15 +73,22 @@ internal static class Materializer<T>
 [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
 internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Func<<#= generics #>> valueFactory;
+    public delegate TResult Factory(<#
+        for (var i = 0; i < current; i++)
+        {
+            Write(genericTypes[i]);
+            Write(" v");
+            Write(i.ToString());
+            if (i != current - 1)
+                Write(", ");
+        }
+    #>);
 
-    public Materializer(
-        Func<<#= generics #>> valueFactory,
-        CsvBindingCollection<TResult> bindingCollection,
-        CsvOptions<T> options)
-        : base(bindingCollection)
+    private readonly Factory _valueFactory;
+
+    public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        this.valueFactory = valueFactory;
+        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
 <#
         for (var i = 0; i < current; i++)
@@ -132,7 +138,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
             WriteLine("));");
         }
 
-        Write("        return valueFactory(");
+        Write("        return _valueFactory(");
         for (var i = 0; i < current; i++)
         {
             if (i != 0)
