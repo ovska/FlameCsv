@@ -101,9 +101,13 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             if (binding.Index != expectedIndex)
             {
                 throw new CsvBindingException(
-                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} " +
-                    $"but the next binding was: {binding}",
-                    bindingsList) { TargetType = typeof(TValue) };
+                    $"Invalid binding indices for {typeof(TValue)}, expected {expectedIndex} "
+                        + $"but the next binding was: {binding}",
+                    bindingsList
+                )
+                {
+                    TargetType = typeof(TValue),
+                };
             }
 
             if (binding.IsIgnored)
@@ -139,7 +143,11 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         {
             throw new CsvBindingException(
                 $"All {bindings.Length} binding(s) for {typeof(TValue)} are ignored",
-                bindingsList) { TargetType = typeof(TValue) };
+                bindingsList
+            )
+            {
+                TargetType = typeof(TValue),
+            };
         }
 
         ForWriting = write;
@@ -176,9 +184,10 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         if (bindings.Length > parameters.Length)
         {
             throw new CsvBindingException(
-                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters.")
+                $"Invalid constructor bindings, got {bindings.Length} but ctor had {parameters.Length} parameters."
+            )
             {
-                TargetType = typeof(TValue)
+                TargetType = typeof(TValue),
             };
         }
 

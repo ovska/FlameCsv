@@ -111,8 +111,8 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
         try
         {
-            CsvRecordRef<T> reader = new(in slice);
-            Current = _materializer.Parse(ref reader);
+            CsvRecordRef<T> record = new(in slice);
+            Current = _materializer.Parse(ref record);
             return true;
         }
         catch (CsvFormatException cfe) // unrecoverable
@@ -162,9 +162,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
 
-        CsvRecordRef<T> reader = new(in slice);
-
-        Headers = CsvHeader.Parse(Options, ref reader);
+        Headers = CsvHeader.Parse(in slice);
         _materializer = BindToHeaders(Headers);
         return true;
     }

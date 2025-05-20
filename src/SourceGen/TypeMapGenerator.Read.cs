@@ -141,19 +141,19 @@ partial class TypeMapGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(scoped ref TRecord reader) where TRecord : global::FlameCsv.Reading.ICsvRecord<{typeMap.Token.FullyQualifiedName}>, allows ref struct"
+                $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(scoped ref TRecord record) where TRecord : global::FlameCsv.Reading.ICsvRecord<{typeMap.Token.FullyQualifiedName}>, allows ref struct"
             );
 
             using (writer.WriteBlock())
             {
                 writer.WriteLine("int[] targets = Targets;");
                 writer.WriteLine();
-                writer.WriteLine("if (targets.Length != reader.FieldCount)");
+                writer.WriteLine("if (targets.Length != record.FieldCount)");
 
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine(
-                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: reader.FieldCount);"
+                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: record.FieldCount);"
                     );
                 }
 
@@ -188,7 +188,7 @@ partial class TypeMapGenerator
                         member.WriteId(writer);
                         writer.Write(" => ");
                         member.WriteConverterName(writer);
-                        writer.Write(".TryParse(reader[target], out state.");
+                        writer.Write(".TryParse(record[target], out state.");
                         writer.Write(member.Identifier);
                         writer.WriteLine("),");
                     }

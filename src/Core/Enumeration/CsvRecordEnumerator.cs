@@ -192,8 +192,7 @@ public sealed class CsvRecordEnumerator<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void CreateHeader(ref readonly CsvSlice<T> slice)
     {
-        CsvRecordRef<T> reader = new(in slice);
-        ImmutableArray<string> values = CsvHeader.Parse(Options, ref reader);
+        ImmutableArray<string> values = CsvHeader.Parse(in slice);
         Header = new CsvHeader(Options.Comparer, values);
     }
 
