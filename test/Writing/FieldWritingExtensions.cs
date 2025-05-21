@@ -1,0 +1,84 @@
+using System.Buffers;
+using System.Globalization;
+using System.Net;
+using System.Text;
+using FlameCsv.IO.Internal;
+using FlameCsv.Writing;
+
+namespace FlameCsv.Tests.Writing;
+
+public class FieldWritingExtensionsTests
+{
+    [Fact]
+    public void Normal()
+    {
+        Assert.Equal("123", Chars(w => w.FormatValue(123)));
+        Assert.Equal("123", Bytes(w => w.FormatValue(123)));
+    }
+
+    [Fact]
+    public void NullableStructWithValue()
+    {
+        Assert.Equal("123", Chars(w => w.FormatValue(new int?(123))));
+        Assert.Equal("123", Bytes(w => w.FormatValue(new int?(123))));
+    }
+
+    [Fact]
+    public void NullableStructWithoutValue()
+    {
+        Assert.Equal("", Chars(w => w.FormatValue(new int?())));
+        Assert.Equal("", Bytes(w => w.FormatValue(new int?())));
+    }
+
+    [Fact]
+    public void ReferenceTypeNull()
+    {
+        Assert.Equal("", Chars(w => w.FormatValue<IPAddress>(null!)));
+        Assert.Equal("", Bytes(w => w.FormatValue<IPAddress>(null!)));
+    }
+
+    [Fact]
+    public void ReferenceTypeValue()
+    {
+        var ip = IPAddress.Parse("127.0.0.1");
+        Assert.Equal("127.0.0.1", Chars(w => w.FormatValue(ip)));
+        Assert.Equal("127.0.0.1", Bytes(w => w.FormatValue(ip)));
+    }
+
+    [Fact]
+    public void CustomFormat()
+    {
+        var dateTime = new DateTime(2023, 10, 1, 12, 0, 0);
+        Assert.Equal("2023-10-01T12:00:00.0000000", Chars(w => w.FormatValue(dateTime, format: "O")));
+        Assert.Equal("2023-10-01T12:00:00.0000000", Bytes(w => w.FormatValue(dateTime, format: "O")));
+    }
+
+    [Fact]
+    public void CustomFormatProvider()
+    {
+        var doubleValue = 123.456;
+        var formatProvider = new NumberFormatInfo { NumberDecimalSeparator = "_" };
+        Assert.Equal("123_456", Chars(w => w.FormatValue(doubleValue, format: "F3", formatProvider: formatProvider)));
+        Assert.Equal("123_456", Bytes(w => w.FormatValue(doubleValue, format: "F3", formatProvider: formatProvider)));
+    }
+
+    private static string Chars(Action<CsvFieldWriter<char>> func)
+    {
+        var sb = new StringBuilder();
+        var bufferWriter = new StringBuilderBufferWriter(sb, MemoryPool<char>.Shared);
+        using var writer = new CsvFieldWriter<char>(bufferWriter, CsvOptions<char>.Default);
+        func(writer);
+        bufferWriter.Complete(null);
+        return sb.ToString();
+    }
+
+    private static string Bytes(Action<CsvFieldWriter<byte>> func)
+    {
+        using var ms = new MemoryStream();
+        var bufferWriter = new StreamBufferWriter(ms, MemoryPool<byte>.Shared, default);
+        using var writer = new CsvFieldWriter<byte>(bufferWriter, CsvOptions<byte>.Default);
+        func(writer);
+        bufferWriter.Complete(null);
+        return Encoding.UTF8.GetString(ms.ToArray());
+    }
+}
