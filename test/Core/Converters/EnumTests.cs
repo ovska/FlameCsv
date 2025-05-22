@@ -397,7 +397,7 @@ public abstract class EnumTests<T>
         Platypus1 = 9,
         Com0doDr4gon = 10,
 
-        [global::System.Runtime.Serialization.EnumMember(Value = "Zebra Animal!")]
+        [System.Runtime.Serialization.EnumMember(Value = "Zebra Animal!")]
         Zebra = 11,
 
         SuperLongEnumNameThatGoesOnAndOn = 12,
@@ -414,15 +414,15 @@ public abstract class EnumTests<T>
 
     protected enum NotAscii
     {
-        [global::System.Runtime.Serialization.EnumMember(Value = "🦄")]
+        [System.Runtime.Serialization.EnumMember(Value = "🦄")]
         Unicorn = 0,
 
-        [global::System.Runtime.Serialization.EnumMember(Value = "🐉")]
+        [System.Runtime.Serialization.EnumMember(Value = "🐉")]
         Dragon = 1,
 
         Café = 2,
 
-        [global::System.Runtime.Serialization.EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩🥩")]
+        [System.Runtime.Serialization.EnumMember(Value = "🥩🥩🥩🥩🥩🥩🥩🥩")]
         Meat = 0xBEEF,
     }
 
@@ -435,7 +435,7 @@ public abstract class EnumTests<T>
         Third = 1 << 2,
         SecondAndThird = Second | Third,
 
-        [global::System.Runtime.Serialization.EnumMember(Value = "Custom Name")]
+        [System.Runtime.Serialization.EnumMember(Value = "Custom Name")]
         CustomName = 1 << 3,
     }
 }
