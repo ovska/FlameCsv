@@ -102,7 +102,6 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
     }
 
     public static EquatableArray<ParameterModel> Create(
-        ITypeSymbol token,
         ITypeSymbol targetType,
         IMethodSymbol constructor,
         ref readonly FlameSymbols symbols,
@@ -134,7 +133,6 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
                 RefKind = parameter.RefKind,
                 Convertability = parameter.Type.GetBuiltinConvertability(in symbols),
                 OverriddenConverter = ConverterModel.Create(
-                    token,
                     parameter,
                     parameter.Type,
                     in symbols,

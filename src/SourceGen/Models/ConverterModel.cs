@@ -6,30 +6,16 @@ internal readonly record struct ConverterModel
     /// Returns a converter override, or null.
     /// </summary>
     public static ConverterModel? Create(
-        ITypeSymbol token,
         ISymbol propertyOrParameter,
         ITypeSymbol convertedType,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector
     )
     {
-        ITypeSymbol? converter = null;
-
-        foreach (var attributeData in propertyOrParameter.GetAttributes())
+        if (!TryGetConverterAttribute(propertyOrParameter, in symbols, out var converter))
         {
-            if (
-                attributeData.AttributeClass is { IsGenericType: true, Arity: 1 } attribute
-                && symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType())
-                && IsConverterOrFactory(attribute.TypeArguments[0], token, in symbols)
-            )
-            {
-                converter = attribute.TypeArguments[0];
-                break;
-            }
-        }
-
-        if (converter is null)
             return null;
+        }
 
         TypeRef converterType = new(converter);
         ConstructorArgumentType constructorArguments = default;
@@ -152,6 +138,29 @@ internal readonly record struct ConverterModel
             type = type.BaseType;
         }
 
+        return false;
+    }
+
+    private static bool TryGetConverterAttribute(
+        ISymbol propertyOrParameter,
+        ref readonly FlameSymbols symbols,
+        [NotNullWhen(true)] out ITypeSymbol? converter
+    )
+    {
+        foreach (var attributeData in propertyOrParameter.GetAttributes())
+        {
+            if (
+                attributeData.AttributeClass is { IsGenericType: true, Arity: 1 } attribute
+                && symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType())
+                && IsConverterOrFactory(attribute.TypeArguments[0], symbols.TokenType, in symbols)
+            )
+            {
+                converter = attribute.TypeArguments[0];
+                return true;
+            }
+        }
+
+        converter = null;
         return false;
     }
 }

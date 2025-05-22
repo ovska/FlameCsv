@@ -220,7 +220,6 @@ internal readonly record struct TypeMapModel
 
         Parameters = ConstructorModel.ParseConstructor(
             targetType,
-            tokenSymbol,
             typeConstructor,
             cancellationToken,
             in symbols,
@@ -250,13 +249,11 @@ internal readonly record struct TypeMapModel
                 PropertyModel? property = member switch
                 {
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
-                        tokenSymbol,
                         fieldSymbol,
                         in symbols,
                         ref collector
                     ),
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
-                        tokenSymbol,
                         propertySymbol,
                         in symbols,
                         ref collector

@@ -54,7 +54,6 @@ internal readonly struct ConstructorModel
 
     public static EquatableArray<ParameterModel> ParseConstructor(
         ITypeSymbol targetType,
-        ITypeSymbol tokenSymbol,
         ConstructorModel? typeConstructorAttribute,
         CancellationToken cancellationToken,
         ref readonly FlameSymbols symbols,
@@ -148,7 +147,7 @@ internal readonly struct ConstructorModel
         // check if the constructor is not null and is accessible
         if (constructor is { DeclaredAccessibility: not (Accessibility.Private or Accessibility.Protected) })
         {
-            return ParameterModel.Create(tokenSymbol, targetType, constructor, in symbols, ref collector);
+            return ParameterModel.Create(targetType, constructor, in symbols, ref collector);
         }
 
         collector.AddDiagnostic(Diagnostics.NoValidConstructor(instantiatedType, targetType, constructor));
