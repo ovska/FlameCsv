@@ -34,7 +34,7 @@ partial class TypeMapGenerator
             cancellationToken.ThrowIfCancellationRequested();
 
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
-            writer.WriteLine(EditorBrowsableNever);
+            writer.WriteLine(GlobalConstants.EditorBrowsableNever);
             writer.Write("internal sealed partial class TypeMap");
             if (!hasHeader)
             {

@@ -8,14 +8,6 @@ namespace FlameCsv.SourceGen.Generators;
 [Generator(LanguageNames.CSharp)]
 internal partial class TypeMapGenerator : IIncrementalGenerator
 {
-    const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
-
-    const string NoInliningAttr =
-        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
-
-    const string EditorBrowsableNever =
-        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> typeMapDiagnostics =
@@ -159,8 +151,6 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
             writer.WriteLine($" = {index++};");
         }
 
-        writer.WriteLine("private const int @s__MinId = 1;");
-        writer.WriteLine($"private const int @s__MaxId = {index - 1};");
         writer.WriteLine();
     }
 }

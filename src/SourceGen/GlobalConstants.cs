@@ -19,6 +19,17 @@ internal static class GlobalConstants
     public static readonly string GeneratedCodeComment;
     public static readonly string CodeDomAttribute;
 
+    public const string NoInliningAttr =
+        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
+
+    public const string AggressiveInliningAttr =
+        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";
+
+    public const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
+
+    public const string EditorBrowsableNever =
+        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+
     public static string GetFileName(string typeName, EquatableArray<NestedType> wrappingTypes)
     {
         using var builder = new ImmutableArrayBuilder<char>();

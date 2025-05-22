@@ -109,7 +109,7 @@ partial class TypeMapGenerator
         writer.WriteLine();
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
-        writer.WriteLine(EditorBrowsableNever);
+        writer.WriteLine(GlobalConstants.EditorBrowsableNever);
         writer.WriteLine(
             $"internal sealed partial class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>"
         );
@@ -221,14 +221,14 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine();
-            writer.WriteLine(DoesNotReturnAttr);
-            writer.WriteLine(NoInliningAttr);
+            writer.WriteLine(GlobalConstants.DoesNotReturnAttr);
+            writer.WriteLine(GlobalConstants.NoInliningAttr);
             writer.WriteLine(
                 "private static bool ThrowForInvalidTarget(int target) => throw new global::System.Diagnostics.UnreachableException($\"Converter {target} was uninitialized\");"
             );
             writer.WriteLine();
-            writer.WriteLine(DoesNotReturnAttr);
-            writer.WriteLine(NoInliningAttr);
+            writer.WriteLine(GlobalConstants.DoesNotReturnAttr);
+            writer.WriteLine(GlobalConstants.NoInliningAttr);
             writer.WriteLine("private void ThrowForFailedParse(int target)");
 
             using (writer.WriteBlock())
