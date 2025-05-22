@@ -98,10 +98,8 @@ partial class TypeMapGenerator
         writer.WriteLine("private struct ParseState");
         using (writer.WriteBlock())
         {
-            foreach (var member in typeMap.AllMembers)
+            foreach (var member in typeMap.AllMembers.Readable())
             {
-                if (!member.CanRead)
-                    continue;
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.WriteLine($"public {member.Type.FullyQualifiedName} {member.Identifier};");
             }
@@ -117,10 +115,8 @@ partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            foreach (var member in typeMap.AllMembers)
+            foreach (var member in typeMap.AllMembers.Readable())
             {
-                if (!member.CanRead)
-                    continue;
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.Write(
                     $"public global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {member.Type.FullyQualifiedName}> "
@@ -178,11 +174,8 @@ partial class TypeMapGenerator
                     writer.WriteLine("{");
                     writer.IncreaseIndent();
 
-                    foreach (var member in typeMap.AllMembers)
+                    foreach (var member in typeMap.AllMembers.Readable())
                     {
-                        if (!member.CanRead)
-                            continue;
-
                         cancellationToken.ThrowIfCancellationRequested();
 
                         member.WriteId(writer);
@@ -239,10 +232,8 @@ partial class TypeMapGenerator
 
             using (writer.WriteBlock())
             {
-                foreach (var member in typeMap.AllMembers)
+                foreach (var member in typeMap.AllMembers.Readable())
                 {
-                    if (!member.CanRead)
-                        continue;
                     cancellationToken.ThrowIfCancellationRequested();
 
                     writer.Write("if (target == ");
@@ -406,11 +397,8 @@ partial class TypeMapGenerator
 
         bool first = true;
 
-        foreach (var member in typeMap.AllMembers)
+        foreach (var member in typeMap.AllMembers.Where(m => m.CanRead && m.IsRequired))
         {
-            if (!member.CanRead || !member.IsRequired)
-                continue;
-
             writer.WriteLineIf(!first, " ||");
             writer.Write("materializer.");
             member.WriteConverterName(writer);
@@ -437,11 +425,8 @@ partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            foreach (var member in typeMap.AllMembers)
+            foreach (var member in typeMap.AllMembers.Where(m => m.CanRead && m.IsRequired))
             {
-                if (!member.CanRead || !member.IsRequired)
-                    continue;
-
                 writer.Write("if (materializer.");
                 member.WriteConverterName(writer);
                 writer.WriteLine($" is null) yield return {member.Identifier.ToStringLiteral()};");
@@ -457,14 +442,13 @@ partial class TypeMapGenerator
     {
         HashSet<string>? ignoredSet = null;
 
-        foreach (var member in typeMap.AllMembers)
+        foreach (var member in typeMap.AllMembers.Where(m => m.IsIgnored))
         {
-            if (member.IsIgnored)
+            ignoredSet ??= PooledSet<string>.Acquire();
+            ignoredSet.Add(member.HeaderName);
+            foreach (var name in member.Aliases)
             {
-                ignoredSet ??= PooledSet<string>.Acquire();
-                ignoredSet.Add(member.HeaderName);
-                foreach (var name in member.Aliases)
-                    ignoredSet.Add(name);
+                ignoredSet.Add(name);
             }
         }
 
@@ -496,11 +480,8 @@ partial class TypeMapGenerator
 
         PooledSet<string>.Release(ignoredSet);
 
-        foreach (var member in typeMap.AllMembers)
+        foreach (var member in typeMap.AllMembers.Readable())
         {
-            if (!member.CanRead)
-                continue;
-
             cancellationToken.ThrowIfCancellationRequested();
 
             writer.WriteLine();

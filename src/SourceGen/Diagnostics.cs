@@ -38,11 +38,11 @@ internal static class Diagnostics
         );
     }
 
-    public static Diagnostic NoValidConstructor(ITypeSymbol type, IMethodSymbol? constructor)
+    public static Diagnostic NoValidConstructor(ITypeSymbol type, ITypeSymbol actualType, IMethodSymbol? constructor)
     {
         return Diagnostic.Create(
             descriptor: Descriptors.NoValidConstructor,
-            location: GetLocation(constructor, type),
+            location: GetLocation(constructor, actualType),
             messageArgs: type.ToDisplayString()
         );
     }

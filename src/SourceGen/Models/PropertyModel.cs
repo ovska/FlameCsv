@@ -202,4 +202,21 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
     }
 
     public bool Equals(IMemberModel? other) => other is PropertyModel model && Equals(model);
+
+    internal static bool IsValid(ISymbol symbol)
+    {
+        if (symbol.IsStatic)
+        {
+            return false;
+        }
+
+        // private members are only considered if they are explicitly implemented properties
+        return symbol.DeclaredAccessibility is not (Accessibility.Private or Accessibility.Protected)
+            || symbol
+                is not IPropertySymbol
+                {
+                    CanBeReferencedByName: false,
+                    ExplicitInterfaceImplementations.IsDefaultOrEmpty: false
+                };
+    }
 }
