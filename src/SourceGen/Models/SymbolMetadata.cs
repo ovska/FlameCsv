@@ -1,9 +1,8 @@
 ﻿using System.Collections.Immutable;
 using FlameCsv.SourceGen.Helpers;
-using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 
-namespace FlameCsv.SourceGen;
+namespace FlameCsv.SourceGen.Models;
 
 /// <summary>
 /// Contains attribute data from a property, field, or parameter.

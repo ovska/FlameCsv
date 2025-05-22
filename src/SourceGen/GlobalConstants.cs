@@ -27,7 +27,7 @@ internal static class GlobalConstants
 
     public const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
 
-    public const string EditorBrowsableNever =
+    public const string EditorBrowsableAttr =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
     public static string GetFileName(string typeName, EquatableArray<NestedType> wrappingTypes)
