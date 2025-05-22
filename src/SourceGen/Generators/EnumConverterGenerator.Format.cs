@@ -63,7 +63,7 @@ partial class EnumConverterGenerator
                 // all are 2 digits long
                 // if (numericValues.All(v => v.Value < 100 && v.Value > -10))
                 // {
-                // /* TODO: skip length checks in this common case */
+                // /* TODO: skip length checks in this common case? */
                 // }
 
                 WriteFormatMatch(

@@ -73,7 +73,6 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("#nullable enable");
         writer.WriteLine();
 
-        writer.WriteLine("using System;"); // TODO: remove and call SequenceEqual and EndsWith directly
         writer.WriteLine("using __Unsafe = global::System.Runtime.CompilerServices.Unsafe;");
         writer.WriteLine("using __MemoryMarshal = global::System.Runtime.InteropServices.MemoryMarshal;");
         writer.WriteLineIf(model.TokenType.IsByte(), "using __BitConverter = global::System.BitConverter;");

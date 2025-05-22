@@ -6,6 +6,8 @@ namespace FlameCsv.SourceGen.Generators;
 
 partial class EnumConverterGenerator
 {
+    private const string MemExt = "global::System.MemoryExtensions";
+
     private static void WriteParseMethod(
         ref readonly EnumModel model,
         IndentedTextWriter writer,
@@ -167,7 +169,7 @@ partial class EnumConverterGenerator
                         {
                             foreach (var entry in firstCharGroup)
                             {
-                                writer.Write($"if (source.EndsWith(\"{entry.name[1..]}\"");
+                                writer.Write($"if ({MemExt}.EndsWith(source, \"{entry.name[1..]}\"");
                                 writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
                                 using (writer.WriteBlock())
                                 {
@@ -307,7 +309,7 @@ partial class EnumConverterGenerator
             writer.DebugLine("Direct comparison: single entry or contains surrogates");
             foreach (var single in entriesByLength)
             {
-                writer.Write($"if ({sourceName}.Equals(");
+                writer.Write($"if ({MemExt}.Equals({sourceName}, ");
                 writer.Write(single.Name.ToStringLiteral());
                 writer.Write(", global::System.StringComparison.Ordinal");
 
@@ -383,7 +385,7 @@ partial class EnumConverterGenerator
                     {
                         if (entry.Name.Length > 1)
                         {
-                            writer.Write($"if ({sourceName}.EndsWith(");
+                            writer.Write($"if ({MemExt}.EndsWith({sourceName}, ");
                             writer.Write(entry.Name[1..].ToStringLiteral());
                             writer.Write(", global::System.StringComparison.Ordinal");
 
@@ -483,7 +485,7 @@ partial class EnumConverterGenerator
 
                         if (entry.Name.Length > 1)
                         {
-                            writer.Write("if (source.EndsWith(");
+                            writer.Write($"if ({MemExt}.EndsWith(source, ");
                             writer.Write(entry.Name[1..].ToStringLiteral());
                             writer.WriteLine("u8))");
                         }
