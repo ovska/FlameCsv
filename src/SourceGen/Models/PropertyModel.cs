@@ -1,4 +1,5 @@
 ﻿using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 

@@ -1,12 +1,13 @@
 ﻿using FlameCsv.SourceGen.Helpers;
 using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
+using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
 [SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable", Justification = "<Pending>")]
 internal ref struct AnalysisCollector : IDisposable
 {
-    public override readonly string ToString() =>
+    public override string ToString() =>
         $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, "
         + $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 
