@@ -22,7 +22,7 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
         return true;
     }
 
-    protected override int ReadCore(Memory<T> buffer)
+    protected override int ReadCore(Span<T> buffer)
     {
         int dataLength = (int)long.Min(int.MaxValue, _data.Length);
 
@@ -30,14 +30,14 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
             return 0;
 
         int length = Math.Min(dataLength, buffer.Length);
-        _data.Slice(0, length).CopyTo(buffer.Span);
+        _data.Slice(0, length).CopyTo(buffer);
         _data = _data.Slice(length);
         return length;
     }
 
     protected override ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken)
     {
-        return new ValueTask<int>(ReadCore(buffer));
+        return new ValueTask<int>(ReadCore(buffer.Span));
     }
 
     protected override void DisposeCore()

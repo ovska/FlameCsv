@@ -15,7 +15,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     /// <summary>
     /// Reads data from the inner data source into the provided buffer.
     /// </summary>
-    protected abstract int ReadCore(Memory<T> buffer);
+    protected abstract int ReadCore(Span<T> buffer);
 
     /// <inheritdoc cref="ReadCore"/>
     protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);
@@ -59,7 +59,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
 
         MoveUnreadToFront();
 
-        int read = ReadCore(AvailableBuffer);
+        int read = ReadCore(AvailableBuffer.Span);
 
         _completed = read == 0;
         _unread = _buffer.Slice(0, _startOffset + read);

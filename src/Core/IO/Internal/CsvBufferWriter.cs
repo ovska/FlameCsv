@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
@@ -35,7 +34,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         _allocator = allocator ?? MemoryPool<T>.Shared;
         _leaveOpen = options.LeaveOpen;
         _bufferSize = options.BufferSize;
-        _flushThreshold = Math.Max(128, (int)(_bufferSize * (31.0 / 32.0)));
+        _flushThreshold = (int)(_bufferSize * (31.0 / 32.0));
         _memoryOwner = _allocator.Rent(_bufferSize);
         _buffer = _memoryOwner.Memory;
     }
@@ -74,9 +73,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Advance(int length)
     {
-        if ((uint)length > (uint)Remaining)
-            Throw.Argument_OutOfRange(nameof(length));
-
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)length, (uint)Remaining, nameof(length));
         _unflushed += length;
     }
 

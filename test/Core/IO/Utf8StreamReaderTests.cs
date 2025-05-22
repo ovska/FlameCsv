@@ -29,7 +29,7 @@ public class Utf8StreamReaderTests
 
         do
         {
-            charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead));
+            charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead));
             totalCharsRead += charsRead;
         } while (charsRead > 0);
 
@@ -54,7 +54,7 @@ public class Utf8StreamReaderTests
 
         do
         {
-            charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead));
+            charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead));
             totalCharsRead += charsRead;
         } while (charsRead > 0);
 
@@ -93,12 +93,12 @@ public class Utf8StreamReaderTests
         int totalCharsRead = 0;
 
         // First read should get 'A', 'B'
-        int charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead));
+        int charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead));
         totalCharsRead += charsRead;
         Assert.True(charsRead > 0);
 
         // Subsequent reads
-        while ((charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead))) > 0)
+        while ((charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead))) > 0)
         {
             totalCharsRead += charsRead;
         }
@@ -128,7 +128,7 @@ public class Utf8StreamReaderTests
 
         do
         {
-            charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead));
+            charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead));
             totalCharsRead += charsRead;
         } while (charsRead > 0);
 
@@ -215,7 +215,7 @@ public class Utf8StreamReaderTests
         // First read
         do
         {
-            charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead1));
+            charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead1));
             totalCharsRead1 += charsRead;
         } while (charsRead > 0);
 
@@ -230,7 +230,7 @@ public class Utf8StreamReaderTests
         int totalCharsRead2 = 0;
         do
         {
-            charsRead = reader.ReadCore(charBuffer.AsMemory(totalCharsRead2));
+            charsRead = reader.ReadCore(charBuffer.AsSpan(totalCharsRead2));
             totalCharsRead2 += charsRead;
         } while (charsRead > 0);
 
@@ -483,7 +483,7 @@ public class Utf8StreamReaderTests
 file static class Extensions
 {
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ReadCore")]
-    public static extern int ReadCore(this Utf8StreamReader reader, Memory<char> buffer);
+    public static extern int ReadCore(this Utf8StreamReader reader, Span<char> buffer);
 
     public static ValueTask<int> ReadAsyncCore(this Utf8StreamReader reader, Memory<char> buffer)
     {

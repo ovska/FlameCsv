@@ -8,6 +8,32 @@ namespace FlameCsv.Tests.IO;
 public static class ConstantBufferReaderTests
 {
     [Fact]
+    public static void Should_Validate_Arg()
+    {
+        using var reader = new ConstantBufferReader<char>("test".AsMemory());
+        Assert.Throws<ArgumentOutOfRangeException>(() => reader.Advance(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => reader.Advance(5));
+
+        reader.Dispose();
+        reader.Dispose(); // multiple dispose should be safe
+
+        Assert.Throws<ObjectDisposedException>(() => reader.Advance(0));
+        Assert.Throws<ObjectDisposedException>(() => reader.TryReset());
+    }
+
+    [Fact]
+    public static async Task Should_Throw_If_Cancellation_Token_Canceled()
+    {
+        await using var reader = new ConstantBufferReader<char>("test".AsMemory());
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.ReadAsync(new(canceled: true)).AsTask());
+
+        await reader.DisposeAsync();
+        await reader.DisposeAsync(); // multiple dispose should be safe
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => reader.ReadAsync(CancellationToken.None).AsTask());
+    }
+
+    [Fact]
     public static void Should_Read_From_StringBuilder()
     {
         var data = new StringBuilder(capacity: 10)

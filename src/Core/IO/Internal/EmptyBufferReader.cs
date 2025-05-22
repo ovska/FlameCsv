@@ -20,7 +20,10 @@ internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T>
             : new ValueTask<CsvReadResult<T>>(CsvReadResult<T>.Completed);
     }
 
-    public void Advance(int count) => throw new NotSupportedException();
+    public void Advance(int count)
+    {
+        ArgumentOutOfRangeException.ThrowIfNotEqual(count, 0);
+    }
 
     public bool TryReset() => true;
 }

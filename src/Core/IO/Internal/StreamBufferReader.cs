@@ -27,9 +27,9 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
         return false;
     }
 
-    protected override int ReadCore(Memory<byte> buffer)
+    protected override int ReadCore(Span<byte> buffer)
     {
-        return _stream.Read(buffer.Span);
+        return _stream.Read(buffer);
     }
 
     protected override ValueTask<int> ReadAsyncCore(Memory<byte> buffer, CancellationToken cancellationToken)

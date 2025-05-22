@@ -20,10 +20,9 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         _buffer = ArrayPool<byte>.Shared.Rent(options.BufferSize);
     }
 
-    protected override int ReadCore(Memory<char> buffer)
+    protected override int ReadCore(Span<char> buffer)
     {
         int totalCharsWritten = 0;
-        Span<char> bufferSpan = buffer.Span;
 
         while (true)
         {
@@ -40,7 +39,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             }
 
             ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
-            Span<char> charSpan = bufferSpan.Slice(totalCharsWritten);
+            Span<char> charSpan = buffer.Slice(totalCharsWritten);
 
             if (!_preambleRead)
             {
@@ -98,7 +97,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 // Replace an invalid byte sequence with U+FFFD
                 if (totalCharsWritten < buffer.Length)
                 {
-                    bufferSpan[totalCharsWritten++] = '\uFFFD';
+                    buffer[totalCharsWritten++] = '\uFFFD';
                 }
                 else
                 {
