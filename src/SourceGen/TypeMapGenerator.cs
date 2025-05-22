@@ -151,11 +151,8 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
         // start from 1 so uninitialized members are zero and fail as expected
         int index = 1;
 
-        foreach (var member in typeMap.AllMembers)
+        foreach (var member in typeMap.AllMembers.Readable())
         {
-            if (!member.CanRead)
-                continue;
-
             writer.Write("private const int ");
             member.WriteId(writer);
             writer.WriteLine($" = {index++};");

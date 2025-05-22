@@ -10,6 +10,16 @@ namespace FlameCsv.SourceGen;
 
 internal static class Extensions
 {
+    public static EquatableArray<IMemberModel>.WhereEnumerable Writable(in this EquatableArray<IMemberModel> members)
+    {
+        return members.Where(m => m.CanWrite);
+    }
+
+    public static EquatableArray<IMemberModel>.WhereEnumerable Readable(in this EquatableArray<IMemberModel> members)
+    {
+        return members.Where(m => m.CanRead);
+    }
+    
     public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)
     {
         foreach (var argument in attribute.NamedArguments)

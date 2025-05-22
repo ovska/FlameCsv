@@ -74,19 +74,16 @@ partial class TypeMapGenerator
                 {
                     bool first = true;
 
-                    foreach (var member in membersToWrite)
+                    foreach (var member in membersToWrite.Writable())
                     {
-                        if (member is not PropertyModel { CanWrite: true } property)
-                            continue;
-
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                         writer.Write("writer.WriteField(");
-                        property.WriteConverterName(writer);
+                        member.WriteConverterName(writer);
 
-                        if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
+                        if (member is PropertyModel { ExplicitInterfaceOriginalDefinitionName: { } explicitName })
                         {
                             writer.Write(", ((");
-                            writer.Write(property.ExplicitInterfaceOriginalDefinitionName.AsSpan());
+                            writer.Write(explicitName.AsSpan());
                             writer.Write(")obj).");
                         }
                         else
@@ -94,7 +91,7 @@ partial class TypeMapGenerator
                             writer.Write(", obj.");
                         }
 
-                        writer.Write(property.HeaderName);
+                        writer.Write(member.HeaderName);
                         writer.WriteLine(");");
                         first = false;
                     }
@@ -126,14 +123,11 @@ partial class TypeMapGenerator
                         _ => ("", "WriteText"),
                     };
 
-                    foreach (var member in typeMap.AllMembers)
+                    foreach (var member in typeMap.AllMembers.Writable())
                     {
-                        if (member is not PropertyModel { CanWrite: true } property)
-                            continue;
-
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                         writer.Write($"writer.{method}(");
-                        writer.Write(property.HeaderName.ToStringLiteral());
+                        writer.Write(member.HeaderName.ToStringLiteral());
                         writer.WriteLine($"{suffix});");
                         first = false;
                     }
@@ -164,11 +158,8 @@ partial class TypeMapGenerator
                 writer.WriteLine("{");
                 writer.IncreaseIndent();
 
-                foreach (var property in typeMap.AllMembers)
+                foreach (var property in typeMap.AllMembers.Writable())
                 {
-                    if (!property.CanWrite)
-                        continue;
-
                     property.WriteConverterName(writer);
                     writer.Write(" = ");
                     WriteConverter(writer, typeMap.Token.Name, property);

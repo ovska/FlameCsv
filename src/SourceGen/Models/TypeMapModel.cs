@@ -242,19 +242,7 @@ internal readonly record struct TypeMapModel
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (member.IsStatic)
-                    continue;
-
-                // private members are only considered if they are explicitly implemented properties
-                if (
-                    member.DeclaredAccessibility is Accessibility.Private or Accessibility.Protected
-                    && member
-                        is not IPropertySymbol
-                        {
-                            CanBeReferencedByName: false,
-                            ExplicitInterfaceImplementations.IsDefaultOrEmpty: false
-                        }
-                )
+                if (!PropertyModel.IsValid(member))
                 {
                     continue;
                 }
@@ -329,17 +317,27 @@ file static class MemberModelComparison
     public static readonly Comparison<IMemberModel> Value = static (x, y) =>
     {
         int cmp = (x.Order ?? 0).CompareTo(y.Order ?? 0);
-        if (cmp == 0)
-            cmp = x.IsIgnored.CompareTo(y.IsIgnored);
-        if (cmp == 0)
-            cmp = (y is ParameterModel).CompareTo(x is ParameterModel);
-        if (cmp == 0)
-            cmp = x.IsRequired.CompareTo(y.IsRequired);
+
         if (cmp == 0)
         {
-            cmp = (x is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null }).CompareTo(
-                y is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null }
-            );
+            cmp = x.IsIgnored.CompareTo(y.IsIgnored);
+        }
+
+        if (cmp == 0)
+        {
+            cmp = (y is ParameterModel).CompareTo(x is ParameterModel);
+        }
+
+        if (cmp == 0)
+        {
+            cmp = x.IsRequired.CompareTo(y.IsRequired);
+        }
+
+        if (cmp == 0)
+        {
+            var xIsExplicit = x is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null };
+            var yIsExplicit = y is PropertyModel { ExplicitInterfaceOriginalDefinitionName: not null };
+            cmp = xIsExplicit.CompareTo(yIsExplicit);
         }
 
         return cmp;

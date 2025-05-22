@@ -195,7 +195,7 @@ public class ModelTests(MetadataFixture fixture)
         // equality
         Assert.Equal(parameters, ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector));
 
-        collector.Free(out _, out _, out _);
+        collector.Dispose();
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public class ModelTests(MetadataFixture fixture)
             }
         }
 
-        collector.Free(out _, out _, out _);
+        collector.Dispose();
 
         EquatableArray<PropertyModel> GetProperties(in FlameSymbols symbols, ref AnalysisCollector collector)
         {
@@ -451,7 +451,56 @@ public class ModelTests(MetadataFixture fixture)
             );
         }
 
-        collector.Free(out _, out _, out _);
+        collector.Dispose();
+    }
+
+    [Fact]
+    public void TestConstructorModel()
+    {
+        var compilation = CSharpCompilation.Create(
+            nameof(TestConstructorModel),
+            [
+                CSharpSyntaxTree.ParseText(
+                    """
+                    class TestClass
+                    {
+                        [FlameCsv.Attributes.CsvConstructorAttribute]
+                        public TestClass(int a, string b) { }
+                    }
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
+            ],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
+
+        var classSymbol = semanticModel.GetDeclaredSymbol(
+            semanticModel
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
+                .DescendantNodes()
+                .OfType<ClassDeclarationSyntax>()
+                .Single(s => s.Identifier.Text == "TestClass"),
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
+
+        var flameSymbols = GetFlameSymbols(compilation, classSymbol);
+        AnalysisCollector collector = new(classSymbol);
+
+        var model = ConstructorModel.ParseConstructor(
+            classSymbol,
+            flameSymbols.TokenType,
+            null,
+            TestContext.Current.CancellationToken,
+            in flameSymbols,
+            ref collector
+        );
+
+        Assert.Equal(2, model.Length);
+
+        collector.Dispose();
     }
 
     [Fact]
@@ -539,7 +588,7 @@ public class ModelTests(MetadataFixture fixture)
         Assert.Single(collector.Proxies);
         Assert.Equal(SpecialType.System_Object, collector.Proxies[0].SpecialType);
 
-        collector.Free(out _, out _, out _);
+        collector.Dispose();
     }
 
     [Fact]
@@ -727,6 +776,8 @@ public class ModelTests(MetadataFixture fixture)
         }
 
         Assert.Equal(expected, models.Select(m => (m.Identifier, m.Convertability)));
+
+        collector.Dispose();
     }
 
     // ReSharper disable once UnusedParameter.Local

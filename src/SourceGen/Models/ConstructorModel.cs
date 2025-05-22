@@ -63,13 +63,13 @@ internal readonly struct ConstructorModel
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        ImmutableArray<IMethodSymbol> constructors = targetType.GetInstanceConstructors();
+        ITypeSymbol instantiatedType = collector.TryGetProxy(out var proxy) ? proxy : targetType;
         IMethodSymbol? constructor = null;
 
         // [CsvConstructor] on type or assembly
         if (typeConstructorAttribute is { } typeAttr)
         {
-            foreach (var ctor in constructors)
+            foreach (var ctor in targetType.GetInstanceConstructors())
             {
                 if (ctor.Parameters.Length == typeAttr.Types.Length)
                 {
@@ -113,26 +113,31 @@ internal readonly struct ConstructorModel
             }
         }
         // use a single public ctor if available
-        else if (constructors.Length == 1)
-        {
-            constructor = constructors[0];
-        }
-        // use either parameterless if available, or ctor annotated with [CsvConstructor]
         else
         {
-            foreach (var ctor in constructors)
-            {
-                if (ctor.Parameters.IsDefaultOrEmpty)
-                {
-                    constructor ??= ctor;
-                    continue;
-                }
+            var constructors = instantiatedType.GetInstanceConstructors();
 
-                foreach (var attr in ctor.GetAttributes())
+            if (constructors.Length == 1)
+            {
+                constructor = constructors[0];
+            }
+            // use either parameterless if available, or ctor annotated with [CsvConstructor]
+            else
+            {
+                foreach (var ctor in constructors)
                 {
-                    if (symbols.IsCsvConstructorAttribute(attr.AttributeClass))
+                    if (ctor.Parameters.IsDefaultOrEmpty)
                     {
-                        constructor = ctor;
+                        constructor ??= ctor;
+                        continue;
+                    }
+
+                    foreach (var attr in ctor.GetAttributes())
+                    {
+                        if (symbols.IsCsvConstructorAttribute(attr.AttributeClass))
+                        {
+                            constructor = ctor;
+                        }
                     }
                 }
             }
@@ -146,7 +151,7 @@ internal readonly struct ConstructorModel
             return ParameterModel.Create(tokenSymbol, targetType, constructor, in symbols, ref collector);
         }
 
-        collector.AddDiagnostic(Diagnostics.NoValidConstructor(targetType, constructor));
+        collector.AddDiagnostic(Diagnostics.NoValidConstructor(instantiatedType, targetType, constructor));
         MarkParametersAsHandled(ref collector);
         return [];
     }

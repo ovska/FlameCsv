@@ -175,12 +175,14 @@ partial class TypeMapGenerator
                 dict[ignored] = null;
             }
 
-            foreach (var member in model.AllMembers)
+            Func<IMemberModel, bool> predicate = write ? m => m.CanWrite : m => m.CanRead;
+
+            foreach (var member in model.AllMembers.Where(predicate))
             {
                 if (member.Index is not { } index)
+                {
                     continue;
-                if (write ? !member.CanWrite : !member.CanRead)
-                    continue;
+                }
 
                 dict ??= MemberDictPool.Acquire();
 

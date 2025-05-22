@@ -3,9 +3,10 @@ using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal ref struct AnalysisCollector
+[SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable", Justification = "<Pending>")]
+internal ref struct AnalysisCollector : IDisposable
 {
-    public readonly override string ToString() =>
+    public override readonly string ToString() =>
         $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, "
         + $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 
@@ -37,6 +38,18 @@ internal ref struct AnalysisCollector
     {
         Proxies.Add(proxy);
         ProxyLocations.Add(location);
+    }
+
+    public readonly bool TryGetProxy([NotNullWhen(true)] out ITypeSymbol? proxy)
+    {
+        if (Proxies.Count == 1)
+        {
+            proxy = Proxies[0];
+            return true;
+        }
+
+        proxy = null;
+        return false;
     }
 
     public void Free(
@@ -82,12 +95,17 @@ internal ref struct AnalysisCollector
         }
         finally
         {
-            TargetAttributes.Dispose();
-            PooledList<Diagnostic>.Release(Diagnostics);
-            PooledSet<int>.Release(IgnoredIndexes);
-            PooledList<ITypeSymbol>.Release(Proxies);
-            PooledList<Location?>.Release(ProxyLocations);
-            this = default;
+            Dispose();
         }
+    }
+
+    public void Dispose()
+    {
+        TargetAttributes.Dispose();
+        PooledList<Diagnostic>.Release(Diagnostics);
+        PooledSet<int>.Release(IgnoredIndexes);
+        PooledList<ITypeSymbol>.Release(Proxies);
+        PooledList<Location?>.Release(ProxyLocations);
+        this = default;
     }
 }
