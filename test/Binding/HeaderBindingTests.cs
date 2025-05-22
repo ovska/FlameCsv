@@ -14,7 +14,7 @@ file sealed class AssemblyScoped
     public string? Name { get; set; }
 }
 
-public static class HeaderBindingTests
+public static partial class HeaderBindingTests
 {
     [Fact]
     public static void Should_Bind_Using_Assembly_Attributes()
@@ -87,21 +87,56 @@ public static class HeaderBindingTests
         Assert.Equal("Test", result.Name);
         Assert.Equal(1, result.Targeted);
     }
-}
 
-[CsvTypeProxy(typeof(Something))]
-file interface ISomething
-{
-    string? Name { get; }
-    bool IsEnabled { get; }
-    int Targeted { get; }
-}
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Use_Write_Configuration_From_Proxy(bool sourceGen)
+    {
+        Assert.SkipWhen(sourceGen, "Source generator for type proxies is not supported yet");
 
-file class Something : ISomething
-{
-    public string? Name { get; set; }
-    public bool IsEnabled { get; set; }
-    public int Targeted { get; set; }
+        var sb = CsvWriter.WriteToString<ISomething>([]);
+        Assert.Equal("_name,_isenabled,_targeted\r\n", sb.ToString());
+    }
+
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Use_Read_Configuration_From_Underlying(bool sourceGen)
+    {
+        Assert.SkipWhen(sourceGen, "Source generator for type proxies is not supported yet");
+
+        var bindings = new CsvReflectionBinder<char>(CsvOptions<char>.Default, false).GetMaterializer<ISomething>(
+            ["Name", "IsEnabled", "Targeted"]
+        );
+
+        var record = new ConstantRecord<char>(["Test", "true", "1"]);
+        ISomething obj = bindings.Parse(ref record);
+
+        Assert.IsType<Something>(obj);
+        Assert.True(obj.IsEnabled);
+        Assert.Equal("Test", obj.Name);
+        Assert.Equal(1, obj.Targeted);
+    }
+
+    // [CsvTypeMap<char, ISomething>]
+    // private partial class ProxyTypeMap;
+
+    [CsvTypeProxy(typeof(Something))]
+    private interface ISomething
+    {
+        [CsvHeader("_name")]
+        string? Name { get; }
+
+        [CsvHeader("_isenabled")]
+        bool IsEnabled { get; }
+
+        [CsvHeader("_targeted")]
+        int Targeted { get; }
+    }
+
+    private class Something : ISomething
+    {
+        public string? Name { get; set; }
+        public bool IsEnabled { get; set; }
+        public int Targeted { get; set; }
+    }
 }
 
 // ReSharper disable all
