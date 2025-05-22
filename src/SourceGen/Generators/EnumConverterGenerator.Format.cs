@@ -60,19 +60,35 @@ partial class EnumConverterGenerator
                     .Skip(fastPathCount ?? 0)
                     .ToList();
 
-                // all are 2 digits long
-                // if (numericValues.All(v => v.Value < 100 && v.Value > -10))
-                // {
-                // /* TODO: skip length checks in this common case? */
-                // }
+                // all are 2 digits long?
+                bool skipLengthCheck = numericValues.All(v => v.Value < 100 && v.Value > -10);
 
-                WriteFormatMatch(
-                    writer,
-                    in model,
-                    cancellationToken,
-                    numericValues,
-                    static value => value.Value.ToString()
-                );
+                if (skipLengthCheck)
+                {
+                    writer.Write($"if ((uint)value <= {numericValues.Select(v => v.Value).Max()} && ");
+                    writer.WriteLine("destination.Length >= 2)");
+                }
+
+                using (writer.WriteBlockIf(skipLengthCheck))
+                {
+                    WriteFormatMatch(
+                        writer,
+                        in model,
+                        cancellationToken,
+                        numericValues,
+                        static value => value.Value.ToString(),
+                        skipLengthCheck
+                    );
+                }
+
+                if (skipLengthCheck)
+                {
+                    writer.WriteLine("else");
+                    using (writer.WriteBlock())
+                    {
+                        writer.WriteLine("return global::System.Buffers.OperationStatus.DestinationTooSmall;");
+                    }
+                }
             }
             else
             {
@@ -89,7 +105,8 @@ partial class EnumConverterGenerator
                 in model,
                 cancellationToken,
                 model.Values.DistinctBy(x => x.Value),
-                static value => value.DisplayName
+                static value => value.DisplayName,
+                skipLengthCheck: false
             );
         }
     }
@@ -99,7 +116,8 @@ partial class EnumConverterGenerator
         ref readonly EnumModel model,
         CancellationToken cancellationToken,
         IEnumerable<EnumValueModel> values,
-        Func<EnumValueModel, string> getValue
+        Func<EnumValueModel, string> getValue,
+        bool skipLengthCheck
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -117,7 +135,7 @@ partial class EnumConverterGenerator
             {
                 string formattedValue = getValue(value);
 
-                if (TryWriteDirectFormat(writer, in model, formattedValue))
+                if (TryWriteDirectFormat(writer, in model, cancellationToken, formattedValue, skipLengthCheck))
                 {
                     continue;
                 }
@@ -150,7 +168,13 @@ partial class EnumConverterGenerator
         writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
     }
 
-    private static bool TryWriteDirectFormat(IndentedTextWriter writer, ref readonly EnumModel model, string value)
+    private static bool TryWriteDirectFormat(
+        IndentedTextWriter writer,
+        ref readonly EnumModel model,
+        CancellationToken cancellationToken,
+        string value,
+        bool skipLengthCheck
+    )
     {
         if (!value.IsAscii())
         {
@@ -176,21 +200,27 @@ partial class EnumConverterGenerator
             return false;
         }
 
-        writer.DebugLine("Unrolling direct format");
-        writer.WriteLine($"if (destination.Length >= {value.Length})");
+        writer.DebugLine($"Unrolling direct format (skipLengthCheck: {skipLengthCheck})");
+
+        writer.WriteLineIf(!skipLengthCheck, $"if (destination.Length >= {value.Length})");
 
         int remaining = value.Length;
         int offset = 0;
 
-        using (writer.WriteBlock())
+        using (writer.WriteBlockIf(!skipLengthCheck))
         {
             while (remaining > 0)
             {
-                if (remaining >= 4)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                // jit optimizes multiple Unsafe.Add writes to a single call for bytes, but not for chars
+                // so write the unaligned writes directly
+                if (remaining >= 2)
                 {
+                    (int size, string type) = GetTypeAndSize(remaining, in model);
+
                     if (model.TokenType.IsByte())
                     {
-                        (int size, string type) = remaining >= 8 ? (8, "ulong") : (4, "uint");
                         writer.Write("__Unsafe.WriteUnaligned(ref ");
                         writer.WriteIf(offset != 0, "Unsafe.Add(ref dst, offset)");
                         writer.WriteIf(offset == 0, "dst");
@@ -202,14 +232,14 @@ partial class EnumConverterGenerator
                     }
                     else
                     {
-                        writer.Write("__Unsafe.As<char, ulong>(ref ");
+                        writer.Write($"__Unsafe.As<char, {type}>(ref ");
                         writer.WriteIf(offset != 0, "Unsafe.Add(ref dst, offset)");
                         writer.WriteIf(offset == 0, "dst");
-                        writer.Write(") = __Unsafe.As<char, ulong>(ref __MemoryMarshal.GetReference(");
-                        writer.Write(value.Substring(offset, 4).ToStringLiteral());
+                        writer.Write($") = __Unsafe.As<char, {type}>(ref __MemoryMarshal.GetReference(");
+                        writer.Write(value.Substring(offset, size).ToStringLiteral());
                         writer.WriteLine(".AsSpan()));");
-                        offset += 4;
-                        remaining -= 4;
+                        offset += size;
+                        remaining -= size;
                     }
 
                     continue;
@@ -228,7 +258,7 @@ partial class EnumConverterGenerator
             writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
         }
 
-        writer.WriteLine("return global::System.Buffers.OperationStatus.DestinationTooSmall;");
+        writer.WriteLineIf(!skipLengthCheck, "return global::System.Buffers.OperationStatus.DestinationTooSmall;");
         return true;
     }
 
@@ -255,5 +285,18 @@ partial class EnumConverterGenerator
         writer.WriteLine(" ? global::System.Buffers.OperationStatus.Done");
         writer.WriteLine(" : global::System.Buffers.OperationStatus.DestinationTooSmall;");
         writer.DecreaseIndent();
+    }
+
+    private static (int size, string type) GetTypeAndSize(int remaining, ref readonly EnumModel model)
+    {
+        bool isByte = model.TokenType.IsByte();
+
+        return remaining switch
+        {
+            >= 8 when isByte => (8, "ulong"),
+            >= 4 => isByte ? (4, "uint") : (4, "ulong"),
+            >= 2 => isByte ? (2, "ushort") : (2, "uint"),
+            _ => throw new System.Diagnostics.UnreachableException(),
+        };
     }
 }
