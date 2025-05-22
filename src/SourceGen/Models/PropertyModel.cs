@@ -92,7 +92,6 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
     }
 
     public static PropertyModel? TryCreate(
-        ITypeSymbol token,
         IPropertySymbol propertySymbol,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector
@@ -148,7 +147,6 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored,
             CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true,
             OverriddenConverter = ConverterModel.Create(
-                token,
                 propertySymbol,
                 propertySymbol.Type,
                 in symbols,
@@ -162,7 +160,6 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
     }
 
     public static PropertyModel? TryCreate(
-        ITypeSymbol token,
         IFieldSymbol fieldSymbol,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector
@@ -192,7 +189,6 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             ExplicitInterfaceOriginalDefinitionName = null,
             Convertability = fieldSymbol.Type.GetBuiltinConvertability(in symbols),
             OverriddenConverter = ConverterModel.Create(
-                token,
                 fieldSymbol,
                 fieldSymbol.Type,
                 in symbols,

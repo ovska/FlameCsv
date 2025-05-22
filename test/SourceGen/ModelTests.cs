@@ -161,7 +161,7 @@ public class ModelTests(MetadataFixture fixture)
         var flameSymbols = GetFlameSymbols(compilation, charSymbol);
         AnalysisCollector collector = new(charSymbol);
 
-        var parameters = ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector);
+        var parameters = ParameterModel.Create(charSymbol, method, in flameSymbols, ref collector);
 
         Assert.Equal([Descriptors.RefConstructorParameter.Id], collector.Diagnostics.Select(d => d.Id));
 
@@ -193,7 +193,7 @@ public class ModelTests(MetadataFixture fixture)
         }
 
         // equality
-        Assert.Equal(parameters, ParameterModel.Create(charSymbol, charSymbol, method, in flameSymbols, ref collector));
+        Assert.Equal(parameters, ParameterModel.Create(charSymbol, method, in flameSymbols, ref collector));
 
         collector.Dispose();
     }
@@ -234,8 +234,6 @@ public class ModelTests(MetadataFixture fixture)
         );
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
-
-        var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
 
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
@@ -298,13 +296,11 @@ public class ModelTests(MetadataFixture fixture)
                 PropertyModel? model = member switch
                 {
                     IPropertySymbol propertySymbol => PropertyModel.TryCreate(
-                        charSymbol,
                         propertySymbol,
                         in symbols,
                         ref collector
                     ),
                     IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
-                        charSymbol,
                         fieldSymbol,
                         in symbols,
                         ref collector
@@ -388,7 +384,6 @@ public class ModelTests(MetadataFixture fixture)
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
-        var charSymbol = compilation.GetTypeByMetadataName("System.Char")!;
         var objectSymbol = compilation.GetTypeByMetadataName("System.Object")!;
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
@@ -406,7 +401,7 @@ public class ModelTests(MetadataFixture fixture)
 
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            var model = ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector);
+            var model = ConverterModel.Create(member, objectSymbol, in flameSymbols, ref collector);
 
             if (member.Name == "None")
             {
@@ -446,8 +441,8 @@ public class ModelTests(MetadataFixture fixture)
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
             Assert.Equal(
-                ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector),
-                ConverterModel.Create(charSymbol, member, objectSymbol, in flameSymbols, ref collector)
+                ConverterModel.Create(member, objectSymbol, in flameSymbols, ref collector),
+                ConverterModel.Create(member, objectSymbol, in flameSymbols, ref collector)
             );
         }
 
@@ -491,7 +486,6 @@ public class ModelTests(MetadataFixture fixture)
 
         var model = ConstructorModel.ParseConstructor(
             classSymbol,
-            flameSymbols.TokenType,
             null,
             TestContext.Current.CancellationToken,
             in flameSymbols,
@@ -737,7 +731,7 @@ public class ModelTests(MetadataFixture fixture)
 
         foreach (var property in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            var model = PropertyModel.TryCreate(symbols.TokenType, property, in symbols, ref collector);
+            var model = PropertyModel.TryCreate(property, in symbols, ref collector);
             Assert.NotNull(model);
             models.Add(model.Value);
         }
