@@ -6,26 +6,17 @@ using JetBrains.Annotations;
 namespace FlameCsv.IO;
 
 /// <summary>
-/// Internal implementation detail.
+/// Represents the result of a read operation from a <see cref="ICsvBufferReader{T}"/>.
 /// </summary>
+/// <param name="buffer">Read data</param>
+/// <param name="isCompleted">Whether any more data can be read from the reader</param>
 [PublicAPI]
 [DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public readonly struct CsvReadResult<T>
+[method: MethodImpl(MethodImplOptions.AggressiveInlining)]
+public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isCompleted)
     where T : unmanaged
 {
-    /// <summary>
-    /// Internal implementation detail.
-    /// </summary>
-    /// <param name="buffer">Read data</param>
-    /// <param name="isCompleted">Whether any more data can be read from the reader after this</param>
-    [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public CsvReadResult(ReadOnlyMemory<T> buffer, bool isCompleted)
-    {
-        Buffer = buffer;
-        IsCompleted = isCompleted;
-    }
-
     /// <summary>
     /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <c>false</c>.
     /// </summary>
@@ -39,12 +30,12 @@ public readonly struct CsvReadResult<T>
     /// <summary>
     /// Unprocessed data read from the data source.
     /// </summary>
-    public ReadOnlyMemory<T> Buffer { get; }
+    public ReadOnlyMemory<T> Buffer => buffer;
 
     /// <summary>
     /// If <c>true</c>, no more data can be read from the data source.
     /// </summary>
-    public bool IsCompleted { get; }
+    public bool IsCompleted => isCompleted;
 
     /// <summary>
     /// Deconstructs the result into its components.

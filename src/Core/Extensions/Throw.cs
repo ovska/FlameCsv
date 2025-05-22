@@ -142,12 +142,6 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Argument_OutOfRange(string paramName)
-    {
-        throw new ArgumentOutOfRangeException(paramName);
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Argument(string paramName, string? message)
     {
         throw new ArgumentException(message, paramName);

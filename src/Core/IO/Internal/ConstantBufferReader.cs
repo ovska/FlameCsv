@@ -47,18 +47,15 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
 
     public ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken);
-        }
-
-        return new ValueTask<CsvReadResult<T>>(Read());
+        return cancellationToken.IsCancellationRequested
+            ? ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken)
+            : new ValueTask<CsvReadResult<T>>(Read());
     }
 
     public void Advance(int count)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)count, (uint)_data.Length, nameof(count));
+        ObjectDisposedException.ThrowIf(_disposed, this);
         _data = _data.Slice(count);
     }
 

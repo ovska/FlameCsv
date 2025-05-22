@@ -20,9 +20,9 @@ internal sealed class TextBufferReader : CsvBufferReader<char>
         return ReferenceEquals(_reader, TextReader.Null);
     }
 
-    protected override int ReadCore(Memory<char> buffer)
+    protected override int ReadCore(Span<char> buffer)
     {
-        return _reader.Read(buffer.Span);
+        return _reader.Read(buffer);
     }
 
     protected override ValueTask<int> ReadAsyncCore(Memory<char> buffer, CancellationToken cancellationToken)
