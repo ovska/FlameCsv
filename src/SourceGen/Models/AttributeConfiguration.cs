@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
+using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 

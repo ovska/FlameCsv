@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using Basic.Reference.Assemblies;
 using FlameCsv.SourceGen;
+using FlameCsv.SourceGen.Generators;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

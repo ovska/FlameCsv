@@ -1,8 +1,9 @@
 ﻿using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
+using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace FlameCsv.SourceGen;
+namespace FlameCsv.SourceGen.Generators;
 
 [Generator(LanguageNames.CSharp)]
 internal partial class EnumConverterGenerator : IIncrementalGenerator

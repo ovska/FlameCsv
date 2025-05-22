@@ -16,7 +16,7 @@ using FlameCsv.SourceGen.Helpers;
 
 #pragma warning disable IDE0290
 
-namespace FlameCsv.SourceGen;
+namespace FlameCsv.SourceGen.Utilities;
 
 /// <summary>
 /// A helper type to build sequences of values with pooled buffers.

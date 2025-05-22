@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.SourceGen;
 using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.Tests.SourceGen;
 

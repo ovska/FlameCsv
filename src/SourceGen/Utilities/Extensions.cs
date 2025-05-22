@@ -6,7 +6,7 @@ using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace FlameCsv.SourceGen;
+namespace FlameCsv.SourceGen.Utilities;
 
 internal static class Extensions
 {
