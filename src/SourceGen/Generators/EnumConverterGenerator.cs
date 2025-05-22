@@ -8,8 +8,6 @@ namespace FlameCsv.SourceGen.Generators;
 [Generator(LanguageNames.CSharp)]
 internal partial class EnumConverterGenerator : IIncrementalGenerator
 {
-    private const string AggressiveInlining =
-        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -254,9 +252,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine("/// <summary>");
                 writer.WriteLine("/// Transcodes the input value to chars.");
                 writer.WriteLine("/// </summary>");
-                writer.WriteLine(
-                    "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]"
-                );
+                writer.WriteLine(GlobalConstants.NoInliningAttr);
                 writer.WriteLine(
                     $"private static global::System.ReadOnlySpan<char> GetChars(global::System.ReadOnlySpan<{model.TokenType.Name}> source, global::System.Span<char> buffer, out char[]? toReturn)"
                 );
@@ -356,7 +352,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("/// Unlike Enum.IsDefined, this method returns <c>true</c> for flags-enums that are not");
         writer.WriteLine("/// explicitly defined, but are a combination of defined values.");
         writer.WriteLine("/// </remarks>");
-        writer.WriteLineIf(model.ContiguousFromZero, AggressiveInlining);
+        writer.WriteLineIf(model.ContiguousFromZero, GlobalConstants.AggressiveInliningAttr);
         writer.WriteLine($"public static bool IsDefined({model.EnumType.FullyQualifiedName} value)");
         using var _ = writer.WriteBlock();
 
