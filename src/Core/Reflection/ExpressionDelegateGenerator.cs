@@ -84,7 +84,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T>
         {
             if (CsvTypeInfo<TResult>.Value.Proxy is not null)
             {
-                // TODO: get full binding collection for proxy type
+                // TODO: get full binding collection for proxy type?
                 return Expression.New(CsvTypeInfo<TResult>.Value.Proxy!.Type);
             }
 

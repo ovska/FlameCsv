@@ -166,7 +166,8 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
         return models.ToEquatableArrayAndFree();
     }
 
-    // TODO: should this use Order property?
+    // this does not use Order as the parameters need to be in order
+    // IMemberModels are sorted with order
     public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
 
     public bool Equals(IMemberModel? other) => other is ParameterModel model && Equals(model);

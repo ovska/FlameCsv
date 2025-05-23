@@ -293,7 +293,6 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 }
             }
 
-            // TODO: ensure this works with trailing LF
             currentMeta = Meta.EOL((int)runningIndex + 1, quotesConsumed, newlineLength: 0);
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
             break;
