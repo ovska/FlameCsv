@@ -559,7 +559,7 @@ partial class EnumConverterGenerator
                             if (ignoreCase)
                             {
                                 writer.WriteIf(compare.IsAsciiLetter(), '(');
-                                writer.Write(i == 0 ? "first" : $"source[{i}]");
+                                WriteIndexAccess(writer, i);
                                 writer.Write(compare.IsAsciiLetter() ? " | 0x20) == " : " == ");
                                 writer.Write(
                                     compare.IsAsciiLetter()
@@ -569,11 +569,8 @@ partial class EnumConverterGenerator
                             }
                             else
                             {
-                                writer.Write(
-                                    i == 0
-                                        ? $"first == {compare.ToCharLiteral()}"
-                                        : $"source[{i}] == {compare.ToCharLiteral()}"
-                                );
+                                WriteIndexAccess(writer, i);
+                                writer.Write($" == {compare.ToCharLiteral()}");
                             }
 
                             i++;
@@ -672,7 +669,7 @@ partial class EnumConverterGenerator
 
                 writer.Write("switch (");
                 writer.WriteIf(ignoreCase, "(");
-                writer.Write($"source[{depth}]");
+                WriteIndexAccess(writer, depth);
                 writer.WriteIf(ignoreCase, " | 0x20)");
                 writer.WriteLine(")");
 
@@ -817,5 +814,18 @@ partial class EnumConverterGenerator
                 writer.WriteLine("; return true;");
             }
         }
+    }
+
+    private static void WriteIndexAccess(IndentedTextWriter writer, int depth)
+    {
+        if (depth == 0)
+        {
+            writer.Write("first");
+            return;
+        }
+
+        // TODO: remove when JIT is smart enough to optimize the bounds checks
+        // on net9, byte ignorecase tryparse for System.TypeCode produces 755 bytes of ASM with this (vs 934 without)
+        writer.Write($"__Unsafe.Add(ref first, {depth})");
     }
 }
