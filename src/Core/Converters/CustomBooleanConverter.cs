@@ -104,7 +104,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
     {
         if (typeof(T) == typeof(char))
         {
-            var cmp = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            object cmp = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             return (IAlternateEqualityComparer<ReadOnlySpan<T>, string>)cmp;
         }
 

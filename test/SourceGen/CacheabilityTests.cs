@@ -1,7 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using Basic.Reference.Assemblies;
-using FlameCsv.SourceGen;
 using FlameCsv.SourceGen.Generators;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
@@ -93,51 +92,52 @@ public class TypeMapTests(MetadataFixture fixture)
 
         static bool AssertEquatable(Type type, HashSet<Type> handled)
         {
-            if (!handled.Add(type))
+            while (handled.Add(type))
             {
-                return true;
-            }
-
-            if (type.IsPrimitive || type.IsEnum || type == typeof(string))
-            {
-                return true;
-            }
-
-            if (Nullable.GetUnderlyingType(type) is Type underlyingType)
-            {
-                return AssertEquatable(underlyingType, handled);
-            }
-
-            if (!type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
-            {
-                Assert.Fail($"{type.FullName} is not primitive and does not implement IEquatable<{type.FullName}>");
-                return false;
-            }
-
-            // don't check properties of IEnumerable types, we checked it implements IEquatable<> already
-            if (type.IsAssignableTo(typeof(System.Collections.IEnumerable)))
-            {
-                return true;
-            }
-
-            foreach (MemberInfo member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance))
-            {
-                if (member is PropertyInfo property)
+                if (type.IsPrimitive || type.IsEnum || type == typeof(string))
                 {
-                    if (!AssertEquatable(property.PropertyType, handled))
+                    break;
+                }
+
+                if (Nullable.GetUnderlyingType(type) is { } underlyingType)
+                {
+                    type = underlyingType;
+                    continue;
+                }
+
+                if (!type.IsAssignableTo(typeof(IEquatable<>).MakeGenericType(type)))
+                {
+                    Assert.Fail($"{type.FullName} is not primitive and does not implement IEquatable<{type.FullName}>");
+                    return false;
+                }
+
+                // don't check properties of IEnumerable types, we checked it implements IEquatable<> already
+                if (type.IsAssignableTo(typeof(System.Collections.IEnumerable)))
+                {
+                    break;
+                }
+
+                foreach (MemberInfo member in type.GetMembers(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    if (member is PropertyInfo property)
                     {
-                        Assert.Fail($"{type.FullName}.{member.Name} is not equatable");
-                        return false;
+                        if (!AssertEquatable(property.PropertyType, handled))
+                        {
+                            Assert.Fail($"{type.FullName}.{member.Name} is not equatable");
+                            return false;
+                        }
+                    }
+                    else if (member is FieldInfo field)
+                    {
+                        if (!AssertEquatable(field.FieldType, handled))
+                        {
+                            Assert.Fail($"{type.FullName}.{member.Name} is not equatable");
+                            return false;
+                        }
                     }
                 }
-                else if (member is FieldInfo field)
-                {
-                    if (!AssertEquatable(field.FieldType, handled))
-                    {
-                        Assert.Fail($"{type.FullName}.{member.Name} is not equatable");
-                        return false;
-                    }
-                }
+
+                break;
             }
 
             return true;

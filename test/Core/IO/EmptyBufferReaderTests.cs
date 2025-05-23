@@ -1,11 +1,6 @@
-using System;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using FlameCsv.IO.Internal;
-using Xunit;
 
-namespace FlameCsv.Tests.IO.Internal;
+namespace FlameCsv.Tests.IO;
 
 public class EmptyBufferReaderTests
 {

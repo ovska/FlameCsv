@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -249,8 +250,13 @@ internal sealed class MetaBuffer : IDisposable
 
     private struct MetaSegment
     {
+        [UsedImplicitly]
         public Meta[]? array;
+
+        [UsedImplicitly]
         public int offset;
+
+        [UsedImplicitly]
         public int count;
 
 #if DEBUG
