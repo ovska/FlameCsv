@@ -304,9 +304,10 @@ partial class EnumConverterGenerator
         bool isByte = model.TokenType.IsByte();
         string sourceName = isByte ? "source_chars" : "source";
 
-        if (entriesByLength.Count() == 1 || entriesByLength.Any(x => x.Name.ContainsSurrogates()))
+        // up to 3 entries provides marginal performance benefits before falling back to the switch
+        if (entriesByLength.Count() <= 3 || entriesByLength.Any(x => x.Name.ContainsSurrogates()))
         {
-            writer.DebugLine("Direct comparison: single entry or contains surrogates");
+            writer.DebugLine("Direct comparison: <= 3 entries, or any of the values contain surrogates");
             foreach (var single in entriesByLength)
             {
                 writer.Write($"if ({MemExt}.Equals({sourceName}, ");
@@ -331,38 +332,36 @@ partial class EnumConverterGenerator
             return;
         }
 
-        writer.Write("switch (");
-
         if (isByte)
         {
             if (!ignoreCase)
             {
-                writer.WriteLine($"{sourceName}[0])");
+                writer.WriteLine($"switch ({sourceName}[0])");
             }
             else if (entriesByLength.All(e => e.Name.IsAscii()))
             {
-                writer.WriteLine($"(char)({sourceName}[0] | 0x20))");
+                writer.WriteLine($"switch ((char)({sourceName}[0] | 0x20))");
             }
             else
             {
                 writer.DebugLine("Slow path: ignore case and not ascii");
-                writer.WriteLine($"char.ToLowerInvariant({sourceName}[0]))");
+                writer.WriteLine($"switch (char.ToLowerInvariant({sourceName}[0]))");
             }
         }
         else
         {
             if (!ignoreCase)
             {
-                writer.WriteLine("first)");
+                writer.WriteLine("switch (first)");
             }
             else if (entriesByLength.All(e => e.Name.IsAscii()))
             {
-                writer.WriteLine("(char)(first | 0x20))");
+                writer.WriteLine("switch ((char)(first | 0x20))");
             }
             else
             {
                 writer.DebugLine("Slow path: ignore case and not ascii");
-                writer.WriteLine("char.ToLowerInvariant(first))");
+                writer.WriteLine("switch (char.ToLowerInvariant(first))");
             }
         }
 
