@@ -92,7 +92,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             if (outputType)
             {
                 await CsvWriter.WriteAsync(
-                    PipeWriter.Create(output),
+                    PipeWriter.Create(output, new(pool: pool, minimumBufferSize: bufferSize)),
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
                     options,
@@ -107,7 +107,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     ObjByteTypeMap.Default,
                     options,
                     new() { BufferSize = bufferSize },
-                    cancellationToken: TestContext.Current.CancellationToken
+                    TestContext.Current.CancellationToken
                 );
             }
         }
@@ -116,7 +116,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             if (outputType)
             {
                 await CsvWriter.WriteAsync(
-                    PipeWriter.Create(output),
+                    PipeWriter.Create(output, new(pool: pool, minimumBufferSize: bufferSize)),
                     TestDataGenerator.Objects.Value,
                     options,
                     TestContext.Current.CancellationToken
@@ -129,7 +129,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     options,
                     new() { BufferSize = bufferSize },
-                    cancellationToken: TestContext.Current.CancellationToken
+                     TestContext.Current.CancellationToken
                 );
             }
         }
@@ -150,8 +150,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool headerRead = false;
         int index = 0;
 
-        ReadOnlySpan<byte> date = "1970-01-01T00:00:00.0000000+00:00"u8;
         ReadOnlySpan<byte> dateQuoted = "'1970-01-01T00:00:00.0000000+00:00'"u8;
+        ReadOnlySpan<byte> date = dateQuoted[1..^1];
 
         var tokenizer = new ReadOnlySpanTokenizer<byte>(result.Span, (byte)'\n');
 

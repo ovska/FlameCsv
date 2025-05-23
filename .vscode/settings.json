@@ -96,6 +96,7 @@
         "Fuzz": "Queue",
         "Fuzzing": "Queue",
         "Internal": "Private",
+        "Intrinsics": "Dump",
         "IO": "Shader",
         "Properties": "Config",
         "Readers": "Class",
