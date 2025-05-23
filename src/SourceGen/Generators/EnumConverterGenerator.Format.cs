@@ -25,7 +25,7 @@ partial class EnumConverterGenerator
 
         writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
         writer.WriteLine();
-        writer.WriteLine($"ref {model.TokenType.Name} dst = ref __MemoryMarshal.GetReference(destination);");
+        writer.WriteLine($"ref {model.TokenType.Name} dst = ref destination[0];");
         writer.WriteLine();
 
         if (numbers)
@@ -37,7 +37,12 @@ partial class EnumConverterGenerator
                 writer.DebugLine("Fast path, has values contiguous from zero");
 
                 fastPathCount = Math.Min(model.ContiguousFromZeroCount, 10);
-                writer.WriteLine($"if ((uint)value < {fastPathCount})");
+                writer.Write("if ((");
+                writer.Write(
+                    model.UnderlyingType.SpecialType is SpecialType.System_Int64 or SpecialType.System_UInt64
+                        ? "ulong"
+                        : "uint");
+                writer.WriteLine($")value < {fastPathCount})");
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine($"dst = ({model.TokenType.Name})('0' + value);");
@@ -65,8 +70,14 @@ partial class EnumConverterGenerator
 
                 if (skipLengthCheck)
                 {
-                    writer.Write($"if ((uint)value <= {numericValues.Select(v => v.Value).Max()} && ");
-                    writer.WriteLine("destination.Length >= 2)");
+                    // writer.WriteLine($"if (value > {model.EnumType.FullyQualifiedName}.{model.Values[^1].Name})");
+                    // using (writer.WriteBlock())
+                    // {
+                    //     writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
+                    // }
+
+                    // writer.WriteLine();
+                    writer.WriteLine("if (destination.Length >= 2)");
                 }
 
                 using (writer.WriteBlockIf(skipLengthCheck))
@@ -222,7 +233,7 @@ partial class EnumConverterGenerator
                     if (model.TokenType.IsByte())
                     {
                         writer.Write("__Unsafe.WriteUnaligned(ref ");
-                        writer.WriteIf(offset != 0, "Unsafe.Add(ref dst, offset)");
+                        writer.WriteIf(offset != 0, $"__Unsafe.Add(ref dst, {offset})");
                         writer.WriteIf(offset == 0, "dst");
                         writer.Write($", __MemoryMarshal.Read<{type}>(");
                         writer.Write(value.Substring(offset, size).ToStringLiteral());

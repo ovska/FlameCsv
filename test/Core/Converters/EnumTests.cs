@@ -352,7 +352,9 @@ public abstract class EnumTests<T>
 
         T[] buffer = new T[length + 1];
 
-        Assert.True(converter.TryFormat(buffer, value, out var written));
+        Assert.True(
+            converter.TryFormat(buffer, value, out var written),
+            $"Could not format '{value}' with \"{format}\" into {Token<T>.Name}[{length + 1}].");
         Assert.Equal(expected, FromT(buffer.AsSpan(0, written)));
         Assert.Equal(length, written);
         Assert.Equal(T.Zero, buffer[written]); // don't write past the end
