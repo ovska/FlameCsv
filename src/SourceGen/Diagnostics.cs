@@ -187,13 +187,12 @@ internal static class Diagnostics
 
     public static Diagnostic TargetMemberNotFound(
         ITypeSymbol targetType,
-        Location? location,
-        in AttributeConfiguration configuration
+        ref readonly AttributeConfiguration configuration
     )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.TargetMemberNotFound,
-            location: location ?? GetLocation(targetType),
+            location: configuration.Attribute.GetLocation() ?? GetLocation(targetType),
             messageArgs:
             [
                 configuration.IsParameter ? "Parameter" : "Property/field",

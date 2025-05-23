@@ -1,6 +1,6 @@
 ﻿using FlameCsv.SourceGen.Helpers;
-using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
 using FlameCsv.SourceGen.Utilities;
+using DiagnosticsStatic = FlameCsv.SourceGen.Diagnostics;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -65,13 +65,7 @@ internal ref struct AnalysisCollector : IDisposable
             {
                 if (!targetAttribute.MatchFound)
                 {
-                    AddDiagnostic(
-                        DiagnosticsStatic.TargetMemberNotFound(
-                            _targetType,
-                            targetAttribute.Attribute.GetLocation(),
-                            targetAttribute
-                        )
-                    );
+                    AddDiagnostic(DiagnosticsStatic.TargetMemberNotFound(_targetType, in targetAttribute));
                 }
             }
 
