@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Unicode;
 
 namespace FlameCsv.IO.Internal;
@@ -28,6 +29,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         {
             if (_offset >= _count && !_endOfStream)
             {
+                // use array overload here in case the stream hasn't overridden the span version
                 _count = _stream.Read(_buffer, 0, _buffer.Length);
                 _offset = 0;
 
@@ -97,7 +99,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 // Replace an invalid byte sequence with U+FFFD
                 if (totalCharsWritten < buffer.Length)
                 {
-                    buffer[totalCharsWritten++] = '\uFFFD';
+                    buffer[totalCharsWritten++] = (char)Rune.ReplacementChar.Value;
                 }
                 else
                 {
@@ -122,6 +124,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         {
             if (_offset >= _count && !_endOfStream)
             {
+                // use memory overload there to use ValueTask and avoid older callback based async
                 _count = await _stream.ReadAsync(_buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
                 _offset = 0;
 
@@ -193,7 +196,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 // Replace an invalid byte sequence with U+FFFD
                 if (totalCharsWritten < buffer.Length)
                 {
-                    buffer.Span[totalCharsWritten++] = '\uFFFD';
+                    buffer.Span[totalCharsWritten++] = (char)Rune.ReplacementChar.Value;
                 }
                 else
                 {
