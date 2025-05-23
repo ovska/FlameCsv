@@ -32,7 +32,7 @@ public static class ReflectionExtensionsTests
         Assert.Equal("Length", memExp.GetMemberInfo().Name);
 
         System.Linq.Expressions.Expression<Func<string, object>> unaryExp = s => s.Length;
-        Assert.Equal("Length", memExp.GetMemberInfo().Name);
+        Assert.Equal("Length", unaryExp.GetMemberInfo().Name);
 
         System.Linq.Expressions.Expression<Func<string, object>> invalidExp = _ => 0;
         Assert.ThrowsAny<ArgumentException>(() => invalidExp.GetMemberInfo());

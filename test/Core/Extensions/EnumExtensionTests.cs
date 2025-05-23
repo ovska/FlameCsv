@@ -306,7 +306,7 @@ public static class EnumExtensionTests
     public static void TryParseNumber_WithInvalidValue_ReturnsFalse()
     {
         ReadOnlySpan<char> source = "abc".AsSpan();
-        bool success = EnumExtensions.TryParseNumber(source, out ByteEnum result);
+        bool success = EnumExtensions.TryParseNumber(source, out ByteEnum _);
         Assert.False(success);
     }
 
@@ -314,7 +314,7 @@ public static class EnumExtensionTests
     public static void TryParseNumber_WithOutOfRangeValue_ReturnsFalse()
     {
         ReadOnlySpan<char> source = "256".AsSpan(); // Out of range for byte
-        bool success = EnumExtensions.TryParseNumber(source, out ByteEnum result);
+        bool success = EnumExtensions.TryParseNumber(source, out ByteEnum _);
         Assert.False(success);
     }
 
@@ -322,10 +322,12 @@ public static class EnumExtensionTests
     public static void TryParseNumber_WithNegativeValueForUnsignedEnum_ReturnsFalse()
     {
         ReadOnlySpan<char> source = "-1".AsSpan();
-        bool success = EnumExtensions.TryParseNumber(source, out ByteEnum result);
+        bool success = EnumExtensions.TryParseNumber(source, out ByteEnum _);
         Assert.False(success);
     }
 
+    // ReSharper disable UnusedMember.Global
+    [Flags]
     public enum ByteEnum : byte
     {
         None = 0,
@@ -335,6 +337,7 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
+    [Flags]
     public enum SByteEnum : sbyte
     {
         Negative = -1,
@@ -345,6 +348,7 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
+    [Flags]
     public enum ShortEnum : short
     {
         Negative = -1,
@@ -355,6 +359,7 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
+    [Flags]
     public enum UShortEnum : ushort
     {
         None = 0,
@@ -364,7 +369,8 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
-    public enum IntEnum : int
+    [Flags]
+    public enum IntEnum
     {
         Negative = -1,
         None = 0,
@@ -374,6 +380,7 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
+    [Flags]
     public enum UIntEnum : uint
     {
         None = 0,
@@ -383,6 +390,7 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
+    [Flags]
     public enum LongEnum : long
     {
         Negative = -1,
@@ -393,6 +401,7 @@ public static class EnumExtensionTests
         All = One | Two | Four,
     }
 
+    [Flags]
     public enum ULongEnum : ulong
     {
         None = 0,
