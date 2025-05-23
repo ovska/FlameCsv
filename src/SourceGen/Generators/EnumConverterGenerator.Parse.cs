@@ -150,7 +150,7 @@ partial class EnumConverterGenerator
                 if (group.Key == 2)
                 {
                     writer.DebugLine("Special case: 2-length integers");
-                    WriteSwitchOverMask(in model, 0, writer, group, cancellationToken);
+                    WriteSwitchTwoCharacters(in model, 0, writer, group, cancellationToken);
                     writer.WriteLine("break;");
                     continue;
                 }
@@ -469,20 +469,9 @@ partial class EnumConverterGenerator
 
                 using (writer.WriteBlock())
                 {
-                    bool first = true;
-
                     // the unrolled Equals for chars automatically does length checks
                     foreach (var entry in group)
                     {
-                        if (first)
-                        {
-                            first = false;
-                        }
-                        else
-                        {
-                            writer.Write("else ");
-                        }
-
                         if (entry.Name.Length > 1)
                         {
                             writer.Write($"if ({MemExt}.EndsWith(source, ");
@@ -774,7 +763,7 @@ partial class EnumConverterGenerator
         writer.WriteLine("return destination.Slice(0, written);");
     }
 
-    private static void WriteSwitchOverMask(
+    private static void WriteSwitchTwoCharacters(
         ref readonly EnumModel model,
         int offset,
         IndentedTextWriter writer,
@@ -784,25 +773,35 @@ partial class EnumConverterGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        writer.DebugLine(nameof(WriteSwitchOverMask));
+        writer.DebugLine(nameof(WriteSwitchTwoCharacters));
 
         (string type, int shift) = model.TokenType.IsByte() ? ("ushort", 8) : ("uint", 16);
 
-        writer.Write($"switch (__Unsafe.ReadUnaligned<{type}>(ref ");
-        writer.WriteIf(!model.TokenType.IsByte(), "__Unsafe.As<char, byte>(ref ");
-        if (offset == 0)
-            writer.Write("first)");
+        writer.Write(type);
+        writer.Write(" __mask = ");
+        writer.Write("__Unsafe.ReadUnaligned<");
+        writer.Write(type);
+        writer.Write(">(ref ");
+
+        if (model.TokenType.IsByte())
+        {
+            WriteIndexAccess(writer, offset);
+        }
         else
-            writer.Write($"__Unsafe.Add(ref first, {offset}))");
-        writer.WriteIf(!model.TokenType.IsByte(), ")");
-        writer.WriteLine(")");
+        {
+            writer.Write("__Unsafe.As<char, byte>(ref ");
+            WriteIndexAccess(writer, offset);
+            writer.Write(")");
+        }
+
+        writer.WriteLine(");");
+        writer.WriteLine("if (!__BitConverter.IsLittleEndian) __mask = global::System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(__mask);");
+        writer.WriteLine("switch (__mask)");
 
         using (writer.WriteBlock())
         {
             foreach (var entry in values)
             {
-                // TODO: endianness?
-                writer.DebugLine("TODO: endianness");
                 writer.Write("case (");
                 writer.Write(entry.name[0].ToCharLiteral());
                 writer.Write(" | (");

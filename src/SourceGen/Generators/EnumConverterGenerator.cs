@@ -75,7 +75,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         writer.WriteLine("using __Unsafe = global::System.Runtime.CompilerServices.Unsafe;");
         writer.WriteLine("using __MemoryMarshal = global::System.Runtime.InteropServices.MemoryMarshal;");
-        writer.WriteLineIf(model.TokenType.IsByte(), "using __BitConverter = global::System.BitConverter;");
+        writer.WriteLine("using __BitConverter = global::System.BitConverter;");
         writer.WriteLine();
 
         if (model.InGlobalNamespace)
