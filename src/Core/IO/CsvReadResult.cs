@@ -30,12 +30,12 @@ public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isComplet
     /// <summary>
     /// Unprocessed data read from the data source.
     /// </summary>
-    public ReadOnlyMemory<T> Buffer => buffer;
+    public ReadOnlyMemory<T> Buffer { get; } = buffer;
 
     /// <summary>
     /// If <c>true</c>, no more data can be read from the data source.
     /// </summary>
-    public bool IsCompleted => isCompleted;
+    public bool IsCompleted { get; } = isCompleted;
 
     /// <summary>
     /// Deconstructs the result into its components.

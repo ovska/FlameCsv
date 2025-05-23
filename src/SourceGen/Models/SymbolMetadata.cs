@@ -33,12 +33,14 @@ internal readonly ref struct SymbolMetadata
         foreach (var attribute in symbol.GetAttributes())
         {
             if (attribute.AttributeClass is not { } attrSymbol)
+            {
                 continue;
+            }
 
             if (symbols.IsCsvHeaderAttribute(attrSymbol))
             {
                 AttributeConfiguration.ParseHeader(attribute, out var headerName, out var aliases);
-                HeaderName = TryGetHeaderName(HeaderName, headerName, attribute);
+                HeaderName = TryGetHeaderName(HeaderName, headerName, attribute, ref configNames, ref locations);
                 AddAliases(ref aliasSet, aliases);
             }
             else if (symbols.IsCsvRequiredAttribute(attrSymbol))
@@ -48,12 +50,12 @@ internal readonly ref struct SymbolMetadata
             else if (symbols.IsCsvOrderAttribute(attrSymbol))
             {
                 AttributeConfiguration.ParseOrder(attribute, out var order);
-                Order = TryGetOrder(Order, order, attribute);
+                Order = TryGetOrder(Order, order, attribute, ref configNames, ref locations);
             }
             else if (symbols.IsCsvIndexAttribute(attrSymbol))
             {
                 AttributeConfiguration.ParseIndex(attribute, out var index);
-                Index = TryGetIndex(Index, index, attribute);
+                Index = TryGetIndex(Index, index, attribute, ref configNames, ref locations);
             }
             else if (symbols.IsCsvIgnoreAttribute(attrSymbol))
             {
@@ -72,10 +74,16 @@ internal readonly ref struct SymbolMetadata
 
             targeted.MatchFound = true;
 
-            HeaderName ??= TryGetHeaderName(HeaderName, targeted.HeaderName, targeted.Attribute);
+            HeaderName ??= TryGetHeaderName(
+                HeaderName,
+                targeted.HeaderName,
+                targeted.Attribute,
+                ref configNames,
+                ref locations
+            );
             AddAliases(ref aliasSet, targeted.Aliases);
-            Order ??= TryGetOrder(Order, targeted.Order, targeted.Attribute);
-            Index ??= TryGetIndex(Index, targeted.Index, targeted.Attribute);
+            Order ??= TryGetOrder(Order, targeted.Order, targeted.Attribute, ref configNames, ref locations);
+            Index ??= TryGetIndex(Index, targeted.Index, targeted.Attribute, ref configNames, ref locations);
             IsIgnored |= targeted.IsIgnored;
             IsRequired |= targeted.IsRequired;
         }
@@ -100,61 +108,79 @@ internal readonly ref struct SymbolMetadata
         PooledList<string>.Release(configNames);
         PooledList<Location?>.Release(locations);
         Aliases = aliasSet?.ToEquatableArrayAndFree() ?? [];
+    }
 
-        static void AddAliases(ref HashSet<string>? aliasSet, ImmutableArray<TypedConstant> aliases)
+    private static void AddAliases(ref HashSet<string>? aliasSet, ImmutableArray<TypedConstant> aliases)
+    {
+        if (aliases.IsDefault)
+            return;
+
+        foreach (var alias in aliases)
         {
-            if (aliases.IsDefault)
-                return;
-
-            foreach (var alias in aliases)
+            if (alias.Value?.ToString() is { } value)
             {
-                if (alias.Value?.ToString() is { } value)
-                {
-                    (aliasSet ??= PooledSet<string>.Acquire()).Add(value);
-                }
+                (aliasSet ??= PooledSet<string>.Acquire()).Add(value);
+            }
+        }
+    }
+
+    private static int? TryGetIndex(
+        int? existing,
+        int? index,
+        AttributeData attribute,
+        ref List<string>? configNames,
+        ref List<Location?>? locations
+    )
+    {
+        if (index.HasValue)
+        {
+            if (existing.HasValue && existing.Value != index.Value)
+            {
+                (configNames ??= PooledList<string>.Acquire()).Add("Index");
+                (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
             }
         }
 
-        string? TryGetHeaderName(string? existing, string? headerName, AttributeData attribute)
-        {
-            if (headerName is not null)
-            {
-                if (existing is not null && existing != headerName)
-                {
-                    (configNames ??= PooledList<string>.Acquire()).Add("HeaderName");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
-                }
-            }
+        return index;
+    }
 
-            return headerName;
+    private static int? TryGetOrder(
+        int? existing,
+        int? order,
+        AttributeData attribute,
+        ref List<string>? configNames,
+        ref List<Location?>? locations
+    )
+    {
+        if (order.HasValue)
+        {
+            if (existing.HasValue && existing.Value != order.Value)
+            {
+                (configNames ??= PooledList<string>.Acquire()).Add("Order");
+                (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
+            }
         }
 
-        int? TryGetOrder(int? existing, int? order, AttributeData attribute)
-        {
-            if (order.HasValue)
-            {
-                if (existing.HasValue && existing.Value != order.Value)
-                {
-                    (configNames ??= PooledList<string>.Acquire()).Add("Order");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
-                }
-            }
+        return order;
+    }
 
-            return order;
+    private static string? TryGetHeaderName(
+        string? existing,
+        string? headerName,
+        AttributeData attribute,
+        ref List<string>? configNames,
+        ref List<Location?>? locations
+    )
+    {
+        if (headerName is not null)
+        {
+            if (existing is not null && existing != headerName)
+            {
+                (configNames ??= PooledList<string>.Acquire()).Add("HeaderName");
+                (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
+            }
         }
 
-        int? TryGetIndex(int? existing, int? index, AttributeData attribute)
-        {
-            if (index.HasValue)
-            {
-                if (existing.HasValue && existing.Value != index.Value)
-                {
-                    (configNames ??= PooledList<string>.Acquire()).Add("Index");
-                    (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
-                }
-            }
-
-            return index;
-        }
+        return headerName;
     }
 }

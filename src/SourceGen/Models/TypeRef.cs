@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen.Models;
 // source: dotnet runtime (MIT license)
 
 [DebuggerDisplay("Name = {Name}")]
-internal readonly record struct TypeRef : IEquatable<TypeRef>, IComparable<TypeRef>
+internal readonly record struct TypeRef : IComparable<TypeRef>
 {
     /// <summary>
     /// Name of the type, e.g., int, string, System.Numerics.BigInteger.
