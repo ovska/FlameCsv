@@ -1,8 +1,10 @@
-﻿using System.Text;
+﻿using System.Buffers;
+using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
+using FlameCsv.Utilities;
 using Xunit.Sdk;
 
 namespace FlameCsv.Tests.Writing;
@@ -148,10 +150,8 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
     private static void Validate(StringBuilder sb, bool escapeMode, bool crlf, bool header, CsvFieldQuoting quoting)
     {
-        var enumerator = sb.GetChunks();
-        Assert.True(enumerator.MoveNext());
-        ReadOnlySpan<char> result = enumerator.Current.Span;
-        Assert.False(enumerator.MoveNext());
+        ReadOnlySequence<char> sequence = StringBuilderSegment.Create(sb);
+        Assert.True(sequence.IsSingleSegment);
 
         bool headerRead = false;
         int index = 0;
@@ -159,7 +159,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         const string date = "1970-01-01T00:00:00.0000000+00:00";
         const string dateQuoted = "'1970-01-01T00:00:00.0000000+00:00'";
 
-        var tokenizer = new ReadOnlySpanTokenizer<char>(result, '\n');
+        var tokenizer = new ReadOnlySpanTokenizer<char>(sequence.First.Span, '\n');
 
         CancellationToken token = TestContext.Current.CancellationToken;
 
