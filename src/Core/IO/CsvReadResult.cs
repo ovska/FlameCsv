@@ -11,7 +11,7 @@ namespace FlameCsv.IO;
 /// <param name="buffer">Read data</param>
 /// <param name="isCompleted">Whether any more data can be read from the reader</param>
 [PublicAPI]
-[DebuggerDisplay(@"\{ ReadResult<{typeof(T).Name,nq}> Length: {Buffer.Length}, IsCompleted: {IsCompleted} \}")]
+[DebuggerDisplay(@"{ToString(),nq}")]
 [EditorBrowsable(EditorBrowsableState.Advanced)]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
 public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isCompleted)
@@ -20,7 +20,7 @@ public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isComplet
     /// <summary>
     /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <c>false</c>.
     /// </summary>
-    public static readonly CsvReadResult<T> Empty;
+    public static readonly CsvReadResult<T> Empty; // this is a field so it can be used with "in"
 
     /// <summary>
     /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <c>true</c>.
@@ -45,5 +45,11 @@ public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isComplet
     {
         buffer = Buffer;
         isCompleted = IsCompleted;
+    }
+
+    /// <inheritdoc/>
+    public override string ToString()
+    {
+        return $"ReadResult<{Token<T>.Name}> Length: {Buffer.Length}, IsCompleted: {IsCompleted}";
     }
 }

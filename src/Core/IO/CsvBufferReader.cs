@@ -153,12 +153,12 @@ public static class CsvBufferReader
 
         if (
             !options.NoDirectBufferAccess
-            && stream is MemoryStream { Position: var position and < int.MaxValue } memoryStream
+            && stream is MemoryStream memoryStream
             && memoryStream.TryGetBuffer(out ArraySegment<byte> buffer)
         )
         {
             return new ConstantBufferReader<byte>(
-                buffer.AsMemory(start: (int)position),
+                buffer.AsMemory(start: (int)memoryStream.Position),
                 options.LeaveOpen,
                 stream,
                 static (stream, advanced) => ((MemoryStream)stream!).Seek(advanced, SeekOrigin.Current)

@@ -1,9 +1,8 @@
 namespace FlameCsv.IO;
 
 /// <summary>
-/// Internal implementation detail. Reads raw data from an inner source.
+/// Buffer reader interface for reading CSV data.
 /// </summary>
-/// <typeparam name="T"></typeparam>
 public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
     where T : unmanaged
 {
@@ -11,12 +10,17 @@ public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
     /// Reads from the inner data source.
     /// </summary>
     /// <returns>
-    /// The current data available from the reader,
-    /// and whether any more data can be read.
+    /// The current data available from the reader, and whether any more data can be read.
     /// </returns>
     CsvReadResult<T> Read();
 
-    /// <inheritdoc cref="Read"/>
+    /// <summary>
+    /// Asynchronously reads data from the inner data source.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token to cancel the read operation</param>
+    /// <returns>
+    /// A task returning the current data available from the reader, and whether any more data can be read.
+    /// </returns>
     ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -24,7 +28,7 @@ public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     /// <param name="count">Number of characters processed from the read result</param>
     /// <remarks>
-    /// Advancing the reader invalidates the data in the previous read result.
+    /// Similar to a pipe reader, advancing the reader invalidates the data in the previous read result.
     /// </remarks>
     void Advance(int count);
 
