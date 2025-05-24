@@ -10,25 +10,28 @@ namespace FlameCsv.IO;
 public readonly record struct CsvIOOptions
 {
     /// <summary>
-    /// The default buffer size.
+    /// The default buffer size (16 KiB).
     /// </summary>
     /// <seealso cref="BufferSize"/>
     public const int DefaultBufferSize = 1024 * 16;
 
     /// <summary>
-    /// The default buffer size when doing file I/O.
+    /// The default buffer size when doing file I/O (64 KiB).<br/>
+    /// This is used when the buffer size is not set by the user when using
+    /// the file I/O methods of <see cref="CsvWriter"/> and <see cref="CsvReader"/>.
     /// </summary>
     /// <seealso cref="BufferSize"/>
     public const int DefaultFileBufferSize = 1024 * 64;
 
     /// <summary>
-    /// The default minimum read size.
+    /// The default minimum read size (1 KiB).<br/>
+    /// This is used when the minimum read size is not set by the user.
     /// </summary>
     /// <seealso cref="MinimumReadSize"/>
     public const int DefaultMinimumReadSize = 1024;
 
     /// <summary>
-    /// The minimum buffer size.
+    /// The minimum buffer size, values below this will be clamped.
     /// </summary>
     public const int MinimumBufferSize = 256;
 
@@ -45,7 +48,7 @@ public readonly record struct CsvIOOptions
     /// depending on the context.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown if the value is negative and not -1.
+    /// Thrown if the value is negative or zero and not -1.
     /// </exception>
     /// <seealso cref="DefaultBufferSize"/>
     /// <seealso cref="DefaultFileBufferSize"/>
@@ -56,7 +59,7 @@ public readonly record struct CsvIOOptions
         {
             if (value != -1)
             {
-                ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
                 _bufferSize = Math.Max(value, MinimumBufferSize);
             }
         }
@@ -69,11 +72,10 @@ public readonly record struct CsvIOOptions
     /// </summary>
     /// <remarks>
     /// This threshold determines when more data should be read from the source.
-    /// If less than MinimumReadSize bytes are available in the buffer, and more data is available from the source,
-    /// more data will be read.
+    /// If less than the minimum size of data is available, and more data is available from the source, more data will be read.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
-    /// Thrown if the value is less than 1 and not equal to -1.
+    /// Thrown if the value is negative or zero and not -1.
     /// </exception>
     /// <seealso cref="DefaultMinimumReadSize"/>
     public int MinimumReadSize
@@ -88,7 +90,7 @@ public readonly record struct CsvIOOptions
         {
             if (value != -1)
             {
-                ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
                 _minimumReadSize = Math.Max(value, MinimumBufferSize / 2);
             }
         }
@@ -115,13 +117,17 @@ public readonly record struct CsvIOOptions
     /// </remarks>
     public bool NoDirectBufferAccess { get; init; }
 
-    internal bool HasCustomBufferSize => _bufferSize.HasValue && _bufferSize != DefaultBufferSize;
+    /// <summary>
+    /// Returns <c>true</c> if a custom buffer size is set, i.e., <see cref="BufferSize"/> is not equal to
+    /// <see cref="DefaultBufferSize"/>.
+    /// </summary>
+    internal bool HasCustomBufferSize => _bufferSize.GetValueOrDefault(DefaultBufferSize) != DefaultBufferSize;
 
     /// <summary>
     /// Returns the options with file I/O specific settings applied:
     /// <list type="bullet">
-    /// <item>Sets <see cref="LeaveOpen"/> to <c>false</c></item>
-    /// <item>Sets <see cref="BufferSize"/> to <see cref="DefaultFileBufferSize"/> if the user has not set a custom buffer size</item>
+    /// <item>Sets <see cref="LeaveOpen"/> to <c>false</c> to ensure file handles opened by the library are always closed</item>
+    /// <item>Sets <see cref="BufferSize"/> to <see cref="DefaultFileBufferSize"/> if a custom buffer size is not configured</item>
     /// </list>
     /// </summary>
     internal CsvIOOptions ForFileIO()
