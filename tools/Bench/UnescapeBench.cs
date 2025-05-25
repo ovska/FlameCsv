@@ -237,7 +237,7 @@ public class UnescapeBench
     {
         [MethodImpl(MethodImplOptions.NoInlining)]
         public static void Unescape<TVector>(T quote, scoped Span<T> buffer, ReadOnlySpan<T> field, uint quotesConsumed)
-            where TVector : struct, ISimdVector<T, TVector>
+            where TVector : struct, IAsciiVector<T, TVector>
         {
             int quotesLeft = (int)quotesConsumed;
 

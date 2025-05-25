@@ -12,7 +12,7 @@ namespace FlameCsv.Intrinsics;
 
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal interface ISimdVector<TVector> where TVector : struct, ISimdVector<TVector>
+internal interface IAsciiVector<TVector> where TVector : struct, IAsciiVector<TVector>
 {
     /// <summary>
     /// Returns <c>true</c> if the vector type is hardware accelerated (on release configuration).
@@ -74,7 +74,7 @@ internal interface ISimdVector<TVector> where TVector : struct, ISimdVector<TVec
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct Vec128 : ISimdVector<Vec128>
+internal readonly struct Vec128 : IAsciiVector<Vec128>
 {
     private readonly Vector128<byte> _value;
 
@@ -191,7 +191,7 @@ internal readonly struct Vec128 : ISimdVector<Vec128>
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct Vec256 : ISimdVector<Vec256>
+internal readonly struct Vec256 : IAsciiVector<Vec256>
 {
     private readonly Vector256<byte> _value;
 
@@ -302,7 +302,7 @@ internal readonly struct Vec256 : ISimdVector<Vec256>
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct Vec512 : ISimdVector<Vec512>
+internal readonly struct Vec512 : IAsciiVector<Vec512>
 {
     private readonly Vector512<byte> _value;
 
@@ -405,7 +405,7 @@ internal readonly struct Vec512 : ISimdVector<Vec512>
 
 /// <summary>Vector type that is not supported and does nothing.</summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal readonly struct NoOpVector : ISimdVector<NoOpVector>
+internal readonly struct NoOpVector : IAsciiVector<NoOpVector>
 {
     public static bool IsSupported => false;
     public static int Count => 0;
