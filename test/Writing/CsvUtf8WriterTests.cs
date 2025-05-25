@@ -74,6 +74,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
     )
     {
         using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
+        pool.TrackStackTraces = true;
         var options = new CsvOptions<byte>
         {
             Newline = newline,
@@ -129,7 +130,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     options,
                     new() { BufferSize = bufferSize },
-                     TestContext.Current.CancellationToken
+                    TestContext.Current.CancellationToken
                 );
             }
         }

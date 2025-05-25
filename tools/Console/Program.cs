@@ -5,10 +5,8 @@
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
-using System.IO.MemoryMappedFiles;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
-using FlameCsv.Converters;
 using FlameCsv.Converters.Formattable;
 using FlameCsv.IO;
 using FlameCsv.Reading;

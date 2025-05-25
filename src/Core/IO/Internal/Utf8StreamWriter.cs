@@ -100,8 +100,8 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
                 out int charsRead,
                 out int bytesWritten,
                 replaceInvalidSequences: true,
-                isFinalBlock: true
-            ); // values should be self-contained
+                isFinalBlock: true // values should be self-contained
+            );
 
             totalWritten += bytesWritten;
             totalRead += charsRead;

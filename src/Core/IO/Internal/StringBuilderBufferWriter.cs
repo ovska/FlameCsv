@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Runtime.ExceptionServices;
 using System.Text;
 using FlameCsv.Extensions;
 
@@ -54,23 +53,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public void Complete(Exception? exception)
     {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-
-        using (_memoryOwner)
-        {
-            _memory = Memory<char>.Empty;
-            _memoryOwner = HeapMemoryOwner<char>.Empty;
-
-            if (exception is not null)
-            {
-                ExceptionDispatchInfo.Capture(exception).Throw();
-            }
-        }
+        DisposeCore();
     }
 
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
@@ -83,19 +66,30 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-        {
-            exception ??= new OperationCanceledException(cancellationToken);
-        }
-
         try
         {
-            Complete(exception);
+            DisposeCore();
             return default;
         }
         catch (Exception e)
         {
             return ValueTask.FromException(e);
+        }
+    }
+
+    private void DisposeCore()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        using (_memoryOwner)
+        {
+            _memory = Memory<char>.Empty;
+            _memoryOwner = HeapMemoryOwner<char>.Empty;
         }
     }
 }
