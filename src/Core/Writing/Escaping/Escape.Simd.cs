@@ -63,7 +63,7 @@ internal static partial class Escape
     )
         where T : unmanaged, IBinaryInteger<T>
         where TTokens : struct, ISimdEscaper<T, TVector>
-        where TVector : struct, ISimdVector<TVector>
+        where TVector : struct, IAsciiVector<TVector>
     {
         Debug.Assert(value.Length >= TVector.Count, "NeedsEscaping needs a value at least one vector's length.");
         Debug.Assert(

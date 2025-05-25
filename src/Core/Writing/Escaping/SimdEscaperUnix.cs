@@ -7,7 +7,7 @@ namespace FlameCsv.Writing.Escaping;
 
 internal readonly struct SimdEscaperUnix<T, TVector> : ISimdEscaper<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<TVector>
+    where TVector : struct, IAsciiVector<TVector>
 {
     private readonly TVector _quote;
     private readonly TVector _escape;

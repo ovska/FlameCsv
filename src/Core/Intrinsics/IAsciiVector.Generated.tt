@@ -134,7 +134,7 @@ namespace FlameCsv.Intrinsics;
 
 /// <summary>Generic type wrapping a byte vector.</summary>
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal interface ISimdVector<TVector> where TVector : struct, ISimdVector<TVector>
+internal interface IAsciiVector<TVector> where TVector : struct, IAsciiVector<TVector>
 {
     /// <summary>
     /// Returns <c>true</c> if the vector type is hardware accelerated (on release configuration).
@@ -201,7 +201,7 @@ internal interface ISimdVector<TVector> where TVector : struct, ISimdVector<TVec
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-internal readonly struct <#= typeName #> : ISimdVector<<#= typeName #>>
+internal readonly struct <#= typeName #> : IAsciiVector<<#= typeName #>>
 {
     private readonly Vector<#= width #><byte> _value;
 
@@ -293,7 +293,7 @@ internal readonly struct <#= typeName #> : ISimdVector<<#= typeName #>>
 
 /// <summary>Vector type that is not supported and does nothing.</summary>
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal readonly struct NoOpVector : ISimdVector<NoOpVector>
+internal readonly struct NoOpVector : IAsciiVector<NoOpVector>
 {
     public static bool IsSupported => false;
     public static int Count => 0;

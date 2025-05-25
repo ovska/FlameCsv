@@ -53,7 +53,7 @@ public static class VecEscapeTests
     static void Impl<T, TTokens, TVector>(ReadOnlySpan<T> value, string expected, in TTokens tokens)
         where T : unmanaged, IBinaryInteger<T>
         where TTokens : struct, ISimdEscaper<T, TVector>
-        where TVector : struct, ISimdVector<TVector>
+        where TVector : struct, IAsciiVector<TVector>
     {
         Assert.True(TVector.IsSupported);
 

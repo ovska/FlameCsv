@@ -4,7 +4,7 @@ using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Tests;
 
-public static class SimdVectorTests
+public static class AsciiVectorTests
 {
     // TODO: create a script that runs these tests with all possible instruction combinations (e.g. AVX2 disabled)
 
@@ -42,7 +42,7 @@ public static class SimdVectorTests
 
     private static void Test<T, TVector>(ReadOnlySpan<T> dataROS)
         where T : unmanaged, IBinaryInteger<T>
-        where TVector : struct, ISimdVector<TVector>
+        where TVector : struct, IAsciiVector<TVector>
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
@@ -65,7 +65,7 @@ public static class SimdVectorTests
     /// Test for no clashes even if non-ASCII characters are in the data.
     /// </summary>
     private static void TestNonAscii<TVector>()
-        where TVector : struct, ISimdVector<TVector>
+        where TVector : struct, IAsciiVector<TVector>
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 

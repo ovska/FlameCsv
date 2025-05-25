@@ -78,9 +78,9 @@
     <!-- Nuget -->
     <!-- Templates -->
     <ItemGroup>
-        <None Update="Intrinsics\ISimdVector.Generated.tt">
+        <None Update="Intrinsics\IAsciiVector.Generated.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>ISimdVector.Generated.cs</LastGenOutput>
+            <LastGenOutput>IAsciiVector.Generated.cs</LastGenOutput>
         </None>
     </ItemGroup>
     <ItemGroup>
@@ -120,10 +120,10 @@
         <Compile Update="CsvOptions.Enum.cs">
             <DependentUpon>CsvOptions.cs</DependentUpon>
         </Compile>
-        <Compile Update="Intrinsics\ISimdVector.Generated.cs">
+        <Compile Update="Intrinsics\IAsciiVector.Generated.cs">
             <AutoGen>True</AutoGen>
             <DesignTime>True</DesignTime>
-            <DependentUpon>ISimdVector.Generated.tt</DependentUpon>
+            <DependentUpon>IAsciiVector.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="Reflection\ParameterData.cs">
             <DependentUpon>ReflectionData.cs</DependentUpon>
