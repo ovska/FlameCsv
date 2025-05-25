@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
@@ -103,9 +104,13 @@ public static partial class CsvWriter
         }
         finally
         {
-            // re-throws exceptions
-            writer.Writer.Complete(exception);
+            using (writer)
+            {
+                writer.Writer.Complete(exception);
+            }
         }
+
+        exception?.Rethrow();
     }
 
     private static async Task WriteAsyncCore<T, TValue>(
@@ -116,7 +121,7 @@ public static partial class CsvWriter
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
+        using CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
         Exception? exception = null;
 
         try
@@ -157,9 +162,15 @@ public static partial class CsvWriter
         }
         finally
         {
-            // re-throws exceptions
+            if (cancellationToken.IsCancellationRequested)
+            {
+                exception ??= new OperationCanceledException(cancellationToken);
+            }
+
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
+
+        exception?.Rethrow();
     }
 
     private static async Task WriteAsyncCore<T, TValue>(
@@ -170,7 +181,7 @@ public static partial class CsvWriter
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
+        using CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
         Exception? exception = null;
 
         try
@@ -206,9 +217,15 @@ public static partial class CsvWriter
         }
         finally
         {
-            // re-throws exceptions
+            if (cancellationToken.IsCancellationRequested)
+            {
+                exception ??= new OperationCanceledException(cancellationToken);
+            }
+
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
+
+        exception?.Rethrow();
     }
 
     /// <summary>

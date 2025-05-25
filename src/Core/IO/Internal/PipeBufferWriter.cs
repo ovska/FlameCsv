@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.IO.Internal;
@@ -62,10 +61,7 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
 
     public async ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
-        if (cancellationToken.IsCancellationRequested)
-            exception ??= new OperationCanceledException(cancellationToken);
-
-        if (exception is null)
+        if (exception is null && !cancellationToken.IsCancellationRequested)
         {
             try
             {
@@ -73,16 +69,19 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
             }
             catch (Exception e)
             {
-                exception = CsvWriteException.OnComplete(e);
+                exception = new CsvWriteException(
+                    "Exception occured while writing leftover data while completing the writer.",
+                    e
+                );
             }
         }
 
-        await _pipeWriter.CompleteAsync(exception).ConfigureAwait(false);
-
-        if (exception is not null)
+        if (cancellationToken.IsCancellationRequested)
         {
-            ExceptionDispatchInfo.Capture(exception).Throw();
+            exception ??= new OperationCanceledException(cancellationToken);
         }
+
+        await _pipeWriter.CompleteAsync(exception).ConfigureAwait(false);
     }
 
     public void Complete(Exception? exception) => _pipeWriter.Complete(exception);

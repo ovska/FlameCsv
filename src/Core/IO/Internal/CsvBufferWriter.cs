@@ -1,8 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using FlameCsv.Exceptions;
 
 namespace FlameCsv.IO.Internal;
 
@@ -28,6 +26,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _unflushed >= _flushThreshold;
     }
+
+    protected bool IsDisposed => _unflushed == -1;
 
     protected CsvBufferWriter(MemoryPool<T> allocator, in CsvIOOptions options)
     {
@@ -111,44 +111,35 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
 
     public async ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
-        if (_unflushed == -1)
+        if (IsDisposed)
             return;
-
-        if (cancellationToken.IsCancellationRequested)
-            exception ??= new OperationCanceledException(cancellationToken);
 
         using (_memoryOwner)
         {
             try
             {
-                if (exception is null)
+                if (exception is null && !cancellationToken.IsCancellationRequested)
                 {
                     await FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
-            }
-            catch (Exception e)
-            {
-                exception = CsvWriteException.OnComplete(e);
             }
             finally
             {
                 _unflushed = -1;
                 _memoryOwner = HeapMemoryOwner<T>.Empty;
                 _buffer = default;
-                if (!_leaveOpen)
-                    await DisposeCoreAsync().ConfigureAwait(false);
-            }
-        }
 
-        if (exception is not null)
-        {
-            ExceptionDispatchInfo.Capture(exception).Throw();
+                if (!_leaveOpen)
+                {
+                    await DisposeCoreAsync().ConfigureAwait(false);
+                }
+            }
         }
     }
 
     public void Complete(Exception? exception)
     {
-        if (_unflushed == -1)
+        if (IsDisposed)
             return;
 
         using (_memoryOwner)
@@ -160,23 +151,17 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
                     Flush();
                 }
             }
-            catch (Exception e)
-            {
-                exception = CsvWriteException.OnComplete(e);
-            }
             finally
             {
                 _unflushed = -1;
                 _memoryOwner = HeapMemoryOwner<T>.Empty;
                 _buffer = default;
-                if (!_leaveOpen)
-                    DisposeCore();
-            }
-        }
 
-        if (exception is not null)
-        {
-            ExceptionDispatchInfo.Capture(exception).Throw();
+                if (!_leaveOpen)
+                {
+                    DisposeCore();
+                }
+            }
         }
     }
 

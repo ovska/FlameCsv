@@ -501,7 +501,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         {
             IsCompleted = true;
             HotReloadService.UnregisterForHotReload(this);
-            WriteTrailingNewlineIfNeeded(exception, CancellationToken.None);
+            WriteTrailingNewlineIfNeeded(exception);
             _inner.Writer.Complete(exception);
         }
     }
@@ -510,6 +510,10 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.<br/>
     /// Multiple completions are no-ops.
     /// </summary>
+    /// <remarks>
+    /// Unlike completion of <see cref="ICsvBufferWriter{T}"/> and <see cref="System.IO.Pipelines.PipeWriter"/>,
+    /// this method rethrows <paramref name="exception"/> if it is not null.
+    /// </remarks>
     /// <param name="exception">
     /// Observed exception when writing the data, passed to the inner <see cref="ICsvBufferWriter{T}"/>.
     /// If not null, the final buffer is not flushed and the exception is rethrown.
@@ -521,18 +525,31 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         {
             IsCompleted = true;
             HotReloadService.UnregisterForHotReload(this);
-            WriteTrailingNewlineIfNeeded(exception, cancellationToken);
-            await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                exception ??= new OperationCanceledException(cancellationToken);
+            }
+
+            WriteTrailingNewlineIfNeeded(exception);
+
+            try
+            {
+                await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                exception?.Rethrow();
+            }
         }
     }
 
-    private void WriteTrailingNewlineIfNeeded(Exception? exception, CancellationToken cancellationToken)
+    private void WriteTrailingNewlineIfNeeded(Exception? exception)
     {
         if (
             exception is null
             && EnsureTrailingNewline
             && (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
-            && !cancellationToken.IsCancellationRequested
         )
         {
             // don't call NextRecord as it can trigger an unnecessary auto-flush

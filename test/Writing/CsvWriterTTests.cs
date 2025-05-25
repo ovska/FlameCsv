@@ -3,6 +3,7 @@ using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Converters.Formattable;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Tests.Writing;
 
@@ -449,6 +450,7 @@ public partial class CsvWriterTTests
             ex = e;
         }
         writer.Complete(ex);
+        ex?.Rethrow();
         return getString();
     }
 

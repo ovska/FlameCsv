@@ -129,28 +129,6 @@ public sealed class TextBufferWriterTests : IAsyncDisposable
         Assert.Equal(x28 + y64, Written);
     }
 
-    [Fact]
-    public async Task Should_Throw_On_Cancelled()
-    {
-        Initialize();
-
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            await _writer.CompleteAsync(null, new CancellationToken(canceled: true));
-        });
-    }
-
-    [Fact]
-    public async Task Should_Not_Overwrite_Exception_On_Cancelled()
-    {
-        Initialize();
-
-        await Assert.ThrowsAsync<UnreachableException>(async () =>
-        {
-            await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
-        });
-    }
-
     [MemberNotNull(nameof(_writer))]
     private void Initialize(int bufferSize = 1024)
     {

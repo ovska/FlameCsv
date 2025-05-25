@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.IO.Internal;
@@ -134,28 +133,6 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
         Assert.Equal(_x28 + _y64, Written);
-    }
-
-    [Fact]
-    public async Task Should_Throw_On_Cancelled()
-    {
-        Initialize();
-
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-        {
-            await _writer.CompleteAsync(null, new CancellationToken(canceled: true));
-        });
-    }
-
-    [Fact]
-    public async Task Should_Not_Overwrite_Exception_On_Cancelled()
-    {
-        Initialize();
-
-        await Assert.ThrowsAsync<UnreachableException>(async () =>
-        {
-            await _writer.CompleteAsync(new UnreachableException(), new CancellationToken(canceled: true));
-        });
     }
 
     [MemberNotNull(nameof(_writer))]

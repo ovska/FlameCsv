@@ -78,6 +78,7 @@ await CsvWriter.WriteAsync(
 - *Breaking*: `CsvOptions<T>` is now sealed
 - *Breaking*: Removed `in` and `ref struct` modifier from exception handler
 - *Breaking:* Renamed `CsvRecord` -> `CsvPreservedRecord` and `CsvValueRecord` -> `CsvRecord`
+- *Breaking:* Calling `Complete` or `CompleteAsync` on `ICsvBufferWriter<T>` no longer throws the passed exception
 - Added support for headerless CSV with the source generator
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding

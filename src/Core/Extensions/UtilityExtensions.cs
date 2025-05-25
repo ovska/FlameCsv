@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
@@ -32,6 +33,14 @@ internal static class UtilityExtensions
 
         first = T.CreateTruncating('\n');
         return 1;
+    }
+
+    public static void Rethrow(this Exception ex)
+    {
+        if (ex is not null)
+        {
+            ExceptionDispatchInfo.Capture(ex).Throw();
+        }
     }
 
     public static string JoinValues(ReadOnlySpan<string> values)
