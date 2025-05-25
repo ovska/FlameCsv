@@ -55,25 +55,25 @@ internal static class CsvTokenizer
         // and up to 6% slower on dense or quoted data
 
         // use "else" instead of just "if" to reduce JITted code size if multiple SIMD types are supported
-        if (Vec256<T>.IsSupported)
+        if (Vec256.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, NewlineCRLF<T, Vec256<T>>, Vec256<T>>(options)
-                : new SimdTokenizer<T, NewlineLF<T, Vec256<T>>, Vec256<T>>(options);
+                ? new SimdTokenizer<T, NewlineCRLF<T, Vec256>, Vec256>(options)
+                : new SimdTokenizer<T, NewlineLF<T, Vec256>, Vec256>(options);
         }
 
-        if (Vec512<T>.IsSupported)
+        if (Vec512.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, NewlineCRLF<T, Vec512<T>>, Vec512<T>>(options)
-                : new SimdTokenizer<T, NewlineLF<T, Vec512<T>>, Vec512<T>>(options);
+                ? new SimdTokenizer<T, NewlineCRLF<T, Vec512>, Vec512>(options)
+                : new SimdTokenizer<T, NewlineLF<T, Vec512>, Vec512>(options);
         }
 
-        if (Vec128<T>.IsSupported)
+        if (Vec128.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, NewlineCRLF<T, Vec128<T>>, Vec128<T>>(options)
-                : new SimdTokenizer<T, NewlineLF<T, Vec128<T>>, Vec128<T>>(options);
+                ? new SimdTokenizer<T, NewlineCRLF<T, Vec128>, Vec128>(options)
+                : new SimdTokenizer<T, NewlineLF<T, Vec128>, Vec128>(options);
         }
 
         return null;
@@ -88,8 +88,8 @@ internal static class CsvTokenizer
         }
 
         return options.Newline.IsCRLF()
-            ? new ScalarTokenizer<T, NewlineCRLF<T, NoOpVector<T>>>(options)
-            : new ScalarTokenizer<T, NewlineLF<T, NoOpVector<T>>>(options);
+            ? new ScalarTokenizer<T, NewlineCRLF<T, NoOpVector>>(options)
+            : new ScalarTokenizer<T, NewlineLF<T, NoOpVector>>(options);
     }
 }
 

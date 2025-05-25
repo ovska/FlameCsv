@@ -56,7 +56,7 @@ internal interface INewline<T, TVector> : INewline<T>
 [SkipLocalsInit]
 internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<TVector>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1;
@@ -104,7 +104,7 @@ internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
 [SkipLocalsInit]
 internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<TVector>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1 + isMultitoken.ToByte();

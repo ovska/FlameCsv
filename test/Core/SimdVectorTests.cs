@@ -14,35 +14,35 @@ public static class SimdVectorTests
         "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"u8;
 
     [Fact]
-    public static void Vector_128_Byte() => Test<byte, Vec128<byte>>(ByteData);
+    public static void Vector_128_Byte() => Test<byte, Vec128>(ByteData);
 
     [Fact]
-    public static void Vector_256_Byte() => Test<byte, Vec256<byte>>(ByteData);
+    public static void Vector_256_Byte() => Test<byte, Vec256>(ByteData);
 
     [Fact]
-    public static void Vector_512_Byte() => Test<byte, Vec512<byte>>(ByteData);
+    public static void Vector_512_Byte() => Test<byte, Vec512>(ByteData);
 
     [Fact]
-    public static void Vector_128_Char() => Test<char, Vec128<char>>(CharData);
+    public static void Vector_128_Char() => Test<char, Vec128>(CharData);
 
     [Fact]
-    public static void Vector_256_Char() => Test<char, Vec256<char>>(CharData);
+    public static void Vector_256_Char() => Test<char, Vec256>(CharData);
 
     [Fact]
-    public static void Vector_512_Char() => Test<char, Vec512<char>>(CharData);
+    public static void Vector_512_Char() => Test<char, Vec512>(CharData);
 
     [Fact]
-    public static void NonAscii_128() => TestNonAscii<Vec128<char>>();
+    public static void NonAscii_128() => TestNonAscii<Vec128>();
 
     [Fact]
-    public static void NonAscii_256() => TestNonAscii<Vec256<char>>();
+    public static void NonAscii_256() => TestNonAscii<Vec256>();
 
     [Fact]
-    public static void NonAscii_512() => TestNonAscii<Vec512<char>>();
+    public static void NonAscii_512() => TestNonAscii<Vec512>();
 
     private static void Test<T, TVector>(ReadOnlySpan<T> dataROS)
         where T : unmanaged, IBinaryInteger<T>
-        where TVector : struct, ISimdVector<T, TVector>
+        where TVector : struct, ISimdVector<TVector>
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
@@ -57,13 +57,15 @@ public static class SimdVectorTests
         Assert.False(abcVec == aVec);
         Assert.Equal(ByteData.Slice(0, TVector.Count), abcVec.ToArray());
         Assert.Equal(Enumerable.Repeat(byte.CreateChecked(data[0]), TVector.Count).ToArray(), aVec.ToArray());
+
+        Assert.Throws<NotSupportedException>(() => TVector.Create<int>(0));
     }
 
     /// <summary>
     /// Test for no clashes even if non-ASCII characters are in the data.
     /// </summary>
     private static void TestNonAscii<TVector>()
-        where TVector : struct, ISimdVector<char, TVector>
+        where TVector : struct, ISimdVector<TVector>
     {
         Assert.SkipUnless(TVector.IsSupported, $"CPU support not available for {typeof(TVector).Name}");
 
