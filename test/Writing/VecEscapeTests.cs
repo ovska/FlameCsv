@@ -28,37 +28,32 @@ public static class VecEscapeTests
             { "|012345678901234abcdefghijklmnopqrstuvwxyz|", "||012345678901234abcdefghijklmnopqrstuvwxyz||" },
         };
 
-    private static readonly SimdEscaperRFC<char, Vec256<char>> _cTokens = new('|', ',', '\r', '\n');
+    private static readonly SimdEscaperRFC<char, Vec256> _cTokens = new('|', ',', '\r', '\n');
 
-    private static readonly SimdEscaperRFC<byte, Vec256<byte>> _bTokens = new(
-        (byte)'|',
-        (byte)',',
-        (byte)'\r',
-        (byte)'\n'
-    );
+    private static readonly SimdEscaperRFC<byte, Vec256> _bTokens = new((byte)'|', (byte)',', (byte)'\r', (byte)'\n');
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Char(string input, string expected)
     {
-        Assert.SkipUnless(Vec256<char>.IsSupported, "Vec256<char> is not supported on current hardware");
+        Assert.SkipUnless(Vec256.IsSupported, "Vec256<char> is not supported on current hardware");
 
-        Impl<char, SimdEscaperRFC<char, Vec256<char>>, Vec256<char>>(input, expected, in _cTokens);
+        Impl<char, SimdEscaperRFC<char, Vec256>, Vec256>(input, expected, in _cTokens);
     }
 
     [Theory]
     [MemberData(nameof(Data))]
     public static void Should_Escape_Byte(string input, string expected)
     {
-        Assert.SkipUnless(Vec256<byte>.IsSupported, "Vec256<byte> is not supported on current hardware");
+        Assert.SkipUnless(Vec256.IsSupported, "Vec256<byte> is not supported on current hardware");
 
-        Impl<byte, SimdEscaperRFC<byte, Vec256<byte>>, Vec256<byte>>(Encoding.UTF8.GetBytes(input), expected, in _bTokens);
+        Impl<byte, SimdEscaperRFC<byte, Vec256>, Vec256>(Encoding.UTF8.GetBytes(input), expected, in _bTokens);
     }
 
     static void Impl<T, TTokens, TVector>(ReadOnlySpan<T> value, string expected, in TTokens tokens)
         where T : unmanaged, IBinaryInteger<T>
         where TTokens : struct, ISimdEscaper<T, TVector>
-        where TVector : struct, ISimdVector<T, TVector>
+        where TVector : struct, ISimdVector<TVector>
     {
         Assert.True(TVector.IsSupported);
 

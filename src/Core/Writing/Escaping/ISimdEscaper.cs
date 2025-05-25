@@ -5,7 +5,7 @@ namespace FlameCsv.Writing.Escaping;
 
 internal interface ISimdEscaper<out T, TVector>
     where T : unmanaged, IBinaryInteger<T>
-    where TVector : struct, ISimdVector<T, TVector>
+    where TVector : struct, ISimdVector<TVector>
 {
     /// <summary>
     /// Character used for escaping.
