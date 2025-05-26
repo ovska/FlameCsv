@@ -18,7 +18,8 @@ internal static class Token<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CanStackalloc(int length)
     {
-        return (uint)length <= 512u / (uint)Unsafe.SizeOf<T>();
+        uint threshold = 512u / (uint)Unsafe.SizeOf<T>();
+        return (uint)length <= threshold;
     }
 
     public static NotSupportedException NotSupported => new($"Token type {typeof(T).Name} is not supported.");
