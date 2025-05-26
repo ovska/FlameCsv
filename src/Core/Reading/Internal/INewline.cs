@@ -7,8 +7,7 @@ namespace FlameCsv.Reading.Internal;
 /// <summary>
 /// Interface to provide high-performance generic handling for variable length newlines.
 /// </summary>
-internal interface INewline<T>
-    where T : unmanaged, IBinaryInteger<T>
+internal interface INewline
 {
     /// <summary>
     /// Returns the length of the newline sequence.
@@ -25,7 +24,8 @@ internal interface INewline<T>
     /// Determines if the specified value is part of a two-token newline sequence.
     /// </summary>
     /// <remarks>For single token newlines, always returns false</remarks>
-    static abstract bool IsMultitoken(ref T value);
+    static abstract bool IsMultitoken<T>(ref T value)
+        where T : unmanaged, IBinaryInteger<T>;
 
     /// <summary>
     /// Determines if the specified value represents a delimiter or a newline.
@@ -34,17 +34,18 @@ internal interface INewline<T>
     /// <param name="isMultitoken">When true, whether the next token was part of the newline as well.</param>
     /// <returns>True if the value represents a newline instead of a delimiter.</returns>
     /// <remarks>For single token newlines, always returns true</remarks>
-    static abstract bool IsNewline(ref T value, out bool isMultitoken);
+    static abstract bool IsNewline<T>(ref T value, out bool isMultitoken)
+        where T : unmanaged, IBinaryInteger<T>;
 
     /// <summary>
     /// Determines if the specified value represents any newline character.
     /// </summary>
-    static abstract bool IsNewline(T value);
+    static abstract bool IsNewline<T>(T value)
+        where T : unmanaged, IBinaryInteger<T>;
 }
 
 /// <inheritdoc/>
-internal interface INewline<T, TVector> : INewline<T>
-    where T : unmanaged, IBinaryInteger<T>
+internal interface INewline<TVector> : INewline
     where TVector : struct
 {
     /// <summary>
@@ -54,8 +55,7 @@ internal interface INewline<T, TVector> : INewline<T>
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
-    where T : unmanaged, IBinaryInteger<T>
+internal readonly struct NewlineLF<TVector> : INewline<TVector>
     where TVector : struct, IAsciiVector<TVector>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -68,14 +68,16 @@ internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsMultitoken(ref T value)
+    public static bool IsMultitoken<T>(ref T value)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // single token newlines are never multitoken
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNewline(ref T value, out bool isMultitoken)
+    public static bool IsNewline<T>(ref T value, out bool isMultitoken)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
         isMultitoken = false;
@@ -89,7 +91,8 @@ internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
         };
     }
 
-    public static bool IsNewline(T value)
+    public static bool IsNewline<T>(T value)
+        where T : unmanaged, IBinaryInteger<T>
     {
         return value == T.CreateTruncating('\n');
     }
@@ -102,8 +105,7 @@ internal readonly struct NewlineLF<T, TVector> : INewline<T, TVector>
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
-    where T : unmanaged, IBinaryInteger<T>
+internal readonly struct NewlineCRLF<TVector> : INewline<TVector>
     where TVector : struct, IAsciiVector<TVector>
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -116,7 +118,8 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsMultitoken(ref T value)
+    public static bool IsMultitoken<T>(ref T value)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // only \r\n is considered a multitoken newline, other combinations e.g. \n\n are two distinct newlines
 
@@ -136,7 +139,8 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNewline(ref T value, out bool isMultitoken)
+    public static bool IsNewline<T>(ref T value, out bool isMultitoken)
+        where T : unmanaged, IBinaryInteger<T>
     {
         isMultitoken = false;
 
@@ -180,7 +184,8 @@ internal readonly struct NewlineCRLF<T, TVector> : INewline<T, TVector>
         return false;
     }
 
-    public static bool IsNewline(T value)
+    public static bool IsNewline<T>(T value)
+        where T : unmanaged, IBinaryInteger<T>
     {
         return value == T.CreateTruncating('\r') || value == T.CreateTruncating('\n');
     }

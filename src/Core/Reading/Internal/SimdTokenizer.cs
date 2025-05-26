@@ -8,7 +8,7 @@ namespace FlameCsv.Reading.Internal;
 [SkipLocalsInit]
 internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : struct, INewline<T, TVector>
+    where TNewline : struct, INewline<TVector>
     where TVector : struct, IAsciiVector<TVector>
 {
     private static int EndOffset => (TVector.Count * 2) + (int)TNewline.OffsetFromEnd;

@@ -7,7 +7,7 @@ namespace FlameCsv.Reading.Internal;
 [SkipLocalsInit]
 internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : INewline<T>
+    where TNewline : INewline
 {
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
