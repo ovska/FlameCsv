@@ -269,7 +269,7 @@ internal ref partial struct ValueStringBuilder
 
         int charsWritten;
 
-        while (!value.TryFormat(_chars.Slice(_pos), out charsWritten, format, null))
+        while (!value.TryFormat(_chars.Slice(_pos), out charsWritten, format, provider))
         {
             Grow(Math.Max(16, (_chars.Length - _pos) + 1));
         }

@@ -132,6 +132,10 @@ public partial class CsvOptions<T>
     /// <exception cref="CsvConfigurationException"/>
     public void Validate()
     {
+        Debug.Assert(_delimiter is not ('\0' or '\r' or '\n' or ' '));
+        Debug.Assert(_quote is not ('\0' or '\r' or '\n' or ' '));
+        Debug.Assert(_escape is null or not ('\0' or '\r' or '\n' or ' '));
+
         // already validated at this point
         if (IsReadOnly)
         {
