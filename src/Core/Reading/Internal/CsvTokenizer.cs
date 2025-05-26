@@ -58,22 +58,22 @@ internal static class CsvTokenizer
         if (Vec256.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, NewlineCRLF<T, Vec256>, Vec256>(options)
-                : new SimdTokenizer<T, NewlineLF<T, Vec256>, Vec256>(options);
+                ? new SimdTokenizer<T, NewlineCRLF<Vec256>, Vec256>(options)
+                : new SimdTokenizer<T, NewlineLF<Vec256>, Vec256>(options);
         }
 
         if (Vec512.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, NewlineCRLF<T, Vec512>, Vec512>(options)
-                : new SimdTokenizer<T, NewlineLF<T, Vec512>, Vec512>(options);
+                ? new SimdTokenizer<T, NewlineCRLF<Vec512>, Vec512>(options)
+                : new SimdTokenizer<T, NewlineLF<Vec512>, Vec512>(options);
         }
 
         if (Vec128.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, NewlineCRLF<T, Vec128>, Vec128>(options)
-                : new SimdTokenizer<T, NewlineLF<T, Vec128>, Vec128>(options);
+                ? new SimdTokenizer<T, NewlineCRLF<Vec128>, Vec128>(options)
+                : new SimdTokenizer<T, NewlineLF<Vec128>, Vec128>(options);
         }
 
         return null;
@@ -88,8 +88,8 @@ internal static class CsvTokenizer
         }
 
         return options.Newline.IsCRLF()
-            ? new ScalarTokenizer<T, NewlineCRLF<T, NoOpVector>>(options)
-            : new ScalarTokenizer<T, NewlineLF<T, NoOpVector>>(options);
+            ? new ScalarTokenizer<T, NewlineCRLF<NoOpVector>>(options)
+            : new ScalarTokenizer<T, NewlineLF<NoOpVector>>(options);
     }
 }
 
