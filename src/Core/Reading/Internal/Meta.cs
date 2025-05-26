@@ -247,7 +247,7 @@ internal readonly struct Meta : IEquatable<Meta>
         ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), End - start);
 
         // trim before unquoting to preserve spaces in strings
-        if ((dialect.Trimming & CsvFieldTrimming.Both) != CsvFieldTrimming.None)
+        if (field.NeedsTrimming(dialect.Trimming))
         {
             field = field.Trim(dialect.Trimming);
         }

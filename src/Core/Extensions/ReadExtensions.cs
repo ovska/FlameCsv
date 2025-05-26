@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Extensions;
@@ -12,10 +13,9 @@ internal static class ReadExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetRecordLength(this ReadOnlySpan<Meta> meta, bool includeTrailingNewline = false)
     {
-        int start = meta[0].NextStart;
         Meta lastMeta = meta[^1];
         int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
-        return end - start;
+        return end - meta[0].NextStart;
     }
 
     public static bool TryParseFromUtf8<TValue>(
@@ -83,6 +83,13 @@ internal static class ReadExtensions
 
         charsWritten = 0;
         return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool NeedsTrimming<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return value.Length > 0 & (trimming & CsvFieldTrimming.Both) != 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
