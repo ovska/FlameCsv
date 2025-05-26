@@ -7,8 +7,6 @@ using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Utilities;
 
-// ReSharper disable UnusedMember.Global
-
 namespace FlameCsv.Extensions;
 
 internal static class UtilityExtensions
@@ -16,7 +14,9 @@ internal static class UtilityExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCRLF(this CsvNewline newline)
     {
-        return newline is CsvNewline.CRLF || (newline is CsvNewline.Platform && Environment.NewLine == "\r\n");
+        // hoisting the check to a local allows JIT to "see" the constant and eliminate one jump instruction
+        bool isWindows = Environment.NewLine == "\r\n";
+        return newline is CsvNewline.CRLF || (newline is CsvNewline.Platform && isWindows);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -90,12 +90,18 @@ internal static class UtilityExtensions
             }
         }
 
-        var sb = new ValueStringBuilder(stackalloc char[128]);
+        if (value.IsEmpty)
+        {
+            return "[]";
+        }
+
+        Span<char> buffer = RuntimeHelpers.TryEnsureSufficientExecutionStack() ? stackalloc char[256] : new char[256];
+        var sb = new ValueStringBuilder(buffer);
         sb.Append('[');
 
         foreach (var item in value)
         {
-            sb.AppendFormatted(item);
+            sb.AppendFormatted(item, format: "D");
             sb.Append(",");
         }
 
@@ -110,28 +116,6 @@ internal static class UtilityExtensions
             ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(segment.Array!), segment.Offset),
             segment.Count
         );
-    }
-
-    public static bool SequenceEquals<T>(in this ReadOnlySequence<T> sequence, ReadOnlySpan<T> other)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        if (sequence.IsSingleSegment)
-        {
-            return sequence.FirstSpan.SequenceEqual(other);
-        }
-
-        if (sequence.Length != other.Length)
-            return false;
-
-        foreach (var memory in sequence)
-        {
-            if (!other.StartsWith(memory.Span))
-                return false;
-
-            other = other.Slice(memory.Length);
-        }
-
-        return true;
     }
 
     public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters)

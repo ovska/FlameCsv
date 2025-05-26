@@ -12,7 +12,7 @@ public enum CsvNewline : byte
     /// Read and write <c>\r\n</c> as the newline character.
     /// </summary>
     /// <remarks>
-    /// A lone <c>\n</c> or <c>\r</c> will be treated as a newline character when reading.
+    /// A lone <c>\n</c> or <c>\r</c> will be treated as a newline character when reading for compatibility.
     /// </remarks>
     CRLF = 0,
 
