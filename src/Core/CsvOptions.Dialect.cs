@@ -35,7 +35,7 @@ internal readonly struct Dialect<T>
         }
         else
         {
-            throw new NotSupportedException();
+            throw Token<T>.NotSupported;
         }
 
         Trimming = options.Trimming;
@@ -233,23 +233,34 @@ file static class DialectHelper
     {
         if (value is '\0')
         {
-            Throw.Argument(name, "Dialect cannot contain 0 (null character).");
+            ThrowOutOfRange(name, value, "Dialect cannot contain null character");
         }
 
         if (value is '\r' or '\n')
         {
-            Throw.Argument(name, "Dialect cannot contain CR or LF due to newline ambiguity.");
+            ThrowOutOfRange(name, value, "Dialect cannot contain CR or LF due to newline ambiguity");
         }
 
         if (value is ' ')
         {
-            Throw.Argument(name, "Dialect cannot contain a space due to whitespace ambiguity.");
+            ThrowOutOfRange(name, value, "Dialect cannot contain a space due to whitespace ambiguity");
         }
 
         if (value > 127)
         {
-            Throw.Argument(name, "Dialect cannot contain non-ASCII characters.");
+            ThrowOutOfRange(name, value, "Dialect cannot contain non-ASCII characters (over 0x7F)");
         }
+    }
+
+    [DoesNotReturn]
+    [StackTraceHidden]
+    private static void ThrowOutOfRange(string name, char value, string message = "")
+    {
+        throw new ArgumentOutOfRangeException(
+            paramName: nameof(value), // parameter name in the setter
+            actualValue: value,
+            message: $"Invalid {name}: {message}, value was: {GetToken(value)} (0x{(uint)value:X2})"
+        );
     }
 
     [DoesNotReturn]
@@ -268,10 +279,12 @@ file static class DialectHelper
         {
             null => "<null>",
             '\0' => @"\0",
-            '\\' => @"\\",
             '\r' => @"\r",
             '\n' => @"\n",
             '\t' => @"\t",
+            '\v' => @"\v",
+            '\f' => @"\f",
+            ' ' => "' '",
             _ => v.Value.ToString(),
         };
     }
