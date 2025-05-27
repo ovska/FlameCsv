@@ -60,19 +60,19 @@ public class TokenizationBench
         Newline = CsvNewline.CRLF,
     };
 
-    private readonly SimdTokenizer<char, NewlineLF<Vec128>, Vec128> _t128LF = new(_dCharLF);
-    private readonly SimdTokenizer<char, NewlineLF<Vec256>, Vec256> _t256LF = new(_dCharLF);
-    private readonly SimdTokenizer<char, NewlineLF<Vec512>, Vec512> _t512LF = new(_dCharLF);
-    private readonly SimdTokenizer<byte, NewlineLF<Vec128>, Vec128> _t128bLF = new(_dByteLF);
-    private readonly SimdTokenizer<byte, NewlineLF<Vec256>, Vec256> _t256bLF = new(_dByteLF);
-    private readonly SimdTokenizer<byte, NewlineLF<Vec512>, Vec512> _t512bLF = new(_dByteLF);
+    private readonly SimdTokenizer<char, NewlineLF, Vec128> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<char, NewlineLF, Vec256> _t256LF = new(_dCharLF);
+    private readonly SimdTokenizer<char, NewlineLF, Vec512> _t512LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, NewlineLF, Vec128> _t128bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, NewlineLF, Vec256> _t256bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, NewlineLF, Vec512> _t512bLF = new(_dByteLF);
 
-    private readonly SimdTokenizer<byte, NewlineCRLF<Vec128>, Vec128> _t128bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<byte, NewlineCRLF<Vec256>, Vec256> _t256bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<byte, NewlineCRLF<Vec512>, Vec512> _t512bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<char, NewlineCRLF<Vec128>, Vec128> _t128CRLF = new(_dCharCRLF);
-    private readonly SimdTokenizer<char, NewlineCRLF<Vec256>, Vec256> _t256CRLF = new(_dCharCRLF);
-    private readonly SimdTokenizer<char, NewlineCRLF<Vec512>, Vec512> _t512CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<byte, NewlineCRLF, Vec128> _t128bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<byte, NewlineCRLF, Vec256> _t256bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<byte, NewlineCRLF, Vec512> _t512bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<char, NewlineCRLF, Vec128> _t128CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, NewlineCRLF, Vec256> _t256CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, NewlineCRLF, Vec512> _t512CRLF = new(_dCharCRLF);
 
     // [Benchmark(Baseline = true)]
     // public int V128()

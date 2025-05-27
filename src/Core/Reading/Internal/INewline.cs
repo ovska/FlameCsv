@@ -42,21 +42,16 @@ internal interface INewline
     /// </summary>
     static abstract bool IsNewline<T>(T value)
         where T : unmanaged, IBinaryInteger<T>;
-}
 
-/// <inheritdoc/>
-internal interface INewline<TVector> : INewline
-    where TVector : struct
-{
     /// <summary>
     /// Checks if the input vector contains a newline.
     /// </summary>
-    static abstract TVector HasNewline(TVector input);
+    static abstract TVector HasNewline<TVector>(TVector input)
+        where TVector : struct, IAsciiVector<TVector>;
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineLF<TVector> : INewline<TVector>
-    where TVector : struct, IAsciiVector<TVector>
+internal readonly struct NewlineLF : INewline
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1;
@@ -94,19 +89,24 @@ internal readonly struct NewlineLF<TVector> : INewline<TVector>
     public static bool IsNewline<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return value == T.CreateTruncating('\n');
+        return Unsafe.SizeOf<T>() switch
+        {
+            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
+            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
+            _ => throw Token<T>.NotSupported,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TVector HasNewline(TVector input)
+    public static TVector HasNewline<TVector>(TVector input)
+        where TVector : struct, IAsciiVector<TVector>
     {
         return TVector.Equals(input, TVector.Create((byte)'\n'));
     }
 }
 
 [SkipLocalsInit]
-internal readonly struct NewlineCRLF<TVector> : INewline<TVector>
-    where TVector : struct, IAsciiVector<TVector>
+internal readonly struct NewlineCRLF : INewline
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1 + isMultitoken.ToByte();
@@ -187,11 +187,17 @@ internal readonly struct NewlineCRLF<TVector> : INewline<TVector>
     public static bool IsNewline<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return value == T.CreateTruncating('\r') || value == T.CreateTruncating('\n');
+        return Unsafe.SizeOf<T>() switch
+        {
+            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\r' or (byte)'\n',
+            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\r' or '\n',
+            _ => throw Token<T>.NotSupported,
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TVector HasNewline(TVector input)
+    public static TVector HasNewline<TVector>(TVector input)
+        where TVector : struct, IAsciiVector<TVector>
     {
         return TVector.Equals(input, TVector.Create((byte)'\r')) | TVector.Equals(input, TVector.Create((byte)'\n'));
     }
