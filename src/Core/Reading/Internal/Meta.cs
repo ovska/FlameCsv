@@ -208,28 +208,27 @@ internal readonly struct Meta : IEquatable<Meta>
     public ReadOnlySpan<T> GetField<T>(int start, scoped ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Dialect<T> dialect = reader._dialect;
+        // loading the trimming to a local and checking it first (as the value never changes during execution)
+        // gives a 5% performance improvement, which is great considering how optimizedf this method is already
+        // 861us vs 819us on 65k records
+        CsvFieldTrimming trimming = reader._dialect.Trimming;
+
         int length = (_endAndEol & ~EOLMask) - start;
 
         // Fast path for plain fields (91.42% case)
-        if ((_specialCountAndOffset & SpecialCountMask) == 0 && dialect.Trimming == CsvFieldTrimming.None)
+        if (trimming == CsvFieldTrimming.None && (_specialCountAndOffset & SpecialCountMask) == 0)
         {
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), length);
         }
 
         // Check for simple quoted fields (8.51% case)
-        if (dialect.Trimming == CsvFieldTrimming.None && (_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0)
+        if (trimming == CsvFieldTrimming.None && (_specialCountAndOffset & (~0b11 ^ 0b10000)) == 0)
         {
-            ref T first = ref Unsafe.Add(ref data, start);
-            T quote = dialect.Quote;
+            T quote = reader._dialect.Quote;
 
-            // Prefetch these values to help branch prediction
-            T firstChar = first;
-            T lastChar = Unsafe.Add(ref first, length - 1);
-
-            if (quote == firstChar && quote == lastChar)
+            if (quote == Unsafe.Add(ref data, start) && quote == Unsafe.Add(ref data, start + length - 1))
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), length - 2);
             }
         }
 
