@@ -54,8 +54,13 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            int start = _meta[index].NextStart;
-            return _meta[index + 1].GetField(start, ref _data, _reader);
+            // separate local yields 158 bytes of code vs 163, it _might_ matter under some conditions and produces
+            // [mov mov cmp jae] for loading the span and length, instead of [mov cmp jae mov]
+            // which should allow parallelization by the CPU
+            ReadOnlySpan<Meta> meta = _meta;
+
+            int start = meta[index].NextStart;
+            return meta[index + 1].GetField(start, ref _data, _reader);
         }
     }
 
@@ -69,8 +74,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        int start = _meta[index].NextStart;
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), _meta[index + 1].End - start);
+        ReadOnlySpan<Meta> meta = _meta;
+        int start = meta[index].NextStart;
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), meta[index + 1].End - start);
     }
 
     /// <summary>
@@ -80,8 +86,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     {
         get
         {
-            int start = _meta[0].NextStart;
-            int end = _meta[^1].End;
+            ReadOnlySpan<Meta> meta = _meta;
+            int end = meta[^1].End; // JIT doesn't optimize bounds checks unless the last index is accessed first
+            int start = meta[0].NextStart;
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
         }
     }
