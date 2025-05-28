@@ -3,7 +3,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Extensions;
