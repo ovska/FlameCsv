@@ -10,7 +10,7 @@ using FlameCsv.Reading.Unescaping;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-[DebuggerDisplay("{DebuggerDisplay,nq}")]
+[DebuggerDisplay("{ToString(),nq}")]
 [StructLayout(LayoutKind.Explicit, Size = 8)]
 internal readonly struct Meta : IEquatable<Meta>
 {
@@ -305,24 +305,22 @@ internal readonly struct Meta : IEquatable<Meta>
         return field;
     }
 
-#if DEBUG
     static Meta()
     {
         if (Unsafe.SizeOf<Meta>() != sizeof(ulong))
-            throw new UnreachableException("Meta must be 8 bytes in size");
-    }
-#endif
-
-    public override string ToString() => DebuggerDisplay;
-
-    internal string DebuggerDisplay
-    {
-        get
         {
-            if (this.Equals(default))
-                return "{ Start: 0 }";
-            return $"{{ End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}, Offset: {NextStart - End}, Next: {NextStart} }}";
+            throw new UnreachableException("Meta must be 8 bytes in size");
         }
+    }
+
+    public override string ToString()
+    {
+        if (Equals(default))
+        {
+            return "{ Start: 0 }";
+        }
+
+        return $"{{ End: {End}, IsEOL: {IsEOL}, SpecialCount: {SpecialCount}, IsEscape: {IsEscape}, Offset: {NextStart - End}, Next: {NextStart} }}";
     }
 
     [DoesNotReturn]
