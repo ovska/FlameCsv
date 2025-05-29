@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 // ReSharper disable ConvertToAutoPropertyWhenPossible
@@ -101,23 +100,6 @@ public readonly struct CsvFieldIdentifier
     /// <inheritdoc />
     public override string ToString()
     {
-        using var vsb = new ValueStringBuilder(stackalloc char[32]);
-
-        vsb.Append("CsvFieldIdentifier[");
-
-        if (_name is null)
-        {
-            vsb.AppendFormatted(_index);
-        }
-        else
-        {
-            vsb.Append('"');
-            vsb.Append(_name);
-            vsb.Append('"');
-        }
-
-        vsb.Append(']');
-
-        return vsb.ToString();
+        return _name is null ? $"CsvFieldIdentifier[{_index}]" : $"CsvFieldIdentifier[\"{_name}\"]";
     }
 }
