@@ -26,8 +26,7 @@ internal static class Materializer<T>
     /// <param name="bindings">Bindings of the collection used to create the materializer</param>
     /// <typeparam name="TResult">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
-    [RequiresUnreferencedCode("Trimmed Materializer<...> implementations may not be available during runtime.")]
-    [RequiresDynamicCode("MakeGenericType is called on Materializer<...>")]
+    [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
     internal static ConstructorInfo GetConstructor<TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];
@@ -70,7 +69,7 @@ internal static class Materializer<T>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(<#

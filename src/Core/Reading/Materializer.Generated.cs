@@ -15,8 +15,7 @@ internal static class Materializer<T>
     /// <param name="bindings">Bindings of the collection used to create the materializer</param>
     /// <typeparam name="TResult">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
-    [RequiresUnreferencedCode("Trimmed Materializer<...> implementations may not be available during runtime.")]
-    [RequiresDynamicCode("MakeGenericType is called on Materializer<...>")]
+    [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
     internal static ConstructorInfo GetConstructor<TResult>(ReadOnlySpan<CsvBinding<TResult>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];
@@ -63,7 +62,7 @@ internal static class Materializer<T>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0);
@@ -90,7 +89,7 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult>, I
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1);
@@ -120,7 +119,7 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2);
@@ -153,7 +152,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3);
@@ -189,7 +188,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4);
@@ -228,7 +227,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5);
@@ -270,7 +269,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6);
@@ -315,7 +314,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7);
@@ -363,7 +362,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8);
@@ -414,7 +413,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9);
@@ -468,7 +467,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10);
@@ -525,7 +524,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11);
@@ -585,7 +584,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12);
@@ -648,7 +647,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13);
@@ -714,7 +713,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14);
@@ -783,7 +782,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15);
@@ -855,7 +854,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16);
@@ -930,7 +929,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17);
@@ -1008,7 +1007,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18);
@@ -1089,7 +1088,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19);
@@ -1173,7 +1172,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20);
@@ -1260,7 +1259,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20, T21 v21);
@@ -1350,7 +1349,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20, T21 v21, T22 v22);
@@ -1443,7 +1442,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, TResult> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20, T21 v21, T22 v22, T23 v23);
