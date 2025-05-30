@@ -1,7 +1,5 @@
 // ReSharper disable all
 
-using System.Runtime.Intrinsics;
-using System.Text;
 using FlameCsv.Intrinsics;
 using FlameCsv.IO.Internal;
 using FlameCsv.Reading;
