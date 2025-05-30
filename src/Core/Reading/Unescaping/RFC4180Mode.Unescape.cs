@@ -27,8 +27,13 @@ internal static class RFC4180Mode<T>
         nint srcIndex = 0;
         nint dstIndex = 0;
 
+        // use 256 bit vectors always if available
+        // use 128 bit vectors only for bytes, or if 256 bit vectors are not available
         Vector256<T> quote256 = Vector256.IsHardwareAccelerated ? Vector256.Create(quote) : default;
-        Vector128<T> quote128 = Vector128.IsHardwareAccelerated ? Vector128.Create(quote) : default;
+        Vector128<T> quote128 =
+            (typeof(T) == typeof(byte) || !Vector256.IsHardwareAccelerated) && Vector128.IsHardwareAccelerated
+                ? Vector128.Create(quote)
+                : default;
 
         // leave 1 space for the second quote
         nint remaining = field.Length;
@@ -38,32 +43,27 @@ internal static class RFC4180Mode<T>
 
         goto ContinueRead;
 
+        // JIT will optimize the copies with constant length to register moves
         Found1:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
+        Copy(ref src, srcIndex, ref dst, dstIndex, 1);
         srcIndex += 1;
         dstIndex += 1;
         remaining -= 1;
         goto FoundLong;
         Found2:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
+        Copy(ref src, srcIndex, ref dst, dstIndex, 2);
         srcIndex += 2;
         dstIndex += 2;
         remaining -= 2;
         goto FoundLong;
         Found3:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
-        Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
+        Copy(ref src, srcIndex, ref dst, dstIndex, 3);
         srcIndex += 3;
         dstIndex += 3;
         remaining -= 3;
         goto FoundLong;
         Found4:
-        Unsafe.Add(ref dst, dstIndex) = Unsafe.Add(ref src, srcIndex);
-        Unsafe.Add(ref dst, dstIndex + 1) = Unsafe.Add(ref src, srcIndex + 1);
-        Unsafe.Add(ref dst, dstIndex + 2) = Unsafe.Add(ref src, srcIndex + 2);
-        Unsafe.Add(ref dst, dstIndex + 3) = Unsafe.Add(ref src, srcIndex + 3);
+        Copy(ref src, srcIndex, ref dst, dstIndex, 4);
         srcIndex += 4;
         dstIndex += 4;
         remaining -= 4;
@@ -133,9 +133,8 @@ internal static class RFC4180Mode<T>
         // it's slightly faster to defer to the unrolled loop on x86 for char
         // TODO PERF: profile on ARM64 and WASM
         while (
-            Unsafe.SizeOf<T>() == sizeof(byte)
-            && // || !Vector256.IsHardwareAccelerated ?
-            Vector128.IsHardwareAccelerated
+            (typeof(T) == typeof(byte) || !Vector256.IsHardwareAccelerated)
+            && Vector128.IsHardwareAccelerated
             && remaining >= Vector128<T>.Count
         )
         {
@@ -220,12 +219,10 @@ internal static class RFC4180Mode<T>
         Copy(ref src, srcIndex, ref dst, dstIndex, (uint)(remaining));
 
         EOL:
-        if (quotesLeft != 0)
+        if (quotesLeft == 0)
         {
-            ThrowInvalidUnescape(field, quote, quotesConsumed);
+            return;
         }
-
-        return;
 
         Fail:
         ThrowInvalidUnescape(field, quote, quotesConsumed);
