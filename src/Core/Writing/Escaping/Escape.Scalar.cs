@@ -48,14 +48,7 @@ internal static partial class Escape
         if ((uint)lastIndex < srcRemaining)
         {
             nint nonSpecialCount = srcRemaining - lastIndex + 1;
-
-            Copy(
-                ref src,
-                (nuint)lastIndex,
-                ref dst,
-                (nuint)(dstRemaining - nonSpecialCount + 1),
-                (uint)nonSpecialCount
-            );
+            Copy(ref src, (uint)lastIndex, ref dst, (nuint)(dstRemaining - nonSpecialCount + 1), (uint)nonSpecialCount);
 
             srcRemaining -= nonSpecialCount;
             dstRemaining -= nonSpecialCount;
