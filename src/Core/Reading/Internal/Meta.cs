@@ -218,7 +218,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // Fast path for plain fields (91.42% case)
         if (trimming == CsvFieldTrimming.None && (_specialCountAndOffset & SpecialCountMask) == 0)
         {
-            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), length);
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), length);
         }
 
         // Check for simple quoted fields (8.51% case)
@@ -226,9 +226,9 @@ internal readonly struct Meta : IEquatable<Meta>
         {
             T quote = reader._dialect.Quote;
 
-            if (quote == Unsafe.Add(ref data, start) && quote == Unsafe.Add(ref data, start + length - 1))
+            if (quote == Unsafe.Add(ref data, start) && quote == Unsafe.Add(ref data, (uint)start + (uint)length - 1))
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), length - 2);
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start + 1), length - 2);
             }
         }
 
@@ -243,7 +243,7 @@ internal readonly struct Meta : IEquatable<Meta>
         Dialect<T> dialect = reader._dialect;
 
         int fieldLength = End - start;
-        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start), End - start);
+        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), End - start);
 
         // trim before unquoting to preserve spaces in strings
         if (field.NeedsTrimming(dialect.Trimming))
@@ -265,7 +265,7 @@ internal readonly struct Meta : IEquatable<Meta>
                 IndexOfUnescaper.Invalid(field, in this);
             }
 
-            field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, start + 1), fieldLength - 2);
+            field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start + 1), fieldLength - 2);
 
             // for escapes, special count refers to the number of escape characters
             // for RFC, special count refers to the _total_ number of quotes, including wrapping
