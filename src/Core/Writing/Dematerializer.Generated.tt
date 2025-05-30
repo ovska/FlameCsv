@@ -26,8 +26,7 @@ internal abstract partial class Dematerializer<T>
     /// <param name="bindings">Bindings of the collection used to create the dematerializer</param>
     /// <typeparam name="TValue">Type of the object/struct being read</typeparam>
     [ExcludeFromCodeCoverage]
-    [RequiresUnreferencedCode("Trimmed Dematerializer<...> implementations may not be available during runtime.")]
-    [RequiresDynamicCode("MakeGenericType is called on Dematerializer<...>")]
+    [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
     internal static ConstructorInfo GetConstructor<TValue>(ReadOnlySpan<MemberCsvBinding<TValue>> bindings)
     {
         Type[] types = new Type[bindings.Length + 2];
@@ -70,7 +69,7 @@ internal abstract partial class Dematerializer<T>
 /// <inheritdoc />
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
-[RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
+[RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
 internal sealed class Dematerializer<T, <#= generics #>>
     : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
 {
