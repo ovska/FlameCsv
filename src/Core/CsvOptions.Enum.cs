@@ -1,10 +1,32 @@
-﻿using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
 public partial class CsvOptions<T>
 {
+    private string? _enumFormat;
+    private char _enumFlagsSeparator = ',';
+    private bool _ignoreEnumCase = true;
+    private bool _allowUndefinedEnumValues;
+
+    /// <summary>
+    /// The default format for enums, used if enum's format is not defined in <see cref="Formats"/>.
+    /// </summary>
+    /// <seealso cref="UseDefaultConverters"/>
+    [StringSyntax(StringSyntaxAttribute.EnumFormat)]
+    public string? EnumFormat
+    {
+        get => _enumFormat;
+        set
+        {
+            // validate
+            _ = Enum.TryFormat(default(CsvFieldQuoting), default, out _, value);
+            this.SetValue(ref _enumFormat, value);
+        }
+    }
+
     /// <summary>
     /// Whether to allow enum values that are not defined in the enum type.
     /// Default is <c>false</c>.
