@@ -319,9 +319,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// Can be used to skip records or reset the header.
     /// </summary>
     /// <remarks>
-    /// Comments are not fully supported.
-    /// All lines are expected to be either valid CSV or empty.
-    /// Commented lines with delimiters and/or mismatched quotes will not work properly.
+    /// All records are expected to be valid CSV, so even if the callback skips a record (e.g. starting with <c>#</c>),
+    /// it must still have valid CSV structure.
     /// </remarks>
     public CsvRecordCallback<T>? RecordCallback
     {

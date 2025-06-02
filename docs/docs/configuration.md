@@ -119,8 +119,7 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> Comments are not yet fully supported by FlameCsv (see [issue](https://github.com/ovska/FlameCsv/issues/20)).
-For example, even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). 
+> Comment records are not supported. Even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). 
 
 
 ## Field count validation
