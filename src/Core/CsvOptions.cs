@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
@@ -16,7 +15,7 @@ namespace FlameCsv;
 /// <summary>
 /// Object used to configure dialect, converters, and other options to read and write CSV data.
 /// </summary>
-/// <typeparam name="T">Token type</typeparam>
+/// <typeparam name="T">Token type (<c>char</c> or <c>byte</c>)</typeparam>
 [PublicAPI]
 public sealed partial class CsvOptions<T> : ICanBeReadOnly
     where T : unmanaged, IBinaryInteger<T>
@@ -155,7 +154,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public ReadOnlyMemory<T> GetNullToken(Type resultType)
     {
-        Utf8String? value = GetNullCore(resultType);
+        Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
 
         if (value is null || value.String.Length == 0)
             return default;
@@ -176,7 +175,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     internal ReadOnlySpan<T> GetNullSpan(Type resultType)
     {
-        Utf8String? value = GetNullCore(resultType);
+        Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
 
         if (value is null || value.String.Length == 0)
             return [];
@@ -194,23 +193,23 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         throw InvalidTokenTypeEx();
     }
 
-    private Utf8String? GetNullCore(Type resultType)
-    {
-        return _nullTokens.TryGetExt(resultType, defaultValue: _null);
-    }
-
     /// <summary>
     /// Returns the custom format configured for <paramref name="resultType"/>,
     /// or <paramref name="defaultValue"/> by default.
     /// </summary>
-    public string? GetFormat(Type resultType, string? defaultValue = null) =>
-        _formats.TryGetExt(resultType, defaultValue);
+    public string? GetFormat(Type resultType, string? defaultValue = null)
+    {
+        return _formats.TryGetExt(resultType, defaultValue);
+    }
 
     /// <summary>
     /// Returns the custom format provider configured for <paramref name="resultType"/>,
     /// or <see cref="FormatProvider"/> by default.
     /// </summary>
-    public IFormatProvider? GetFormatProvider(Type resultType) => _providers.TryGetExt(resultType, _formatProvider);
+    public IFormatProvider? GetFormatProvider(Type resultType)
+    {
+        return _providers.TryGetExt(resultType, _formatProvider);
+    }
 
     /// <summary>
     /// Returns the custom number styles configured for the <see cref="INumberBase{TSelf}"/>,
@@ -220,8 +219,10 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// Defaults are <see cref="NumberStyles.Integer"/> for <see cref="IBinaryInteger{TSelf}"/> and
     /// <see cref="NumberStyles.Float"/> for <see cref="IFloatingPoint{TSelf}"/>.
     /// </remarks>
-    public NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue) =>
-        _styles.TryGetExt(resultType, defaultValue);
+    public NumberStyles GetNumberStyles(Type resultType, NumberStyles defaultValue)
+    {
+        return _styles.TryGetExt(resultType, defaultValue);
+    }
 
     private CsvRecordCallback<T>? _recordCallback;
     private bool _hasHeader = true;
@@ -230,10 +231,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     private MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private SealableList<(string, bool)>? _booleanValues;
     private bool _useDefaultConverters = true;
-    private string? _enumFormat;
-    private char _enumFlagsSeparator = ',';
-    private bool _ignoreEnumCase = true;
-    private bool _allowUndefinedEnumValues;
     private ICsvTypeBinder<T>? _typeBinder;
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
@@ -279,22 +276,30 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="FormatProvider"/>
     /// <seealso cref="GetFormatProvider(Type)"/>
-    public IDictionary<Type, IFormatProvider?> FormatProviders =>
-        _providers ??= new TypeDictionary<IFormatProvider?>(this);
+    public IDictionary<Type, IFormatProvider?> FormatProviders
+    {
+        get => _providers ??= new TypeDictionary<IFormatProvider?>(this);
+    }
 
     /// <summary>
     /// Format used per type.
     /// </summary>
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="GetFormat(Type, string?)"/>
-    public IDictionary<Type, string?> Formats => _formats ??= new TypeDictionary<string?>(this);
-
+    public IDictionary<Type, string?> Formats
+    {
+        get => _formats ??= new TypeDictionary<string?>(this);
+    }
+    
     /// <summary>
     /// Styles used when parsing <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
     /// </summary>
     /// <remarks>Structs and their <see cref="Nullable{T}"/> counterparts are treated as equal.</remarks>
     /// <seealso cref="GetNumberStyles(Type, System.Globalization.NumberStyles)"/>.
-    public IDictionary<Type, NumberStyles> NumberStyles => _styles ??= new TypeDictionary<NumberStyles>(this);
+    public IDictionary<Type, NumberStyles> NumberStyles
+    {
+        get => _styles ??= new TypeDictionary<NumberStyles>(this);
+    }
 
     /// <summary>
     /// String comparer used to match CSV header to members and parameters.
@@ -387,22 +392,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
-    /// The default format for enums, used if enum's format is not defined in <see cref="Formats"/>.
-    /// </summary>
-    /// <seealso cref="UseDefaultConverters"/>
-    [StringSyntax(StringSyntaxAttribute.EnumFormat)]
-    public string? EnumFormat
-    {
-        get => _enumFormat;
-        set
-        {
-            // validate
-            _ = Enum.TryFormat(default(CsvFieldQuoting), default, out _, value);
-            this.SetValue(ref _enumFormat, value);
-        }
-    }
-
-    /// <summary>
     /// Pool used to create reusable buffers when reading multisegment data, or unescaping large fields.
     /// Default value is <see cref="MemoryPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always heap allocate.
@@ -420,7 +409,10 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
     /// <seealso cref="CsvConverter{T,TValue}.CanFormatNull"/>
-    public IDictionary<Type, string?> NullTokens => _nullTokens ??= new(this);
+    public IDictionary<Type, string?> NullTokens
+    {
+        get => _nullTokens ??= new(this);
+    }
 
     /// <summary>
     /// Optional custom boolean value mapping. If not empty, must contain at least one value for both
@@ -428,8 +420,10 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     /// <seealso cref="UseDefaultConverters"/>
     /// <seealso cref="CsvBooleanValuesAttribute"/>
-    public IList<(string text, bool value)> BooleanValues =>
-        _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
+    public IList<(string text, bool value)> BooleanValues
+    {
+        get => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
+    }
 
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
     internal MemoryPool<T> Allocator => _memoryPool;
