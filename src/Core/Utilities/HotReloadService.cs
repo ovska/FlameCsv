@@ -11,27 +11,28 @@ namespace FlameCsv.Utilities;
 [ExcludeFromCodeCoverage]
 internal static class HotReloadService
 {
-    public static bool IsActive
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => MetadataUpdater.IsSupported;
-    }
+    /// <summary>
+    /// Indicates whether the hot reload service is active (metadata updater is supported).
+    /// </summary>
+    public static bool IsActive => MetadataUpdater.IsSupported;
 
     /// <summary>
-    /// Contains registered callbacks for cache clearing.
+    /// Contains registered callbacks for cache clearing. Null if hot reload is not supported.
     /// </summary>
-    private static readonly ConditionalWeakTable<object, Action<object>> _callbacks = MetadataUpdater.IsSupported
-        ? []
-        : null!;
+    private static readonly ConditionalWeakTable<object, Action<object>>? _callbacks = MetadataUpdater.IsSupported
+        ? new()
+        : null;
 
     /// <summary>
     /// Clears the cache by invoking all registered hot reload callbacks.
     /// </summary>
     /// <remarks>Called by the framework</remarks>
-    internal static void ClearCache(Type[]? types)
+    internal static void ClearCache(Type[]? _)
     {
         if (_callbacks is null)
-            return; // should never happen
+        {
+            return;
+        }
 
         foreach ((object state, Action<object> callback) in _callbacks)
         {
@@ -47,10 +48,7 @@ internal static class HotReloadService
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void RegisterForHotReload(object instance, [RequireStaticDelegate] Action<object> onHotReload)
     {
-        if (MetadataUpdater.IsSupported)
-        {
-            _callbacks.AddOrUpdate(instance, onHotReload);
-        }
+        _callbacks?.AddOrUpdate(instance, onHotReload);
     }
 
     /// <summary>
@@ -60,9 +58,6 @@ internal static class HotReloadService
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void UnregisterForHotReload(object instance)
     {
-        if (MetadataUpdater.IsSupported)
-        {
-            _callbacks.Remove(instance);
-        }
+        _callbacks?.Remove(instance);
     }
 }
