@@ -6,18 +6,18 @@ namespace FlameCsv.Converters;
 
 internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
 {
-    private readonly StringPool _stringPool;
+    public StringPool Pool { get; }
 
     public static PoolingStringUtf8Converter SharedInstance { get; } = new();
 
     public PoolingStringUtf8Converter()
     {
-        _stringPool = StringPool.Shared;
+        Pool = StringPool.Shared;
     }
 
     public PoolingStringUtf8Converter(StringPool? stringPool)
     {
-        _stringPool = stringPool ?? StringPool.Shared;
+        Pool = stringPool ?? StringPool.Shared;
     }
 
     public override bool TryParse(ReadOnlySpan<byte> source, [MaybeNullWhen(false)] out string value)
@@ -34,11 +34,11 @@ internal sealed class PoolingStringUtf8Converter : CsvConverter<byte, string>
         {
             Span<char> buffer = stackalloc char[length];
             int written = Encoding.UTF8.GetChars(source, buffer);
-            value = _stringPool.GetOrAdd(buffer[..written]);
+            value = Pool.GetOrAdd(buffer[..written]);
         }
         else
         {
-            value = _stringPool.GetOrAdd(source, Encoding.UTF8);
+            value = Pool.GetOrAdd(source, Encoding.UTF8);
         }
 
         return true;

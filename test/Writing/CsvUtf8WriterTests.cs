@@ -1,6 +1,7 @@
 ﻿using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
@@ -39,7 +40,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             MemoryPool = pool,
         };
 
-        using var output = new MemoryStream(capacity: short.MaxValue * 4);
+        using var writer = new ArrayPoolBufferWriter<byte>(initialCapacity: short.MaxValue * 4);
+        using var output = writer.AsStream();
 
         if (sourceGen)
         {
@@ -56,9 +58,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             CsvWriter.Write(output, TestDataGenerator.Objects.Value, options, new() { BufferSize = bufferSize });
         }
 
-        Assert.True(output.TryGetBuffer(out var buffer));
-
-        Validate(buffer, escape.HasValue, newline.IsCRLF(), header, quoting);
+        Validate(writer.WrittenMemory, escape.HasValue, newline.IsCRLF(), header, quoting);
     }
 
     [Theory, MemberData(nameof(Args))]
@@ -86,7 +86,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             MemoryPool = pool,
         };
 
-        using var output = new MemoryStream(capacity: short.MaxValue * 4);
+        using var writer = new ArrayPoolBufferWriter<byte>(initialCapacity: short.MaxValue * 4);
+        using var output = writer.AsStream();
 
         if (sourceGen)
         {
@@ -135,9 +136,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             }
         }
 
-        Assert.True(output.TryGetBuffer(out var buffer));
-
-        Validate(buffer, escape.HasValue, newline.IsCRLF(), header, quoting);
+        Validate(writer.WrittenMemory, escape.HasValue, newline.IsCRLF(), header, quoting);
     }
 
     private static void Validate(
