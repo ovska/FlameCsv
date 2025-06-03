@@ -74,7 +74,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
     )
     {
         using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
-        pool.TrackStackTraces = true;
         var options = new CsvOptions<byte>
         {
             Newline = newline,
