@@ -35,7 +35,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             MemoryPool = pool,
         };
 
-        var output = new StringBuilder(capacity: short.MaxValue * 4);
+        StringBuilder output = StringBuilderPool.Value.Get();
 
         if (sourceGen)
         {
@@ -72,6 +72,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         }
 
         Validate(output, escape.HasValue, newline.IsCRLF(), header, quoting);
+        StringBuilderPool.Value.Return(output);
     }
 
     [Theory, MemberData(nameof(Args))]
@@ -101,7 +102,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             MemoryPool = pool,
         };
 
-        var output = new StringBuilder(capacity: short.MaxValue * 4);
+        StringBuilder output = StringBuilderPool.Value.Get();
 
         if (sourceGen)
         {
@@ -126,6 +127,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         }
 
         Validate(output, escape.HasValue, newline.IsCRLF(), header, quoting);
+        StringBuilderPool.Value.Return(output);
     }
 
     [Fact]
