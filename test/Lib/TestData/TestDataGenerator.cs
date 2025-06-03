@@ -117,7 +117,7 @@ public static class TestDataGenerator
             {
                 (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
 
-                var writer = new StringBuilder(capacity: RequiredCapacity);
+                StringBuilder writer = StringBuilderPool.Value.Get();
 
                 if (writeHeader)
                 {
@@ -169,22 +169,7 @@ public static class TestDataGenerator
                 if (writeTrailingNewline)
                     writer.Append(newLine);
 
-                if (writer.Capacity != RequiredCapacity)
-                    throw new UnreachableException(writer.Capacity.ToString());
-
-                var enumerator = writer.GetChunks();
-
-                if (enumerator.MoveNext())
-                {
-                    var result = enumerator.Current;
-
-                    if (!enumerator.MoveNext())
-                    {
-                        return result;
-                    }
-                }
-
-                throw new UnreachableException();
+                return writer.ToString().AsMemory();
             })
         );
 
