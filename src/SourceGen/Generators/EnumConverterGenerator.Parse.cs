@@ -41,7 +41,7 @@ partial class EnumConverterGenerator
         )
         {
             writer.DebugLine("Fast path taken (under 10 contiguous values and no 1-char names)");
-            writer.WriteLine("// Enum is small and contiguous from 0, try to use fast path");
+            writer.WriteLine("// Enum is small and contiguous from 0, and has no 1 length names; try to use fast path");
             writer.WriteLine("if (source.Length == 1)");
             using (writer.WriteBlock())
             {
@@ -56,9 +56,9 @@ partial class EnumConverterGenerator
         }
 
         // flags enums can be valid even though the value is not defined, e.g. 1 | 2
-        writer.WriteLine();
         writer.WriteIf(!model.HasFlagsAttribute, "else ");
 
+        writer.WriteLineIf(model.HasFlagsAttribute);
         writer.WriteLineIf(model.HasFlagsAttribute, "// flags-enum can have a valid value outside the explicit values");
         writer.WriteLine("if (_parseStrategy.TryParse(source, out value))");
         using (writer.WriteBlock())

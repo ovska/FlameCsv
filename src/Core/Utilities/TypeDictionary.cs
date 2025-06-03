@@ -29,7 +29,7 @@ internal class TypeStringDictionary : TypeDictionary<Utf8String?>, IDictionary<T
     {
         ArgumentNullException.ThrowIfNull(array);
         ArgumentOutOfRangeException.ThrowIfNegative(arrayIndex);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(Count + arrayIndex, array.Length);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(Count + arrayIndex, array.Length, nameof(arrayIndex));
 
         foreach (var kvp in _dictionary)
         {
