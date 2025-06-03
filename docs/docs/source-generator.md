@@ -650,8 +650,8 @@ partial class DayOfWeekConverter;
 
 ### Limitations
 
-- Hex-formatted values are not supported; the generator will defer to `Enum.TryFormat`
-- Custom enum names must not start with a digit or a minus
+- Hex-formatted values are not supported; the generator will defer to `Enum.TryFormat` and `Enum.TryParse`
+- Custom enum names must not start with a digit or a dash (minus sign)
 - Custom names cannot be empty, or the same as another enum's name or custom name
 
 ### Example
