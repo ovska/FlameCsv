@@ -159,17 +159,13 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         int index = 0;
 
         const string date = "1970-01-01T00:00:00.0000000+00:00";
-        const string dateQuoted = "'1970-01-01T00:00:00.0000000+00:00'";
+        const string dateQuoted = $"'{date}'";
 
-        var tokenizer = new ReadOnlySpanTokenizer<char>(sequence.First.Span, '\n');
-
-        CancellationToken token = TestContext.Current.CancellationToken;
-
-        while (tokenizer.MoveNext())
+        foreach (var current in sequence.First.Span.Tokenize('\n'))
         {
-            token.ThrowIfCancellationRequested();
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
 
-            ReadOnlySpan<char> line = tokenizer.Current;
+            var line = current;
 
             if (crlf && !line.IsEmpty)
             {
