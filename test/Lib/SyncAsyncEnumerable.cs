@@ -8,7 +8,10 @@ public static class SyncAsyncEnumerable
 
     public static SyncAsyncEnumerable<T> Create<T>(IEnumerable<T> inner) => new(inner);
 
-    public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken cancellationToken = default)
+    public static async Task<List<T>> ToListAsync<T>(
+        this IAsyncEnumerable<T> source,
+        CancellationToken cancellationToken = default
+    )
     {
         if (!cancellationToken.CanBeCanceled)
             cancellationToken = TestContext.Current.CancellationToken;

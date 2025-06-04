@@ -794,7 +794,9 @@ partial class EnumConverterGenerator
         }
 
         writer.WriteLine(");");
-        writer.WriteLine("if (!__BitConverter.IsLittleEndian) __mask = global::System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(__mask);");
+        writer.WriteLine(
+            "if (!__BitConverter.IsLittleEndian) __mask = global::System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(__mask);"
+        );
         writer.WriteLine("switch (__mask)");
 
         using (writer.WriteBlock())
