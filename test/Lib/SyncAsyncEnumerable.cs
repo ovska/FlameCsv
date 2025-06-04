@@ -7,6 +7,21 @@ public static class SyncAsyncEnumerable
     public static SyncAsyncEnumerable<T> Create<T>(params T[] inner) => new(inner);
 
     public static SyncAsyncEnumerable<T> Create<T>(IEnumerable<T> inner) => new(inner);
+
+    public static async Task<List<T>> ToListAsync<T>(this IAsyncEnumerable<T> source, CancellationToken cancellationToken = default)
+    {
+        if (!cancellationToken.CanBeCanceled)
+            cancellationToken = TestContext.Current.CancellationToken;
+
+        var list = new List<T>();
+
+        await foreach (var item in source.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            list.Add(item);
+        }
+
+        return list;
+    }
 }
 
 public sealed class SyncAsyncEnumerable<T>(IEnumerable<T> inner) : IAsyncEnumerable<T>
