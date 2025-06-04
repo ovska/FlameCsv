@@ -152,11 +152,11 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         ReadOnlySpan<byte> dateQuoted = "'1970-01-01T00:00:00.0000000+00:00'"u8;
         ReadOnlySpan<byte> date = dateQuoted[1..^1];
 
-        var tokenizer = new ReadOnlySpanTokenizer<byte>(result.Span, (byte)'\n');
-
-        while (tokenizer.MoveNext())
+        foreach (var current in result.Span.Tokenize((byte)'\n'))
         {
-            ReadOnlySpan<byte> line = tokenizer.Current;
+            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
+
+            ReadOnlySpan<byte> line = current;
 
             if (crlf && !line.IsEmpty)
             {
