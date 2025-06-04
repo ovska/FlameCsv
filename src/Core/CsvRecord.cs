@@ -240,6 +240,23 @@ public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>
     }
 
     /// <summary>
+    /// Copies the fields in the record to a new array.
+    /// </summary>
+    /// <returns></returns>
+    public string[] ToArray()
+    {
+        _owner.EnsureVersion(_version);
+
+        var fields = new string[_slice.FieldCount];
+        for (int i = 0; i < fields.Length; i++)
+        {
+            fields[i] = Options.GetAsString(_slice.GetField(i));
+        }
+
+        return fields;
+    }
+
+    /// <summary>
     /// Ensures the struct is not <c>default</c> and the version is valid.
     /// </summary>
     internal void EnsureValid()
