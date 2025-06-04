@@ -57,7 +57,8 @@ public abstract class CsvReflectionBinder
             if (binding is null && !ignoreUnmatched)
             {
                 throw new CsvBindingException(
-                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}")
+                    $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}"
+                )
                 {
                     TargetType = typeof(TValue),
                     Headers = headerFields,
@@ -73,8 +74,8 @@ public abstract class CsvReflectionBinder
         {
             throw new CsvBindingException("No bindings matched.")
             {
-                    TargetType = typeof(TValue),
-                Headers = headerFields
+                TargetType = typeof(TValue),
+                Headers = headerFields,
             };
         }
 
@@ -100,7 +101,8 @@ public abstract class CsvReflectionBinder
         )
         {
             throw new CsvBindingException(
-                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no [CsvIndex]-attributes.")
+                $"Headerless CSV could not be written for {typeof(TValue)} since the type had no [CsvIndex]-attributes."
+            )
             {
                 TargetType = typeof(TValue),
             };

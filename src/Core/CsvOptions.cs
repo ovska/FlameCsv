@@ -290,7 +290,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     {
         get => _formats ??= new TypeDictionary<string?>(this);
     }
-    
+
     /// <summary>
     /// Styles used when parsing <see cref="IBinaryNumber{TSelf}"/> and <see cref="IFloatingPoint{TSelf}"/>.
     /// </summary>
