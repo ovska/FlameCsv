@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using JetBrains.Annotations;
 
@@ -48,6 +49,7 @@ public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isComplet
     }
 
     /// <inheritdoc/>
+    [ExcludeFromCodeCoverage]
     public override string ToString()
     {
         return $"ReadResult<{Token<T>.Name}> Length: {Buffer.Length}, IsCompleted: {IsCompleted}";

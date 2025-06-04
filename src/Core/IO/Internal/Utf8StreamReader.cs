@@ -1,7 +1,9 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
@@ -65,6 +67,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 break;
             }
 
+            Debug.Assert(status == OperationStatus.NeedMoreData, "ToUtf16 should not return InvalidData");
+
             if (status == OperationStatus.NeedMoreData)
             {
                 // Shift any leftover bytes to front
@@ -93,22 +97,6 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 }
 
                 _count += bytesRead;
-            }
-            else if (status == OperationStatus.InvalidData)
-            {
-                // Replace an invalid byte sequence with U+FFFD
-                if (totalCharsWritten < buffer.Length)
-                {
-                    buffer[totalCharsWritten++] = (char)Rune.ReplacementChar.Value;
-                }
-                else
-                {
-                    // User buffer full
-                    break;
-                }
-
-                // Skip one byte to move past invalid data
-                _offset += Math.Max(bytesConsumed, 1);
             }
         }
 
@@ -160,6 +148,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 break;
             }
 
+            Debug.Assert(status == OperationStatus.NeedMoreData, "ToUtf16 should not return InvalidData");
+
             if (status == OperationStatus.NeedMoreData)
             {
                 // Shift any leftover bytes to front
@@ -190,22 +180,6 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 }
 
                 _count += bytesRead;
-            }
-            else if (status == OperationStatus.InvalidData)
-            {
-                // Replace an invalid byte sequence with U+FFFD
-                if (totalCharsWritten < buffer.Length)
-                {
-                    buffer.Span[totalCharsWritten++] = (char)Rune.ReplacementChar.Value;
-                }
-                else
-                {
-                    // User buffer full
-                    break;
-                }
-
-                // Skip one byte to move past invalid data
-                _offset += Math.Max(bytesConsumed, 1);
             }
         }
 

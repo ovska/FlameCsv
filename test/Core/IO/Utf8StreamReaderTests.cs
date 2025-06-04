@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
@@ -468,15 +469,56 @@ public class Utf8StreamReaderTests
     [Fact]
     public void Should_Skip_Utf8_BOM()
     {
-        // UTF-8 BOM: EF BB BF
-        byte[] bomBytes = Encoding.UTF8.GetPreamble();
-        var stream = new MemoryStream(bomBytes.Concat(Encoding.UTF8.GetBytes("TestData")).ToArray());
+        var stream = new MemoryStream([.. Encoding.UTF8.GetPreamble(), .. "TestData"u8]);
         var options = new CsvIOOptions { BufferSize = 1024 };
         using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
         var charBuffer = new char[10];
         int charsRead = reader.ReadCore(charBuffer);
         Assert.Equal(8, charsRead); // "TestData" length
         Assert.Equal("TestData", new string(charBuffer, 0, charsRead));
+    }
+
+    [Theory, InlineData(true), InlineData(false)]
+    public async Task Should_Transcode_Non_Ascii(bool isAsync)
+    {
+        // use 4 byte utf8 token as the value
+        using var stream = new MemoryStream();
+
+        var sb = StringBuilderPool.Value.Get();
+
+        // add 3 byte character at start so buffer boundary has an incomplete utf8 character
+        stream.Write("你"u8);
+        sb.Append('你');
+
+        for (int i = 3; i < 512; i += 4)
+        {
+            stream.Write("🍑"u8);
+            sb.Append("🍑");
+        }
+
+        string charData = sb.ToString();
+        StringBuilderPool.Value.Return(sb);
+
+        stream.Position = 0;
+
+        using var reader = new Utf8StreamReader(
+            stream,
+            MemoryPool<char>.Shared,
+            new() { BufferSize = CsvIOOptions.MinimumBufferSize, MinimumReadSize = CsvIOOptions.MinimumBufferSize / 2 }
+        );
+
+        var (buffer, isCompleted) = isAsync
+            ? await reader.ReadAsync(TestContext.Current.CancellationToken)
+            : reader.Read();
+
+        Assert.False(isCompleted);
+        Assert.Equal(charData[..255], buffer.ToString());
+
+        reader.Advance(buffer.Length);
+
+        (buffer, isCompleted) = isAsync ? await reader.ReadAsync(TestContext.Current.CancellationToken) : reader.Read();
+        Assert.False(isCompleted);
+        Assert.Equal(charData[255..], buffer.ToString());
     }
 }
 
