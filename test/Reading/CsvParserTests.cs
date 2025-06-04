@@ -142,8 +142,10 @@ public class CsvReaderTests
         );
 
         CsvReadResult<char> result = await reader.ReadAsync(TestContext.Current.CancellationToken);
+        var (buffer, isCompleted) = result;
 
-        Assert.Equal(Encoding.UTF8.GetString(data).ToCharArray(), result.Buffer.ToArray());
+        Assert.False(isCompleted);
+        Assert.Equal(Encoding.UTF8.GetString(data).ToCharArray(), buffer.ToArray());
 
         var parser = new CsvReader<char>(CsvOptions<char>.Default, reader);
 

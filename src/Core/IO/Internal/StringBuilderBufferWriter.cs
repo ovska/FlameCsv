@@ -22,6 +22,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public void Advance(int count)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         _builder.Append(_memory.Span.Slice(0, count));
     }
 
@@ -29,27 +30,23 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
     {
         if (sizeHint > _memory.Length || _memory.IsEmpty)
         {
-            _pool.EnsureCapacity(ref _memoryOwner, sizeHint);
+            // copyOnResize is not needed because the data is only copied when advancing,
+            // GetMemory is never guaranteed to return the same memory as the previous call
+            _pool.EnsureCapacity(ref _memoryOwner, sizeHint, copyOnResize: false);
             _memory = _memoryOwner.Memory;
         }
 
         return _memory;
     }
 
-    public Span<char> GetSpan(int sizeHint = 0)
-    {
-        if (sizeHint > _memory.Length || _memory.IsEmpty)
-        {
-            _pool.EnsureCapacity(ref _memoryOwner, sizeHint);
-            _memory = _memoryOwner.Memory;
-        }
-
-        return _memory.Span;
-    }
+    public Span<char> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
     public bool NeedsFlush => false;
 
-    public void Flush() { }
+    public void Flush()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
 
     public void Complete(Exception? exception)
     {

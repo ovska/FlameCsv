@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
@@ -215,7 +216,42 @@ public class Utf8StreamWriterTests
         await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
     }
 
+    [Fact]
+    public async Task WriteAsync_StreamThrowsException_PropagatesException()
+    {
+        // Arrange
+        var failingStream = new FailingStream();
+        var options = new CsvIOOptions { BufferSize = 32, LeaveOpen = true };
+        var writer = new Utf8StreamWriter(failingStream, MemoryPool<char>.Shared, options);
+
+        const string testData = "Test data";
+
+        // Act & Assert
+        Assert.Throws<IOException>(() =>
+        {
+            var span = writer.GetSpan(testData.Length);
+            testData.AsSpan().CopyTo(span);
+            writer.Advance(testData.Length);
+
+            failingStream.FailOnNextWrite = true;
+            writer.Flush();
+        });
+
+        await Assert.ThrowsAsync<IOException>(async () =>
+        {
+            var span = writer.GetSpan(testData.Length);
+            testData.AsSpan().CopyTo(span);
+            writer.Advance(testData.Length);
+
+            failingStream.FailOnNextWrite = true;
+            await writer.FlushAsync(TestContext.Current.CancellationToken);
+        });
+
+        await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
+    }
+
     // Helper for testing error conditions
+    [ExcludeFromCodeCoverage]
     private class FailingStream : MemoryStream
     {
         public bool FailOnNextWrite { get; set; }
@@ -235,28 +271,5 @@ public class Utf8StreamWriterTests
 
             return base.WriteAsync(buffer, cancellationToken);
         }
-    }
-
-    [Fact]
-    public async Task WriteAsync_StreamThrowsException_PropagatesException()
-    {
-        // Arrange
-        var failingStream = new FailingStream();
-        var options = new CsvIOOptions { BufferSize = 32, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(failingStream, MemoryPool<char>.Shared, options);
-
-        const string testData = "Test data";
-        var span = writer.GetSpan(testData.Length);
-        testData.AsSpan().CopyTo(span);
-        writer.Advance(testData.Length);
-
-        // Make stream fail
-        failingStream.FailOnNextWrite = true;
-
-        // Act & Assert
-        await Assert.ThrowsAsync<IOException>(async () => await writer.FlushAsync(TestContext.Current.CancellationToken)
-        );
-
-        await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
     }
 }

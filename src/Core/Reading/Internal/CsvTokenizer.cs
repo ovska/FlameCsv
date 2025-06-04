@@ -1,4 +1,5 @@
-﻿using FlameCsv.Extensions;
+﻿using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -35,14 +36,12 @@ internal abstract class CsvTokenizer<T>
     /// <exception cref="NotSupportedException">
     /// Thrown if the implementation does not support reading to the end of the data.
     /// </exception>
-    public virtual int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
-    {
-        throw new NotSupportedException("This tokenizer does not support reading to the end of the data.");
-    }
+    public abstract int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd);
 }
 
 internal static class CsvTokenizer
 {
+    [ExcludeFromCodeCoverage]
     public static CsvPartialTokenizer<T>? CreateSimd<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
