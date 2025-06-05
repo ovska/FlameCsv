@@ -23,6 +23,28 @@ public partial class CsvWriterTTests
     }
 
     [Fact]
+    public static void Should_Cache_Materializer()
+    {
+        Assert.Equal(
+            "0,0,0\r\n0,0,0\r\n0,0,0\r\n0,0,0\r\n0,0,0\r\n",
+            Impl<char>(writer =>
+            {
+                writer.WriteRecord(new Testable());
+                writer.NextRecord();
+                writer.WriteRecord(new Testable());
+                writer.NextRecord();
+
+                writer.WriteRecord(TestableTypeMapChar.Default, new Testable());
+                writer.NextRecord();
+                writer.WriteRecord(TestableTypeMapChar.Default, new Testable());
+                writer.NextRecord();
+
+                writer.WriteRecord(new Testable());
+            })
+        );
+    }
+
+    [Fact]
     public static void Should_Write_Record()
     {
         Assert.Equal(
@@ -319,8 +341,8 @@ public partial class CsvWriterTTests
         );
     }
 
-    [Fact]
-    public static void Should_Write_Records()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Write_Records(bool preserved)
     {
         const string chars = "A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9\r\n";
         byte[] bytes = Encoding.UTF8.GetBytes(chars);
@@ -337,7 +359,8 @@ public partial class CsvWriterTTests
                         writer.NextRecord();
                     }
 
-                    writer.WriteRecord(in record);
+                    _ = preserved ? writer.WriteRecord(record.Preserve()) : writer.WriteRecord(in record);
+                    Assert.Equal(3, writer.FieldIndex);
                     writer.NextRecord();
                 }
             })
@@ -355,7 +378,8 @@ public partial class CsvWriterTTests
                         writer.NextRecord();
                     }
 
-                    writer.WriteRecord(in record);
+                    _ = preserved ? writer.WriteRecord(record.Preserve()) : writer.WriteRecord(in record);
+                    Assert.Equal(3, writer.FieldIndex);
                     writer.NextRecord();
                 }
             })
@@ -376,7 +400,12 @@ public partial class CsvWriterTTests
                     }
 
                     writer.WriteRecord(in record, [0, 2]);
+                    Assert.Equal(2, writer.FieldIndex);
                     writer.NextRecord();
+
+                    // nothing written for empty fields
+                    writer.WriteRecord(in record, []);
+                    Assert.Equal(0, writer.FieldIndex);
                 }
             })
         );
@@ -394,7 +423,12 @@ public partial class CsvWriterTTests
                     }
 
                     writer.WriteRecord(in record, [0, 2]);
+                    Assert.Equal(2, writer.FieldIndex);
                     writer.NextRecord();
+
+                    // nothing written for empty fields
+                    writer.WriteRecord(in record, []);
+                    Assert.Equal(0, writer.FieldIndex);
                 }
             })
         );
@@ -412,6 +446,7 @@ public partial class CsvWriterTTests
                     }
 
                     writer.WriteRecord(in record, ["A", "C"]);
+                    Assert.Equal(2, writer.FieldIndex);
                     writer.NextRecord();
                 }
             })
@@ -430,9 +465,112 @@ public partial class CsvWriterTTests
                     }
 
                     writer.WriteRecord(in record, ["A", "C"]);
+                    Assert.Equal(2, writer.FieldIndex);
                     writer.NextRecord();
                 }
             })
+        );
+
+        // different dialect
+        Assert.Equal(
+            chars,
+            Impl<char>(writer =>
+            {
+                foreach (
+                    var record in CsvReader.Enumerate(
+                        chars,
+                        new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
+                    )
+                )
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader(in record);
+                        writer.NextRecord();
+                    }
+
+                    _ = preserved ? writer.WriteRecord(record.Preserve()) : writer.WriteRecord(in record);
+                    Assert.Equal(3, writer.FieldIndex);
+                    writer.NextRecord();
+                }
+            })
+        );
+
+        // different dialect
+        Assert.Equal(
+            trimmedChars,
+            Impl<char>(writer =>
+            {
+                foreach (
+                    var record in CsvReader.Enumerate(
+                        chars,
+                        new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
+                    )
+                )
+                {
+                    if (!writer.HeaderWritten)
+                    {
+                        writer.WriteHeader("A", "C");
+                        writer.NextRecord();
+                    }
+
+                    writer.WriteRecord(in record, ["A", "C"]);
+                    Assert.Equal(2, writer.FieldIndex);
+                    writer.NextRecord();
+                }
+            })
+        );
+    }
+
+    [Fact]
+    public static void Should_Validate_Header_Options()
+    {
+        var options = new CsvOptions<char> { HasHeader = false };
+
+        Assert.Throws<NotSupportedException>(() =>
+            Impl<char>(writer =>
+            {
+                foreach (ref readonly var record in CsvReader.Enumerate("1,2,3", options))
+                {
+                    writer.WriteHeader(in record);
+                }
+            })
+        );
+    }
+
+    [Fact]
+    public static async Task Should_Throw_On_Canceled()
+    {
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        {
+            var writer = GetWriter<char>(out _, null);
+            await writer.CompleteAsync(exception: null, new CancellationToken(true));
+        });
+    }
+
+    [Fact]
+    public static async Task Should_Flush()
+    {
+        await using var tw = new StringWriter();
+        await using var writer = CsvWriter.Create(tw);
+
+        writer.WriteField("test");
+        writer.NextRecord();
+        writer.Flush();
+
+        Assert.Equal("test\r\n", tw.ToString());
+
+        writer.WriteField("test2");
+        writer.NextRecord();
+        await writer.FlushAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal("test\r\ntest2\r\n", tw.ToString());
+
+        writer.Complete();
+
+        Assert.Throws<ObjectDisposedException>(() => writer.Flush());
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
+            await writer.FlushAsync(TestContext.Current.CancellationToken)
         );
     }
 
