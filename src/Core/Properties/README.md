@@ -88,6 +88,7 @@ await CsvWriter.WriteAsync(
 - Fixed unreachable code warnings in some source generated enum byte converters
 - Fixed potential parsing error when reading broken data on ARM64 platforms
 - Fixed potential layout bugs on certain architestures when caching type materializers with headers
+- Fixed delimiters sometimes not being written with `CsvWriter<T>` when writing full records
 - Increased default buffer sizes from 4K to 16K (and 32K for file I/O)
 
 ## 0.3.1
