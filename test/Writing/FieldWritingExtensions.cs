@@ -62,21 +62,39 @@ public class FieldWritingExtensionsTests
         Assert.Equal("123_456", Bytes(w => w.FormatValue(doubleValue, format: "F3", formatProvider: formatProvider)));
     }
 
-    private static string Chars(Action<CsvFieldWriter<char>> func)
+    [Fact]
+    public void ShouldEscape()
+    {
+        var nfi = new NumberFormatInfo { NumberDecimalSeparator = "," };
+        Assert.Equal("\"1,23\"", Chars(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi)));
+        Assert.Equal("\"1,23\"", Bytes(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi)));
+
+        nfi = new NumberFormatInfo { NumberDecimalSeparator = "\"" };
+        Assert.Equal(
+            "\"1\\\"23\"",
+            Chars(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi), new() { Escape = '\\' })
+        );
+        Assert.Equal(
+            "\"1\\\"23\"",
+            Bytes(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi), new() { Escape = '\\' })
+        );
+    }
+
+    private static string Chars(Action<CsvFieldWriter<char>> func, CsvOptions<char>? options = null)
     {
         var sb = new StringBuilder();
         var bufferWriter = new StringBuilderBufferWriter(sb, MemoryPool<char>.Shared);
-        using var writer = new CsvFieldWriter<char>(bufferWriter, CsvOptions<char>.Default);
+        using var writer = new CsvFieldWriter<char>(bufferWriter, options ?? CsvOptions<char>.Default);
         func(writer);
         bufferWriter.Complete(null);
         return sb.ToString();
     }
 
-    private static string Bytes(Action<CsvFieldWriter<byte>> func)
+    private static string Bytes(Action<CsvFieldWriter<byte>> func, CsvOptions<byte>? options = null)
     {
         using var ms = new MemoryStream();
         var bufferWriter = new StreamBufferWriter(ms, MemoryPool<byte>.Shared, default);
-        using var writer = new CsvFieldWriter<byte>(bufferWriter, CsvOptions<byte>.Default);
+        using var writer = new CsvFieldWriter<byte>(bufferWriter, options ?? CsvOptions<byte>.Default);
         func(writer);
         bufferWriter.Complete(null);
         return Encoding.UTF8.GetString(ms.ToArray());
