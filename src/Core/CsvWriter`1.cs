@@ -316,6 +316,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         {
             WriteDelimiterIfNeeded();
             _inner.WriteRaw(record.RawRecord, skipEscaping: true);
+            FieldIndex += record.FieldCount;
         }
         else
         {
@@ -323,6 +324,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             {
                 WriteDelimiterIfNeeded();
                 _inner.WriteRaw(field);
+                FieldIndex++;
             }
         }
 
@@ -389,6 +391,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         {
             WriteDelimiterIfNeeded();
             _inner.WriteRaw(record.RawRecord.Span, skipEscaping: true);
+            FieldIndex += record.FieldCount;
         }
         else
         {
@@ -396,6 +399,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             {
                 WriteDelimiterIfNeeded();
                 _inner.WriteRaw(segment.AsSpanUnsafe(), skipEscaping: false);
+                FieldIndex++;
             }
         }
 
@@ -431,7 +435,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <param name="values">Header values</param>
     /// <remarks>
     /// Does not write a trailing newline, see <see cref="NextRecord"/> and <see cref="NextRecordAsync"/>.<br/>
-    /// <c>null</c> values are written as empty fields.
+    /// <c>null</c> values are written as empty fields.<br/>
+    /// Does not validate <see cref="CsvOptions{T}.HasHeader"/>.
     /// </remarks>
     /// <returns>Number of fields written</returns>
     public int WriteHeader(params ReadOnlySpan<string> values)
