@@ -44,12 +44,12 @@ internal class TypeStringDictionary : TypeDictionary<Utf8String?>, IDictionary<T
 
     void IDictionary<Type, string?>.Add(Type key, string? value)
     {
-        base.Add(key, value);
+        Add(key, value);
     }
 
     bool IDictionary<Type, string?>.TryGetValue(Type key, out string? value)
     {
-        if (base.TryGetValue(key, out var utf8Value))
+        if (TryGetValue(key, out var utf8Value))
         {
             value = utf8Value?.String;
             return true;
