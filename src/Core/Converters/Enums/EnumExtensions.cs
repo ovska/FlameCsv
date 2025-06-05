@@ -135,86 +135,49 @@ internal static class EnumExtensions
         return false;
     }
 
-    // GetEnumUnderlyingType is intrinsic, so this method will be optimized into a single AND
     internal static void AddFlag<TEnum>(ref this TEnum value, TEnum flag)
         where TEnum : struct, Enum
     {
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte))
+        // runtime constant
+        switch (Unsafe.SizeOf<TEnum>())
         {
-            Unsafe.As<TEnum, byte>(ref value) |= Unsafe.As<TEnum, byte>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte))
-        {
-            Unsafe.As<TEnum, sbyte>(ref value) |= Unsafe.As<TEnum, sbyte>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(short))
-        {
-            Unsafe.As<TEnum, short>(ref value) |= Unsafe.As<TEnum, short>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ushort))
-        {
-            Unsafe.As<TEnum, ushort>(ref value) |= Unsafe.As<TEnum, ushort>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(int))
-        {
-            Unsafe.As<TEnum, int>(ref value) |= Unsafe.As<TEnum, int>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(uint))
-        {
-            Unsafe.As<TEnum, uint>(ref value) |= Unsafe.As<TEnum, uint>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(long))
-        {
-            Unsafe.As<TEnum, long>(ref value) |= Unsafe.As<TEnum, long>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ulong))
-        {
-            Unsafe.As<TEnum, ulong>(ref value) |= Unsafe.As<TEnum, ulong>(ref flag);
-        }
-        else
-        {
-            throw new UnreachableException(typeof(TEnum).GetEnumUnderlyingType().ToString());
+            case sizeof(byte):
+                Unsafe.As<TEnum, byte>(ref value) |= Unsafe.BitCast<TEnum, byte>(flag);
+                break;
+            case sizeof(ushort):
+                Unsafe.As<TEnum, short>(ref value) |= Unsafe.BitCast<TEnum, short>(flag);
+                break;
+            case sizeof(uint):
+                Unsafe.As<TEnum, uint>(ref value) |= Unsafe.BitCast<TEnum, uint>(flag);
+                break;
+            case sizeof(ulong):
+                Unsafe.As<TEnum, ulong>(ref value) |= Unsafe.BitCast<TEnum, ulong>(flag);
+                break;
+            default:
+                throw new UnreachableException(typeof(TEnum).FullName);
         }
     }
 
     internal static void ClearFlag<TEnum>(ref this TEnum value, TEnum flag)
         where TEnum : struct, Enum
     {
-        if (typeof(TEnum).GetEnumUnderlyingType() == typeof(byte))
+        // runtime constant
+        switch (Unsafe.SizeOf<TEnum>())
         {
-            Unsafe.As<TEnum, byte>(ref value) &= ((byte)~Unsafe.As<TEnum, byte>(ref flag));
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte))
-        {
-            Unsafe.As<TEnum, sbyte>(ref value) &= ((sbyte)~Unsafe.As<TEnum, sbyte>(ref flag));
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(short))
-        {
-            Unsafe.As<TEnum, short>(ref value) &= (short)(~Unsafe.As<TEnum, short>(ref flag));
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ushort))
-        {
-            Unsafe.As<TEnum, ushort>(ref value) &= (ushort)(~Unsafe.As<TEnum, ushort>(ref flag));
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(int))
-        {
-            Unsafe.As<TEnum, int>(ref value) &= ~Unsafe.As<TEnum, int>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(uint))
-        {
-            Unsafe.As<TEnum, uint>(ref value) &= ~Unsafe.As<TEnum, uint>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(long))
-        {
-            Unsafe.As<TEnum, long>(ref value) &= ~Unsafe.As<TEnum, long>(ref flag);
-        }
-        else if (typeof(TEnum).GetEnumUnderlyingType() == typeof(ulong))
-        {
-            Unsafe.As<TEnum, ulong>(ref value) &= ~Unsafe.As<TEnum, ulong>(ref flag);
-        }
-        else
-        {
-            throw new UnreachableException(typeof(TEnum).GetEnumUnderlyingType().ToString());
+            case sizeof(byte):
+                Unsafe.As<TEnum, byte>(ref value) &= (byte)~Unsafe.BitCast<TEnum, byte>(flag);
+                break;
+            case sizeof(ushort):
+                Unsafe.As<TEnum, ushort>(ref value) &= (ushort)~Unsafe.BitCast<TEnum, ushort>(flag);
+                break;
+            case sizeof(uint):
+                Unsafe.As<TEnum, uint>(ref value) &= ~Unsafe.BitCast<TEnum, uint>(flag);
+                break;
+            case sizeof(ulong):
+                Unsafe.As<TEnum, ulong>(ref value) &= ~Unsafe.BitCast<TEnum, ulong>(flag);
+                break;
+            default:
+                throw new UnreachableException(typeof(TEnum).FullName);
         }
     }
 
