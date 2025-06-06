@@ -24,6 +24,12 @@ public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
         init
         {
             ArgumentNullException.ThrowIfNull(value);
+
+            for (int i = 0; i < value.Length; i++)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(value[i]);
+            }
+
             _value = value;
         }
     }
@@ -42,7 +48,7 @@ public sealed class CsvIgnoredIndexesAttribute : CsvConfigurationAttribute
             ArgumentOutOfRangeException.ThrowIfNegative(indexes[i]);
         }
 
-        Value = indexes;
+        _value = indexes;
     }
 
     /// <summary>
