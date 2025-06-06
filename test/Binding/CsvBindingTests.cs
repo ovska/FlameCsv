@@ -1,5 +1,10 @@
+using System.Buffers;
+using System.Text;
+using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
+using FlameCsv.IO.Internal;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Binding;
 
@@ -29,6 +34,35 @@ public static class CsvBindingTests
     {
         public int Id { get; set; }
         public string? Name { get; set; }
+    }
+
+    private record RecordTest(int Id, string Name);
+
+    [Fact]
+    public static void Should_Bind_To_Record()
+    {
+        // records have parameters and init properties, ensure the binder only binds to the parameters
+
+        var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default, ignoreUnmatched: false);
+        var materializer = binder.GetMaterializer<RecordTest>(["Id", "Name"]);
+
+        var record = new ConstantRecord("1", "Test");
+        Assert.Equal(new RecordTest(1, "Test"), materializer.Parse(ref record));
+
+        var dematerializer = binder.GetDematerializer<RecordTest>();
+
+        var sb = new StringBuilder();
+        using (
+            var csvWriter = new CsvFieldWriter<char>(
+                new StringBuilderBufferWriter(sb, MemoryPool<char>.Shared),
+                CsvOptions<char>.Default
+            )
+        )
+        {
+            dematerializer.Write(in csvWriter, new(1, "Test"));
+        }
+
+        Assert.Equal("1,Test", sb.ToString());
     }
 
     [Fact]
@@ -91,4 +125,57 @@ public static class CsvBindingTests
             new CsvBindingCollection<Struct>([CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0])], false)
         );
     }
+
+    [Fact]
+    public static void Should_Validate()
+    {
+        Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<IgnoredAndRequired>(["value"]));
+        Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleNames>(["value"]));
+        Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleAliases>(["value"]));
+        Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleOrders>(["value"]));
+        Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleIndexes>(["value"]));
+    }
+
+    [CsvRequired(MemberName = nameof(Value))]
+    private sealed class IgnoredAndRequired
+    {
+        [CsvIgnore]
+        public int Value { get; set; }
+    }
+
+    private sealed class MultipleNames
+    {
+        [CsvHeader("value1")]
+        [CsvHeader("value2")]
+        public int Value { get; set; }
+    }
+
+    private sealed class MultipleAliases
+    {
+        [CsvHeader("value", Aliases = ["alias1"])]
+        [CsvHeader("value", Aliases = ["alias2"])]
+        public int Value { get; set; }
+    }
+
+    private sealed class MultipleOrders
+    {
+        [CsvOrder(1)]
+        [CsvOrder(2)]
+        public int Value { get; set; }
+    }
+
+    [CsvIndex(2, MemberName = nameof(Value))]
+    private sealed class MultipleIndexes
+    {
+        [CsvIndex(1)]
+        public int Value { get; set; }
+    }
+
+    [CsvHeader("should_target_value")]
+    private sealed class NoTarget
+    {
+        public int Value { get; set; }
+    }
+
+    private static CsvReflectionBinder<char> Binder => new(CsvOptions<char>.Default, false);
 }

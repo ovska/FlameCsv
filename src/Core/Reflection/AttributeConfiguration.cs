@@ -202,11 +202,11 @@ internal static class AttributeConfiguration
                         value = headerAttr.Value;
                         aliases = ImmutableCollectionsMarshal.AsImmutableArray(headerAttr.Aliases);
                     }
-                    else
+                    else if (value != headerAttr.Value || !aliases.SequenceEqual(headerAttr.Aliases))
                     {
                         throw new CsvBindingException(
                             typeInfo.Type,
-                            $"Multiple {nameof(CsvHeaderAttribute)} attributes found for {name}."
+                            $"Multiple {nameof(CsvHeaderAttribute)} attributes found for {name}: '{value}' and '{headerAttr.Value}'."
                         );
                     }
                 }
@@ -216,9 +216,12 @@ internal static class AttributeConfiguration
                     {
                         order = orderAttr.Order;
                     }
-                    else
+                    else if (order != orderAttr.Order)
                     {
-                        throw new CsvBindingException(typeInfo.Type, $"Multiple order attributes found for {name}.");
+                        throw new CsvBindingException(
+                            typeInfo.Type,
+                            $"Multiple order attributes found for {name}: {order} and {orderAttr.Order}."
+                        );
                     }
                 }
                 else if (attr is CsvIndexAttribute indexAttr)
@@ -227,9 +230,12 @@ internal static class AttributeConfiguration
                     {
                         index = indexAttr.Index;
                     }
-                    else
+                    else if (index != indexAttr.Index)
                     {
-                        throw new CsvBindingException(typeInfo.Type, $"Multiple index attributes found for {name}.");
+                        throw new CsvBindingException(
+                            typeInfo.Type,
+                            $"Multiple indexes found for {name}: {index} and {indexAttr.Index}."
+                        );
                     }
                 }
             }
@@ -257,8 +263,7 @@ internal static class AttributeConfiguration
 
         foreach (var parameter in !write ? typeInfo.ConstructorParameters : default)
         {
-            // hack for records: remove init-only properties with the same name and type
-            // as a parameter
+            // hack for records: remove init-only properties with the exact same name and type as a primary ctor param
             for (int i = candidates.Count - 1; i >= 0; i--)
             {
                 BindingData existing = candidates[i];
