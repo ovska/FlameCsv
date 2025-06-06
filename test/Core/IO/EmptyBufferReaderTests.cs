@@ -29,5 +29,8 @@ public class EmptyBufferReaderTests
         await reader.DisposeAsync();
         Assert.Empty((await reader.ReadAsync(TestContext.Current.CancellationToken)).Buffer.ToArray());
         Assert.True((await reader.ReadAsync(TestContext.Current.CancellationToken)).IsCompleted);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.ReadAsync(new CancellationToken(true)).AsTask()
+        );
     }
 }
