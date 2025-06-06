@@ -42,29 +42,6 @@ internal static class UtilityExtensions
         }
     }
 
-    public static string JoinValues(ReadOnlySpan<string> values)
-    {
-        // should never happen
-        if (values.IsEmpty)
-            return "";
-
-        var sb = new ValueStringBuilder(stackalloc char[128]);
-
-        sb.Append('[');
-
-        foreach (var value in values)
-        {
-            sb.Append('"');
-            sb.Append(value);
-            sb.Append("\", ");
-        }
-
-        sb.Length -= 2;
-        sb.Append(']');
-
-        return sb.ToString();
-    }
-
     public static string AsPrintableString<T>(this Span<T> value)
         where T : unmanaged, IBinaryInteger<T> => AsPrintableString((ReadOnlySpan<T>)value);
 
@@ -72,41 +49,7 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (typeof(T) == typeof(char))
-        {
-            return value.ToString();
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            try
-            {
-                return Encoding.UTF8.GetString(value.Cast<T, byte>());
-            }
-            catch
-            {
-                // ignored
-            }
-        }
-
-        if (value.IsEmpty)
-        {
-            return "[]";
-        }
-
-        Span<char> buffer = RuntimeHelpers.TryEnsureSufficientExecutionStack() ? stackalloc char[256] : new char[256];
-        var sb = new ValueStringBuilder(buffer);
-        sb.Append('[');
-
-        foreach (var item in value)
-        {
-            sb.AppendFormatted(item, format: "D");
-            sb.Append(",");
-        }
-
-        sb.Length--;
-        sb.Append(']');
-        return sb.ToString();
+        return typeof(T) == typeof(byte) ? Encoding.UTF8.GetString(value.Cast<T, byte>()) : value.ToString();
     }
 
     public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment)
@@ -122,10 +65,7 @@ internal static class UtilityExtensions
     {
         try
         {
-            var instance =
-                Activator.CreateInstance(type, parameters)
-                ?? throw new InvalidOperationException($"Instance of {type.FullName} could not be created");
-            return (T)instance;
+            return (T)Activator.CreateInstance(type, parameters)!;
         }
         catch (Exception e)
         {

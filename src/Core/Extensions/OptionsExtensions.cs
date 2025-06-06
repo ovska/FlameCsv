@@ -45,9 +45,6 @@ internal static class OptionsExtensions
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowForIsReadOnly(string memberName)
     {
-        if (string.IsNullOrEmpty(memberName))
-            throw new InvalidOperationException("The instance is read only.");
-
-        throw new InvalidOperationException($"The instance is read only (accessed via member {memberName}).");
+        throw new InvalidOperationException($"The instance is read only (accessed via '{memberName}').");
     }
 }
