@@ -65,23 +65,17 @@ internal static class ReadExtensions
     )
         where TValue : ISpanFormattable
     {
+        // the handler needs to be constructed by hand so we can pass in the dynamic format
         Utf8.TryWriteInterpolatedStringHandler handler = new(
             literalLength: 0,
             formattedCount: 1,
             destination: destination,
             provider: formatProvider,
-            shouldAppend: out bool shouldAppend
+            shouldAppend: out _
         );
 
-        if (shouldAppend)
-        {
-            // the handler needs to be constructed by hand so we can pass in the dynamic format
-            handler.AppendFormatted(value, format);
-            return Utf8.TryWrite(destination, ref handler, out charsWritten);
-        }
-
-        charsWritten = 0;
-        return false;
+        handler.AppendFormatted(value, format);
+        return Utf8.TryWrite(destination, ref handler, out charsWritten);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

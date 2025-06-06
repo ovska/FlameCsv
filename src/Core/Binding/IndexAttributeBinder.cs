@@ -80,7 +80,11 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
             {
                 throw new CsvBindingException(
                     $"Index {first.Index} has a mix of ignored and non-ignored bindings",
-                    bindings) { TargetType = typeof(TValue) };
+                    bindings
+                )
+                {
+                    TargetType = typeof(TValue),
+                };
             }
 
             if (!write)
@@ -95,7 +99,11 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                         {
                             throw new CsvBindingException(
                                 $"Index {first.Index} has multiple parameter bindings",
-                                bindings) { TargetType = typeof(TValue) };
+                                bindings
+                            )
+                            {
+                                TargetType = typeof(TValue),
+                            };
                         }
 
                         parameter = binding;
@@ -108,18 +116,20 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
 
                 if (parameter is null)
                 {
-                    throw new CsvBindingException(
-                        $"Index {first.Index} has multiple member bindings",
-                        bindings) { TargetType = typeof(TValue) };
+                    throw new CsvBindingException($"Index {first.Index} has multiple member bindings", bindings)
+                    {
+                        TargetType = typeof(TValue),
+                    };
                 }
 
                 yield return parameter;
                 continue;
             }
 
-            throw new CsvBindingException(
-                $"Could not determine the binding to use for index {first.Index} ",
-                bindings) { TargetType = typeof(TValue) };
+            throw new CsvBindingException($"Could not determine the binding to use for index {first.Index} ", bindings)
+            {
+                TargetType = typeof(TValue),
+            };
         }
     }
 }
