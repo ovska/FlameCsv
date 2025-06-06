@@ -27,6 +27,8 @@ public readonly struct CsvIgnored
     {
         public static readonly IgnoredConverter<T, TResult> Instance = new();
 
+        protected internal override bool CanFormatNull => true;
+
         /// <summary>
         /// Always returns <c>true</c> without writing anything.
         /// </summary>
