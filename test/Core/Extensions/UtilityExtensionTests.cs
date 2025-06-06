@@ -1,4 +1,5 @@
-﻿using FlameCsv.Utilities.Comparers;
+﻿using FlameCsv.Extensions;
+using FlameCsv.Utilities.Comparers;
 
 // ReSharper disable PreferConcreteValueOverDefault
 
@@ -28,4 +29,20 @@ public static class UtilityExtensionTests
         Assert.Contains(typeof(int), c.NullTokens);
         Assert.Equal("test", c.NullTokens[typeof(int)]);
     }
+
+    [Fact]
+    public static void Should_Create_Instance()
+    {
+        var type = typeof(TestObj);
+        var instance = type.CreateInstance<TestObj>(42);
+        Assert.NotNull(instance);
+        Assert.Equal(42, instance.Value);
+
+        Assert.Throws<InvalidOperationException>(() => type.CreateInstance<TestObj>(42, (object?)null));
+    }
+}
+
+file class TestObj(int i)
+{
+    public int Value => i;
 }

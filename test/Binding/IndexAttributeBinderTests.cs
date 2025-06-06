@@ -103,6 +103,18 @@ public static class IndexAttributeBinderTests
         Assert.Equal("B", ((MemberCsvBinding<IFace>)result.Bindings[1]).Member.Name);
     }
 
+    [Fact]
+    public static void Should_Ignore_Duplicates()
+    {
+        Assert.True(IndexAttributeBinder<Duplicates>.TryGetBindings(true, out var result));
+        Assert.Equal(4, result.Bindings.Length);
+        Assert.Equal("A", ((MemberCsvBinding<Duplicates>)result.Bindings[0]).Member.Name);
+        Assert.Equal("B", ((MemberCsvBinding<Duplicates>)result.Bindings[1]).Member.Name);
+        Assert.Equal(new IgnoredCsvBinding<Duplicates>(2), result.Bindings[2]);
+        Assert.Equal("C", ((MemberCsvBinding<Duplicates>)result.Bindings[3]).Member.Name);
+    }
+
+
     private class ObjIFace : IFace
     {
         public int A { get; set; }
@@ -178,6 +190,21 @@ public static class IndexAttributeBinderTests
     {
         public int A { get; set; }
         public string? B { get; set; }
+        public bool C { get; set; }
+    }
+
+    [CsvIgnoredIndexes(2)]
+    private class Duplicates
+    {
+        [CsvIndex(0)]
+        [CsvIndex(0)]
+        public int A { get; set; }
+
+        [CsvIndex(1)]
+        public string? B { get; set; }
+
+        [CsvIndex(3)]
+        [CsvIndex(3)]
         public bool C { get; set; }
     }
 }

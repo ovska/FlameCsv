@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using FlameCsv.Binding;
 using FlameCsv.Converters.Formattable;
 
 namespace FlameCsv.Tests.Converters;
@@ -31,6 +32,15 @@ public abstract class DefaultConverterTests<T>
     protected abstract CsvConverterFactory<T> SpanFactory { get; }
     protected abstract Type SpanConverterType { get; }
     protected abstract Type NumberConverterType { get; }
+
+    [Fact]
+    public void Ignored()
+    {
+        Assert.True(CsvIgnored.Converter<T, int>().CanFormatNull);
+        Assert.True(CsvIgnored.Converter<T, int>().TryParse([], out _));
+        Assert.True(CsvIgnored.Converter<T, int>().TryFormat(_buffer, 0, out int charsWritten));
+        Assert.Equal(0, charsWritten);
+    }
 
     [Fact]
     public void SpanFormattableParsable()

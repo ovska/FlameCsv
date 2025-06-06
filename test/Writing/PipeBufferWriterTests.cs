@@ -131,8 +131,16 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         _writer.Advance(y64.Length);
 
         await _writer.CompleteAsync(null, TestContext.Current.CancellationToken);
+        _writer.Complete(null);
 
         Assert.Equal(_x28 + _y64, Written);
+    }
+
+    [Fact]
+    public void Should_Throw_On_Synchronous_Flush()
+    {
+        Initialize();
+        Assert.Throws<NotSupportedException>(() => _writer.Flush());
     }
 
     [MemberNotNull(nameof(_writer))]
@@ -144,5 +152,13 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
                 new StreamPipeWriterOptions(minimumBufferSize: bufferSize)
             )
         );
+    }
+
+    private sealed class UnflushableStream : MemoryStream
+    {
+        public override void Flush() => throw new NotSupportedException();
+
+        public override Task FlushAsync(CancellationToken cancellationToken = default) =>
+            Task.FromException(new NotSupportedException());
     }
 }
