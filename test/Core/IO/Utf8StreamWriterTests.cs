@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
@@ -248,6 +249,44 @@ public class Utf8StreamWriterTests
         });
 
         await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
+    }
+
+    [Theory, InlineData(true), InlineData(false)]
+    public async Task Should_Transcode_Non_Ascii(bool isAsync)
+    {
+        // use 4 byte utf8 token as the value
+        using var stream = new MemoryStream();
+        var writer = new Utf8StreamWriter(
+            stream,
+            MemoryPool<char>.Shared,
+            new CsvIOOptions { BufferSize = CsvIOOptions.MinimumBufferSize, LeaveOpen = true }
+        );
+
+        using var poolWriter = new ArrayPoolBufferWriter<byte>(1024);
+
+        // add 3 byte character at start so buffer boundary has an incomplete utf8 character
+        writer.Write("你");
+        poolWriter.Write("你"u8);
+
+        for (int i = 3; i < 512; i += 4)
+        {
+            writer.Write("🍑");
+            poolWriter.Write("🍑"u8);
+        }
+
+        if (isAsync)
+        {
+            await writer.FlushAsync(TestContext.Current.CancellationToken);
+            await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
+        }
+        else
+        {
+            writer.Flush();
+            writer.Complete(null);
+        }
+
+        Assert.True(stream.TryGetBuffer(out var buffer));
+        Assert.Equal(poolWriter.WrittenSpan, buffer);
     }
 
     // Helper for testing error conditions

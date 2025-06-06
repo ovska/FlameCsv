@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FlameCsv.IO.Internal;
 
@@ -27,6 +28,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
         return new HeapMemoryOwner<T>(array);
     }
 
+    [ExcludeFromCodeCoverage]
     protected override void Dispose(bool disposing)
     {
         // no-op
@@ -34,6 +36,7 @@ internal class HeapMemoryPool<T> : MemoryPool<T>
 
     // ReSharper disable once UnusedMember.Global
     [Obsolete("Use HeapMemoryPool<T>.Instance instead", true)]
+    [ExcludeFromCodeCoverage]
     public static new MemoryPool<T> Shared => throw new UnreachableException();
 }
 

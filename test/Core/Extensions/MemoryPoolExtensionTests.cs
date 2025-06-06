@@ -6,6 +6,24 @@ namespace FlameCsv.Tests.Extensions;
 public class MemoryPoolExtensionTests
 {
     [Fact]
+    public void HeapMemoryPool_Returns_Memory()
+    {
+        var owner = HeapMemoryPool<char>.Instance.Rent(0);
+        Assert.Same(HeapMemoryOwner<char>.Empty, owner);
+        owner.Dispose();
+
+        owner = HeapMemoryPool<char>.Instance.Rent(-1);
+        Assert.True(0 < owner.Memory.Length);
+        owner.Dispose();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => HeapMemoryPool<char>.Instance.Rent(-2));
+
+        owner = HeapMemoryPool<char>.Instance.Rent(100);
+        Assert.True(100 <= owner.Memory.Length);
+        owner.Dispose();
+    }
+
+    [Fact]
     public void EnsureCapacity_NegativeMinimumLength_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
