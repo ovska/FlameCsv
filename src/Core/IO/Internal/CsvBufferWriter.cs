@@ -10,7 +10,6 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     private readonly MemoryPool<T> _allocator;
     private readonly int _bufferSize;
     private readonly int _flushThreshold;
-    private readonly bool _leaveOpen;
     private int _unflushed;
     private Memory<T> _buffer;
     private IMemoryOwner<T> _memoryOwner;
@@ -32,7 +31,6 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     protected CsvBufferWriter(MemoryPool<T> allocator, in CsvIOOptions options)
     {
         _allocator = allocator ?? MemoryPool<T>.Shared;
-        _leaveOpen = options.LeaveOpen;
         _bufferSize = options.BufferSize;
         _flushThreshold = (int)(_bufferSize * (31.0 / 32.0));
         _memoryOwner = _allocator.Rent(_bufferSize);
@@ -128,11 +126,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
                 _unflushed = -1;
                 _memoryOwner = HeapMemoryOwner<T>.Empty;
                 _buffer = default;
-
-                if (!_leaveOpen)
-                {
-                    await DisposeCoreAsync().ConfigureAwait(false);
-                }
+                await DisposeCoreAsync().ConfigureAwait(false);
             }
         }
     }
@@ -156,11 +150,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
                 _unflushed = -1;
                 _memoryOwner = HeapMemoryOwner<T>.Empty;
                 _buffer = default;
-
-                if (!_leaveOpen)
-                {
-                    DisposeCore();
-                }
+                DisposeCore();
             }
         }
     }
