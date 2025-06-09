@@ -12,14 +12,17 @@ public static class WriteUtil
     public static string Write(Action<CsvFieldWriter<char>> writeAction)
     {
         using var pool = ReturnTrackingMemoryPool<char>.Create(null);
+        pool.TrackStackTraces = true;
 
         var sb = new StringBuilder();
 
-        using (var writer = new CsvFieldWriter<char>(new StringBuilderBufferWriter(sb, pool), CsvOptions<char>.Default))
+        var inner = new StringBuilderBufferWriter(sb, pool);
+        using (var writer = new CsvFieldWriter<char>(inner, CsvOptions<char>.Default))
         {
             writeAction(writer);
         }
 
+        inner.Complete(null);
         return sb.ToString();
     }
 }
