@@ -17,7 +17,7 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvRecord<>.CsvRecordDebugView))]
-public readonly struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>>
+public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc cref="CsvPreservedRecord{T}.Position"/>

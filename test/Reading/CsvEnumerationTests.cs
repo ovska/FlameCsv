@@ -32,6 +32,11 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal(1, record1.Id);
         Assert.Equal("Bob", record1.Name);
 
+        var currentHeader = enumerator.Header!;
+        var copy = new CsvHeader(currentHeader);
+        enumerator.Header = copy;
+        Assert.Equal(currentHeader, enumerator.Header);
+
         Assert.True(enumerator.MoveNext());
         Assert.True(enumerator.Current.RawRecord.IsEmpty);
         enumerator.Header = null;
@@ -40,6 +45,9 @@ public sealed class CsvEnumerationTests : IDisposable
         var record2 = enumerator.Current.ParseRecord<Shim>();
         Assert.Equal(2, record2.Id);
         Assert.Equal("Alice", record2.Name);
+
+        enumerator.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => enumerator.Header = null);
     }
 
     [Fact]
@@ -186,6 +194,27 @@ public sealed class CsvEnumerationTests : IDisposable
     {
         Assert.Throws<NotSupportedException>(() => GetRecord().ParseField<int>("A"));
         Assert.Throws<NotSupportedException>(() => GetRecord().ParseField(CsvIgnored.Converter<char, object>(), "A"));
+
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using var enumerator = new CsvRecordEnumerable<char>(
+                "1,2,3".AsMemory(),
+                new CsvOptions<char> { HasHeader = false }
+            ).GetEnumerator();
+
+            enumerator.MoveNext();
+            enumerator.Header = new(StringComparer.Ordinal, ["A", "B", "C"]);
+        });
+    }
+
+    [Fact]
+    public void Should_Reset_On_Invalid_Access()
+    {
+        using var enumerator = CsvReader.Enumerate("1,Test,true\r\n2,Asd,false\r\n").GetEnumerator();
+
+        Assert.Throws<InvalidOperationException>(() => enumerator.Current);
+        enumerator.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => enumerator.Current);
     }
 
     private CsvRecord<char> GetRecord()

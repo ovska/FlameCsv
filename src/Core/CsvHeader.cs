@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
@@ -15,7 +16,7 @@ namespace FlameCsv;
 /// Read-only CSV header record.
 /// </summary>
 [PublicAPI]
-public sealed class CsvHeader
+public sealed class CsvHeader : IEquatable<CsvHeader>
 {
     /// <summary>
     /// Contains the string pool for header values.
@@ -94,8 +95,7 @@ public sealed class CsvHeader
     public CsvHeader(IEqualityComparer<string> comparer, ImmutableArray<string> header)
     {
         ArgumentNullException.ThrowIfNull(comparer);
-        ArgumentNullException.ThrowIfNull(ImmutableCollectionsMarshal.AsArray(header), nameof(header));
-        ArgumentOutOfRangeException.ThrowIfZero(header.Length);
+        Throw.IfDefaultOrEmpty(header);
 
         _hashCodes = new int[header.Length];
 
@@ -107,6 +107,17 @@ public sealed class CsvHeader
 
         Comparer = comparer;
         Values = header;
+    }
+
+    /// <summary>
+    /// Copy constructor for <see cref="CsvHeader"/>.
+    /// </summary>
+    public CsvHeader(CsvHeader other)
+    {
+        ArgumentNullException.ThrowIfNull(other);
+        Comparer = other.Comparer;
+        Values = other.Values;
+        _hashCodes = other._hashCodes; // this should be safe as the values are private and immutable
     }
 
     /// <summary>
@@ -152,5 +163,46 @@ public sealed class CsvHeader
 
         value = -1;
         return false;
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(CsvHeader? other)
+    {
+        if (other is null)
+            return false;
+
+        if (ReferenceEquals(this, other))
+            return true;
+
+        if (other.Comparer != Comparer)
+            return false;
+
+        return Values.AsSpan().SequenceEqual(other.Values.AsSpan(), Comparer);
+    }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as CsvHeader);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+
+        // we need to add the hash comparer as well; Ordinal and OrdinalIgnoreCase comparers return same hashes
+        // for many inputs, which would break the equality contract
+        hash.Add(Comparer);
+
+        for (int i = 0; i < _hashCodes.Length; i++)
+        {
+            hash.Add(_hashCodes[i]);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    /// <inheritdoc/>
+    public override string ToString()
+    {
+        return $"CsvHeader[{Values.Length}]";
     }
 }

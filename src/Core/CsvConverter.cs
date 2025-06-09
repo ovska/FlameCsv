@@ -32,18 +32,22 @@ public abstract class CsvConverter<T>
     /// Returns the converter instance, of creates a new one if the current instance is a factory.
     /// </summary>
     [RUF(Messages.FactoryMethod), RDC(Messages.FactoryMethod)]
-    internal CsvConverter<T> GetAsConverter(Type targetType, CsvOptions<T> readerOptions)
+    internal CsvConverter<T> GetAsConverter(Type targetType, CsvOptions<T> options)
     {
         // note: this cannot be made abstract and overridden in factory and converter classes
         // as the trimming annotations need to be consistent, but are only needed for factories
 
-        Debug.Assert(targetType is not null);
-        Debug.Assert(readerOptions is not null);
-        Debug.Assert(CanConvert(targetType));
+        ArgumentNullException.ThrowIfNull(targetType);
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (!CanConvert(targetType))
+        {
+            Throw.InvalidOperation($"Converter {GetType().FullName} cannot convert type {targetType.FullName}");
+        }
 
         if (this is CsvConverterFactory<T> factory)
         {
-            CsvConverter<T> created = factory.Create(targetType, readerOptions);
+            CsvConverter<T> created = factory.Create(targetType, options);
 
             if (created is null)
             {
@@ -56,6 +60,13 @@ public abstract class CsvConverter<T>
             {
                 Throw.InvalidOperation(
                     $"Factory {GetType().FullName} returned another factory ({created.GetType().FullName}) when creating converter for type {targetType.FullName}"
+                );
+            }
+
+            if (!created.CanConvert(targetType))
+            {
+                Throw.InvalidOperation(
+                    $"Factory {GetType().FullName} returned converter ({created.GetType().FullName}) that cannot convert type {targetType.FullName}"
                 );
             }
 
