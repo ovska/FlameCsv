@@ -107,6 +107,7 @@ public sealed class CsvEnumerationTests : IDisposable
         );
 
         Assert.True(enumerator.MoveNext());
+        Assert.NotNull(((IEnumerator)enumerator).Current);
         Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
         Assert.Equal(1, enumerator.Current.ParseField<int>(0));
         Assert.Equal("Test", enumerator.Current.ParseField<string>(1));

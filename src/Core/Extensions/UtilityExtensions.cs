@@ -49,7 +49,21 @@ internal static class UtilityExtensions
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return typeof(T) == typeof(byte) ? Encoding.UTF8.GetString(value.Cast<T, byte>()) : value.ToString();
+        if (typeof(T) == typeof(byte))
+        {
+            ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<T, byte>(value);
+
+            try
+            {
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch
+            {
+                return Convert.ToHexString(bytes);
+            }
+        }
+
+        return value.ToString();
     }
 
     public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment)
