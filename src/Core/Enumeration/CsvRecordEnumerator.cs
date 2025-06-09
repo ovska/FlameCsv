@@ -55,7 +55,15 @@ public sealed partial class CsvRecordEnumerator<T>
     CsvRecord<T> IAsyncEnumerator<CsvRecord<T>>.Current => Current;
     object IEnumerator.Current => Current;
 
-    void IEnumerator.Reset() => ResetCore();
+    void IEnumerator.Reset()
+    {
+        ResetCore();
+        _version = 0;
+        _current = default;
+        _materializerCache?.Clear();
+        _expectedFieldCount = null;
+        _header = null;
+    }
 
     /// <summary>
     /// Initializes a new instance of <see cref="CsvRecordEnumerator{T}"/>.

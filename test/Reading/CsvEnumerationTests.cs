@@ -1,9 +1,11 @@
 ﻿using System.Buffers;
+using System.Collections;
 using System.Globalization;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Formattable;
 using FlameCsv.Enumeration;
+using FlameCsv.Exceptions;
 using FlameCsv.IO;
 using JetBrains.Annotations;
 
@@ -18,6 +20,50 @@ public sealed class CsvEnumerationTests : IDisposable
 
         [CsvIndex(1)]
         public string? Name { get; set; }
+    }
+
+    [Fact]
+    public void Should_Reset()
+    {
+        using var resetable = CsvReader.Enumerate("1,2,3\n", new() { HasHeader = false }).GetEnumerator();
+
+        Assert.True(resetable.MoveNext());
+        Assert.Equal("1,2,3", resetable.Current.RawRecord.ToString());
+        Assert.NotEqual(0, resetable.Position);
+        Assert.Equal(1, resetable.Line);
+
+        ((IEnumerator)resetable).Reset();
+        Assert.Equal(0, resetable.Position);
+        Assert.Equal(0, resetable.Line);
+
+        Assert.True(resetable.MoveNext());
+        Assert.Equal("1,2,3", resetable.Current.RawRecord.ToString());
+        Assert.NotEqual(0, resetable.Position);
+        Assert.Equal(1, resetable.Line);
+
+        Assert.False(resetable.MoveNext());
+
+        // StreamReader cannot be reset/rewound
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            using var enumerator = CsvReader.Enumerate(new StreamReader(Stream.Null)).GetEnumerator();
+            (enumerator as IEnumerator).Reset();
+        });
+    }
+
+    [Fact]
+    public void Should_Validate_Field_Count()
+    {
+        const string data = "id,name,age\n1,Bob,30\n2,Alice,45\n3,Charlie,25,true\n";
+
+        using var enumerator = new CsvRecordEnumerator<char>(
+            new CsvOptions<char> { ValidateFieldCount = true },
+            CsvBufferReader.Create(data)
+        );
+
+        Assert.True(enumerator.MoveNext());
+        Assert.True(enumerator.MoveNext());
+        Assert.Throws<CsvReadException>(() => enumerator.MoveNext());
     }
 
     [Fact]
@@ -213,8 +259,10 @@ public sealed class CsvEnumerationTests : IDisposable
         using var enumerator = CsvReader.Enumerate("1,Test,true\r\n2,Asd,false\r\n").GetEnumerator();
 
         Assert.Throws<InvalidOperationException>(() => enumerator.Current);
+        Assert.Throws<InvalidOperationException>(() => ((IEnumerator)enumerator).Current);
         enumerator.Dispose();
         Assert.Throws<ObjectDisposedException>(() => enumerator.Current);
+        Assert.Throws<ObjectDisposedException>(() => ((IEnumerator)enumerator).Current);
     }
 
     private CsvRecord<char> GetRecord()
