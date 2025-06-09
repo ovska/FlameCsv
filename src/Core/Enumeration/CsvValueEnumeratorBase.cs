@@ -32,7 +32,13 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
 
     object? IEnumerator.Current => Current;
 
-    void IEnumerator.Reset() => ResetCore();
+    void IEnumerator.Reset()
+    {
+        ResetCore();
+        Current = default!;
+        _materializer = null;
+        Headers = default;
+    }
 
     /// <summary>
     /// Delegate that is called when an exception is thrown while parsing class records.
@@ -57,8 +63,10 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         get => field;
         set
         {
-            if (!Options.HasHeader)
+            if (!value.IsDefault && !Options.HasHeader)
+            {
                 Throw.NotSupported_CsvHasNoHeader();
+            }
 
             if (value.IsDefaultOrEmpty || !Headers.AsSpan().SequenceEqual(value.AsSpan(), Options.Comparer))
             {

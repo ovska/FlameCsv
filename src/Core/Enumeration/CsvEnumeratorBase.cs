@@ -203,6 +203,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         {
             throw new NotSupportedException("The inner data source does not support rewinding");
         }
+
+        Line = 0;
+        Position = 0;
     }
 
     /// <inheritdoc />
