@@ -61,7 +61,9 @@ public readonly struct CsvExceptionHandlerArgs<T>
         Line = record.Line;
         Position = record.Position;
         Exception = exception;
+        FieldCount = record.FieldCount;
 
+        _record = record;
         _useSlice = false;
     }
 
