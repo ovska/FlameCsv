@@ -56,12 +56,12 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// is <c>false</c>, returns <see langword="default"/>.
     /// </summary>
     /// <exception cref="NotSupportedException">
-    /// Value is set when <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
+    /// A non-null value is set when <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.
     /// </exception>
     protected ImmutableArray<string> Headers
     {
         get => field;
-        set
+        private set
         {
             if (!value.IsDefault && !Options.HasHeader)
             {
@@ -125,24 +125,16 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            try
-            {
-                cfe.Line ??= Line;
-                cfe.Position ??= Position;
-                cfe.Record = slice.RawValue.AsPrintableString();
-            }
-            catch
-            { /* ignore */
-            }
+            cfe.Line ??= Line;
+            cfe.Position ??= Position;
+            cfe.Record = slice.RawValue.AsPrintableString();
             throw;
         }
         catch (Exception ex)
         {
             (ex as CsvParseException)?.Enrich(Line, Position, in slice);
 
-            CsvExceptionHandler<T>? handler = ExceptionHandler;
-
-            if (handler is not null && handler(new CsvExceptionHandlerArgs<T>(in slice, Headers, ex, Line, Position)))
+            if (ExceptionHandler?.Invoke(new CsvExceptionHandlerArgs<T>(in slice, Headers, ex, Line, Position)) == true)
             {
                 // try again
                 return false;
