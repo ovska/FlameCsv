@@ -51,9 +51,9 @@ public sealed partial class CsvRecordEnumerator<T>
         }
     }
 
-    CsvRecord<T> IEnumerator<CsvRecord<T>>.Current => _current;
-    CsvRecord<T> IAsyncEnumerator<CsvRecord<T>>.Current => _current;
-    object IEnumerator.Current => _current;
+    CsvRecord<T> IEnumerator<CsvRecord<T>>.Current => Current;
+    CsvRecord<T> IAsyncEnumerator<CsvRecord<T>>.Current => Current;
+    object IEnumerator.Current => Current;
 
     void IEnumerator.Reset() => ResetCore();
 
