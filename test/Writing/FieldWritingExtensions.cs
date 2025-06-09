@@ -97,6 +97,7 @@ public class FieldWritingExtensionsTests
         using var writer = new CsvFieldWriter<byte>(bufferWriter, options ?? CsvOptions<byte>.Default);
         func(writer);
         bufferWriter.Complete(null);
-        return Encoding.UTF8.GetString(ms.ToArray());
+        Assert.True(ms.TryGetBuffer(out var buffer));
+        return Encoding.UTF8.GetString(buffer);
     }
 }

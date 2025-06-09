@@ -51,18 +51,9 @@ public static class CsvBindingTests
 
         var dematerializer = binder.GetDematerializer<RecordTest>();
 
-        var sb = new StringBuilder();
-        using (
-            var csvWriter = new CsvFieldWriter<char>(
-                new StringBuilderBufferWriter(sb, MemoryPool<char>.Shared),
-                CsvOptions<char>.Default
-            )
-        )
-        {
-            dematerializer.Write(in csvWriter, new(1, "Test"));
-        }
+        var result = WriteUtil.Write(writer => dematerializer.Write(in writer, new RecordTest(1, "Test")));
 
-        Assert.Equal("1,Test", sb.ToString());
+        Assert.Equal("1,Test", result);
     }
 
     [Fact]
