@@ -1,10 +1,10 @@
-﻿using System.Globalization;
+﻿using System.Buffers.Text;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Utilities;
 
 namespace FlameCsv.Extensions;
 

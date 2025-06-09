@@ -148,6 +148,21 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         }
     }
 
+    internal ReadOnlySpan<T> DefaultNullToken
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
+        {
+            if (typeof(T) == typeof(char))
+                return _null is null ? [] : _null.String.AsSpan().Cast<char, T>();
+
+            if (typeof(T) == typeof(byte))
+                return _null is null ? [] : Unsafe.As<T[]>(_null.GetBytes());
+
+            throw InvalidTokenTypeEx();
+        }
+    }
+
     /// <summary>
     /// Returns the <see langword="null"/> value for parsing and formatting for the parameter type.
     /// Returns <see cref="Null"/> if none is configured in <see cref="NullTokens"/>.

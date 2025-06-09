@@ -62,8 +62,10 @@ public static class NullableConverterTests
     }
 #endif
 
+    [ExcludeFromCodeCoverage]
     private readonly record struct Shim(bool IsReadOnly) : ICanBeReadOnly;
 
+    [ExcludeFromCodeCoverage]
     private sealed class InterfaceConverter : CsvConverter<char, ICanBeReadOnly>
     {
         public override bool CanConvert(Type type) => type.IsAssignableTo(typeof(ICanBeReadOnly));
@@ -84,22 +86,5 @@ public static class NullableConverterTests
             value = null;
             return false;
         }
-    }
-}
-
-file class FakeMemoryManager(int length) : MemoryManager<char>
-{
-    protected override void Dispose(bool disposing) { }
-
-    public override Span<char> GetSpan() => new char[length];
-
-    public override MemoryHandle Pin(int elementIndex = 0)
-    {
-        throw new NotSupportedException();
-    }
-
-    public override void Unpin()
-    {
-        throw new NotSupportedException();
     }
 }

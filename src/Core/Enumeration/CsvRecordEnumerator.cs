@@ -20,7 +20,7 @@ namespace FlameCsv.Enumeration;
 /// The enumerator should always be disposed after use, either explicitly or using <c>foreach</c>.
 /// </remarks>
 [MustDisposeResource]
-public sealed class CsvRecordEnumerator<T>
+public sealed partial class CsvRecordEnumerator<T>
     : CsvEnumeratorBase<T>,
         IEnumerator<CsvRecord<T>>,
         IAsyncEnumerator<CsvRecord<T>>,
@@ -112,9 +112,6 @@ public sealed class CsvRecordEnumerator<T>
 
             if (EqualityComparer<CsvHeader>.Default.Equals(Header, value))
                 return;
-
-            if (Header is not null && value is not null)
-                Throw.Unreachable_AlreadyHasHeader();
 
             _header = value;
             _expectedFieldCount = value?.Values.Length;
