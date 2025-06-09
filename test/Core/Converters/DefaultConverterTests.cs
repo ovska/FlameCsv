@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 using FlameCsv.Binding;
+using FlameCsv.Converters;
 using FlameCsv.Converters.Formattable;
 
 namespace FlameCsv.Tests.Converters;
@@ -8,6 +9,12 @@ namespace FlameCsv.Tests.Converters;
 public class DefaultTextConverterTests : DefaultConverterTests<char>
 {
     protected override ReadOnlySpan<char> AsSpan(string? value) => value.AsSpan();
+
+    protected override CsvConverter<char, TValue> GetDefault<TValue>(CsvOptions<char>? options = null)
+    {
+        return (CsvConverter<char, TValue>)
+            DefaultConverters.GetText(typeof(TValue))!(options ?? CsvOptions<char>.Default);
+    }
 
     protected override CsvConverterFactory<char> SpanFactory => SpanTextConverterFactory.Instance;
     protected override Type SpanConverterType => typeof(SpanTextConverter<>);
@@ -17,6 +24,12 @@ public class DefaultTextConverterTests : DefaultConverterTests<char>
 public class DefaultUtf8ConverterTests : DefaultConverterTests<byte>
 {
     protected override ReadOnlySpan<byte> AsSpan(string? value) => Encoding.UTF8.GetBytes(value ?? "");
+
+    protected override CsvConverter<byte, TValue> GetDefault<TValue>(CsvOptions<byte>? options = null)
+    {
+        return (CsvConverter<byte, TValue>)
+            DefaultConverters.GetUtf8(typeof(TValue))!(options ?? CsvOptions<byte>.Default);
+    }
 
     protected override CsvConverterFactory<byte> SpanFactory => SpanUtf8ConverterFactory.Instance;
     protected override Type SpanConverterType => typeof(SpanUtf8Converter<>);
@@ -32,6 +45,39 @@ public abstract class DefaultConverterTests<T>
     protected abstract CsvConverterFactory<T> SpanFactory { get; }
     protected abstract Type SpanConverterType { get; }
     protected abstract Type NumberConverterType { get; }
+    protected abstract CsvConverter<T, TValue> GetDefault<TValue>(CsvOptions<T>? options = null);
+
+    [Fact]
+    public void Base64()
+    {
+        byte[] input = "Hello, world!"u8.ToArray();
+        string b64 = Convert.ToBase64String(input);
+        T[] buffer = new T[128];
+
+        var segment = GetDefault<ArraySegment<byte>>();
+        Assert.True(segment.TryParse(AsSpan(b64), out var value));
+        Assert.Equal(input, value.ToArray());
+        Assert.True(segment.TryFormat(buffer, value, out int charsWritten));
+        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+
+        var memory = GetDefault<Memory<byte>>();
+        Assert.True(memory.TryParse(AsSpan(b64), out var memoryValue));
+        Assert.Equal(input, memoryValue.ToArray());
+        Assert.True(memory.TryFormat(buffer, memoryValue, out charsWritten));
+        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+
+        var readOnlyMemory = GetDefault<ReadOnlyMemory<byte>>();
+        Assert.True(readOnlyMemory.TryParse(AsSpan(b64), out var readOnlyMemoryValue));
+        Assert.Equal(input, readOnlyMemoryValue.ToArray());
+        Assert.True(readOnlyMemory.TryFormat(buffer, readOnlyMemoryValue, out charsWritten));
+        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+
+        var array = GetDefault<byte[]>();
+        Assert.True(array.TryParse(AsSpan(b64), out var arrayValue));
+        Assert.Equal(input, arrayValue);
+        Assert.True(array.TryFormat(buffer, arrayValue, out charsWritten));
+        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+    }
 
     [Fact]
     public void Ignored()
