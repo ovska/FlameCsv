@@ -1,6 +1,4 @@
 ﻿using System.Buffers;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.IO.Internal;
@@ -18,9 +16,10 @@ internal abstract class Allocator<T> : IDisposable
     {
         if (IsDisposed)
             return;
+
         IsDisposed = true;
-        Dispose(disposing: true);
         GC.SuppressFinalize(this);
+        Dispose(disposing: true);
     }
 
     protected abstract void Dispose(bool disposing);
@@ -58,7 +57,6 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T>
     private Memory<T> EnsureCapacity(int minimumLength)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
 
         // fall back to the array-backed shared pool if the requested size is larger than the max buffer size
         var newOwner =
@@ -72,6 +70,7 @@ internal sealed class MemoryPoolAllocator<T>(MemoryPool<T> pool) : Allocator<T>
     }
 }
 
+#if false
 internal sealed class StackedAllocator<T>(MemoryPool<T> pool) : Allocator<T>
     where T : unmanaged
 {
@@ -159,3 +158,4 @@ internal sealed class StackedAllocator<T>(MemoryPool<T> pool) : Allocator<T>
         public required Memory<T> Remaining { get; set; }
     }
 }
+#endif

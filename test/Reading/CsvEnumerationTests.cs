@@ -112,6 +112,17 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal(1, enumerator.Current.ParseField<int>(0));
         Assert.Equal("Test", enumerator.Current.ParseField<string>(1));
         Assert.True(enumerator.Current.ParseField<bool>(2));
+        Assert.Throws<CsvParseException>(() => enumerator.Current.ParseField<int>(1));
+        Assert.Throws<CsvParseException>(() => ((CsvPreservedRecord<char>)enumerator.Current).ParseField<int>(1));
+        Assert.Throws<CsvParseException>(() =>
+            enumerator.Current.ParseField<int>(new SpanTextConverter<int>(CsvOptions<char>.Default), 1)
+        );
+        Assert.Throws<CsvParseException>(() =>
+            ((CsvPreservedRecord<char>)enumerator.Current).ParseField<int>(
+                new SpanTextConverter<int>(CsvOptions<char>.Default),
+                1
+            )
+        );
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("2,\"Asd\",false", enumerator.Current.RawRecord.ToString());
@@ -218,10 +229,18 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal("1", record.GetField("A").ToString());
         Assert.Equal("2", record.GetField("B").ToString());
         Assert.Equal("3", record.GetField("C").ToString());
+        Assert.Throws<ArgumentException>(() => record.GetField("D"));
+        Assert.Throws<ArgumentException>(() => ((CsvPreservedRecord<char>)record).GetField("D"));
 
         Assert.Equal("1", record["A"].ToString());
         Assert.Equal("2", record["B"].ToString());
         Assert.Equal("3", record["C"].ToString());
+
+        Assert.Equal("1", record[0].ToString());
+        Assert.Equal("2", record[1].ToString());
+        Assert.Equal("3", record[2].ToString());
+        Assert.Throws<ArgumentOutOfRangeException>(() => record[3].ToString());
+        Assert.Throws<ArgumentOutOfRangeException>(() => ((CsvPreservedRecord<char>)record)[3].ToString());
 
         Assert.True(record.Contains(0));
         Assert.True(record.Contains(1));
@@ -233,7 +252,31 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.True(record.Contains("C"));
         Assert.False(record.Contains("D"));
 
+        var preserved = (CsvPreservedRecord<char>)record;
+        Assert.True(preserved.Contains(0));
+        Assert.True(preserved.Contains(1));
+        Assert.True(preserved.Contains(2));
+        Assert.False(preserved.Contains(3));
+        Assert.True(preserved.Contains("A"));
+        Assert.True(preserved.Contains("B"));
+        Assert.True(preserved.Contains("C"));
+        Assert.False(preserved.Contains("D"));
+
         Assert.False(enumerator.MoveNext());
+    }
+
+    [Fact]
+    public void Should_Not_Contain_Header_If_Headerless()
+    {
+        foreach (var record in CsvReader.Enumerate("1,2,3\r\n4,5,6", new CsvOptions<char> { HasHeader = false }))
+        {
+            Assert.Null(record.Header);
+            Assert.False(record.Contains("A"));
+
+            var preserved = (CsvPreservedRecord<char>)record;
+            Assert.Null(preserved.Header);
+            Assert.False(preserved.Contains("A"));
+        }
     }
 
     [Fact]
