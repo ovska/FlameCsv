@@ -329,17 +329,14 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
             return false;
         }
 
-        void IDisposable.Dispose() { }
+        readonly void IDisposable.Dispose() { }
 
         void IEnumerator.Reset()
         {
             _index = 0;
         }
 
-        object IEnumerator.Current
-        {
-            get { throw new NotSupportedException(); }
-        }
+        readonly object IEnumerator.Current => throw new NotSupportedException();
     }
 
     [ExcludeFromCodeCoverage]
@@ -398,4 +395,15 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         ex.Enrich(Line, Position, in _slice);
         throw ex;
     }
+
+#if DEBUG
+    [ExcludeFromCodeCoverage]
+    static CsvRecord()
+    {
+        if (Unsafe.SizeOf<CsvRecord<T>>() != 64)
+        {
+            throw new UnreachableException("CsvRecord<T> must be at most 64 bytes in size for performance reasons.");
+        }
+    }
+#endif
 }

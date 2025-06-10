@@ -574,6 +574,38 @@ public partial class CsvWriterTTests
         );
     }
 
+    [Fact]
+    public static void Should_Validate_CsvRecord_Fields()
+    {
+        const string data = "A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9\r\n";
+
+        Impl<char>(writer =>
+        {
+            foreach (var record in CsvReader.Enumerate(data, new CsvOptions<char> { Trimming = CsvFieldTrimming.Both }))
+            {
+                // "D" field does not exist
+                Assert.Throws<ArgumentException>(() => writer.WriteRecord(in record, ["A", "D"]));
+            }
+        });
+
+        Impl<char>(writer =>
+        {
+            foreach (
+                var record in CsvReader.Enumerate(
+                    data,
+                    new CsvOptions<char> { Trimming = CsvFieldTrimming.Both, HasHeader = false }
+                )
+            )
+            {
+                // no header configured
+                Assert.Throws<NotSupportedException>(() => writer.WriteRecord(in record, ["A", "B"]));
+
+                // out of range index
+                Assert.Throws<ArgumentOutOfRangeException>(() => writer.WriteRecord(in record, [0, 4]));
+            }
+        });
+    }
+
     private static string Impl<T>(Action<CsvWriter<T>> action, CsvOptions<T>? options = null)
         where T : unmanaged, IBinaryInteger<T>
     {
