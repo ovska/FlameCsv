@@ -6,6 +6,9 @@ namespace FlameCsv.Converters;
 // csharpier-ignore
 internal static class DefaultConverters
 {
+    // rare oddities such as sbyte, Half, nuint, nint are not included here on purpose
+    // the span converter factory will create them if needed,
+
     public static Func<CsvOptions<char>, CsvConverter<char>>? GetText(Type type)
     {
         // Early exit for non-core library types, and all enums
@@ -24,8 +27,6 @@ internal static class DefaultConverters
             return o => new SpanTextConverter<DateTime>(o);
         if (type == typeof(byte))
             return o => new NumberTextConverter<byte>(o, NumberStyles.Integer);
-        if (type == typeof(sbyte))
-            return o => new NumberTextConverter<sbyte>(o, NumberStyles.Integer);
         if (type == typeof(short))
             return o => new NumberTextConverter<short>(o, NumberStyles.Integer);
         if (type == typeof(ushort))
@@ -79,8 +80,6 @@ internal static class DefaultConverters
             return o => new SpanUtf8FormattableConverter<DateTime>(o);
         if (type == typeof(byte))
             return o => new NumberUtf8Converter<byte>(o, NumberStyles.Integer);
-        if (type == typeof(sbyte))
-            return o => new NumberUtf8Converter<sbyte>(o, NumberStyles.Integer);
         if (type == typeof(short))
             return o => new NumberUtf8Converter<short>(o, NumberStyles.Integer);
         if (type == typeof(ushort))

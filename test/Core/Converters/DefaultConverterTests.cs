@@ -1,4 +1,6 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
+using System.Reflection;
 using System.Text;
 using FlameCsv.Binding;
 using FlameCsv.Converters;
@@ -12,8 +14,9 @@ public class DefaultTextConverterTests : DefaultConverterTests<char>
 
     protected override CsvConverter<char, TValue> GetDefault<TValue>(CsvOptions<char>? options = null)
     {
-        return (CsvConverter<char, TValue>)
-            DefaultConverters.GetText(typeof(TValue))!(options ?? CsvOptions<char>.Default);
+        var factory = DefaultConverters.GetText(typeof(TValue));
+        Assert.True(factory is not null, $"No UTF-8 converter found for type {typeof(TValue)}");
+        return (CsvConverter<char, TValue>)factory(options ?? CsvOptions<char>.Default);
     }
 
     protected override CsvConverterFactory<char> SpanFactory => SpanTextConverterFactory.Instance;
@@ -27,8 +30,9 @@ public class DefaultUtf8ConverterTests : DefaultConverterTests<byte>
 
     protected override CsvConverter<byte, TValue> GetDefault<TValue>(CsvOptions<byte>? options = null)
     {
-        return (CsvConverter<byte, TValue>)
-            DefaultConverters.GetUtf8(typeof(TValue))!(options ?? CsvOptions<byte>.Default);
+        var factory = DefaultConverters.GetUtf8(typeof(TValue));
+        Assert.True(factory is not null, $"No UTF-8 converter found for type {typeof(TValue)}");
+        return (CsvConverter<byte, TValue>)factory(options ?? CsvOptions<byte>.Default);
     }
 
     protected override CsvConverterFactory<byte> SpanFactory => SpanUtf8ConverterFactory.Instance;
@@ -184,14 +188,12 @@ public abstract class DefaultConverterTests<T>
         RunFloat<float>();
         RunFloat<double>();
         RunFloat<decimal>();
-        RunFloat<Half>();
     }
 
     [Fact]
     public void Integers()
     {
         RunInt<byte>();
-        RunInt<sbyte>();
         RunInt<short>();
         RunInt<int>();
         RunInt<long>();
@@ -200,6 +202,33 @@ public abstract class DefaultConverterTests<T>
         RunInt<uint>();
         RunInt<ulong>();
         RunInt<nuint>();
+    }
+
+    [Fact]
+    public void NumberConverter_Should_Have_Defaults()
+    {
+        DoAssertion(GetDefault<int>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<float>(), NumberStyles.Float);
+        DoAssertion(GetDefault<double>(), NumberStyles.Float);
+        DoAssertion(GetDefault<decimal>(), NumberStyles.Float);
+        DoAssertion(GetDefault<byte>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<short>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<ushort>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<int>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<uint>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<long>(), NumberStyles.Integer);
+        DoAssertion(GetDefault<ulong>(), NumberStyles.Integer);
+
+        static void DoAssertion(CsvConverter<T> converter, NumberStyles expected)
+        {
+            Assert.Equal(
+                expected,
+                converter
+                    .GetType()
+                    .GetField("_styles", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(converter)
+            );
+        }
     }
 
     private void RunFloat<TNumber>()
@@ -211,6 +240,7 @@ public abstract class DefaultConverterTests<T>
         Execute("0.5", TNumber.One / (TNumber.One + TNumber.One));
         Execute(TNumber.MinValue.ToString(null, CultureInfo.InvariantCulture), TNumber.MinValue);
         Execute(TNumber.MaxValue.ToString(null, CultureInfo.InvariantCulture), TNumber.MaxValue);
+        ExecuteInvalid(TNumber.Zero);
     }
 
     private void RunInt<TNumber>()
@@ -220,6 +250,7 @@ public abstract class DefaultConverterTests<T>
         Execute("1", TNumber.One);
         Execute(TNumber.MinValue.ToString(null, CultureInfo.InvariantCulture), TNumber.MinValue);
         Execute(TNumber.MaxValue.ToString(null, CultureInfo.InvariantCulture), TNumber.MaxValue);
+        ExecuteInvalid(TNumber.Zero);
     }
 
     protected void Execute<TValue>(string? str, TValue obj, CsvOptions<T>? options = null)
