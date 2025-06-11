@@ -28,6 +28,7 @@
     "omnisharp.enableEditorConfigSupport": true,
     "csharp.suppressHiddenDiagnostics": false,
     "csharp.suppressDotnetRestoreNotification": false,
+    "dotnet.testWindow.useTestingPlatformProtocol": true,
     "dotnet.unitTestDebuggingOptions": {
         "debugTestMethod": true,
         "debugTestClass": true,
@@ -118,5 +119,5 @@
         "*.Generated.cs": "Cobol", // same color as C# and "close enough", but still different
         "*.tt": "Log",
         "*.snk": "Lock",
-    }
+    },
 }
