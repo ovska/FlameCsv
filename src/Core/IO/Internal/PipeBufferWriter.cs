@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Runtime.CompilerServices;
-using FlameCsv.Exceptions;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 

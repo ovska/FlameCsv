@@ -1,6 +1,5 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;

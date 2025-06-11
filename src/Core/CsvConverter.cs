@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using FlameCsv.Extensions;
+﻿using FlameCsv.Extensions;
 
 namespace FlameCsv;
 
