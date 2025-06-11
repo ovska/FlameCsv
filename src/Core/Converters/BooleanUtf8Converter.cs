@@ -1,6 +1,5 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace FlameCsv.Converters;
 
@@ -10,13 +9,15 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
 
     public override bool TryFormat(Span<byte> destination, bool value, out int charsWritten)
     {
-        // source: dotnet runtime bool.TryFormat
         if (value)
         {
             if (destination.Length > 3)
             {
-                uint trueVal = BitConverter.IsLittleEndian ? 0x65757274u : 0x74727565; // "True"
-                MemoryMarshal.Write(destination, in trueVal);
+                // JIT unrolls these to a single uint32 write
+                destination[0] = (byte)'t';
+                destination[1] = (byte)'r';
+                destination[2] = (byte)'u';
+                destination[3] = (byte)'e';
                 charsWritten = 4;
                 return true;
             }
@@ -25,8 +26,11 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
         {
             if (destination.Length > 4)
             {
-                uint falsVal = BitConverter.IsLittleEndian ? 0x736C6166u : 0x66616C73; // "Fals"
-                MemoryMarshal.Write(destination, in falsVal);
+                // JIT unrolls these to a single uint32 write and one byte write
+                destination[0] = (byte)'f';
+                destination[1] = (byte)'a';
+                destination[2] = (byte)'l';
+                destination[3] = (byte)'s';
                 destination[4] = (byte)'e';
                 charsWritten = 5;
                 return true;
