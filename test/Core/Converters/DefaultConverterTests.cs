@@ -115,6 +115,7 @@ public abstract class DefaultConverterTests<T>
         var o = new CsvOptions<T> { Null = "null" };
 
         ExecuteLocal(true);
+        ExecuteLocal(false);
         ExecuteLocal(default(string?));
         ExecuteLocal(DayOfWeek.Monday);
         ExecuteLocal(new int?());
@@ -132,7 +133,9 @@ public abstract class DefaultConverterTests<T>
             var converter = o.GetConverter<TValue>();
 
             if (obj is not null || converter.CanFormatNull)
+            {
                 Assert.False(converter.TryFormat([], obj, out _));
+            }
         }
     }
 
@@ -142,6 +145,7 @@ public abstract class DefaultConverterTests<T>
         var o = new CsvOptions<T> { Formats = { { typeof(TimeSpan), "c" } } };
         Execute("00:00:00", TimeSpan.Zero, o);
         Execute("01:23:45", new TimeSpan(1, 23, 45), o);
+        ExecuteInvalid(TimeSpan.Zero, o);
     }
 
     [Fact]
@@ -149,6 +153,7 @@ public abstract class DefaultConverterTests<T>
     {
         var o = new CsvOptions<T> { Formats = { { typeof(DateTimeOffset), "O" } } };
         Execute("2015-01-02T03:04:05.0000000+00:00", new DateTimeOffset(2015, 1, 2, 3, 4, 5, TimeSpan.Zero), o);
+        ExecuteInvalid(new DateTimeOffset(2015, 1, 2, 3, 4, 5, TimeSpan.Zero), o);
     }
 
     [Fact]
@@ -162,11 +167,15 @@ public abstract class DefaultConverterTests<T>
 
         var guid = new Guid(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
         Execute(guid.ToString("D"), guid);
+        ExecuteInvalid(guid);
 
         Execute("true", true);
         Execute("false", false);
+        ExecuteInvalid(true);
+        ExecuteInvalid(false);
 
         Execute("x", 'x');
+        ExecuteInvalid('x');
     }
 
     [Fact]
@@ -222,5 +231,15 @@ public abstract class DefaultConverterTests<T>
         Assert.Equal(obj, value);
         Assert.True(converter.TryFormat(_buffer, obj, out int charsWritten));
         Assert.Equal(span, _buffer.AsSpan(0, charsWritten));
+    }
+
+    protected void ExecuteInvalid<TValue>(TValue obj, CsvOptions<T>? options = null)
+    {
+        Span<T> span = [];
+        var converter = (options ?? CsvOptions<T>.Default).GetConverter<TValue>();
+
+        Assert.False(converter.TryParse(span, out _));
+        Assert.False(converter.TryFormat([], obj, out int charsWritten));
+        Assert.Equal(0, charsWritten);
     }
 }
