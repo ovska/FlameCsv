@@ -18,7 +18,7 @@ namespace FlameCsv.Binding;
 /// <typeparam name="T">Token type</typeparam>
 /// <typeparam name="TValue">Record type</typeparam>
 [PublicAPI]
-public abstract class CsvTypeMap<T, TValue> : CsvTypeMap
+public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<T, TValue>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <inheritdoc/>
@@ -102,5 +102,29 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap
             return BindForWriting(options);
 
         return options.GetDematerializer(this, static (options, typeMap) => typeMap.BindForWriting(options));
+    }
+
+    /// <inheritdoc/>
+    public bool Equals(CsvTypeMap<T, TValue>? other)
+    {
+        if (other is null)
+            return false;
+
+        if (ReferenceEquals(this, other))
+            return true;
+
+        return GetType() == other.GetType()
+            && IgnoreUnmatched == other.IgnoreUnmatched
+            && ThrowOnDuplicate == other.ThrowOnDuplicate
+            && NoCaching == other.NoCaching; // <- should this be here?
+    }
+
+    /// <inheritdoc/>
+    public override bool Equals(object? obj) => Equals(obj as CsvTypeMap<T, TValue>);
+
+    /// <inheritdoc/>
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(GetType(), IgnoreUnmatched, ThrowOnDuplicate, NoCaching);
     }
 }

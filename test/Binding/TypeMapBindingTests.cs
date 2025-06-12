@@ -90,8 +90,8 @@ public static partial class TypeMapBindingTests
             TypeMap.Default.GetMaterializer(header, new CsvOptions<char>())
         );
 
-        // ditto for the typemap instances
-        Assert.NotSame(
+        // typemaps use value equality (same configuration)
+        Assert.Same(
             new TypeMap().GetMaterializer(header, CsvOptions<char>.Default),
             new TypeMap().GetMaterializer(header, CsvOptions<char>.Default)
         );
