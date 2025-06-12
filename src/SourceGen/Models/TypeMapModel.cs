@@ -248,16 +248,8 @@ internal readonly record struct TypeMapModel
 
                 PropertyModel? property = member switch
                 {
-                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
-                        fieldSymbol,
-                        in symbols,
-                        ref collector
-                    ),
-                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(
-                        propertySymbol,
-                        in symbols,
-                        ref collector
-                    ),
+                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(fieldSymbol, in symbols, ref collector),
+                    IPropertySymbol propSymbol => PropertyModel.TryCreate(propSymbol, in symbols, ref collector),
                     _ => null,
                 };
 

@@ -19,7 +19,7 @@ internal static class Extensions
     {
         return members.Where(m => m.CanRead);
     }
-    
+
     public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)
     {
         foreach (var argument in attribute.NamedArguments)

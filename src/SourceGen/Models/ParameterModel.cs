@@ -133,12 +133,7 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
                 DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
                 RefKind = parameter.RefKind,
                 Convertability = parameter.Type.GetBuiltinConvertability(in symbols),
-                OverriddenConverter = ConverterModel.Create(
-                    parameter,
-                    parameter.Type,
-                    in symbols,
-                    ref collector
-                ),
+                OverriddenConverter = ConverterModel.Create(parameter, parameter.Type, in symbols, ref collector),
             };
             models.Add(parameterModel);
 

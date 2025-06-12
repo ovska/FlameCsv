@@ -106,6 +106,8 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
         INamedTypeSymbol? explicitInterface = null;
         string? explicitPropertyName = null;
         string? explicitPropertyOriginalName = null;
+        IMethodSymbol? getMethod = propertySymbol.GetMethod;
+        IMethodSymbol? setMethod = propertySymbol.SetMethod;
 
         foreach (var explicitImplementation in propertySymbol.ExplicitInterfaceImplementations)
         {
@@ -116,6 +118,8 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
                 explicitPropertyName = $"{originalDefinition.ContainingType.Name}_{originalDefinition.Name}";
                 explicitPropertyOriginalName = originalDefinition.Name;
                 explicitInterface = originalDefinition.ContainingType;
+                getMethod = explicitImplementation.GetMethod;
+                setMethod = explicitImplementation.SetMethod;
                 break;
             }
         }
@@ -142,17 +146,13 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             IsIgnored = meta.IsIgnored,
             IsRequired =
                 meta.IsRequired || propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
+            // ^ should this use the interface's SetMethod ?
             Aliases = meta.Aliases,
             Order = meta.Order,
             Index = meta.Index,
-            CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored,
-            CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true,
-            OverriddenConverter = ConverterModel.Create(
-                propertySymbol,
-                propertySymbol.Type,
-                in symbols,
-                ref collector
-            ),
+            CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored && IsVisible(setMethod),
+            CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true && IsVisible(getMethod),
+            OverriddenConverter = ConverterModel.Create(propertySymbol, propertySymbol.Type, in symbols, ref collector),
             ExplicitInterfaceOriginalDefinitionName = explicitInterface?.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
             ),
@@ -189,12 +189,7 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             CanWrite = meta.IsIgnored is not true,
             ExplicitInterfaceOriginalDefinitionName = null,
             Convertability = fieldSymbol.Type.GetBuiltinConvertability(in symbols),
-            OverriddenConverter = ConverterModel.Create(
-                fieldSymbol,
-                fieldSymbol.Type,
-                in symbols,
-                ref collector
-            ),
+            OverriddenConverter = ConverterModel.Create(fieldSymbol, fieldSymbol.Type, in symbols, ref collector),
         };
     }
 
@@ -207,13 +202,20 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             return false;
         }
 
+        if (IsVisible(symbol))
+        {
+            return true;
+        }
+
         // private members are only considered if they are explicitly implemented properties
-        return symbol.DeclaredAccessibility is not (Accessibility.Private or Accessibility.Protected)
-            || symbol
-                is not IPropertySymbol
-                {
-                    CanBeReferencedByName: false,
-                    ExplicitInterfaceImplementations.IsDefaultOrEmpty: false
-                };
+        if (symbol is not IPropertySymbol property)
+        {
+            return false;
+        }
+
+        return property is { CanBeReferencedByName: false, ExplicitInterfaceImplementations.IsDefaultOrEmpty: false };
     }
+
+    internal static bool IsVisible([NotNullWhen(true)] ISymbol? symbol) =>
+        symbol is { DeclaredAccessibility: Accessibility.Public or Accessibility.Internal };
 }
