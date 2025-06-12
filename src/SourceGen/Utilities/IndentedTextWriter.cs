@@ -911,6 +911,7 @@ internal struct ImmutableArrayBuilder<T> : IDisposable
 /// <summary>
 /// Private helpers for the <see cref="ImmutableArrayBuilder{T}"/> type.
 /// </summary>
+[ExcludeFromCodeCoverage]
 file static class ImmutableArrayBuilder
 {
     /// <summary>

@@ -30,6 +30,9 @@ internal readonly record struct TypeRef : IComparable<TypeRef>
     /// <summary>
     /// Whether the type is a value type.
     /// </summary>
+    /// <remarks>
+    /// Not needed by the generator, but should be included for type equality (+ padding space in the struct).
+    /// </remarks>
     public bool IsValueType { get; }
 
     /// <summary>
@@ -64,13 +67,15 @@ internal readonly record struct TypeRef : IComparable<TypeRef>
         Kind = type.TypeKind;
         IsEnumOrNullableEnum =
             type.TypeKind is TypeKind.Enum
-            || (
-                (type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T)
-                && ((INamedTypeSymbol)type).TypeArguments[0].TypeKind is TypeKind.Enum
-            );
+            || type
+                is INamedTypeSymbol
+                {
+                    OriginalDefinition.SpecialType: SpecialType.System_Nullable_T,
+                    TypeArguments: [{ TypeKind: TypeKind.Enum }]
+                };
     }
 
-    public override string ToString() => $"{{ TypeRef: {Name} }}";
+    public override string ToString() => $"{{ TypeRef: {Name} ({Kind}) }}";
 
     public int CompareTo(TypeRef other) => StringComparer.Ordinal.Compare(FullyQualifiedName, other.FullyQualifiedName);
 

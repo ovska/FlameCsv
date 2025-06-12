@@ -102,10 +102,11 @@ public class ModelTests(MetadataFixture fixture)
         )!;
         var classRef = new TypeRef(classType);
         Assert.Equal(classRef, new TypeRef(classType));
+        Assert.True(classRef.GetHashCode() == new TypeRef(classType).GetHashCode());
         Assert.False(classRef.IsEnumOrNullableEnum);
         Assert.False(classRef.IsValueType);
         Assert.False(classRef.IsAbstract);
-        Assert.Equal("global::TestClass", new TypeRef(classType).FullyQualifiedName);
+        Assert.Equal("global::TestClass", classRef.FullyQualifiedName);
 
         Assert.NotEqual(new TypeRef(enumType), new TypeRef(classType));
 

@@ -222,7 +222,7 @@ public class EnumGenTests(MetadataFixture fixture)
     )
     {
         compilation = CSharpCompilation.Create(
-            assemblyName ?? "FlameCsv_EnumSourceGen",
+            assemblyName,
             [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
             [fixture.FlameCsvCore, .. Net90.References.All],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
