@@ -17,6 +17,15 @@ internal readonly ref struct SymbolMetadata
     public int? Order { get; }
     public int? Index { get; }
 
+    /// <summary>
+    /// Creates a new instance of <see cref="SymbolMetadata"/> from the given symbol and attributes.
+    /// </summary>
+    /// <param name="symbolActualName">
+    /// Name of the symbol, or the name of the original member if this is an explicitly implemented property.
+    /// </param>
+    /// <param name="symbol">Field, property, or parameter symbol to extract metadata from.</param>
+    /// <param name="symbols">FlameCsv symbols, used to check for attribute types.</param>
+    /// <param name="collector">Collector to report diagnostics and conflicts to.</param>
     public SymbolMetadata(
         string symbolActualName,
         ISymbol symbol,
@@ -82,8 +91,8 @@ internal readonly ref struct SymbolMetadata
                 ref locations
             );
             AddAliases(ref aliasSet, targeted.Aliases);
-            Order ??= TryGetOrder(Order, targeted.Order, targeted.Attribute, ref configNames, ref locations);
-            Index ??= TryGetIndex(Index, targeted.Index, targeted.Attribute, ref configNames, ref locations);
+            Order = TryGetOrder(Order, targeted.Order, targeted.Attribute, ref configNames, ref locations);
+            Index = TryGetIndex(Index, targeted.Index, targeted.Attribute, ref configNames, ref locations);
             IsIgnored |= targeted.IsIgnored;
             IsRequired |= targeted.IsRequired;
         }

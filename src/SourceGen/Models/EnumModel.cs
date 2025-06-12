@@ -1,4 +1,6 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -105,6 +107,8 @@ internal readonly record struct EnumModel
                     or SpecialType.System_UInt32
                     or SpecialType.System_UInt64;
 
+        bool hasExplicitNames = false;
+
         // loop over the enum's values
         foreach (var member in enumType.GetMembers())
         {
@@ -113,6 +117,8 @@ internal readonly record struct EnumModel
                 var value = new EnumValueModel(enumValue, isUnsigned, diagnostics);
                 values.Add(value);
                 uniqueValues.Add(value.Value);
+
+                hasExplicitNames |= value.HasValidExplicitName;
             }
         }
 
@@ -121,28 +127,84 @@ internal readonly record struct EnumModel
         UniqueValues = uniqueValues.ToEquatableArrayAndFree();
         Array.Sort(UniqueValues.UnsafeArray!);
 
-        int expected = 0;
+        int contiguousCount = 0;
         bool isContiguous = true;
 
         foreach (ref readonly var value in Values)
         {
-            if (value.Value != expected)
+            if (value.Value != contiguousCount)
             {
                 isContiguous = false;
                 break;
             }
 
-            expected++;
+            contiguousCount++;
         }
 
         ContiguousFromZero = isContiguous;
-        ContiguousFromZeroCount = expected;
+        ContiguousFromZeroCount = contiguousCount;
 
         WrappingTypes = NestedType.Parse(converterType, cancellationToken, diagnostics);
         InGlobalNamespace = converterType.ContainingNamespace.IsGlobalNamespace;
         Namespace = converterType.ContainingNamespace.ToDisplayString();
         HasExplicitNames = Values.AsImmutableArray().Any(v => !string.IsNullOrEmpty(v.ExplicitName));
         HasNegativeValues = UniqueValues.AsImmutableArray().Any(v => v < BigInteger.Zero);
+
+        if (HasExplicitNames)
+        {
+            CheckExplicitNameDuplicates(enumType, diagnostics);
+        }
+    }
+
+    private void CheckExplicitNameDuplicates(INamedTypeSymbol enumType, List<Diagnostic> diagnostics)
+    {
+        HashSet<string>? handled = null; // report only one diagnostic per duplicate name
+
+        foreach (ref readonly var value in Values)
+        {
+            if (!value.HasValidExplicitName)
+            {
+                // If the explicit name is null or invalid, we don't need to check for duplicates
+                continue;
+            }
+
+            foreach (ref readonly var innerValue in Values)
+            {
+                if (!innerValue.HasValidExplicitName || value == innerValue)
+                {
+                    continue;
+                }
+
+                if (value.ExplicitName == innerValue.Name || value.ExplicitName == innerValue.ExplicitName)
+                {
+                    if (!(handled ??= PooledSet<string>.Acquire()).Add(value.ExplicitName!))
+                    {
+                        // Already handled this explicit name
+                        continue;
+                    }
+
+                    string invalidName = value.Name;
+
+                    Location? location = enumType
+                        .GetMembers()
+                        .FirstOrDefault(m => m is IFieldSymbol f && f.Name == invalidName)
+                        ?.DeclaringSyntaxReferences.FirstOrDefault()
+                        ?.GetSyntax()
+                        .GetLocation();
+
+                    diagnostics.Add(
+                        Diagnostics.EnumDuplicateName(
+                            enumType,
+                            value.Name,
+                            location ?? enumType.Locations.FirstOrDefault(),
+                            value.ExplicitName!
+                        )
+                    );
+                }
+            }
+        }
+
+        PooledSet<string>.Release(handled);
     }
 }
 
@@ -167,7 +229,8 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                 continue;
             }
 
-            int index = 0;
+            // position of the named argument "Value"; should not be necessary but just in case
+            int valueArgumentIndex = 0;
 
             // Check named arguments
             foreach (var namedArg in attribute.NamedArguments)
@@ -181,13 +244,13 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                     break;
                 }
 
-                index++;
+                valueArgumentIndex++;
             }
 
-            if (ExplicitName is not null && (ExplicitName is "" || ExplicitName[0].IsAsciiNumeric()))
+            if (HasInvalidExplicitName)
             {
                 Location? location = (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)
-                    ?.ArgumentList?.Arguments.ElementAtOrDefault(index)
+                    ?.ArgumentList?.Arguments.ElementAtOrDefault(valueArgumentIndex)
                     ?.GetLocation();
 
                 diagnostics.Add(
@@ -195,7 +258,7 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                         enumValue.ContainingSymbol,
                         enumValue,
                         location ?? attribute.GetLocation(),
-                        ExplicitName
+                        ExplicitName!
                     )
                 );
             }
@@ -213,4 +276,14 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
             cmp = StringComparer.Ordinal.Compare(ExplicitName, other.ExplicitName);
         return cmp;
     }
+
+    public bool HasInvalidExplicitName =>
+        ExplicitName switch
+        {
+            null => false,
+            "" => true,
+            _ => ExplicitName[0].IsAsciiNumeric(),
+        };
+
+    public bool HasValidExplicitName => ExplicitName is not null && !HasInvalidExplicitName;
 }

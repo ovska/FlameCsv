@@ -193,4 +193,13 @@ internal static class Descriptors
     );
 
     // DEPRECATED: FLAMESG503 EnumFlagsNotSupported
+
+    public static readonly DiagnosticDescriptor EnumDuplicateName = new(
+        id: "FLAMESG504",
+        title: "Duplicate explicit enum name",
+        messageFormat: "Cannot generate enum converter: Explicit enum name \"{0}\" for {1}.{2} must be unique among other enum members",
+        category: CategoryUsage,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 }

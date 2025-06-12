@@ -245,6 +245,20 @@ internal static class Diagnostics
         );
     }
 
+    public static Diagnostic EnumDuplicateName(
+        ISymbol enumSymbol,
+        string memberName,
+        Location? location,
+        string explicitName
+    )
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.EnumDuplicateName,
+            location: location ?? GetLocation(enumSymbol),
+            messageArgs: [explicitName, enumSymbol.Name, memberName]
+        );
+    }
+
     /// <summary>
     /// Returns the first valid non-empty source location from the given symbols, checked in order.
     /// </summary>
