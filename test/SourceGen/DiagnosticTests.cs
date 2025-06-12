@@ -126,8 +126,10 @@ public class DiagnosticTests(MetadataFixture fixture)
 
             enum MyEnum
             {
+                [System.ComponentModel.DescriptionAttribute(Name = "Ignored")]
                 [System.Runtime.Serialization.EnumMember(Value = "Value_1")]
                 Value1,
+
                 [System.Runtime.Serialization.EnumMember(Value = "{{name}}")]
                 Value2
             }

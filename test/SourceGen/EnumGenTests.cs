@@ -1,9 +1,12 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Basic.Reference.Assemblies;
 using FlameCsv.SourceGen.Generators;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Xunit.Runner.InProc.SystemConsole.TestingPlatform;
 
 namespace FlameCsv.Tests.SourceGen;
 
@@ -11,46 +14,23 @@ namespace FlameCsv.Tests.SourceGen;
 public class EnumGenTests(MetadataFixture fixture)
 {
     [Fact]
-    public void Test_EnumGenerator()
+    public void Test_EnumGenerator_Cacheability()
     {
-        var compilation = CSharpCompilation.Create(
-            nameof(Test_EnumGenerator),
-            [
-                CSharpSyntaxTree.ParseText(
-                    """
-                    [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
-                    partial class EnumConverter;
+        EnumModel model = GetValidModel(
+            """
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
 
-                    enum TestEnum
-                    {
-                        Dog,
-                        Cat,
-                        [global::System.Runtime.Serialization.EnumMember(Value = "Zebra Animal!")]
-                        Zebra,
-                    }
-                    """,
-                    cancellationToken: TestContext.Current.CancellationToken
-                ),
-            ],
-            [fixture.FlameCsvCore, .. Net90.References.All],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+            enum TestEnum
+            {
+                Dog,
+                Cat,
+                [global::System.Runtime.Serialization.EnumMember(Value = "Zebra Animal!")]
+                Zebra,
+            }
+            """,
+            out CSharpCompilation compilation
         );
-
-        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));
-
-        var enumConverter = compilation.GetTypeByMetadataName("EnumConverter")!;
-        var attribute = enumConverter.GetAttributes().Single();
-
-        Assert.True(
-            EnumModel.TryGet(
-                enumConverter,
-                attribute,
-                TestContext.Current.CancellationToken,
-                out var diagnostics,
-                out var model
-            )
-        );
-        Assert.Empty(diagnostics);
 
         Assert.Equal("byte", model.TokenType.Name);
         Assert.Equal("TestEnum", model.EnumType.Name);
@@ -112,5 +92,161 @@ public class EnumGenTests(MetadataFixture fixture)
             .Outputs;
         (object Value, IncrementalStepRunReason Reason) output2 = Assert.Single(assemblyNameOutputs);
         Assert.Equal(IncrementalStepRunReason.Cached, output2.Reason);
+    }
+
+    [Fact]
+    public void Test_Very_Large_Values()
+    {
+        EnumModel model = GetValidModel(
+            """
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
+
+            enum TestEnum : ulong
+            {
+                A = ulong.MaxValue,
+                B = ulong.MaxValue - 1,
+            }
+            """
+        );
+
+        // values are ordered from smallest to largest
+        Assert.Equal("B", model.Values[0].Name);
+        Assert.Equal("A", model.Values[1].Name);
+        Assert.Equal(ulong.MaxValue - 1, model.Values[0].Value);
+        Assert.Equal(ulong.MaxValue, model.Values[1].Value);
+    }
+
+    [Fact]
+    public void Test_Very_Small_Values()
+    {
+        EnumModel model = GetValidModel(
+            """
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
+
+            enum TestEnum : long
+            {
+                A = long.MinValue,
+                B = long.MinValue + 1,
+            }
+            """
+        );
+
+        Assert.Equal("A", model.Values[0].Name);
+        Assert.Equal("B", model.Values[1].Name);
+        Assert.Equal(long.MinValue, model.Values[0].Value);
+        Assert.Equal(long.MinValue + 1, model.Values[1].Value);
+    }
+
+    [Fact]
+    public void Test_Contiguous_From_Zero()
+    {
+        EnumModel model = GetValidModel(
+            """
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
+
+            enum TestEnum { A, B, C, D, E, F }
+            """
+        );
+
+        Assert.True(model.ContiguousFromZero);
+        Assert.Equal(6, model.ContiguousFromZeroCount); // first 6 values are contiguous
+        Assert.Equal([0, 1, 2, 3, 4, 5], model.UniqueValues);
+    }
+
+    [Fact]
+    public void Test_Common_Props()
+    {
+        EnumModel model = GetValidModel(
+            """
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
+
+            enum TestEnum { A = 1, B = 2 }
+            """
+        );
+
+        Assert.True(model.InGlobalNamespace);
+        Assert.Equal("<global namespace>", model.Namespace);
+        Assert.False(model.HasNegativeValues);
+        Assert.False(model.HasFlagsAttribute);
+        Assert.False(model.ContiguousFromZero);
+        Assert.Equal(0, model.ContiguousFromZeroCount); // no contiguous values from zero
+
+        model = GetValidModel(
+            """
+            namespace MyNamespace;
+
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
+
+            [System.Flags]
+            public enum TestEnum { A = 1, B = -2 }
+            """
+        );
+
+        Assert.False(model.InGlobalNamespace);
+        Assert.Equal("MyNamespace", model.Namespace);
+        Assert.True(model.HasNegativeValues);
+        Assert.True(model.HasFlagsAttribute);
+        Assert.False(model.ContiguousFromZero);
+        Assert.Equal(0, model.ContiguousFromZeroCount); // no contiguous values from zero
+    }
+
+    [Fact]
+    public void Test_Partially_Contiguous_From_Zero()
+    {
+        EnumModel model = GetValidModel(
+            """
+            [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+            partial class EnumConverter;
+
+            enum TestEnum { A, B, C, D, E, F, G = 7 }
+            """
+        );
+
+        Assert.False(model.ContiguousFromZero);
+        Assert.Equal(6, model.ContiguousFromZeroCount);
+        Assert.Equal([0, 1, 2, 3, 4, 5, 7], model.UniqueValues);
+    }
+
+    private EnumModel GetValidModel(string source, [CallerMemberName] string? assemblyName = null) =>
+        GetValidModel(source, out _, assemblyName);
+
+    private EnumModel GetValidModel(
+        string source,
+        out CSharpCompilation compilation,
+        [CallerMemberName] string? assemblyName = null
+    )
+    {
+        compilation = CSharpCompilation.Create(
+            assemblyName ?? "FlameCsv_EnumSourceGen",
+            [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
+            [fixture.FlameCsvCore, .. Net90.References.All],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));
+
+        var enumConverter =
+            compilation.GetTypeByMetadataName("EnumConverter")
+            ?? compilation.GetTypeByMetadataName("MyNamespace.EnumConverter");
+
+        Assert.NotNull(enumConverter);
+        var attribute = enumConverter.GetAttributes().Single();
+
+        Assert.True(
+            EnumModel.TryGet(
+                enumConverter,
+                attribute,
+                TestContext.Current.CancellationToken,
+                out var diagnostics,
+                out var model
+            )
+        );
+        Assert.Empty(diagnostics);
+
+        return model;
     }
 }
