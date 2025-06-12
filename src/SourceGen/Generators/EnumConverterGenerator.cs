@@ -8,7 +8,6 @@ namespace FlameCsv.SourceGen.Generators;
 [Generator(LanguageNames.CSharp)]
 internal partial class EnumConverterGenerator : IIncrementalGenerator
 {
-
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<(
