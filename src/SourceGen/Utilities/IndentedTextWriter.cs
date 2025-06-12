@@ -363,7 +363,9 @@ internal sealed class IndentedTextWriter : IDisposable
         }
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Returns the written content as a string.
+    /// </summary>
     public override string ToString()
     {
         return this.builder.WrittenSpan.Trim().ToString();

@@ -454,6 +454,10 @@ public class ModelTests(MetadataFixture fixture)
                     {
                         [FlameCsv.Attributes.CsvConstructorAttribute]
                         public TestClass(int a, string b) { }
+                        
+                        public TestClass(int a, string b, int c = 0) { }
+                        
+                        public TestClass() { }
                     }
                     """,
                     cancellationToken: TestContext.Current.CancellationToken
@@ -477,7 +481,7 @@ public class ModelTests(MetadataFixture fixture)
         var flameSymbols = GetFlameSymbols(compilation, classSymbol);
         AnalysisCollector collector = new(classSymbol);
 
-        var model = ConstructorModel.ParseConstructor(
+        var parameters = ConstructorModel.ParseConstructor(
             classSymbol,
             null,
             TestContext.Current.CancellationToken,
@@ -485,7 +489,7 @@ public class ModelTests(MetadataFixture fixture)
             ref collector
         );
 
-        Assert.Equal(2, model.Length);
+        Assert.Equal(2, parameters.Length);
 
         collector.Dispose();
     }
@@ -621,53 +625,23 @@ public class ModelTests(MetadataFixture fixture)
             cancellationToken: TestContext.Current.CancellationToken
         )!;
 
-        var actual = NestedType.Parse(nestedSymbol, CancellationToken.None, []);
+        using var writer = new IndentedTextWriter();
 
-        EquatableArray<NestedType> expected =
-        [
-            new()
-            {
-                IsReadOnly = false,
-                IsRefLikeType = false,
-                IsAbstract = false,
-                IsValueType = false,
-                Name = "TestClass",
-            },
-            new()
-            {
-                IsReadOnly = false,
-                IsRefLikeType = false,
-                IsAbstract = true,
-                IsValueType = false,
-                Name = "Nested1",
-            },
-            new()
-            {
-                IsReadOnly = false,
-                IsRefLikeType = false,
-                IsAbstract = false,
-                IsValueType = true,
-                Name = "Nested2",
-            },
-            new()
-            {
-                IsReadOnly = false,
-                IsRefLikeType = true,
-                IsAbstract = false,
-                IsValueType = true,
-                Name = "Nested3",
-            },
-            new()
-            {
-                IsReadOnly = true,
-                IsRefLikeType = false,
-                IsAbstract = false,
-                IsValueType = true,
-                Name = "Nested4",
-            },
-        ];
+        foreach (var item in NestedType.Parse(nestedSymbol, CancellationToken.None, []))
+        {
+            item.WriteTo(writer);
+        }
 
-        Assert.Equal(expected, actual);
+        Assert.Equal(
+            """
+            partial class TestClass {
+            abstract partial class Nested1 {
+            partial struct Nested2 {
+            ref partial struct Nested3 {
+            readonly partial struct Nested4 {
+            """.ReplaceLineEndings("\n"),
+            writer.ToString()
+        );
     }
 
     [Theory, InlineData(true), InlineData(false)]
