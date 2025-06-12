@@ -13,19 +13,15 @@ public class MetadataFixture : IDisposable
         get
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            return _assemblyMetadata.GetReference();
+            return _assemblyMetadata.Value.GetReference();
         }
     }
 
-    private readonly AssemblyMetadata _assemblyMetadata;
-    private bool _disposed;
+    private readonly Lazy<AssemblyMetadata> _assemblyMetadata = new Lazy<AssemblyMetadata>(static () =>
+        AssemblyMetadata.CreateFromFile(typeof(CsvTypeMapAttribute<,>).Assembly.Location)
+    );
 
-    public MetadataFixture()
-    {
-        // Initialize FlameCsvCore reference using AssemblyMetadata.CreateFromFile
-        string assemblyPath = typeof(CsvTypeMapAttribute<,>).Assembly.Location;
-        _assemblyMetadata = AssemblyMetadata.CreateFromFile(assemblyPath);
-    }
+    private bool _disposed;
 
     public void Dispose()
     {
@@ -33,6 +29,10 @@ public class MetadataFixture : IDisposable
             return;
 
         _disposed = true;
-        _assemblyMetadata.Dispose();
+
+        if (_assemblyMetadata.IsValueCreated)
+        {
+            _assemblyMetadata.Value.Dispose();
+        }
     }
 }

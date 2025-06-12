@@ -13,10 +13,17 @@ namespace FlameCsv.SourceGen.Helpers;
 internal static class EquatableArray
 {
     [Obsolete("Unnecessary ToEquatableArray call", true)]
+    [ExcludeFromCodeCoverage]
     public static EquatableArray<T> ToEquatableArray<T>(this EquatableArray<T> values)
         where T : IEquatable<T?>
     {
         return values;
+    }
+
+    public static EquatableArray<T> ToEquatableArray<T>(this ImmutableArray<T> array)
+        where T : IEquatable<T?>
+    {
+        return array;
     }
 
     public static EquatableArray<T> ToEquatableArray<T>(this IEnumerable<T> values)
