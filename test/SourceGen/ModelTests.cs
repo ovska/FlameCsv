@@ -296,16 +296,8 @@ public class ModelTests(MetadataFixture fixture)
             {
                 PropertyModel? model = member switch
                 {
-                    IPropertySymbol propertySymbol => PropertyModel.TryCreate(
-                        propertySymbol,
-                        in symbols,
-                        ref collector
-                    ),
-                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(
-                        fieldSymbol,
-                        in symbols,
-                        ref collector
-                    ),
+                    IPropertySymbol propSymbol => PropertyModel.TryCreate(propSymbol, in symbols, ref collector),
+                    IFieldSymbol fieldSymbol => PropertyModel.TryCreate(fieldSymbol, in symbols, ref collector),
                     _ => null,
                 };
 

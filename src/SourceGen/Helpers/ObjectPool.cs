@@ -158,7 +158,8 @@ internal class ObjectPool<T>
         {
             var trace = CaptureStackTrace();
             Debug.WriteLine(
-                $"TRACEOBJECTPOOLLEAKS_BEGIN\nObject of type {typeof(T)} was freed, but was not from pool. \n Callstack: \n {trace} TRACEOBJECTPOOLLEAKS_END");
+                $"TRACEOBJECTPOOLLEAKS_BEGIN\nObject of type {typeof(T)} was freed, but was not from pool. \n Callstack: \n {trace} TRACEOBJECTPOOLLEAKS_END"
+            );
         }
 
         if (replacement != null)
@@ -233,7 +234,8 @@ internal class ObjectPool<T>
                 // and has not been returned back. This is not critical, but turns pool into rather
                 // inefficient kind of "new".
                 Debug.WriteLine(
-                    $"TRACEOBJECTPOOLLEAKS_BEGIN\nPool detected potential leaking of {typeof(T)}. \n Location of the leak: \n {GetTrace()} TRACEOBJECTPOOLLEAKS_END");
+                    $"TRACEOBJECTPOOLLEAKS_BEGIN\nPool detected potential leaking of {typeof(T)}. \n Location of the leak: \n {GetTrace()} TRACEOBJECTPOOLLEAKS_END"
+                );
             }
         }
     }
