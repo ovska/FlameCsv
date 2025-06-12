@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
@@ -95,7 +96,7 @@ internal readonly record struct EnumModel
         EnumType = new TypeRef(enumType);
         UnderlyingType = new TypeRef(enumType.EnumUnderlyingType!);
 
-        HasFlagsAttribute = enumType.GetAttributes().Any(a => a.AttributeClass?.Name == "FlagsAttribute");
+        HasFlagsAttribute = enumType.GetAttributes().Any(a => a.AttributeClass is { Name: "FlagsAttribute" });
 
         List<EnumValueModel> values = PooledList<EnumValueModel>.Acquire();
         HashSet<BigInteger> uniqueValues = PooledSet<BigInteger>.Acquire();
@@ -105,7 +106,8 @@ internal readonly record struct EnumModel
                 is SpecialType.System_Byte
                     or SpecialType.System_UInt16
                     or SpecialType.System_UInt32
-                    or SpecialType.System_UInt64;
+                    or SpecialType.System_UInt64
+                    or SpecialType.System_UIntPtr;
 
         bool hasExplicitNames = false;
 
@@ -271,9 +273,7 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
     {
         int cmp = Value.CompareTo(other.Value);
         if (cmp == 0)
-            cmp = StringComparer.Ordinal.Compare(Name, other.Name);
-        if (cmp == 0)
-            cmp = StringComparer.Ordinal.Compare(ExplicitName, other.ExplicitName);
+            cmp = StringComparer.Ordinal.Compare(Name, other.Name); // fields cannot have the same name
         return cmp;
     }
 

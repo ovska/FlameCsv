@@ -82,7 +82,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     /// <sinheritdoc/>
     public override int GetHashCode()
     {
-        if (_array is not T[] array)
+        if (_array is not T[] { Length: > 0 } array)
         {
             return 0;
         }
