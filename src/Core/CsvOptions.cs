@@ -151,16 +151,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     internal ReadOnlySpan<T> DefaultNullToken
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            if (typeof(T) == typeof(char))
-                return _null is null ? [] : _null.String.AsSpan().Cast<char, T>();
-
-            if (typeof(T) == typeof(byte))
-                return _null is null ? [] : Unsafe.As<T[]>(_null.GetBytes());
-
-            throw InvalidTokenTypeEx();
-        }
+        get => _null is null ? [] : _null.AsSpan<T>();
     }
 
     /// <summary>
@@ -170,42 +161,13 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     public ReadOnlyMemory<T> GetNullToken(Type resultType)
     {
         Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
-
-        if (value is null || value.String.Length == 0)
-            return default;
-
-        if (typeof(T) == typeof(char))
-        {
-            ReadOnlyMemory<char> chars = value.String.AsMemory();
-            return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref chars);
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Unsafe.As<T[]>(value.GetBytes());
-        }
-
-        throw InvalidTokenTypeEx();
+        return value is null ? ReadOnlyMemory<T>.Empty : value.AsMemory<T>();
     }
 
     internal ReadOnlySpan<T> GetNullSpan(Type resultType)
     {
         Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
-
-        if (value is null || value.String.Length == 0)
-            return [];
-
-        if (typeof(T) == typeof(char))
-        {
-            return value.String.AsSpan().Cast<char, T>();
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Unsafe.As<T[]>(value.GetBytes());
-        }
-
-        throw InvalidTokenTypeEx();
+        return value is null ? [] : value.AsSpan<T>();
     }
 
     /// <summary>
@@ -265,7 +227,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// <seealso cref="NullTokens"/>
     public string? Null
     {
-        get => _null;
+        get => _null?.String;
         set
         {
             this.ThrowIfReadOnly();

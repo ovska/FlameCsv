@@ -31,7 +31,7 @@ public class EnumReflectionCharTests : EnumTests<char>
         opts.EnumFormat = numeric ? "D" : "F";
         return new EnumTextConverter<FlagsEnum>(opts);
     }
-    
+
     protected override CsvConverter<char, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase)
     {
         return new EnumTextConverter<UnconventionalNames>(GetOpts(numeric, ignoreCase));

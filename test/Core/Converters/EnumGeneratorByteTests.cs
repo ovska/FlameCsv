@@ -31,7 +31,7 @@ public partial class EnumGeneratorByteTests : EnumTests<byte>
         opts.EnumFormat = numeric ? "D" : "F";
         return new FlagsEnumConverter(opts);
     }
-    
+
     protected override CsvConverter<byte, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase)
     {
         return new UnconventionalNamesConverter(GetOpts(numeric, ignoreCase));

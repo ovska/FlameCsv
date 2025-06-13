@@ -23,7 +23,7 @@ public partial class EnumGeneratorCharTests : EnumTests<char>
     {
         return new NotAsciiConverter(GetOpts(numeric, ignoreCase));
     }
-    
+
     protected override CsvConverter<char, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase)
     {
         return new UnconventionalNamesConverter(GetOpts(numeric, ignoreCase));
