@@ -23,6 +23,11 @@ public partial class EnumGeneratorCharTests : EnumTests<char>
     {
         return new NotAsciiConverter(GetOpts(numeric, ignoreCase));
     }
+    
+    protected override CsvConverter<char, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase)
+    {
+        return new UnconventionalNamesConverter(GetOpts(numeric, ignoreCase));
+    }
 
     protected override CsvConverter<char, FlagsEnum> GetFlagsEnum(bool numeric, bool ignoreCase, bool allowUndefined)
     {
@@ -46,4 +51,7 @@ public partial class EnumGeneratorCharTests : EnumTests<char>
 
     [CsvEnumConverter<char, FlagsEnum>]
     private partial class FlagsEnumConverter;
+
+    [CsvEnumConverter<char, UnconventionalNames>]
+    private partial class UnconventionalNamesConverter;
 }

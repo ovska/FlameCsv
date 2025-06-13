@@ -92,6 +92,15 @@ public class ModelTests(MetadataFixture fixture)
         Assert.Equal(nullableEnumRef, new TypeRef(nullableEnum));
         Assert.True(nullableEnumRef.IsEnumOrNullableEnum);
 
+        // other nullable types should not be considered enums
+        Assert.False(
+            new TypeRef(
+                semanticModel
+                    .Compilation.GetTypeByMetadataName("System.Nullable`1")!
+                    .Construct(semanticModel.Compilation.GetTypeByMetadataName("System.Int32")!)
+            ).IsEnumOrNullableEnum
+        );
+
         var classType = semanticModel.GetDeclaredSymbol(
             semanticModel
                 .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)

@@ -41,7 +41,8 @@ partial class EnumConverterGenerator
                 writer.Write(
                     model.UnderlyingType.SpecialType is SpecialType.System_Int64 or SpecialType.System_UInt64
                         ? "ulong"
-                        : "uint");
+                        : "uint"
+                );
                 writer.WriteLine($")value < {fastPathCount})");
                 using (writer.WriteBlock())
                 {
