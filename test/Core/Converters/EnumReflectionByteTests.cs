@@ -31,4 +31,9 @@ public class EnumReflectionByteTests : EnumTests<byte>
         opts.EnumFormat = numeric ? "D" : "F";
         return new EnumUtf8Converter<FlagsEnum>(opts);
     }
+    
+    protected override CsvConverter<byte, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase)
+    {
+        return new EnumUtf8Converter<UnconventionalNames>(GetOpts(numeric, ignoreCase));
+    }
 }

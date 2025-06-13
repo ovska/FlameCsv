@@ -31,6 +31,11 @@ public partial class EnumGeneratorByteTests : EnumTests<byte>
         opts.EnumFormat = numeric ? "D" : "F";
         return new FlagsEnumConverter(opts);
     }
+    
+    protected override CsvConverter<byte, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase)
+    {
+        return new UnconventionalNamesConverter(GetOpts(numeric, ignoreCase));
+    }
 
     [CsvEnumConverter<byte, DayOfWeek>]
     private partial class DayOfWeekConverter;
@@ -46,4 +51,7 @@ public partial class EnumGeneratorByteTests : EnumTests<byte>
 
     [CsvEnumConverter<byte, FlagsEnum>]
     private partial class FlagsEnumConverter;
+
+    [CsvEnumConverter<byte, UnconventionalNames>]
+    private partial class UnconventionalNamesConverter;
 }

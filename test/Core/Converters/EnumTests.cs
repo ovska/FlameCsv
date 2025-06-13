@@ -28,6 +28,7 @@ public abstract class EnumTests<T>
     protected abstract CsvConverter<T, Negatives> GetNegatives(bool numeric, bool ignoreCase);
     protected abstract CsvConverter<T, NotAscii> GetNotAscii(bool numeric, bool ignoreCase);
     protected abstract CsvConverter<T, FlagsEnum> GetFlagsEnum(bool numeric, bool ignoreCase, bool allowUndefined);
+    protected abstract CsvConverter<T, UnconventionalNames> GetUnconventionalNames(bool numeric, bool ignoreCase);
 
     [Fact]
     public void Test_Negatives()
@@ -323,6 +324,55 @@ public abstract class EnumTests<T>
         }
     }
 
+    [Fact]
+    public void Test_Unconventional()
+    {
+        var converter = GetUnconventionalNames(numeric: false, ignoreCase: false);
+        ImplNotParsable("First", converter);
+        ImplNotParsable("Second", converter);
+        ImplNotParsable("Third", converter);
+        ImplParse(UnconventionalNames.Fourth, "Fourth", converter);
+        ImplParse(UnconventionalNames._First, "_First", converter);
+        ImplParse(UnconventionalNames._Second, "_Second", converter);
+        ImplParse(UnconventionalNames._Third, "^^Third^^", converter);
+        ImplParse(UnconventionalNames.Fourth, "_Fourth", converter);
+        ImplParse(UnconventionalNames.AllBitsSet, "_$VALUE", converter);
+        ImplParse(UnconventionalNames.AllBitsSet, "AllBitsSet", converter);
+        ImplNotParsable("_FIRST", converter);
+
+        ImplFormat(UnconventionalNames._First, "G", converter, "_First");
+        ImplFormat(UnconventionalNames._Second, "G", converter, "_Second");
+        ImplFormat(UnconventionalNames._Third, "G", converter, "^^Third^^");
+        ImplFormat(UnconventionalNames.Fourth, "G", converter, "_Fourth");
+        ImplFormat(UnconventionalNames.AllBitsSet, "G", converter, "_$VALUE");
+
+        converter = GetUnconventionalNames(numeric: false, ignoreCase: true);
+        ImplNotParsable("first", converter);
+        ImplNotParsable("second", converter);
+        ImplNotParsable("third", converter);
+        ImplParse(UnconventionalNames.Fourth, "fourth", converter);
+        ImplParse(UnconventionalNames._First, "_first", converter);
+        ImplParse(UnconventionalNames._Second, "_second", converter);
+        ImplParse(UnconventionalNames._Third, "^^third^^", converter);
+        ImplParse(UnconventionalNames.Fourth, "_fourth", converter);
+        ImplParse(UnconventionalNames.AllBitsSet, "_$value", converter);
+        ImplParse(UnconventionalNames.AllBitsSet, "allbitsset", converter);
+
+        converter = GetUnconventionalNames(numeric: true, ignoreCase: false);
+        ImplParse(UnconventionalNames._First, "0", converter);
+        ImplParse(UnconventionalNames._Second, "1", converter);
+        ImplParse(UnconventionalNames._Third, "2", converter);
+        ImplParse(UnconventionalNames.Fourth, "3", converter);
+        ImplNotParsable("4", converter);
+        ImplParse(UnconventionalNames.AllBitsSet, "255", converter);
+
+        ImplFormat(UnconventionalNames._First, "D", converter, "0");
+        ImplFormat(UnconventionalNames._Second, "D", converter, "1");
+        ImplFormat(UnconventionalNames._Third, "D", converter, "2");
+        ImplFormat(UnconventionalNames.Fourth, "D", converter, "3");
+        ImplFormat(UnconventionalNames.AllBitsSet, "D", converter, "255");
+    }
+
     [StackTraceHidden]
     private static void ImplParse<TEnum>(TEnum value, string expected, CsvConverter<T, TEnum> converter)
         where TEnum : struct, Enum
@@ -406,7 +456,7 @@ public abstract class EnumTests<T>
         SuperLongEnumNameThatGoesOnAndOn = 12,
     }
 
-    protected enum Negatives
+    protected enum Negatives : sbyte
     {
         First = -1,
         Second = -2,
@@ -430,7 +480,7 @@ public abstract class EnumTests<T>
     }
 
     [Flags]
-    protected enum FlagsEnum
+    protected enum FlagsEnum : ushort
     {
         None = 0,
         First = 1 << 0,
@@ -440,5 +490,20 @@ public abstract class EnumTests<T>
 
         [System.Runtime.Serialization.EnumMember(Value = "Custom Name")]
         CustomName = 1 << 3,
+    }
+
+    protected enum UnconventionalNames : byte
+    {
+        _First = 0,
+        _Second = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = "^^Third^^")]
+        _Third = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = "_Fourth")]
+        Fourth = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = "_$VALUE")]
+        AllBitsSet = 255,
     }
 }

@@ -94,8 +94,8 @@ partial class EnumConverterGenerator
 
         writer.WriteLine("// check if value starts with a digit");
         writer.Write("if ((uint)(first - '0') <= 9u");
-
-        writer.WriteLine(model.Values.AsImmutableArray().Any(static v => v.Value < 0) ? " || first == '-')" : ")");
+        writer.WriteIf(model.Values.AsImmutableArray().Any(static v => v.Value < 0), " || first == '-'");
+        writer.WriteLine(")");
 
         using IndentedTextWriter.Block block1 = writer.WriteBlock();
         writer.WriteLine("switch (source.Length)");
@@ -130,15 +130,15 @@ partial class EnumConverterGenerator
                     writer.WriteLine("switch (first)");
                     using (writer.WriteBlock())
                     {
-                        foreach (var entry in group)
+                        foreach ((string name, BigInteger value) in group)
                         {
                             writer.Write("case ");
                             writer.WriteIf(model.TokenType.IsByte(), "(byte)");
-                            writer.Write(entry.name[0].ToCharLiteral());
+                            writer.Write(name[0].ToCharLiteral());
                             writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
-                            writer.WriteIf(entry.value < 0, "(");
-                            writer.Write(entry.value.ToString());
-                            writer.WriteIf(entry.value < 0, ")");
+                            writer.WriteIf(value < 0, "(");
+                            writer.Write(value.ToString());
+                            writer.WriteIf(value < 0, ")");
                             writer.WriteLine("; return true;");
                         }
                     }
@@ -167,13 +167,13 @@ partial class EnumConverterGenerator
 
                         using (writer.WriteBlock())
                         {
-                            foreach (var entry in firstCharGroup)
+                            foreach ((string name, BigInteger value) in firstCharGroup)
                             {
-                                writer.Write($"if ({MemExt}.EndsWith(source, \"{entry.name[1..]}\"");
+                                writer.Write($"if ({MemExt}.EndsWith(source, \"{name[1..]}\"");
                                 writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
                                 using (writer.WriteBlock())
                                 {
-                                    writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName}){entry.value};");
+                                    writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName}){value};");
                                     writer.WriteLine("return true;");
                                 }
                             }
@@ -233,6 +233,7 @@ partial class EnumConverterGenerator
                         }
                         else if (lengthGroup.All(e => e.Name.IsAscii()))
                         {
+                            // all entries are ASCII, so we can use a fast path
                             WriteStringMatchByte(in model, writer, ignoreCase, lengthGroup, cancellationToken);
                         }
                         else if (
@@ -241,6 +242,7 @@ partial class EnumConverterGenerator
                             )
                         )
                         {
+                            // all entries are case-agnostic
                             WriteStringMatchByteAsciiOrdinal(
                                 in model,
                                 writer,
@@ -251,12 +253,12 @@ partial class EnumConverterGenerator
                         }
                         else
                         {
-                            int len = Math.Min(32, lengthGroup.Max(e => e.Name.Length));
-                            len = (int)Math.Pow(2, Math.Ceiling(Math.Log(len) / Math.Log(2)));
+                            // get the max length of a valid entry
+                            int stackallocLength = Math.Min(128, lengthGroup.Max(e => e.Name.Length));
 
                             writer.DebugLine("Slow path: not ascii and not case-agnostic");
                             writer.WriteLine(
-                                $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{len}], out char[]? toReturn);"
+                                $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{stackallocLength}], out char[]? toReturn);"
                             );
                             writer.WriteLine("bool retVal = false;");
                             writer.WriteLine("__Unsafe.SkipInit(out value);");
@@ -332,37 +334,25 @@ partial class EnumConverterGenerator
             return;
         }
 
-        if (isByte)
+        string firstItem = isByte ? "source[0]" : "first";
+
+        if (
+            !ignoreCase
+            || entriesByLength.All(e => char.ToLowerInvariant(e.Name[0]) == char.ToUpperInvariant(e.Name[0]))
+        )
         {
-            if (!ignoreCase)
-            {
-                writer.WriteLine($"switch ({sourceName}[0])");
-            }
-            else if (entriesByLength.All(e => e.Name.IsAscii()))
-            {
-                writer.WriteLine($"switch ((char)({sourceName}[0] | 0x20))");
-            }
-            else
-            {
-                writer.DebugLine("Slow path: ignore case and not ascii");
-                writer.WriteLine($"switch (char.ToLowerInvariant({sourceName}[0]))");
-            }
+            // if all first chars are case-agnostic, we can use the simple switch path
+            writer.WriteLine($"switch ({firstItem})");
+        }
+        else if (entriesByLength.All(e => e.Name[0].IsAsciiLetter()))
+        {
+            // if all first chars are ascii letters, we can use bitwise lowercase
+            writer.WriteLine($"switch ((char)({firstItem} | 0x20))");
         }
         else
         {
-            if (!ignoreCase)
-            {
-                writer.WriteLine("switch (first)");
-            }
-            else if (entriesByLength.All(e => e.Name.IsAscii()))
-            {
-                writer.WriteLine("switch ((char)(first | 0x20))");
-            }
-            else
-            {
-                writer.DebugLine("Slow path: ignore case and not ascii");
-                writer.WriteLine("switch (char.ToLowerInvariant(first))");
-            }
+            writer.DebugLine("Slow path: ignore case and not ascii");
+            writer.WriteLine($"switch (char.ToLowerInvariant({firstItem}))");
         }
 
         using (writer.WriteBlock())
@@ -778,7 +768,7 @@ partial class EnumConverterGenerator
 
         writer.Write(type);
         writer.Write(" __mask = ");
-        writer.Write("__Unsafe.ReadUnaligned<");
+        writer.Write("__Unsafe.ReadUnaligned<"); // TODO: MemoryMarshal.Read in .NET 10 should have fixed bounds checks
         writer.Write(type);
         writer.Write(">(ref ");
 
@@ -801,16 +791,16 @@ partial class EnumConverterGenerator
 
         using (writer.WriteBlock())
         {
-            foreach (var entry in values)
+            foreach ((string name, BigInteger value) in values)
             {
                 writer.Write("case (");
-                writer.Write(entry.name[0].ToCharLiteral());
+                writer.Write(name[0].ToCharLiteral());
                 writer.Write(" | (");
-                writer.Write(entry.name[1].ToCharLiteral());
+                writer.Write(name[1].ToCharLiteral());
                 writer.Write($" << {shift})): value = ({model.EnumType.FullyQualifiedName})");
-                writer.WriteIf(entry.value < 0, "(");
-                writer.Write(entry.value.ToString());
-                writer.WriteIf(entry.value < 0, ")");
+                writer.WriteIf(value < 0, "(");
+                writer.Write(value.ToString());
+                writer.WriteIf(value < 0, ")");
                 writer.WriteLine("; return true;");
             }
         }
