@@ -45,7 +45,7 @@ partial class EnumConverterGenerator
                 writer.WriteLine($")value < {fastPathCount})");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine($"dst = ({model.TokenType.Name})('0' + value);");
+                    writer.WriteLine($"dst = ({model.TokenType.Name})('0' + (uint)value);");
                     writer.WriteLine("charsWritten = 1;");
                     writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
                 }
