@@ -377,11 +377,10 @@ public abstract class EnumTests<T>
     private static void ImplParse<TEnum>(TEnum value, string expected, CsvConverter<T, TEnum> converter)
         where TEnum : struct, Enum
     {
-        if (!converter.TryParse(ToT(expected), out var parsed))
-        {
-            Assert.Fail($"Could not parse '{expected}' into {value}.");
-        }
-
+        Assert.True(
+            converter.TryParse(CsvOptions<T>.Default.GetFromString(expected).Span, out var parsed),
+            $"Could not parse '{expected}' into {value}."
+        );
         Assert.Equal(value, parsed);
     }
 
@@ -406,7 +405,7 @@ public abstract class EnumTests<T>
             converter.TryFormat(buffer, value, out var written),
             $"Could not format '{value}' with \"{format}\" into {Token<T>.Name}[{length + 1}]."
         );
-        Assert.Equal(expected, FromT(buffer.AsSpan(0, written)));
+        Assert.Equal(expected, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(0, written)));
         Assert.Equal(length, written);
         Assert.Equal(T.Zero, buffer[written]); // don't write past the end
     }
@@ -414,26 +413,10 @@ public abstract class EnumTests<T>
     private static void ImplNotParsable<TEnum>(string value, CsvConverter<T, TEnum> converter)
         where TEnum : struct, Enum
     {
-        if (converter.TryParse(ToT(value), out _))
-        {
-            Assert.Fail($"Value '{value}' should not be parsable to {typeof(TEnum).Name}.");
-        }
-    }
-
-    private static string FromT(Span<T> value)
-    {
-        Assert.True(typeof(T) == typeof(byte) || typeof(T) == typeof(char));
-        return typeof(T) == typeof(byte)
-            ? Encoding.UTF8.GetString(MemoryMarshal.Cast<T, byte>(value))
-            : value.ToString();
-    }
-
-    private static ReadOnlySpan<T> ToT(string value)
-    {
-        Assert.True(typeof(T) == typeof(byte) || typeof(T) == typeof(char));
-        return typeof(T) == typeof(byte)
-            ? MemoryMarshal.Cast<byte, T>(Encoding.UTF8.GetBytes(value))
-            : MemoryMarshal.Cast<char, T>(value.AsSpan());
+        Assert.False(
+            converter.TryParse(CsvOptions<T>.Default.GetFromString(value).Span, out var result),
+            $"Value '{value}' should not be parsable to {typeof(TEnum).Name} (but got: {result})"
+        );
     }
 
     protected enum Animal

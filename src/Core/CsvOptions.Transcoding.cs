@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
@@ -22,7 +23,7 @@ public partial class CsvOptions<T>
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.GetString(value.Cast<T, byte>());
+            return Encoding.UTF8.GetString(MemoryMarshal.AsBytes(value));
         }
 
         throw InvalidTokenTypeEx();
@@ -47,7 +48,7 @@ public partial class CsvOptions<T>
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.TryGetChars(value.Cast<T, byte>(), destination, out charsWritten);
+            return Encoding.UTF8.TryGetChars(MemoryMarshal.AsBytes(value), destination, out charsWritten);
         }
 
         throw InvalidTokenTypeEx();

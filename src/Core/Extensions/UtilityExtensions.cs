@@ -49,7 +49,7 @@ internal static class UtilityExtensions
     {
         if (typeof(T) == typeof(byte))
         {
-            ReadOnlySpan<byte> bytes = MemoryMarshal.Cast<T, byte>(value);
+            ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(value);
 
             try
             {
