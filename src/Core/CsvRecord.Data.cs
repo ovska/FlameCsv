@@ -156,12 +156,12 @@ public readonly partial struct CsvRecord<T> : IDataRecord
 
     string IDataRecord.GetString(int i)
     {
-        return Options.GetAsString(GetField(i));
+        return CsvOptions<T>.GetAsString(GetField(i));
     }
 
     object IDataRecord.GetValue(int i)
     {
-        return Options.GetAsString(GetField(i));
+        return CsvOptions<T>.GetAsString(GetField(i));
     }
 
     int IDataRecord.GetValues(object[] values)
@@ -181,7 +181,7 @@ public readonly partial struct CsvRecord<T> : IDataRecord
 
         for (; i < record.FieldCount; i++)
         {
-            values[i] = Options.GetAsString(record[i]);
+            values[i] = CsvOptions<T>.GetAsString(record[i]);
         }
 
         return i;
@@ -201,8 +201,8 @@ public readonly partial struct CsvRecord<T> : IDataRecord
         return value.SequenceEqual(nullToken);
     }
 
-    object IDataRecord.this[int i] => Options.GetAsString(GetField(i));
-    object IDataRecord.this[string name] => Options.GetAsString(GetField(name));
+    object IDataRecord.this[int i] => CsvOptions<T>.GetAsString(GetField(i));
+    object IDataRecord.this[string name] => CsvOptions<T>.GetAsString(GetField(name));
 
     [return: DAM(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
     Type IDataRecord.GetFieldType(int i)

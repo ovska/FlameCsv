@@ -14,19 +14,9 @@ public partial class CsvOptions<T>
     /// <remarks>
     /// Can be used interchangeably with <see cref="TryGetChars"/>.
     /// </remarks>
-    public string GetAsString(ReadOnlySpan<T> value)
+    public static string GetAsString(scoped ReadOnlySpan<T> value)
     {
-        if (typeof(T) == typeof(char))
-        {
-            return value.Cast<T, char>().ToString();
-        }
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Encoding.UTF8.GetString(MemoryMarshal.AsBytes(value));
-        }
-
-        throw InvalidTokenTypeEx();
+        return typeof(T) == typeof(byte) ? Encoding.UTF8.GetString(MemoryMarshal.AsBytes(value)) : value.ToString();
     }
 
     /// <summary>
@@ -39,7 +29,7 @@ public partial class CsvOptions<T>
     /// <param name="destination">Buffer to write the value as chars to</param>
     /// <param name="charsWritten">If successful, how many chars were written to the destination</param>
     /// <returns>True if the destination buffer was large enough and the value was written</returns>
-    public bool TryGetChars(ReadOnlySpan<T> value, Span<char> destination, out int charsWritten)
+    public static bool TryGetChars(scoped ReadOnlySpan<T> value, scoped Span<char> destination, out int charsWritten)
     {
         if (typeof(T) == typeof(char))
         {
@@ -58,13 +48,8 @@ public partial class CsvOptions<T>
     /// Returns the <typeparamref name="T"/> representation of the string.
     /// </summary>
     /// <seealso cref="TryWriteChars"/>
-    public ReadOnlyMemory<T> GetFromString(string? value)
+    public static ReadOnlyMemory<T> GetFromString(string? value)
     {
-        if (string.IsNullOrEmpty(value))
-        {
-            return ReadOnlyMemory<T>.Empty;
-        }
-
         if (typeof(T) == typeof(char))
         {
             var mem = value.AsMemory();
@@ -73,7 +58,7 @@ public partial class CsvOptions<T>
 
         if (typeof(T) == typeof(byte))
         {
-            return Unsafe.As<T[]>(Encoding.UTF8.GetBytes(value));
+            return string.IsNullOrEmpty(value) ? default : Unsafe.As<T[]>(Encoding.UTF8.GetBytes(value));
         }
 
         throw InvalidTokenTypeEx();
@@ -87,7 +72,7 @@ public partial class CsvOptions<T>
     /// <param name="charsWritten">If successful, how many chars were written to the destination</param>
     /// <returns>True if the destination buffer was large enough and the value was written</returns>
     /// <seealso cref="GetFromString"/>
-    public bool TryWriteChars(ReadOnlySpan<char> value, Span<T> destination, out int charsWritten)
+    public static bool TryWriteChars(scoped ReadOnlySpan<char> value, scoped Span<T> destination, out int charsWritten)
     {
         if (typeof(T) == typeof(char))
         {
@@ -96,7 +81,7 @@ public partial class CsvOptions<T>
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.TryGetBytes(value, destination.Cast<T, byte>(), out charsWritten);
+            return Encoding.UTF8.TryGetBytes(value, MemoryMarshal.AsBytes(destination), out charsWritten);
         }
 
         throw InvalidTokenTypeEx();

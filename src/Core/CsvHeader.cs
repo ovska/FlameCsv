@@ -43,7 +43,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
 
         for (int field = 0; field < record.FieldCount; field++)
         {
-            list.Append(Get(record._reader.Options, record[field], charBuffer));
+            list.Append(Get(record[field], charBuffer));
         }
 
         return [.. list.AsSpan()];
@@ -52,7 +52,6 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     /// <summary>
     /// Retrieves a string representation of the given value using the provided options.
     /// </summary>
-    /// <param name="options">The CSV options used for conversion.</param>
     /// <param name="value">The header field.</param>
     /// <param name="buffer">A buffer to write the characters to.</param>
     /// <returns>
@@ -61,17 +60,15 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     /// and the options-type is not inherited.
     /// Otherwise, it is converted to a string using <see cref="CsvOptions{T}.GetAsString"/>.
     /// </returns>
-    public static string Get<T>(CsvOptions<T> options, scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
+    public static string Get<T>(scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ArgumentNullException.ThrowIfNull(options);
-
-        if (HeaderPool is not null && options.TryGetChars(value, buffer, out int length))
+        if (HeaderPool is not null && CsvOptions<T>.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }
 
-        return options.GetAsString(value);
+        return CsvOptions<T>.GetAsString(value);
     }
 
     /// <summary>

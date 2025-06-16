@@ -120,7 +120,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         int tokensWritten;
         scoped Span<T> destination = Writer.GetSpan(sizeHint: value.Length);
 
-        while (!Options.TryWriteChars(value, destination, out tokensWritten))
+        while (!CsvOptions<T>.TryWriteChars(value, destination, out tokensWritten))
         {
             destination = Writer.GetSpan(destination.Length * 2);
         }

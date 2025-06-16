@@ -236,7 +236,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        return $"{{ CsvRecord[{_slice.FieldCount}] \"{Options.GetAsString(RawRecord)}\" }}";
+        return $"{{ CsvRecord[{_slice.FieldCount}] \"{CsvOptions<T>.GetAsString(RawRecord)}\" }}";
     }
 
     /// <summary>
@@ -250,7 +250,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         var fields = new string[_slice.FieldCount];
         for (int i = 0; i < fields.Length; i++)
         {
-            fields[i] = Options.GetAsString(_slice.GetField(i));
+            fields[i] = CsvOptions<T>.GetAsString(_slice.GetField(i));
         }
 
         return fields;
@@ -358,7 +358,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
 
                     for (int i = 0; i < fields.Length; i++)
                     {
-                        fields[i] = _record.Options.GetAsString(_record.GetField(i));
+                        fields[i] = CsvOptions<T>.GetAsString(_record.GetField(i));
                     }
 
                     _fields = fields;

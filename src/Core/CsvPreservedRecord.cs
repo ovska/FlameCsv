@@ -240,7 +240,7 @@ public class CsvPreservedRecord<T> : ICsvRecord<T>, IReadOnlyDictionary<CsvField
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        return $"{{ CsvPreservedRecord[{FieldCount}] \"{Options.GetAsString(RawRecord.Span)}\" }}";
+        return $"{{ CsvPreservedRecord[{FieldCount}] \"{CsvOptions<T>.GetAsString(RawRecord.Span)}\" }}";
     }
 
     int IReadOnlyCollection<KeyValuePair<CsvFieldIdentifier, ReadOnlyMemory<T>>>.Count => _fields.Length;
