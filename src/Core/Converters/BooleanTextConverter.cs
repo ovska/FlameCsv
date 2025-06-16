@@ -16,7 +16,7 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
                 // JIT doesn't yet unroll successive char writes, so do it manually
                 Unsafe.WriteUnaligned(
                     ref Unsafe.As<char, byte>(ref destination[0]),
-                    MemoryMarshal.Read<ulong>(MemoryMarshal.Cast<char, byte>("true"))
+                    MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes<char>("true"))
                 );
                 charsWritten = 4;
                 return true;
@@ -26,10 +26,10 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         {
             if (destination.Length >= 5)
             {
-                // JIT doesn't yet unroll successive char writes, so do it manually
+                // JIT doesn't unroll successive char writes, so do it manually
                 Unsafe.WriteUnaligned(
                     ref Unsafe.As<char, byte>(ref destination[0]),
-                    MemoryMarshal.Read<ulong>(MemoryMarshal.Cast<char, byte>("fals"))
+                    MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes<char>("fals"))
                 );
                 destination[4] = 'e';
                 charsWritten = 5;

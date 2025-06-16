@@ -1,5 +1,5 @@
-using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace FlameCsv.Converters;
 
@@ -41,17 +41,13 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
         return false;
     }
 
-    /// <inheritdoc/>
     public override bool TryParse(ReadOnlySpan<byte> source, out bool value)
     {
-        // source: dotnet runtime Utf8Parser
-
         if (source.Length == 4)
         {
-            int dw = BinaryPrimitives.ReadInt32LittleEndian(source) & ~0x20202020;
-            if (
-                dw == 0x45555254 /* 'EURT' */
-            )
+            ref byte first = ref MemoryMarshal.GetReference(source);
+
+            if ((Unsafe.ReadUnaligned<uint>(in first) | 0x20202020) == MemoryMarshal.Read<uint>("true"u8))
             {
                 value = true;
                 return true;
@@ -60,10 +56,11 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
 
         if (source.Length == 5)
         {
-            int dw = BinaryPrimitives.ReadInt32LittleEndian(source) & ~0x20202020;
+            ref byte first = ref MemoryMarshal.GetReference(source);
+
             if (
-                dw == 0x534c4146 /* 'SLAF' */
-                && (source[4] & ~0x20) == 'E'
+                (Unsafe.ReadUnaligned<uint>(in first) | 0x20202020) == MemoryMarshal.Read<uint>("fals"u8)
+                && (Unsafe.Add(ref first, 4) | 0x20) == (byte)'e'
             )
             {
                 value = false;
@@ -71,7 +68,7 @@ internal sealed class BooleanUtf8Converter : CsvConverter<byte, bool>
             }
         }
 
-        Unsafe.SkipInit(out value);
+        value = false;
         return false;
     }
 }
