@@ -50,7 +50,7 @@ internal readonly struct CsvSlice<T>
             return $"{{ CsvSlice<{Token<T>.Name}>[0] \"\" }}";
         }
 
-        return $"{{ CsvSlice<{Token<T>.Name}>[{Fields.Count - 1}]: \"{Reader.Options.GetAsString(RawValue)}\" }}";
+        return $"{{ CsvSlice<{Token<T>.Name}>[{Fields.Count - 1}]: \"{CsvOptions<T>.GetAsString(RawValue)}\" }}";
     }
 
     [ExcludeFromCodeCoverage]
@@ -64,7 +64,7 @@ internal readonly struct CsvSlice<T>
 
             for (int i = 0; i < reader.FieldCount; i++)
             {
-                Items[i] = CsvOptions<T>.Default.GetAsString(reader[i]);
+                Items[i] = CsvOptions<T>.GetAsString(reader[i]);
             }
         }
 

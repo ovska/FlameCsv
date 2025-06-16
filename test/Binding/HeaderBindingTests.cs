@@ -164,9 +164,9 @@ file class ShimWithCtor([CsvHeader("_targeted")] bool isEnabled)
 file struct ConstantRecord<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    public ConstantRecord(IEnumerable<string> values, CsvOptions<T>? options = null)
+    public ConstantRecord(IEnumerable<string> values)
     {
-        Values = values.Select(v => (options ?? CsvOptions<T>.Default).GetFromString(v)).ToArray();
+        Values = values.Select(v => CsvOptions<T>.GetFromString(v)).ToArray();
     }
 
     public ReadOnlyMemory<T>[] Values { get; }

@@ -49,7 +49,7 @@ internal static class IndexOfUnescaper
 
         try
         {
-            str = CsvOptions<T>.Default.GetAsString(field);
+            str = CsvOptions<T>.GetAsString(field);
         }
         catch (Exception e)
         {

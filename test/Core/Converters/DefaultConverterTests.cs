@@ -62,25 +62,25 @@ public abstract class DefaultConverterTests<T>
         Assert.True(segment.TryParse(AsSpan(b64), out var value));
         Assert.Equal(input, value.ToArray());
         Assert.True(segment.TryFormat(buffer, value, out int charsWritten));
-        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+        Assert.Equal(b64, CsvOptions<T>.GetAsString(buffer.AsSpan(..charsWritten)));
 
         var memory = GetDefault<Memory<byte>>();
         Assert.True(memory.TryParse(AsSpan(b64), out var memoryValue));
         Assert.Equal(input, memoryValue.ToArray());
         Assert.True(memory.TryFormat(buffer, memoryValue, out charsWritten));
-        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+        Assert.Equal(b64, CsvOptions<T>.GetAsString(buffer.AsSpan(..charsWritten)));
 
         var readOnlyMemory = GetDefault<ReadOnlyMemory<byte>>();
         Assert.True(readOnlyMemory.TryParse(AsSpan(b64), out var readOnlyMemoryValue));
         Assert.Equal(input, readOnlyMemoryValue.ToArray());
         Assert.True(readOnlyMemory.TryFormat(buffer, readOnlyMemoryValue, out charsWritten));
-        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+        Assert.Equal(b64, CsvOptions<T>.GetAsString(buffer.AsSpan(..charsWritten)));
 
         var array = GetDefault<byte[]>();
         Assert.True(array.TryParse(AsSpan(b64), out var arrayValue));
         Assert.Equal(input, arrayValue);
         Assert.True(array.TryFormat(buffer, arrayValue, out charsWritten));
-        Assert.Equal(b64, CsvOptions<T>.Default.GetAsString(buffer.AsSpan(..charsWritten)));
+        Assert.Equal(b64, CsvOptions<T>.GetAsString(buffer.AsSpan(..charsWritten)));
     }
 
     [Fact]
