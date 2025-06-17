@@ -34,6 +34,7 @@ internal static class ObjectPool
     }
 }
 
+[ExcludeFromCodeCoverage]
 internal class ObjectPool<T>
     where T : class
 {

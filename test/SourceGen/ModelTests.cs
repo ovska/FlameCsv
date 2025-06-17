@@ -284,8 +284,8 @@ public class ModelTests(MetadataFixture fixture)
         for (int i = 0; i < models.Length; i++)
         {
             Assert.Equal(expected[i].name, models[i].Identifier);
-            Assert.Equal(expected[i].canRead, models[i].CanRead);
-            Assert.Equal(expected[i].canWrite, models[i].CanWrite);
+            Assert.Equal(expected[i].canRead, models[i].IsParsable);
+            Assert.Equal(expected[i].canWrite, models[i].IsFormattable);
             Assert.Equal(expected[i].isRequired, models[i].IsRequired);
             Assert.Equal(expected[i].isExplicit, models[i].ExplicitInterfaceOriginalDefinitionName is not null);
             Assert.Equal(expected[i].isProperty, models[i].IsProperty);

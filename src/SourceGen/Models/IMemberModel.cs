@@ -18,11 +18,11 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     /// <inheritdoc cref="PropertyModel.IsIgnored"/>
     bool IsIgnored { get; }
 
-    /// <inheritdoc cref="PropertyModel.CanRead"/>
-    bool CanRead { get; }
+    /// <inheritdoc cref="PropertyModel.IsParsable"/>
+    bool IsParsable { get; }
 
-    /// <inheritdoc cref="PropertyModel.CanWrite"/>
-    bool CanWrite { get; }
+    /// <inheritdoc cref="PropertyModel.IsFormattable"/>
+    bool IsFormattable { get; }
 
     /// <inheritdoc cref="PropertyModel.Order"/>
     int? Order { get; }

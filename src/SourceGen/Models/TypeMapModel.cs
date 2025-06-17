@@ -264,12 +264,12 @@ internal readonly record struct TypeMapModel
 
         AllMembers = ImmutableCollectionsMarshal.AsImmutableArray(allMembersArray);
 
-        if (Array.TrueForAll(allMembersArray, static m => !m.CanRead))
+        if (Array.TrueForAll(allMembersArray, static m => !m.IsParsable))
         {
             collector.AddDiagnostic(Diagnostics.NoReadableMembers(targetType));
         }
 
-        if (Array.TrueForAll(allMembersArray, static m => !m.CanWrite))
+        if (Array.TrueForAll(allMembersArray, static m => !m.IsFormattable))
         {
             collector.AddDiagnostic(Diagnostics.NoWritableMembers(targetType));
         }

@@ -55,7 +55,7 @@ partial class TypeMapGenerator
                 var membersToWrite = hasHeader ? typeMap.AllMembers : typeMap.IndexesForWriting;
                 foreach (var property in membersToWrite)
                 {
-                    if (!property.CanWrite)
+                    if (!property.IsFormattable)
                         continue;
                     writer.Write(
                         $"public required global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {property.Type.FullyQualifiedName}> "

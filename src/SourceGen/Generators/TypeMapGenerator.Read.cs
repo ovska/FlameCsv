@@ -357,7 +357,7 @@ partial class TypeMapGenerator
         foreach (ref readonly var property in typeMap.Properties)
         {
             // required already written above
-            if (!property.CanRead || property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null })
+            if (!property.IsParsable || property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null })
             {
                 continue;
             }
@@ -398,7 +398,7 @@ partial class TypeMapGenerator
 
         bool first = true;
 
-        foreach (var member in typeMap.AllMembers.Where(m => m.CanRead && m.IsRequired))
+        foreach (var member in typeMap.AllMembers.Where(m => m.IsParsable && m.IsRequired))
         {
             writer.WriteLineIf(!first, " ||");
             writer.Write("materializer.");
@@ -426,7 +426,7 @@ partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            foreach (var member in typeMap.AllMembers.Where(m => m.CanRead && m.IsRequired))
+            foreach (var member in typeMap.AllMembers.Where(m => m.IsParsable && m.IsRequired))
             {
                 writer.Write("if (materializer.");
                 member.WriteConverterName(writer);
