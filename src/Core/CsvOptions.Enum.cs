@@ -65,14 +65,14 @@ public partial class CsvOptions<T>
         {
             ArgumentOutOfRangeException.ThrowIfZero(value);
 
-            if (typeof(T) == typeof(char) && char.IsSurrogate(value))
-            {
-                Throw.Argument(nameof(value), "Surrogate characters are not allowed as enum separators.");
-            }
-
             if (typeof(T) == typeof(byte) && !Ascii.IsValid(value))
             {
                 Throw.Argument(nameof(value), "Only ASCII characters are allowed as enum separators for UTF8.");
+            }
+
+            if (typeof(T) == typeof(char) && char.IsSurrogate(value))
+            {
+                Throw.Argument(nameof(value), "Surrogate characters are not allowed as enum separators.");
             }
 
             if (value is ' ' or '-' || char.IsAsciiDigit(value) || char.IsAsciiLetter(value))
