@@ -30,6 +30,7 @@ internal static class TrimmingCache
 /// Cache that trims entries based on memory pressure and clears itself on hot reload.
 /// </summary>
 [CollectionBuilder(typeof(TrimmingCache), methodName: nameof(TrimmingCache.Create))]
+[ExcludeFromCodeCoverage]
 internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
     where TKey : notnull
 {
@@ -43,12 +44,6 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
 
     public TrimmingCache(IEqualityComparer<TKey>? comparer = null)
     {
-        if (FlameCsvGlobalOptions.CachingDisabled)
-        {
-            _entries = null!;
-            return;
-        }
-
         _entries = new(comparer);
 
         Gen2GcCallback.Register(Trim, targetObj: this);
@@ -66,7 +61,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value)
     {
-        if (!FlameCsvGlobalOptions.CachingDisabled && !_disposed && _entries.TryGetValue(key, out var entry))
+        if (!_disposed && _entries.TryGetValue(key, out var entry))
         {
             entry.LastAccess = Environment.TickCount64;
             value = entry.Value;
@@ -80,7 +75,7 @@ internal sealed class TrimmingCache<TKey, TValue> : IEnumerable<KeyValuePair<TKe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(TKey key, TValue value)
     {
-        if (_disposed || FlameCsvGlobalOptions.CachingDisabled)
+        if (_disposed)
             return;
 
         _entries.AddOrUpdate(

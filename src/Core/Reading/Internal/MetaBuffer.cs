@@ -29,7 +29,7 @@ internal sealed class MetaBuffer : IDisposable
 
     public MetaBuffer()
     {
-        _array = ArrayPool<Meta>.Shared.Rent(FlameCsvGlobalOptions.ReadAheadCount);
+        _array = ArrayPool<Meta>.Shared.Rent(4096);
         _array[0] = Meta.StartOfData;
         _index = 0;
         _count = 0;
@@ -207,7 +207,7 @@ internal sealed class MetaBuffer : IDisposable
     {
         _index = 0;
         _count = 0;
-        ArrayPool<Meta>.Shared.EnsureCapacity(ref _array, FlameCsvGlobalOptions.ReadAheadCount);
+        ArrayPool<Meta>.Shared.EnsureCapacity(ref _array, 4096);
         _array[0] = Meta.StartOfData;
     }
 

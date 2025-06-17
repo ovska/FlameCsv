@@ -31,18 +31,6 @@ public abstract class CsvTypeMap
     public bool ThrowOnDuplicate { get; init; }
 
     /// <summary>
-    /// Disables caching of de/materializers for this type map.
-    /// </summary>
-    /// <remarks>
-    /// Caching is enabled by default.
-    /// The cache is used on calls to public methods on the base class <see cref="CsvTypeMap"/>.
-    /// </remarks>
-    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(ImmutableArray{string},CsvOptions{T})"/>
-    /// <seealso cref="CsvTypeMap{T,TValue}.GetMaterializer(CsvOptions{T})"/>
-    /// <seealso cref="CsvTypeMap{T,TValue}.GetDematerializer"/>
-    public bool NoCaching { get; init; }
-
-    /// <summary>
     /// Throws an exception for header field being bound multiple times.
     /// </summary>
     /// <seealso cref="CsvTypeMapAttribute{T,TValue}.ThrowOnDuplicate"/>

@@ -24,9 +24,6 @@ public sealed class CsvTypeMapAttribute<T, TValue> : Attribute
     /// <inheritdoc cref="CsvTypeMap.ThrowOnDuplicate"/>
     public bool ThrowOnDuplicate { get; set; }
 
-    /// <inheritdoc cref="CsvTypeMap.NoCaching"/>
-    public bool NoCaching { get; set; }
-
     /// <summary>
     /// If <c>true</c>, the source generator will scan for attributes applied to the containing assembly.
     /// </summary>

@@ -60,8 +60,6 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
         ArgumentOutOfRangeException.ThrowIfZero(headers.Length);
         Throw.IfInvalidArgument(!options.HasHeader, "Options is configured to read without a header.");
 
-        if (NoCaching)
-            return BindForReading(headers, options);
         return options.GetMaterializer(
             this,
             headers,
@@ -80,8 +78,6 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
         ArgumentNullException.ThrowIfNull(options);
         Throw.IfInvalidArgument(options.HasHeader, "Options is not configured to read without a header.");
 
-        if (NoCaching)
-            return BindForReading(options);
         return options.GetMaterializer(this, [], static (options, typeMap, _) => typeMap.BindForReading(options));
     }
 
@@ -98,9 +94,6 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (NoCaching)
-            return BindForWriting(options);
-
         return options.GetDematerializer(this, static (options, typeMap) => typeMap.BindForWriting(options));
     }
 
@@ -115,8 +108,7 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
 
         return GetType() == other.GetType()
             && IgnoreUnmatched == other.IgnoreUnmatched
-            && ThrowOnDuplicate == other.ThrowOnDuplicate
-            && NoCaching == other.NoCaching; // <- should this be here?
+            && ThrowOnDuplicate == other.ThrowOnDuplicate;
     }
 
     /// <inheritdoc/>
@@ -125,6 +117,6 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        return HashCode.Combine(GetType(), IgnoreUnmatched, ThrowOnDuplicate, NoCaching);
+        return HashCode.Combine(GetType(), IgnoreUnmatched, ThrowOnDuplicate);
     }
 }

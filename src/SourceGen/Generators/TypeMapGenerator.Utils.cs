@@ -97,8 +97,6 @@ partial class TypeMapGenerator
         writer.Write("/// Duplicate headers ");
         writer.Write(typeMap.ThrowOnDuplicate ? "cause an exception." : "are ignored.");
         writer.WriteLine("<br/>");
-        writer.Write("/// De/materializer caching ");
-        writer.WriteLine(typeMap.NoCaching ? "is disabled." : "is enabled.");
         writer.WriteLine("/// </remarks>");
 
         writer.WriteLine(
@@ -110,8 +108,6 @@ partial class TypeMapGenerator
         writer.WriteLine(typeMap.IgnoreUnmatched ? "true," : "false,");
         writer.Write("ThrowOnDuplicate = ");
         writer.WriteLine(typeMap.ThrowOnDuplicate ? "true," : "false,");
-        writer.Write("NoCaching = ");
-        writer.WriteLine(typeMap.NoCaching ? "true," : "false,");
         writer.DecreaseIndent();
         writer.WriteLine("};");
         writer.WriteLine();

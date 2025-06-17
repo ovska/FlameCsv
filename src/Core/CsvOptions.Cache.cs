@@ -2,7 +2,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
 using FlameCsv.Writing;
@@ -19,9 +18,6 @@ public partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private TrimmingCache<MaterializerKey, object> InitializeBindingCache()
     {
-        if (FlameCsvGlobalOptions.CachingDisabled)
-            Throw.Unreachable("Caching is disabled.");
-
         TrimmingCache<MaterializerKey, object> instance = [];
 
         if (Interlocked.CompareExchange(ref _bindingCache, instance, null) is not null)
@@ -41,11 +37,6 @@ public partial class CsvOptions<T>
     )
     {
         MakeReadOnly();
-
-        if (FlameCsvGlobalOptions.CachingDisabled)
-        {
-            return valueFactory(this, headers, ignoreUnmatched);
-        }
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
         MaterializerKey key = new(Comparer, typeof(TValue), ignoreUnmatched, headers);
@@ -67,11 +58,6 @@ public partial class CsvOptions<T>
     {
         MakeReadOnly();
 
-        if (FlameCsvGlobalOptions.CachingDisabled)
-        {
-            return valueFactory(this, typeMap, headers);
-        }
-
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
         MaterializerKey key = new(Comparer, typeMap, headers);
 
@@ -88,11 +74,6 @@ public partial class CsvOptions<T>
     )
     {
         MakeReadOnly();
-
-        if (FlameCsvGlobalOptions.CachingDisabled)
-        {
-            return valueFactory(this);
-        }
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
         MaterializerKey key = new(typeof(TValue));
@@ -111,11 +92,6 @@ public partial class CsvOptions<T>
     )
     {
         MakeReadOnly();
-
-        if (FlameCsvGlobalOptions.CachingDisabled)
-        {
-            return valueFactory(this, typeMap);
-        }
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
         MaterializerKey key = new(typeMap);
