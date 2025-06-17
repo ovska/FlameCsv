@@ -271,6 +271,20 @@ public static class EnumExtensionTests
     }
 
     [Fact]
+    public static void SetFlag_ByteEnum_SetsCorrectFlags()
+    {
+        var value = ByteEnum.None;
+        value.SetFlag(ByteEnum.Two, true);
+        Assert.Equal(ByteEnum.Two, value);
+
+        value.SetFlag(ByteEnum.Four, true);
+        Assert.Equal(ByteEnum.Two | ByteEnum.Four, value);
+
+        value.SetFlag(ByteEnum.Two, false);
+        Assert.Equal(ByteEnum.Four, value);
+    }
+
+    [Fact]
     public static void ToBitmask_ByteEnum_ReturnsCorrectBitmask()
     {
         var value = ByteEnum.All;

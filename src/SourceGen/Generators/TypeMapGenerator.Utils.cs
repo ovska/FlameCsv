@@ -235,6 +235,7 @@ partial class TypeMapGenerator
             if (!retVal)
             {
                 MemberDictPool.Release(dict);
+                dict = null;
             }
         }
     }

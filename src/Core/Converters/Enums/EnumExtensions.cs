@@ -135,6 +135,19 @@ internal static class EnumExtensions
         return false;
     }
 
+    internal static void SetFlag<TEnum>(ref this TEnum value, TEnum flag, bool enabled)
+        where TEnum : struct, Enum
+    {
+        if (enabled)
+        {
+            AddFlag(ref value, flag);
+        }
+        else
+        {
+            ClearFlag(ref value, flag);
+        }
+    }
+
     internal static void AddFlag<TEnum>(ref this TEnum value, TEnum flag)
         where TEnum : struct, Enum
     {
