@@ -18,14 +18,14 @@ public static class CsvHeaderTests
         {
             CsvHeader.HeaderPool?.Reset();
             var buffer = new char[32];
-            var tokens = CsvOptions<T>.GetFromString(value).Span;
+            var tokens = Transcode.FromString<T>(value).Span;
             var header1 = CsvHeader.Get(tokens, buffer);
             var header2 = CsvHeader.Get(tokens, buffer);
 
             Assert.Equal(value, header1);
             Assert.Equal(value, header2);
 
-            if (CsvOptions<T>.GetAsString(tokens).Length <= buffer.Length)
+            if (Transcode.ToString(tokens).Length <= buffer.Length)
             {
                 Assert.Same(header1, header2);
             }

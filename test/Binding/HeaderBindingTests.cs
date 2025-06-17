@@ -166,7 +166,7 @@ file struct ConstantRecord<T> : ICsvRecord<T>
 {
     public ConstantRecord(IEnumerable<string> values)
     {
-        Values = values.Select(v => CsvOptions<T>.GetFromString(v)).ToArray();
+        Values = values.Select(v => Transcode.FromString<T>(v)).ToArray();
     }
 
     public ReadOnlyMemory<T>[] Values { get; }

@@ -378,7 +378,7 @@ public abstract class EnumTests<T>
         where TEnum : struct, Enum
     {
         Assert.True(
-            converter.TryParse(CsvOptions<T>.GetFromString(expected).Span, out var parsed),
+            converter.TryParse(Transcode.FromString<T>(expected).Span, out var parsed),
             $"Could not parse '{expected}' into {value}."
         );
         Assert.Equal(value, parsed);
@@ -405,7 +405,7 @@ public abstract class EnumTests<T>
             converter.TryFormat(buffer, value, out var written),
             $"Could not format '{value}' with \"{format}\" into {Token<T>.Name}[{length + 1}]."
         );
-        Assert.Equal(expected, CsvOptions<T>.GetAsString(buffer.AsSpan(0, written)));
+        Assert.Equal(expected, Transcode.ToString(buffer.AsSpan(0, written)));
         Assert.Equal(length, written);
         Assert.Equal(T.Zero, buffer[written]); // don't write past the end
     }
@@ -414,7 +414,7 @@ public abstract class EnumTests<T>
         where TEnum : struct, Enum
     {
         Assert.False(
-            converter.TryParse(CsvOptions<T>.GetFromString(value).Span, out var result),
+            converter.TryParse(Transcode.FromString<T>(value).Span, out var result),
             $"Value '{value}' should not be parsable to {typeof(TEnum).Name} (but got: {result})"
         );
     }

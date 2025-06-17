@@ -67,10 +67,10 @@ public static class CsvBooleanValuesAttributeTests
 
             T[] buffer = new T[32];
             Assert.True(formatter.TryFormat(buffer, true, out int charsWritten));
-            Assert.Equal("1", CsvOptions<T>.GetAsString(buffer.AsSpan(0, charsWritten)));
+            Assert.Equal("1", Transcode.ToString(buffer.AsSpan(0, charsWritten)));
 
             Assert.True(formatter.TryFormat(buffer, false, out charsWritten));
-            Assert.Equal("0", CsvOptions<T>.GetAsString(buffer.AsSpan(0, charsWritten)));
+            Assert.Equal("0", Transcode.ToString(buffer.AsSpan(0, charsWritten)));
         }
     }
 
@@ -98,7 +98,7 @@ public static class CsvBooleanValuesAttributeTests
 
             Assert.True(@override.TryCreateConverter(typeof(bool), CsvOptions<T>.Default, out var converter));
             var parser = (CsvConverter<T, bool>)converter;
-            var inputSpan = CsvOptions<T>.GetFromString(input).Span;
+            var inputSpan = Transcode.FromString<T>(input).Span;
 
             if (success)
             {
@@ -127,7 +127,7 @@ public static class CsvBooleanValuesAttributeTests
 
             Assert.True(@override.TryCreateConverter(typeof(bool?), options, out var converter));
             var parser = (CsvConverter<T, bool?>)converter;
-            var inputSpan = CsvOptions<T>.GetFromString(input).Span;
+            var inputSpan = Transcode.FromString<T>(input).Span;
 
             if (success)
             {
@@ -155,10 +155,8 @@ public static class CsvBooleanValuesAttributeTests
             Assert.True(@override.TryCreateConverter(typeof(bool?), CsvOptions<T>.Default, out var converter));
             var parser = (CsvConverter<T, bool?>)converter;
 
-            Assert.False(parser.TryParse(CsvOptions<T>.GetFromString("y").Span, out _));
-            Assert.True(
-                parser.TryParse(CsvOptions<T>.GetFromString("Y").Span, out var value) && value.GetValueOrDefault()
-            );
+            Assert.False(parser.TryParse(Transcode.FromString<T>("y").Span, out _));
+            Assert.True(parser.TryParse(Transcode.FromString<T>("Y").Span, out var value) && value.GetValueOrDefault());
         }
     }
 

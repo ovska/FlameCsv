@@ -280,13 +280,9 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
-    /// String comparer used to match CSV header to members and parameters.
+    /// String comparer used to match CSV headers and <see cref="BooleanValues"/>.
     /// Default is <see cref="StringComparer.OrdinalIgnoreCase"/>.
     /// </summary>
-    /// <remarks>
-    /// The parsed CSV header fields are converted to strings using <see cref="TryGetChars"/> or
-    /// <see cref="GetAsString(ReadOnlySpan{T})"/>.
-    /// </remarks>
     public IEqualityComparer<string> Comparer
     {
         get => _comparer;

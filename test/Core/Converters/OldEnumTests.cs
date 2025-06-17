@@ -244,13 +244,13 @@ public static class OldEnumTests
     private static ReadOnlySpan<T> ToT<T>(string value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return CsvOptions<T>.GetFromString(value).Span;
+        return Transcode.FromString<T>(value).Span;
     }
 
     private static string FromT<T>(ReadOnlySpan<T> span)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return CsvOptions<T>.GetAsString(span);
+        return Transcode.ToString(span);
     }
 }
 
