@@ -189,7 +189,7 @@ partial class CsvOptions<T>
                         );
             }
 
-            throw InvalidTokenTypeEx();
+            throw Token<T>.NotSupported;
         }
 
         private bool TryGetExistingOrCustomConverter<TValue>([NotNullWhen(true)] out CsvConverter<T, TValue>? converter)
