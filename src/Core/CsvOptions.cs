@@ -49,7 +49,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         {
             if (typeof(T) == typeof(char) || typeof(T) == typeof(byte))
                 return _default;
-            throw InvalidTokenTypeEx();
+            throw Token<T>.NotSupported;
         }
     }
 
@@ -105,7 +105,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         _newline = other._newline;
         _trimming = other._trimming;
 
-        ConverterCache = new(other.ConverterCache, other.ConverterCache.Comparer);
+        // converter cache should NOT be copied, as it might contain converters for types
+        // that are configured for this options later, but due to the cache never used
     }
 
     /// <summary>

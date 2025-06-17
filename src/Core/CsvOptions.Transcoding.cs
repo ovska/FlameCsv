@@ -41,7 +41,7 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetChars(MemoryMarshal.AsBytes(value), destination, out charsWritten);
         }
 
-        throw InvalidTokenTypeEx();
+        throw Token<T>.NotSupported;
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public partial class CsvOptions<T>
             return string.IsNullOrEmpty(value) ? default : Unsafe.As<T[]>(Encoding.UTF8.GetBytes(value));
         }
 
-        throw InvalidTokenTypeEx();
+        throw Token<T>.NotSupported;
     }
 
     /// <summary>
@@ -84,11 +84,6 @@ public partial class CsvOptions<T>
             return Encoding.UTF8.TryGetBytes(value, MemoryMarshal.AsBytes(destination), out charsWritten);
         }
 
-        throw InvalidTokenTypeEx();
-    }
-
-    private static NotSupportedException InvalidTokenTypeEx()
-    {
-        return new NotSupportedException("CsvOptions supports only char and byte as token types.");
+        throw Token<T>.NotSupported;
     }
 }
