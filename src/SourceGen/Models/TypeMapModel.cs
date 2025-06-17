@@ -3,7 +3,7 @@ using FlameCsv.SourceGen.Helpers;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal readonly record struct TypeMapModel
+internal record TypeMapModel
 {
     /// <summary>
     /// TypeRef to the TypeMap object
@@ -246,7 +246,7 @@ internal readonly record struct TypeMapModel
 
                 if (property is not null)
                 {
-                    properties.Add(property.Value);
+                    properties.Add(property);
                 }
             }
 

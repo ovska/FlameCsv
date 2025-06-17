@@ -9,7 +9,7 @@ partial class EnumConverterGenerator
     private const string MemExt = "global::System.MemoryExtensions";
 
     private static void WriteParseMethod(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken
     )
@@ -52,7 +52,7 @@ partial class EnumConverterGenerator
         else
         {
             writer.DebugLine("Fast path not taken (10 contiguous values and no 1-char names)");
-            WriteNumberCheck(in model, writer, cancellationToken);
+            WriteNumberCheck(model, writer, cancellationToken);
         }
 
         // flags enums can be valid even though the value is not defined, e.g. 1 | 2
@@ -83,7 +83,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteNumberCheck(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken
     )
@@ -150,7 +150,7 @@ partial class EnumConverterGenerator
                 if (group.Key == 2)
                 {
                     writer.DebugLine("Special case: 2-length integers");
-                    WriteSwitchTwoCharacters(in model, 0, writer, group, cancellationToken);
+                    WriteSwitchTwoCharacters(model, 0, writer, group, cancellationToken);
                     writer.WriteLine("break;");
                     continue;
                 }
@@ -189,7 +189,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteSwitch(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
         CancellationToken cancellationToken
@@ -229,12 +229,12 @@ partial class EnumConverterGenerator
                     {
                         if (!ignoreCase)
                         {
-                            WriteStringMatchByteAsciiOrdinal(in model, writer, lengthGroup, cancellationToken);
+                            WriteStringMatchByteAsciiOrdinal(model, writer, lengthGroup, cancellationToken);
                         }
                         else if (lengthGroup.All(e => e.Name.IsAscii()))
                         {
                             // all entries are ASCII, so we can use a fast path
-                            WriteStringMatchByte(in model, writer, ignoreCase, lengthGroup, cancellationToken);
+                            WriteStringMatchByte(model, writer, ignoreCase, lengthGroup, cancellationToken);
                         }
                         else if (
                             lengthGroup.All(g =>
@@ -244,7 +244,7 @@ partial class EnumConverterGenerator
                         {
                             // all entries are case-agnostic
                             WriteStringMatchByteAsciiOrdinal(
-                                in model,
+                                model,
                                 writer,
                                 lengthGroup,
                                 cancellationToken,
@@ -263,7 +263,7 @@ partial class EnumConverterGenerator
                             writer.WriteLine("bool retVal = false;");
                             writer.WriteLine("__Unsafe.SkipInit(out value);");
                             writer.WriteLine();
-                            WriteStringMatchChar(in model, writer, ignoreCase, lengthGroup, cancellationToken);
+                            WriteStringMatchChar(model, writer, ignoreCase, lengthGroup, cancellationToken);
 
                             writer.WriteLine(
                                 "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);"
@@ -275,7 +275,7 @@ partial class EnumConverterGenerator
                     }
                     else
                     {
-                        WriteStringMatchChar(in model, writer, ignoreCase, lengthGroup, cancellationToken);
+                        WriteStringMatchChar(model, writer, ignoreCase, lengthGroup, cancellationToken);
                     }
                 }
             }
@@ -292,7 +292,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteStringMatchChar(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
@@ -404,7 +404,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteStringMatchByteAsciiOrdinal(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         IGrouping<int, Entry> entriesByLength,
         CancellationToken cancellationToken,
@@ -484,7 +484,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteStringMatchByte(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
@@ -753,7 +753,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteSwitchTwoCharacters(
-        ref readonly EnumModel model,
+        EnumModel model,
         int offset,
         IndentedTextWriter writer,
         IEnumerable<(string name, BigInteger value)> values,

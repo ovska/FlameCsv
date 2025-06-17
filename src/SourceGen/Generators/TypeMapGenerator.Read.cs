@@ -8,7 +8,7 @@ partial class TypeMapGenerator
 {
     private static void GetReadCode(
         IndentedTextWriter writer,
-        ref readonly TypeMapModel typeMap,
+        TypeMapModel typeMap,
         CancellationToken cancellationToken
     )
     {
@@ -41,7 +41,7 @@ partial class TypeMapGenerator
                 writer.WriteLine("string name = headerSpan[index];");
                 writer.WriteLine();
 
-                WriteMatchers(writer, in typeMap, cancellationToken);
+                WriteMatchers(writer, typeMap, cancellationToken);
                 writer.WriteLine();
 
                 writer.WriteLine("if (this.IgnoreUnmatched)");
@@ -65,7 +65,7 @@ partial class TypeMapGenerator
                 writer.WriteLine("base.ThrowNoFieldsBound(headers);");
             }
 
-            WriteRequiredCheck(in typeMap, writer);
+            WriteRequiredCheck(typeMap, writer);
 
             writer.WriteLine();
             writer.WriteLine("return materializer;");
@@ -81,7 +81,7 @@ partial class TypeMapGenerator
         {
             if (typeMap.IndexesForReading.Length != 0)
             {
-                WriteReadingIndexes(writer, in typeMap, cancellationToken);
+                WriteReadingIndexes(writer, typeMap, cancellationToken);
             }
             else
             {
@@ -93,7 +93,7 @@ partial class TypeMapGenerator
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        WriteMissingRequiredFields(in typeMap, writer);
+        WriteMissingRequiredFields(typeMap, writer);
 
         writer.WriteLine();
         writer.WriteLine("private struct ParseState");
@@ -166,7 +166,7 @@ partial class TypeMapGenerator
                     """
                 );
 
-                WriteDefaultParameterValues(writer, in typeMap, cancellationToken, out bool hasOptionalParameters);
+                WriteDefaultParameterValues(writer, typeMap, cancellationToken, out bool hasOptionalParameters);
 
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
@@ -215,7 +215,7 @@ partial class TypeMapGenerator
 
                 writer.Write($"{typeToWrite} obj = new {typeToWrite}");
 
-                WriteSetters(writer, in typeMap, cancellationToken);
+                WriteSetters(writer, typeMap, cancellationToken);
 
                 writer.WriteLine("return obj;");
             }
@@ -255,7 +255,7 @@ partial class TypeMapGenerator
 
     private static void WriteDefaultParameterValues(
         IndentedTextWriter writer,
-        ref readonly TypeMapModel typeMap,
+        TypeMapModel typeMap,
         CancellationToken cancellationToken,
         out bool hasOptionalParameters
     )
@@ -299,7 +299,7 @@ partial class TypeMapGenerator
 
     private static void WriteSetters(
         IndentedTextWriter writer,
-        ref readonly TypeMapModel typeMap,
+        TypeMapModel typeMap,
         CancellationToken cancellationToken
     )
     {
@@ -385,7 +385,7 @@ partial class TypeMapGenerator
         }
     }
 
-    private static void WriteRequiredCheck(ref readonly TypeMapModel typeMap, IndentedTextWriter writer)
+    private static void WriteRequiredCheck(TypeMapModel typeMap, IndentedTextWriter writer)
     {
         if (!typeMap.HasRequiredMembers)
         {
@@ -414,7 +414,7 @@ partial class TypeMapGenerator
         }
     }
 
-    private static void WriteMissingRequiredFields(ref readonly TypeMapModel typeMap, IndentedTextWriter writer)
+    private static void WriteMissingRequiredFields(TypeMapModel typeMap, IndentedTextWriter writer)
     {
         if (!typeMap.HasRequiredMembers)
             return;
@@ -437,7 +437,7 @@ partial class TypeMapGenerator
 
     private static void WriteMatchers(
         IndentedTextWriter writer,
-        ref readonly TypeMapModel typeMap,
+        TypeMapModel typeMap,
         CancellationToken cancellationToken
     )
     {

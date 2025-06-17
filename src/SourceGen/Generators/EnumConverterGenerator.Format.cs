@@ -6,7 +6,7 @@ namespace FlameCsv.SourceGen.Generators;
 partial class EnumConverterGenerator
 {
     private static void WriteFormatMethod(
-        ref readonly EnumModel model,
+        EnumModel model,
         bool numbers,
         IndentedTextWriter writer,
         CancellationToken cancellationToken
@@ -85,7 +85,7 @@ partial class EnumConverterGenerator
                 {
                     WriteFormatMatch(
                         writer,
-                        in model,
+                        model,
                         cancellationToken,
                         numericValues,
                         static value => value.Value.ToString(),
@@ -114,7 +114,7 @@ partial class EnumConverterGenerator
 
             WriteFormatMatch(
                 writer,
-                in model,
+                model,
                 cancellationToken,
                 model.Values.DistinctBy(x => x.Value),
                 static value => value.DisplayName,
@@ -125,7 +125,7 @@ partial class EnumConverterGenerator
 
     private static void WriteFormatMatch(
         IndentedTextWriter writer,
-        ref readonly EnumModel model,
+        EnumModel model,
         CancellationToken cancellationToken,
         IEnumerable<EnumValueModel> values,
         Func<EnumValueModel, string> getValue,
@@ -147,7 +147,7 @@ partial class EnumConverterGenerator
             {
                 string formattedValue = getValue(value);
 
-                if (TryWriteDirectFormat(writer, in model, cancellationToken, formattedValue, skipLengthCheck))
+                if (TryWriteDirectFormat(writer, model, cancellationToken, formattedValue, skipLengthCheck))
                 {
                     continue;
                 }
@@ -182,7 +182,7 @@ partial class EnumConverterGenerator
 
     private static bool TryWriteDirectFormat(
         IndentedTextWriter writer,
-        ref readonly EnumModel model,
+        EnumModel model,
         CancellationToken cancellationToken,
         string value,
         bool skipLengthCheck
@@ -229,7 +229,7 @@ partial class EnumConverterGenerator
                 // so write the unaligned writes directly
                 if (remaining >= 2)
                 {
-                    (int size, string type) = GetTypeAndSize(remaining, in model);
+                    (int size, string type) = GetTypeAndSize(remaining, model);
 
                     if (model.TokenType.IsByte())
                     {
@@ -275,7 +275,7 @@ partial class EnumConverterGenerator
     }
 
     private static void WriteFlagsFormat(
-        ref readonly EnumModel model,
+        EnumModel model,
         IndentedTextWriter writer,
         CancellationToken cancellationToken
     )
@@ -299,7 +299,7 @@ partial class EnumConverterGenerator
         writer.DecreaseIndent();
     }
 
-    private static (int size, string type) GetTypeAndSize(int remaining, ref readonly EnumModel model)
+    private static (int size, string type) GetTypeAndSize(int remaining, EnumModel model)
     {
         bool isByte = model.TokenType.IsByte();
 

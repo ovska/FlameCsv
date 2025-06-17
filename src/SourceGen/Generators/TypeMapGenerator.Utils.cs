@@ -6,7 +6,7 @@ namespace FlameCsv.SourceGen.Generators;
 
 partial class TypeMapGenerator
 {
-    internal static void WriteConverter(IndentedTextWriter writer, string token, IMemberModel member)
+    public static void WriteConverter(IndentedTextWriter writer, string token, IMemberModel member)
     {
         if (member.IsIgnored)
         {
@@ -84,7 +84,7 @@ partial class TypeMapGenerator
         }
     }
 
-    private static void WriteDefaultInstance(IndentedTextWriter writer, ref readonly TypeMapModel typeMap)
+    private static void WriteDefaultInstance(IndentedTextWriter writer, TypeMapModel typeMap)
     {
         writer.WriteLine("/// <summary>");
         writer.WriteLine("/// Returns a thread-safe instance of the typemap with default options.");

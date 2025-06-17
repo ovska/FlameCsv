@@ -10,6 +10,14 @@ namespace FlameCsv.SourceGen.Utilities;
 
 internal static class Extensions
 {
+    public static void ReportDiagnostics(in this SourceProductionContext context, Diagnostic[] diagnostics)
+    {
+        foreach (var diagnostic in diagnostics)
+        {
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+
     public static EquatableArray<IMemberModel>.WhereEnumerable Writable(in this EquatableArray<IMemberModel> members)
     {
         return members.Where(m => m.IsFormattable);

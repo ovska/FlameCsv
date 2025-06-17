@@ -3,7 +3,7 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMemberModel
+internal record PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
     /// Property/field name, including a possible interface name, e.g. "ISomething_Prop"
@@ -191,7 +191,7 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
         };
     }
 
-    public bool Equals(IMemberModel? other) => other is PropertyModel model && Equals(model);
+    public bool Equals(IMemberModel? other) => Equals(other as PropertyModel);
 
     internal static bool IsValid(ISymbol symbol)
     {
