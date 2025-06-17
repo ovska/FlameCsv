@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace FlameCsv.Extensions;
 
@@ -23,5 +25,44 @@ internal static class WriteExtensions
 
         tokensWritten = 0;
         return false;
+    }
+
+    public static bool TryTranscodeTo<T>(this ReadOnlySpan<T> value, Span<char> buffer, out int charsWritten)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(char))
+        {
+            if (value.TryCopyTo(MemoryMarshal.Cast<char, T>(buffer)))
+            {
+                charsWritten = value.Length;
+                return true;
+            }
+
+            charsWritten = 0;
+            return false;
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return Encoding.UTF8.TryGetChars(MemoryMarshal.AsBytes(value), buffer, out charsWritten);
+        }
+
+        throw Token<T>.NotSupported;
+    }
+
+    public static string TranscodeToString<T>(this ReadOnlySpan<T> value)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(char))
+        {
+            return value.ToString();
+        }
+
+        if (typeof(T) == typeof(byte))
+        {
+            return Encoding.UTF8.GetString(MemoryMarshal.AsBytes(value));
+        }
+
+        throw Token<T>.NotSupported;
     }
 }

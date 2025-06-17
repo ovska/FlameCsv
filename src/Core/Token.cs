@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
@@ -22,5 +23,16 @@ internal static class Token<T>
         return (uint)length <= threshold;
     }
 
-    public static NotSupportedException NotSupported => new($"Token type {typeof(T).Name} is not supported.");
+    public static NotSupportedException NotSupported
+    {
+        get
+        {
+            Debug.Assert(
+                typeof(T) != typeof(char) && typeof(T) != typeof(byte),
+                "Token<T>.NotSupported should not be called for char or byte tokens."
+            );
+
+            return new($"Token type {typeof(T).Name} is not supported.");
+        }
+    }
 }

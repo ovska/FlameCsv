@@ -52,19 +52,18 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     /// <param name="buffer">A buffer to write the characters to.</param>
     /// <returns>
     /// A string representation of the value.
-    /// The header values are pooled if they fit in the buffer using <see cref="CsvOptions{T}.TryGetChars"/>,
-    /// and the options-type is not inherited.
-    /// Otherwise, it is converted to a string using <see cref="CsvOptions{T}.GetAsString"/>.
+    /// The value is pooled in <see cref="HeaderPool"/> if the chars fit in the buffer.
     /// </returns>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     public static string Get<T>(scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (CsvOptions<T>.TryGetChars(value, buffer, out int length))
+        if (Transcode.TryToChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }
 
-        return CsvOptions<T>.GetAsString(value);
+        return Transcode.ToString(value);
     }
 
     /// <summary>
