@@ -1,20 +1,17 @@
-﻿using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal readonly record struct EnumModel
+internal record EnumModel
 {
     public static bool TryGet(
         ISymbol converterSymbol,
         AttributeData attributeData,
         CancellationToken cancellationToken,
-        out EquatableArray<Diagnostic> diagnostics,
-        out EnumModel model
+        out Diagnostic[] diagnostics,
+        [NotNullWhen(true)] out EnumModel? model
     )
     {
         List<Diagnostic> diagList = PooledList<Diagnostic>.Acquire();
@@ -49,13 +46,15 @@ internal readonly record struct EnumModel
 
             if (diagList.Count == 0)
             {
-                diagnostics = diagList.ToEquatableArrayAndFree();
+                diagnostics = [];
+                PooledList<Diagnostic>.Release(diagList);
                 return true;
             }
         }
 
-        model = default;
-        diagnostics = diagList.ToEquatableArrayAndFree();
+        model = null;
+        diagnostics = [.. diagList];
+        PooledList<Diagnostic>.Release(diagList);
         return false;
     }
 

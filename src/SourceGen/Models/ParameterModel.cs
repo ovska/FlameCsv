@@ -4,7 +4,7 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal readonly record struct ParameterModel : IComparable<ParameterModel>, IMemberModel
+internal record ParameterModel : IComparable<ParameterModel>, IMemberModel
 {
     /// <summary>
     /// 0-based index of the parameter in the constructor.
@@ -161,9 +161,9 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
         return models.ToEquatableArrayAndFree();
     }
 
-    // this does not use Order as the parameters need to be in order
-    // IMemberModels are sorted with order
+    // this does not use Order as the parameters need to be in order they are in the constructor
+    // IMemberModels are sorted with user configured Order
     public int CompareTo(ParameterModel other) => ParameterIndex.CompareTo(other.ParameterIndex);
 
-    public bool Equals(IMemberModel? other) => other is ParameterModel model && Equals(model);
+    public bool Equals(IMemberModel? other) => Equals(other as ParameterModel);
 }

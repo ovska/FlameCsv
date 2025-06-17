@@ -2,7 +2,8 @@
 
 namespace FlameCsv.SourceGen.Models;
 
-internal readonly record struct ConverterModel
+// this is a class as it should be relatively rare, and would needlessly take space in other large structs
+internal record ConverterModel
 {
     /// <summary>
     /// Returns a converter override, or null.

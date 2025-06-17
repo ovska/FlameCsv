@@ -313,7 +313,7 @@ public class ModelTests(MetadataFixture fixture)
 
                 if (model is not null)
                 {
-                    list.Add(model.Value);
+                    list.Add(model);
                 }
             }
 
@@ -413,7 +413,7 @@ public class ModelTests(MetadataFixture fixture)
             }
 
             Assert.NotNull(model);
-            models.Add(model.Value);
+            models.Add(model);
         }
 
         Assert.Equal(6, models.Count);
@@ -710,7 +710,7 @@ public class ModelTests(MetadataFixture fixture)
         {
             var model = PropertyModel.TryCreate(property, in symbols, ref collector);
             Assert.NotNull(model);
-            models.Add(model.Value);
+            models.Add(model);
         }
 
         IEnumerable<(string nameof, BuiltinConvertable status)> expected =

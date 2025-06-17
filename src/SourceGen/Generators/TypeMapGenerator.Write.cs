@@ -7,7 +7,7 @@ partial class TypeMapGenerator
 {
     private static void GetWriteCode(
         IndentedTextWriter writer,
-        ref readonly TypeMapModel typeMap,
+        TypeMapModel typeMap,
         CancellationToken cancellationToken
     )
     {
@@ -15,7 +15,7 @@ partial class TypeMapGenerator
 
         writer.WriteLine();
 
-        WriteDematerializerCtor(writer, in typeMap, out int writableCount);
+        WriteDematerializerCtor(writer, typeMap, out int writableCount);
 
         writer.WriteLine();
 
