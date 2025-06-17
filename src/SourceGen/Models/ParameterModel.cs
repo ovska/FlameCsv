@@ -80,8 +80,8 @@ internal readonly record struct ParameterModel : IComparable<ParameterModel>, IM
     /// </summary>
     public bool IsRequired => IsRequiredByAttribute || !HasDefaultValue;
 
-    bool IMemberModel.CanRead => !IsIgnored;
-    bool IMemberModel.CanWrite => false;
+    bool IMemberModel.IsParsable => !IsIgnored;
+    bool IMemberModel.IsFormattable => false;
     TypeRef IMemberModel.Type => ParameterType;
     ModelKind IMemberModel.Kind => ModelKind.Parameter;
 

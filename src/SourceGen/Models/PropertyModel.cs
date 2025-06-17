@@ -49,12 +49,12 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
     /// <summary>
     /// If this member can be used when reading CSV, i.e., value can be written to the object.
     /// </summary>
-    public required bool CanRead { get; init; }
+    public required bool IsParsable { get; init; }
 
     /// <summary>
     /// If this member can be used when writing CSV, i.e., value can be read from the object.
     /// </summary>
-    public required bool CanWrite { get; init; }
+    public required bool IsFormattable { get; init; }
 
     /// <summary>
     /// List of strings to match this member for. If empty, <see cref="HeaderName"/> should be used.
@@ -144,14 +144,12 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             HeaderName = explicitPropertyOriginalName ?? propertySymbol.Name,
             IsProperty = true,
             IsIgnored = meta.IsIgnored,
-            IsRequired =
-                meta.IsRequired || propertySymbol.IsRequired || propertySymbol.SetMethod is { IsInitOnly: true },
-            // ^ should this use the interface's SetMethod ?
+            IsRequired = meta.IsRequired || propertySymbol.IsRequired || setMethod is { IsInitOnly: true },
             Aliases = meta.Aliases,
             Order = meta.Order,
             Index = meta.Index,
-            CanRead = !propertySymbol.IsReadOnly && !meta.IsIgnored && IsVisible(setMethod),
-            CanWrite = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true && IsVisible(getMethod),
+            IsParsable = !propertySymbol.IsReadOnly && !meta.IsIgnored && IsVisible(setMethod),
+            IsFormattable = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true && IsVisible(getMethod),
             OverriddenConverter = ConverterModel.Create(propertySymbol, propertySymbol.Type, in symbols, ref collector),
             ExplicitInterfaceOriginalDefinitionName = explicitInterface?.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
@@ -185,8 +183,8 @@ internal readonly record struct PropertyModel : IComparable<PropertyModel>, IMem
             Aliases = meta.Aliases,
             Order = meta.Order,
             Index = meta.Index,
-            CanRead = !fieldSymbol.IsReadOnly && !meta.IsIgnored,
-            CanWrite = meta.IsIgnored is not true,
+            IsParsable = !fieldSymbol.IsReadOnly && !meta.IsIgnored,
+            IsFormattable = meta.IsIgnored is not true,
             ExplicitInterfaceOriginalDefinitionName = null,
             Convertability = fieldSymbol.Type.GetBuiltinConvertability(in symbols),
             OverriddenConverter = ConverterModel.Create(fieldSymbol, fieldSymbol.Type, in symbols, ref collector),

@@ -33,7 +33,7 @@ internal static class IndexBindingModel
             {
                 if (member.Index is not { } index)
                     continue;
-                if (write ? !member.CanWrite : !member.CanRead)
+                if (write ? !member.IsFormattable : !member.IsParsable)
                     continue;
 
                 dict ??= MemberDictPool.Acquire();

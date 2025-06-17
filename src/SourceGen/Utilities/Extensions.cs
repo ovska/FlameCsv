@@ -12,12 +12,12 @@ internal static class Extensions
 {
     public static EquatableArray<IMemberModel>.WhereEnumerable Writable(in this EquatableArray<IMemberModel> members)
     {
-        return members.Where(m => m.CanWrite);
+        return members.Where(m => m.IsFormattable);
     }
 
     public static EquatableArray<IMemberModel>.WhereEnumerable Readable(in this EquatableArray<IMemberModel> members)
     {
-        return members.Where(m => m.CanRead);
+        return members.Where(m => m.IsParsable);
     }
 
     public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)

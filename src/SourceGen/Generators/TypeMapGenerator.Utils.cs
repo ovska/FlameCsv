@@ -172,7 +172,7 @@ partial class TypeMapGenerator
                 dict[ignored] = null;
             }
 
-            Func<IMemberModel, bool> predicate = write ? m => m.CanWrite : m => m.CanRead;
+            Func<IMemberModel, bool> predicate = write ? m => m.IsFormattable : m => m.IsParsable;
 
             foreach (var member in model.AllMembers.Where(predicate))
             {
