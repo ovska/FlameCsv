@@ -12,9 +12,7 @@ namespace FlameCsv.Reflection;
 
 internal static class AttributeConfiguration
 {
-    internal static readonly TrimmingCache<Type, HeaderDataEntry> Cache = FlameCsvGlobalOptions.CachingDisabled
-        ? null!
-        : [];
+    internal static readonly TrimmingCache<Type, HeaderDataEntry> Cache = [];
 
     internal sealed class HeaderData(List<BindingData> candidates, ImmutableArray<int> ignoredIndexes)
     {
@@ -43,17 +41,14 @@ internal static class AttributeConfiguration
     [RDC(Messages.Reflection)]
     public static HeaderData GetFor<[DAM(Messages.ReflectionBound)] TValue>(bool write)
     {
-        if (FlameCsvGlobalOptions.CachingDisabled || !Cache.TryGetValue(typeof(TValue), out var entry))
+        if (!Cache.TryGetValue(typeof(TValue), out var entry))
         {
             entry = new HeaderDataEntry(
                 read: static () => Create(CsvTypeInfo<TValue>.Value.ProxyOrSelf, write: false),
                 write: static () => Create(CsvTypeInfo<TValue>.Value, write: true)
             );
 
-            if (!FlameCsvGlobalOptions.CachingDisabled)
-            {
-                Cache.Add(typeof(TValue), entry);
-            }
+            Cache.Add(typeof(TValue), entry);
         }
 
         return write ? entry.Write : entry.Read;

@@ -107,14 +107,6 @@ public static partial class TypeMapBindingTests
             TypeMap.Default.GetMaterializer(["id", "name"], CsvOptions<char>.Default),
             TypeMap.Default.GetMaterializer(["name", "id"], CsvOptions<char>.Default)
         );
-
-        var noCache = new TypeMap { NoCaching = true };
-
-        // type map configured to not cache
-        Assert.NotSame(
-            noCache.GetMaterializer(header, CsvOptions<char>.Default),
-            noCache.GetMaterializer(header, CsvOptions<char>.Default)
-        );
     }
 
     private static void AssertItems(List<Obj> items)

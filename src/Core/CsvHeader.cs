@@ -20,13 +20,9 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     /// <summary>
     /// Contains the string pool for header values.
     /// </summary>
-    /// <remarks>
-    /// Will be null <see cref="FlameCsvGlobalOptions.CachingDisabled"/> is set to <c>true</c>.
-    /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [CLSCompliant(false)]
-    public static StringPool? HeaderPool { get; } =
-        FlameCsvGlobalOptions.CachingDisabled ? null : new StringPool(minimumSize: 128);
+    public static StringPool HeaderPool { get; } = new StringPool(minimumSize: 128);
 
     internal static ImmutableArray<string> Parse<T>(ref readonly CsvSlice<T> slice)
         where T : unmanaged, IBinaryInteger<T>
@@ -63,7 +59,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     public static string Get<T>(scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (HeaderPool is not null && CsvOptions<T>.TryGetChars(value, buffer, out int length))
+        if (CsvOptions<T>.TryGetChars(value, buffer, out int length))
         {
             return HeaderPool.GetOrAdd(buffer.Slice(0, length));
         }

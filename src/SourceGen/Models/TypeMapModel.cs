@@ -60,11 +60,6 @@ internal readonly record struct TypeMapModel
     public bool ThrowOnDuplicate { get; }
 
     /// <summary>
-    /// Whether to disable caching by default.
-    /// </summary>
-    public bool NoCaching { get; }
-
-    /// <summary>
     /// Whether to scan for assembly attributes.
     /// </summary>
     public bool SupportsAssemblyAttributes { get; }
@@ -139,10 +134,6 @@ internal readonly record struct TypeMapModel
             else if (kvp.Key == "ThrowOnDuplicate")
             {
                 ThrowOnDuplicate = kvp.Value.Value is true;
-            }
-            else if (kvp.Key == "NoCaching")
-            {
-                NoCaching = kvp.Value.Value is true;
             }
             else if (kvp.Key == "SupportsAssemblyAttributes")
             {
