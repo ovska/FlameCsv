@@ -48,6 +48,21 @@ public class CsvOptionsTests
         Run(o => o.Newline = (CsvNewline)byte.MaxValue);
         Run(o => o.Trimming = (CsvFieldTrimming)byte.MaxValue);
 
+        // enum sep
+        Run(o => o.EnumFlagsSeparator = '\0'); // null
+        Run(o => o.EnumFlagsSeparator = ' '); // whitespace
+        Run(o => o.EnumFlagsSeparator = '-'); // minus
+        Run(o => o.EnumFlagsSeparator = '\r'); // CR
+        Run(o => o.EnumFlagsSeparator = '\n'); // LF
+        Run(o => o.EnumFlagsSeparator = '1'); // digit
+        Run(o => o.EnumFlagsSeparator = 'a'); // letter
+        Run(o => o.EnumFlagsSeparator = 'A'); // letter
+        Run(o => o.EnumFlagsSeparator = '\ud800'); // high surrogate
+        Run(o => o.EnumFlagsSeparator = '\udc00'); // low surrogate
+
+        // bytes need ascii
+        Assert.ThrowsAny<ArgumentException>(() => new CsvOptions<byte> { EnumFlagsSeparator = 'ä' });
+
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Delimiter = '"' }.Validate());
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Quote = ',' }.Validate());
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Escape = '"' }.Validate());

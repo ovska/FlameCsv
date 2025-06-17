@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using FlameCsv.Converters.Enums;
 using FlameCsv.Extensions;
 
 namespace FlameCsv;
@@ -8,8 +9,6 @@ public partial class CsvOptions<T>
 {
     private string? _enumFormat;
     private char _enumFlagsSeparator = ',';
-    private bool _ignoreEnumCase = true;
-    private bool _allowUndefinedEnumValues;
 
     /// <summary>
     /// The default format for enums, used if enum's format is not defined in <see cref="Formats"/>.
@@ -37,8 +36,12 @@ public partial class CsvOptions<T>
     /// </remarks>
     public bool AllowUndefinedEnumValues
     {
-        get => _allowUndefinedEnumValues;
-        set => this.SetValue(ref _allowUndefinedEnumValues, value);
+        get => (_config & Config.AllowUndefinedEnums) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.AllowUndefinedEnums, value);
+        }
     }
 
     /// <summary>
@@ -46,8 +49,12 @@ public partial class CsvOptions<T>
     /// </summary>
     public bool IgnoreEnumCase
     {
-        get => _ignoreEnumCase;
-        set => this.SetValue(ref _ignoreEnumCase, value);
+        get => (_config & Config.IgnoreEnumCase) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.IgnoreEnumCase, value);
+        }
     }
 
     /// <summary>
@@ -75,7 +82,7 @@ public partial class CsvOptions<T>
                 Throw.Argument(nameof(value), "Surrogate characters are not allowed as enum separators.");
             }
 
-            if (value is ' ' or '-' || char.IsAsciiDigit(value) || char.IsAsciiLetter(value))
+            if (value is ' ' or '-' or '\r' or '\n' || char.IsAsciiDigit(value) || char.IsAsciiLetter(value))
             {
                 Throw.Argument(
                     nameof(value),

@@ -2,9 +2,9 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
+using FlameCsv.Converters.Enums;
 using FlameCsv.Extensions;
 using FlameCsv.IO.Internal;
 using FlameCsv.Utilities;
@@ -76,9 +76,9 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     {
         ArgumentNullException.ThrowIfNull(other);
 
+        _config = other._config;
+
         _recordCallback = other._recordCallback;
-        _hasHeader = other._hasHeader;
-        _validateFieldCount = other._validateFieldCount;
         _fieldQuoting = other._fieldQuoting;
         _memoryPool = other._memoryPool;
         _booleanValues = other._booleanValues;
@@ -87,12 +87,9 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         _formats = other._formats?.Clone();
         _styles = other._styles?.Clone();
         _comparer = other._comparer;
-        _useDefaultConverters = other._useDefaultConverters;
 
         _enumFormat = other._enumFormat;
         _enumFlagsSeparator = other._enumFlagsSeparator;
-        _ignoreEnumCase = other._ignoreEnumCase;
-        _allowUndefinedEnumValues = other._allowUndefinedEnumValues;
 
         _typeBinder = other._typeBinder;
         _null = other._null;
@@ -202,13 +199,12 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         return _styles.TryGetExt(resultType, defaultValue);
     }
 
+    private Config _config = Config.HasHeader | Config.UseDefaultConverters | Config.IgnoreEnumCase;
+
     private CsvRecordCallback<T>? _recordCallback;
-    private bool _hasHeader = true;
-    private bool _validateFieldCount;
     private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
     private MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private SealableList<(string, bool)>? _booleanValues;
-    private bool _useDefaultConverters = true;
     private ICsvTypeBinder<T>? _typeBinder;
 
     private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
@@ -312,8 +308,12 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public bool HasHeader
     {
-        get => _hasHeader;
-        set => this.SetValue(ref _hasHeader, value);
+        get => (_config & Config.HasHeader) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.HasHeader, value);
+        }
     }
 
     /// <summary>
@@ -336,8 +336,12 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public bool ValidateFieldCount
     {
-        get => _validateFieldCount;
-        set => this.SetValue(ref _validateFieldCount, value);
+        get => (_config & Config.ValidateFieldCount) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.ValidateFieldCount, value);
+        }
     }
 
     /// <summary>
@@ -361,8 +365,12 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </remarks>
     public bool UseDefaultConverters
     {
-        get => _useDefaultConverters;
-        set => this.SetValue(ref _useDefaultConverters, value);
+        get => (_config & Config.UseDefaultConverters) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.UseDefaultConverters, value);
+        }
     }
 
     /// <summary>
@@ -401,6 +409,16 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
     internal MemoryPool<T> Allocator => _memoryPool;
+
+    [Flags]
+    private enum Config : byte
+    {
+        HasHeader = 1 << 0,
+        ValidateFieldCount = 1 << 1,
+        UseDefaultConverters = 1 << 2,
+        IgnoreEnumCase = 1 << 3,
+        AllowUndefinedEnums = 1 << 4,
+    }
 }
 
 file static class TypeDictExtensions
