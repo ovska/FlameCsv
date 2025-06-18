@@ -73,22 +73,20 @@ internal static class BuiltinConvertableExtensions
 
         foreach (var iface in type.AllInterfaces)
         {
-            if (iface.IsGenericType && iface.TypeArguments.Length == 1)
+            if (iface.IsGenericType)
             {
+                if (iface.TypeArguments is not [var typeArg] || !SymbolEqualityComparer.Default.Equals(type, typeArg))
+                {
+                    continue;
+                }
+
                 var unbound = iface.ConstructUnboundGenericType();
 
-                if (
-                    isByte
-                    && symbols.IsIUtf8SpanParsable(unbound)
-                    && SymbolEqualityComparer.Default.Equals(type, iface.TypeArguments[0])
-                )
+                if (isByte && symbols.IsIUtf8SpanParsable(unbound))
                 {
                     result |= BuiltinConvertable.Utf8Parsable;
                 }
-                else if (
-                    symbols.IsISpanParsable(unbound)
-                    && SymbolEqualityComparer.Default.Equals(type, iface.TypeArguments[0])
-                )
+                else if (symbols.IsISpanParsable(unbound))
                 {
                     result |= BuiltinConvertable.Parsable;
                 }

@@ -35,6 +35,16 @@ public static class CsvBindingTests
     private record RecordTest(int Id, string Name);
 
     [Fact]
+    public static void Should_Require_One_Match()
+    {
+        Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvOptions<char> { IgnoreUnmatchedHeaders = true }.TypeBinder.GetMaterializer<RecordTest>(
+                ["a", "b", "c"]
+            )
+        );
+    }
+
+    [Fact]
     public static void Should_Throw_On_Duplicate_Headers()
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
@@ -47,7 +57,7 @@ public static class CsvBindingTests
             ["Id", "Id", "Name"]
         );
 
-        var record = new ConstantRecord("1", "2", "Test");
+        var record = new ConstantRecord("!unparsable!", "2", "Test"); // only the bound one is actually parsed
         Assert.Equal(new RecordTest(2, "Test"), valid.Parse(ref record)); // The last one wins
     }
 
