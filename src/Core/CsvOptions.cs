@@ -138,7 +138,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// <seealso cref="CsvTypeMapAttribute{T,TValue}"/>
     public ICsvTypeBinder<T> TypeBinder
     {
-        get => _typeBinder ??= new CsvReflectionBinder<T>(this, ignoreUnmatched: false); // lazy initialization
+        get => _typeBinder ??= new CsvReflectionBinder<T>(this);
         set
         {
             ArgumentNullException.ThrowIfNull(value);
@@ -374,6 +374,35 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
+    /// Whether to ignore headers that cannot be matched to any property, field, or constructor parameter.
+    /// Default is <c>false</c>, which throws an exception if an unrecognized header field is encountered.
+    /// </summary>
+    public bool IgnoreUnmatchedHeaders
+    {
+        get => (_config & Config.IgnoreUnmatchedHeaders) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.IgnoreUnmatchedHeaders, value);
+        }
+    }
+
+    /// <summary>
+    /// Whether to ignore CSV headers that match to the same property, field, or constructor parameter
+    /// as another header. If <c>true</c>, only the first member that matches a header is used.
+    /// Default is <c>false</c>, which throws an exception if a duplicate header is encountered.
+    /// </summary>
+    public bool IgnoreDuplicateHeaders
+    {
+        get => (_config & Config.IgnoreDuplicateHeaders) != 0;
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.IgnoreDuplicateHeaders, value);
+        }
+    }
+
+    /// <summary>
     /// Pool used to create reusable buffers when reading multisegment data, or unescaping large fields.
     /// Default value is <see cref="MemoryPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always heap allocate.
@@ -418,6 +447,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         UseDefaultConverters = 1 << 2,
         IgnoreEnumCase = 1 << 3,
         AllowUndefinedEnums = 1 << 4,
+        IgnoreUnmatchedHeaders = 1 << 5,
+        IgnoreDuplicateHeaders = 1 << 6,
     }
 }
 

@@ -89,27 +89,9 @@ partial class TypeMapGenerator
         writer.WriteLine("/// <summary>");
         writer.WriteLine("/// Returns a thread-safe instance of the typemap with default options.");
         writer.WriteLine("/// </summary>");
-
-        writer.WriteLine("/// <remarks>");
-        writer.Write("/// Unmatched headers ");
-        writer.Write(typeMap.IgnoreUnmatched ? "are ignored." : "cause an exception.");
-        writer.WriteLine("<br/>");
-        writer.Write("/// Duplicate headers ");
-        writer.Write(typeMap.ThrowOnDuplicate ? "cause an exception." : "are ignored.");
-        writer.WriteLine("<br/>");
-        writer.WriteLine("/// </remarks>");
-
         writer.WriteLine(
-            $"public static {typeMap.TypeMap.FullyQualifiedName} Default {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}()"
+            $"public static {typeMap.TypeMap.FullyQualifiedName} Default {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}();"
         );
-        writer.WriteLine("{");
-        writer.IncreaseIndent();
-        writer.Write("IgnoreUnmatched = ");
-        writer.WriteLine(typeMap.IgnoreUnmatched ? "true," : "false,");
-        writer.Write("ThrowOnDuplicate = ");
-        writer.WriteLine(typeMap.ThrowOnDuplicate ? "true," : "false,");
-        writer.DecreaseIndent();
-        writer.WriteLine("};");
         writer.WriteLine();
     }
 

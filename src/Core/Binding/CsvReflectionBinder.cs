@@ -18,8 +18,7 @@ public abstract class CsvReflectionBinder
     [RDC(Messages.Reflection)]
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, [DAM(Messages.ReflectionBound)] TValue>(
         CsvOptions<T> options,
-        ImmutableArray<string> headerFields,
-        bool ignoreUnmatched
+        ImmutableArray<string> headerFields
     )
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -54,7 +53,7 @@ public abstract class CsvReflectionBinder
                 }
             }
 
-            if (binding is null && !ignoreUnmatched)
+            if (binding is null && !options.IgnoreUnmatchedHeaders)
             {
                 throw new CsvBindingException(
                     $"Could not bind header '{field}' at index {index} to type {typeof(TValue).FullName}"
@@ -79,7 +78,7 @@ public abstract class CsvReflectionBinder
             };
         }
 
-        return new CsvBindingCollection<TValue>(foundBindings, write: false);
+        return new CsvBindingCollection<TValue>(foundBindings, write: false, options.IgnoreDuplicateHeaders);
     }
 
     [RUF(Messages.Reflection)]
@@ -93,10 +92,10 @@ public abstract class CsvReflectionBinder
 
         if (options.HasHeader)
         {
-            bindingCollection = GetWriteHeaders<T, TValue>();
+            bindingCollection = GetWriteHeaders<T, TValue>(options);
         }
         else if (
-            !MaterializerExtensions.TryGetTupleBindings<T, TValue>(write: true, out bindingCollection)
+            !MaterializerExtensions.TryGetTupleBindings<T, TValue>(options, write: true, out bindingCollection)
             && !IndexAttributeBinder<TValue>.TryGetBindings(write: true, out bindingCollection)
         )
         {
@@ -129,7 +128,9 @@ public abstract class CsvReflectionBinder
     }
 
     [RDC(Messages.Reflection)]
-    private static CsvBindingCollection<TValue> GetWriteHeaders<T, [DAM(Messages.ReflectionBound)] TValue>()
+    private static CsvBindingCollection<TValue> GetWriteHeaders<T, [DAM(Messages.ReflectionBound)] TValue>(
+        CsvOptions<T> options
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         var candidates = AttributeConfiguration.GetFor<TValue>(write: true).Value;
@@ -146,7 +147,7 @@ public abstract class CsvReflectionBinder
                 result.Add(CsvBinding.FromBindingData<TValue>(index++, in candidate));
         }
 
-        return new CsvBindingCollection<TValue>(result, write: true);
+        return new CsvBindingCollection<TValue>(result, write: true, ignoreDuplicates: options.IgnoreDuplicateHeaders);
     }
 }
 
@@ -157,21 +158,15 @@ public abstract class CsvReflectionBinder
 public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    /// <summary>
-    /// Fields that could not be matched are ignored.
-    /// </summary>
-    public bool IgnoreUnmatched { get; }
-
     private readonly CsvOptions<T> _options;
 
     /// <summary>
     /// Creates an instance of <see cref="CsvReflectionBinder{T}"/>.
     /// </summary>
-    public CsvReflectionBinder(CsvOptions<T> options, bool ignoreUnmatched)
+    public CsvReflectionBinder(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         _options = options;
-        IgnoreUnmatched = ignoreUnmatched;
     }
 
     /// <inheritdoc />
@@ -188,10 +183,9 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
 
         return _options.GetMaterializer(
             headers,
-            IgnoreUnmatched,
-            static (options, headers, ignoreUnmatched) =>
+            static (options, headers) =>
             {
-                var bindings = GetReadBindings<T, TValue>(options, headers, ignoreUnmatched);
+                var bindings = GetReadBindings<T, TValue>(options, headers);
                 return options.CreateMaterializerFrom(bindings);
             }
         );
@@ -205,11 +199,7 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
     [RDC(Messages.DynamicCode)]
     public IMaterializer<T, TValue> GetMaterializer<[DAM(Messages.ReflectionBound)] TValue>()
     {
-        return _options.GetMaterializer(
-            [],
-            false,
-            static (options, _, _) => options.GetMaterializerNoHeader<T, TValue>()
-        );
+        return _options.GetMaterializer([], static (options, _) => options.GetMaterializerNoHeader<T, TValue>());
     }
 
     /// <inheritoc />

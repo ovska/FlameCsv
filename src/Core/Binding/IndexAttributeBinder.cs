@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Reflection;
 
@@ -9,7 +10,6 @@ namespace FlameCsv.Binding;
 internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValue>
 {
     private static readonly Lazy<CsvBindingCollection<TValue>?> _read = new(() => CreateBindingCollection(false));
-
     private static readonly Lazy<CsvBindingCollection<TValue>?> _write = new(() => CreateBindingCollection(true));
 
     public static bool TryGetBindings(bool write, [NotNullWhen(true)] out CsvBindingCollection<TValue>? bindings)
@@ -17,6 +17,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         return (bindings = (write ? _write : _read).Value) is not null;
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static CsvBindingCollection<TValue>? CreateBindingCollection(bool write)
     {
         List<CsvBinding<TValue>> list = [];
@@ -26,7 +27,9 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
         foreach (var data in configuration.Value)
         {
             if (data.Index is not { } index)
+            {
                 continue;
+            }
 
             if (data.Ignored)
             {
@@ -42,7 +45,10 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
             list.Add(new IgnoredCsvBinding<TValue>(index));
         }
 
-        return list.Count > 0 ? new CsvBindingCollection<TValue>(FixGaps(list, write), write) : null;
+        // duplicate handling is only for headers
+        return list.Count > 0
+            ? new CsvBindingCollection<TValue>(FixGaps(list, write), write, ignoreDuplicates: false)
+            : null;
     }
 
     private static IEnumerable<CsvBinding<TValue>> FixGaps(List<CsvBinding<TValue>> allBindings, bool write)
@@ -87,6 +93,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                 };
             }
 
+            // what is this doing?
             if (!write)
             {
                 CsvBinding<TValue>? parameter = null;

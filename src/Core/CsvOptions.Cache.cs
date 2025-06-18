@@ -32,18 +32,17 @@ public partial class CsvOptions<T>
 
     internal IMaterializer<T, TValue> GetMaterializer<TValue>(
         ImmutableArray<string> headers,
-        bool ignoreUnmatched,
-        [RequireStaticDelegate] Func<CsvOptions<T>, ImmutableArray<string>, bool, IMaterializer<T, TValue>> valueFactory
+        [RequireStaticDelegate] Func<CsvOptions<T>, ImmutableArray<string>, IMaterializer<T, TValue>> valueFactory
     )
     {
         MakeReadOnly();
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
-        MaterializerKey key = new(Comparer, typeof(TValue), ignoreUnmatched, headers);
+        MaterializerKey key = new(Comparer, typeof(TValue), IgnoreUnmatchedHeaders, headers);
 
         if (!cache.TryGetValue(key, out object? materializer))
         {
-            cache.Add(key, materializer = valueFactory(this, headers, ignoreUnmatched));
+            cache.Add(key, materializer = valueFactory(this, headers));
         }
 
         return (IMaterializer<T, TValue>)materializer;
@@ -59,7 +58,7 @@ public partial class CsvOptions<T>
         MakeReadOnly();
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
-        MaterializerKey key = new(Comparer, typeMap, headers);
+        MaterializerKey key = new(Comparer, typeMap, IgnoreUnmatchedHeaders, headers);
 
         if (!cache.TryGetValue(key, out object? materializer))
         {

@@ -33,10 +33,15 @@ internal readonly struct MaterializerKey : IEquatable<MaterializerKey>
         _headers = [];
     }
 
-    public MaterializerKey(IEqualityComparer<string> comparer, CsvTypeMap target, ImmutableArray<string> headers)
+    public MaterializerKey(
+        IEqualityComparer<string> comparer,
+        CsvTypeMap target,
+        bool ignoreUnmatched,
+        ImmutableArray<string> headers
+    )
     {
         _target = target;
-        _flags = (target.IgnoreUnmatched ? Flags.IgnoreUnmatched : Flags.None);
+        _flags = (ignoreUnmatched ? Flags.IgnoreUnmatched : Flags.None);
         _comparer = comparer;
         _headers = headers;
     }

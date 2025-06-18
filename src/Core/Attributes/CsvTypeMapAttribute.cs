@@ -18,12 +18,6 @@ namespace FlameCsv.Attributes;
 public sealed class CsvTypeMapAttribute<T, TValue> : Attribute
     where T : unmanaged, IBinaryInteger<T>
 {
-    /// <inheritdoc cref="CsvTypeMap.IgnoreUnmatched"/>
-    public bool IgnoreUnmatched { get; set; }
-
-    /// <inheritdoc cref="CsvTypeMap.ThrowOnDuplicate"/>
-    public bool ThrowOnDuplicate { get; set; }
-
     /// <summary>
     /// If <c>true</c>, the source generator will scan for attributes applied to the containing assembly.
     /// </summary>
