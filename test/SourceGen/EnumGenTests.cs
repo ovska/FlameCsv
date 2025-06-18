@@ -1,12 +1,10 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Basic.Reference.Assemblies;
 using FlameCsv.SourceGen.Generators;
 using FlameCsv.SourceGen.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Xunit.Runner.InProc.SystemConsole.TestingPlatform;
 
 namespace FlameCsv.Tests.SourceGen;
 

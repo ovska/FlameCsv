@@ -2,7 +2,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using FlameCsv.Attributes;
 using FlameCsv.Exceptions;
 using JetBrains.Annotations;
 

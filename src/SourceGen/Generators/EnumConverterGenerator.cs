@@ -1,5 +1,4 @@
-﻿using FlameCsv.SourceGen.Helpers;
-using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 

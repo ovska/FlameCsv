@@ -2,7 +2,6 @@
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
-using CommunityToolkit.HighPerformance.Enumerables;
 using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
 using Xunit.Sdk;
