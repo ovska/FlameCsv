@@ -120,16 +120,26 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                 continue;
             }
 
-            if (IsDuplicate(bindings.Slice(0, i), binding, out var other))
+            if (IsDuplicate(bindings.Slice(0, i), binding, out int otherIndex))
             {
                 if (!ignoreDuplicates)
                 {
-                    throw new CsvBindingException(first: binding, second: other);
+                    throw new CsvBindingException(first: binding, second: bindings[otherIndex])
+                    {
+                        TargetType = typeof(TValue),
+                    };
                 }
 
-                // replace the binding with an ignored one if duplicates are allowed
-                binding = CsvBinding.Ignore<TValue>(expectedIndex);
-                continue;
+                // remove the binding from the collection if already added
+                _ = bindings[otherIndex] switch
+                {
+                    MemberCsvBinding<TValue> mb => memberBindings.Remove(mb),
+                    ParameterCsvBinding<TValue> pb => ctorBindings.Remove(pb),
+                    _ => false,
+                };
+
+                // replace the first binding with an ignored one if duplicates are allowed so it doesn't match again
+                bindings[otherIndex] = CsvBinding.Ignore<TValue>(expectedIndex);
             }
 
             // Check that the member is unique among the bindings
@@ -173,22 +183,20 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         _ctor = ctor;
         _ctorParameters = GetConstructorParameters(ctorBindings, ctor);
 
-        static bool IsDuplicate(
-            ReadOnlySpan<CsvBinding<TValue>> existing,
-            CsvBinding<TValue> binding,
-            [NotNullWhen(true)] out CsvBinding<TValue>? other
-        )
+        static bool IsDuplicate(ReadOnlySpan<CsvBinding<TValue>> existing, CsvBinding<TValue> binding, out int index)
         {
-            foreach (var duplicate in existing)
+            for (int i = 0; i < existing.Length; i++)
             {
+                var duplicate = existing[i];
+
                 if (!ReferenceEquals(duplicate, binding) && duplicate.TargetEquals(binding))
                 {
-                    other = duplicate;
+                    index = i;
                     return true;
                 }
             }
 
-            other = null;
+            index = -1;
             return false;
         }
     }

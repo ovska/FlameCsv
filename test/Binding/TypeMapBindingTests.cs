@@ -14,6 +14,7 @@ public static partial class TypeMapBindingTests
     private sealed class Obj
     {
         [CsvIndex(0)]
+        [CsvHeader("Id", Aliases = ["_id"])]
         public int Id { get; set; }
 
         [CsvIndex(1)]
@@ -41,6 +42,14 @@ public static partial class TypeMapBindingTests
                 .Read("id,name,_id\r\n", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = false })
                 .ToList();
         });
+
+        var valid = CsvReader
+            .Read("id,name,_id\r\n5,test,6", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
+            .ToList();
+
+        Assert.Single(valid);
+        Assert.Equal(6, valid[0].Id); // The last one wins
+        Assert.Equal("test", valid[0].Name);
     }
 
     [Fact]

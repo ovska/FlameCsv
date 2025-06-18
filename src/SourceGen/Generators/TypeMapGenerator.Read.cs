@@ -511,30 +511,25 @@ partial class TypeMapGenerator
             {
                 writer.Write("if (materializer.");
                 member.WriteConverterName(writer);
-                writer.WriteLine(" is null)");
-
-                using (writer.WriteBlock())
-                {
-                    writer.Write("materializer.");
-                    member.WriteConverterName(writer);
-                    writer.Write(" = ");
-                    WriteConverter(writer, typeMap.Token.FullyQualifiedName, member);
-                    writer.WriteLine(";");
-                    writer.Write("materializer.Targets[index] = ");
-                    member.WriteId(writer);
-                    writer.WriteLine(";");
-                    writer.WriteLine("anyBound = true;");
-                    writer.WriteLine("continue;");
-                }
-
-                writer.WriteLine();
-                writer.WriteLine("if (!options.IgnoreDuplicateHeaders)");
+                writer.Write(" is not null && !options.IgnoreDuplicateHeaders)");
                 using (writer.WriteBlock())
                 {
                     writer.Write("base.ThrowDuplicate(");
                     writer.Write(member.HeaderName.ToStringLiteral());
                     writer.WriteLine(", name, headers);");
                 }
+
+                writer.WriteLine();
+                writer.Write("materializer.");
+                member.WriteConverterName(writer);
+                writer.Write(" = ");
+                WriteConverter(writer, typeMap.Token.FullyQualifiedName, member);
+                writer.WriteLine(";");
+                writer.Write("materializer.Targets[index] = ");
+                member.WriteId(writer);
+                writer.WriteLine(";");
+                writer.WriteLine("anyBound = true;");
+                writer.WriteLine("continue;");
             }
         }
     }
