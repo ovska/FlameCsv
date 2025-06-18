@@ -112,7 +112,7 @@ public abstract class CsvBinding : IComparable<CsvBinding>
 
         throw new CsvBindingException($"Member {member} is not applicable for type {typeof(T)}")
         {
-            TargetType = typeof(T)
+            TargetType = typeof(T),
         };
     }
 

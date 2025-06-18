@@ -19,6 +19,23 @@ public abstract class CsvTypeMap
     protected abstract Type TargetType { get; }
 
     /// <summary>
+    /// Resets an existing ID to ignore it.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    protected static void IgnoreSetId(int[] targets, int id)
+    {
+        for (int i = 0; i < targets.Length; i++)
+        {
+            if (targets[i] == id)
+            {
+                targets[i] = -1; // reset the id
+                return;
+            }
+        }
+    }
+
+    /// <summary>
     /// Throws an exception for header field being bound multiple times.
     /// </summary>
     /// <exception cref="CsvBindingException"></exception>

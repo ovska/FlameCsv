@@ -29,7 +29,9 @@ public static partial class TypeMapBindingTests
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            _ = CsvReader.Read("a,b,c\r\n", TypeMap.Default, CsvOptions<char>.Default).ToList();
+            _ = CsvReader
+                .Read("a,b,c\r\n", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
+                .ToList();
         });
     }
 
@@ -44,11 +46,15 @@ public static partial class TypeMapBindingTests
         });
 
         var valid = CsvReader
-            .Read("id,name,_id\r\n5,test,6", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
+            .Read(
+                "id,name,_id\r\n!unparsable!,test,6",
+                TypeMap.Default,
+                new CsvOptions<char> { IgnoreDuplicateHeaders = true }
+            )
             .ToList();
 
         Assert.Single(valid);
-        Assert.Equal(6, valid[0].Id); // The last one wins
+        Assert.Equal(6, valid[0].Id); // The last one wins, only the bound one is actually parsed
         Assert.Equal("test", valid[0].Name);
     }
 

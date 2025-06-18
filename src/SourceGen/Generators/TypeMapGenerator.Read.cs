@@ -39,7 +39,6 @@ partial class TypeMapGenerator
             using (writer.WriteBlock())
             {
                 writer.WriteLine("string name = headerSpan[index];");
-                writer.WriteLine();
 
                 WriteMatchers(writer, typeMap, cancellationToken);
                 writer.WriteLine();
@@ -511,12 +510,20 @@ partial class TypeMapGenerator
             {
                 writer.Write("if (materializer.");
                 member.WriteConverterName(writer);
-                writer.Write(" is not null && !options.IgnoreDuplicateHeaders)");
+                writer.WriteLine(" is not null)");
                 using (writer.WriteBlock())
                 {
-                    writer.Write("base.ThrowDuplicate(");
-                    writer.Write(member.HeaderName.ToStringLiteral());
-                    writer.WriteLine(", name, headers);");
+                    writer.WriteLine("if (!options.IgnoreDuplicateHeaders)");
+                    using (writer.WriteBlock())
+                    {
+                        writer.Write("base.ThrowDuplicate(");
+                        writer.Write(member.HeaderName.ToStringLiteral());
+                        writer.WriteLine(", name, headers);");
+                    }
+                    writer.WriteLine();
+                    writer.Write("global::FlameCsv.Binding.CsvTypeMap.IgnoreSetId(materializer.Targets, ");
+                    member.WriteId(writer);
+                    writer.WriteLine(");");
                 }
 
                 writer.WriteLine();
