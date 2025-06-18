@@ -69,25 +69,27 @@ await CsvWriter.WriteAsync(
 
 ## 0.4.0
 - *Breaking:* Only ASCII tokens are now supported in the dialect (delimiter, quote, newline, etc.)
-- *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios.
 - *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
 - *Breaking:* `CsvFieldQuoting` is now a flags enum, and zero values is `CsvFieldQuoting.Never`. Library default has not changed.
+- *Breaking:* Moved `IgnoreDuplicateHeaders` to `CsvOptions<T>`. Changed for the last match to win instead of first.
+- *Breaking*: Moved `IgnoreUnmatchedHeaders` to `CsvOptions<T>`.
 - *Breaking:* Argument to the exception handler no longer a `ref struct` or has `in`-modifier
 - *Breaking:* ImmutableArray used instead of ReadOnlySpan for header parsing (may require recompile for source generated files)
 - *Breaking:* Delete `CsvAsyncWriter<T>` (combined with `CsvWriter<T>`), rename `ColumnIndex` to `FieldIndex`, moved configuration to instance instead of factory method
-- *Breaking*: `CsvOptions<T>` is now sealed
-- *Breaking*: Removed `in` and `ref struct` modifier from exception handler
+- *Breaking:* `CsvOptions<T>` is now sealed
+- *Breaking:* Removed `in` and `ref struct` modifier from exception handler
 - *Breaking:* Renamed `CsvRecord` -> `CsvPreservedRecord` and `CsvValueRecord` -> `CsvRecord`
 - *Breaking:* Calling `Complete` or `CompleteAsync` on `ICsvBufferWriter<T>` no longer throws the passed exception
+- *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios. This is only an issue if you've inherited the I/O types
 - Added support for headerless CSV with the source generator
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding
-- Added hot reload support for enum changes
+- Added hot reload support for enum changes (if they are eventually supported by the runtime)
 - Parsing performance improvements for all architectures (especially Avx512BW when reading `char`)
 - Removed explicit dependency to `System.IO.Pipelines` package
 - Fixed unreachable code warnings in some source generated enum byte converters
 - Fixed potential parsing error when reading broken data on ARM64 platforms
-- Fixed potential layout bugs on certain architestures when caching type materializers with headers
+- Fixed potential layout bugs on certain architectures when caching type materializers with headers
 - Fixed delimiters sometimes not being written with `CsvWriter<T>` when writing full records
 - Increased default buffer sizes from 4K to 16K (and 32K for file I/O)
 

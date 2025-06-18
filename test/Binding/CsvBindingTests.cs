@@ -42,8 +42,17 @@ public static class CsvBindingTests
     public static void Should_Throw_On_Duplicate_Headers()
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
-            new CsvOptions<char> { IgnoreDuplicateHeaders = false }.TypeBinder.GetMaterializer<RecordTest>(["Id", "Id"])
+            new CsvOptions<char> { IgnoreDuplicateHeaders = false }.TypeBinder.GetMaterializer<RecordTest>(
+                ["Id", "Id", "Name"]
+            )
         );
+
+        var valid = new CsvOptions<char> { IgnoreDuplicateHeaders = true }.TypeBinder.GetMaterializer<RecordTest>(
+            ["Id", "Id", "Name"]
+        );
+
+        var record = new ConstantRecord("1", "2", "Test");
+        Assert.Equal(new RecordTest(2, "Test"), valid.Parse(ref record)); // The last one wins
     }
 
     [Fact]
