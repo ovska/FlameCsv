@@ -487,26 +487,13 @@ partial class TypeMapGenerator
 
             writer.WriteLine();
             writer.Write("if (");
-            writer.Write("(materializer.");
-            member.WriteConverterName(writer);
-            writer.WriteLine(" is null || !options.IgnoreDuplicateHeaders) &&");
-
             writer.IncreaseIndent();
+            writer.Write($"comparer.Equals(name, {member.HeaderName.ToStringLiteral()})");
 
-            if (member.Aliases.IsEmpty)
+            foreach (string name in member.Aliases)
             {
-                writer.Write($"comparer.Equals(name, {member.HeaderName.ToStringLiteral()})");
-            }
-            else
-            {
-                bool firstName = true;
-
-                foreach (string name in member.Aliases)
-                {
-                    writer.WriteIf(!firstName, " ||");
-                    writer.Write($"comparer.Equals(name, {name.ToStringLiteral()})");
-                    firstName = false;
-                }
+                writer.WriteLine(" ||");
+                writer.Write($"comparer.Equals(name, {name.ToStringLiteral()})");
             }
 
             writer.DecreaseIndent();
