@@ -14,7 +14,7 @@ public static partial class TypeMapBindingTests
     private sealed class Obj
     {
         [CsvIndex(0)]
-        [CsvHeader("Id", Aliases = ["_id"])]
+        [CsvHeader(Aliases = ["_id"])]
         public int Id { get; set; }
 
         [CsvIndex(1)]

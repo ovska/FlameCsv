@@ -141,9 +141,16 @@ public static class CsvBindingTests
     {
         Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<IgnoredAndRequired>(["value"]));
         Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleNames>(["value"]));
-        Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleAliases>(["value"]));
         Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleOrders>(["value"]));
         Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<MultipleIndexes>(["value"]));
+
+        // multiple aliases are merged
+        var m1 = Binder.GetMaterializer<MultipleAliases>(["alias1"]);
+        var m2 = Binder.GetMaterializer<MultipleAliases>(["alias2"]);
+
+        var record = new ConstantRecord("1");
+        Assert.Equal(1, m1.Parse(ref record).Value);
+        Assert.Equal(1, m2.Parse(ref record).Value);
     }
 
     [CsvRequired(MemberName = nameof(Value))]
