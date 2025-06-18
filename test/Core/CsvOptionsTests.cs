@@ -264,6 +264,7 @@ public class CsvOptionsTests
     {
         var options = CsvOptions<byte>.Default;
         Assert.True(options.IsReadOnly);
+        Assert.Same(options, CsvOptions<byte>.Default);
 
         Assert.Equal(CsvNewline.CRLF, options.Newline);
 
@@ -280,8 +281,6 @@ public class CsvOptionsTests
         Assert.Equal(DayOfWeek.Monday, mndy);
 
         Assert.ThrowsAny<CsvConverterMissingException>(() => options.GetConverter<Type>());
-
-        Assert.Same(options, CsvOptions<byte>.Default);
     }
 
     [Fact]
@@ -306,6 +305,8 @@ public class CsvOptionsTests
         Run(o => o.Converters.RemoveAt(0));
         Run(o => o.Converters.Clear());
         Run(o => o.UseDefaultConverters = false);
+        Run(o => o.IgnoreDuplicateHeaders = true);
+        Run(o => o.IgnoreUnmatchedHeaders = true);
         Run(o => o.EnumFormat = "");
         Run(o => o.EnumFlagsSeparator = '^');
         Run(o => o.AllowUndefinedEnumValues = false);
@@ -318,7 +319,7 @@ public class CsvOptionsTests
         Run(o => o.Null = "null");
         Run(o => o.NumberStyles.Add(typeof(int), NumberStyles.None));
         Run(o => o.BooleanValues.Add(default));
-        Run(o => o.TypeBinder = new CsvReflectionBinder<char>(o, false));
+        Run(o => o.TypeBinder = new CsvReflectionBinder<char>(o));
 
         void Run(Action<CsvOptions<char>> action)
         {

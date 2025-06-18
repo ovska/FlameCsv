@@ -8,7 +8,7 @@ namespace FlameCsv.Tests.Binding;
 
 public static partial class TypeMapBindingTests
 {
-    [CsvTypeMap<char, Obj>(IgnoreUnmatched = true)]
+    [CsvTypeMap<char, Obj>]
     private partial class TypeMap;
 
     private sealed class Obj
@@ -38,7 +38,7 @@ public static partial class TypeMapBindingTests
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
             _ = CsvReader
-                .Read("id,name,_id\r\n", new TypeMap { ThrowOnDuplicate = true }, CsvOptions<char>.Default)
+                .Read("id,name,_id\r\n", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = false })
                 .ToList();
         });
     }
@@ -49,7 +49,9 @@ public static partial class TypeMapBindingTests
         const string data =
             "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
-        var items = CsvReader.Read(data, new TypeMap { IgnoreUnmatched = true }, CsvOptions<char>.Default).ToList();
+        var items = CsvReader
+            .Read(data, TypeMap.Default, new CsvOptions<char> { IgnoreUnmatchedHeaders = true })
+            .ToList();
         AssertItems(items);
     }
 
@@ -61,7 +63,7 @@ public static partial class TypeMapBindingTests
 
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            _ = CsvReader.Read(data, new TypeMap { IgnoreUnmatched = false }, CsvOptions<char>.Default).ToList();
+            _ = CsvReader.Read(data, TypeMap.Default, new CsvOptions<char> { IgnoreUnmatchedHeaders = false }).ToList();
         });
     }
 

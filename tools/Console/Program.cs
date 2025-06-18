@@ -61,7 +61,7 @@ namespace FlameCsv.Console
 #pragma warning restore IL2026
     }
 
-    [CsvTypeMap<char, Obj>(ThrowOnDuplicate = false, IgnoreUnmatched = true)]
+    [CsvTypeMap<char, Obj>]
     partial class ObjTypeMap;
 
     public class Obj

@@ -106,17 +106,12 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
         if (ReferenceEquals(this, other))
             return true;
 
-        return GetType() == other.GetType()
-            && IgnoreUnmatched == other.IgnoreUnmatched
-            && ThrowOnDuplicate == other.ThrowOnDuplicate;
+        return GetType() == other.GetType();
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => Equals(obj as CsvTypeMap<T, TValue>);
+    public override bool Equals(object? obj) => obj?.GetType() == GetType();
 
     /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        return HashCode.Combine(GetType(), IgnoreUnmatched, ThrowOnDuplicate);
-    }
+    public override int GetHashCode() => GetType().GetHashCode();
 }

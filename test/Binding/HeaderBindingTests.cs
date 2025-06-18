@@ -19,7 +19,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Bind_Using_Assembly_Attributes()
     {
-        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal }, false);
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
         var materializer = binder.GetMaterializer<AssemblyScoped>(["_id", "_name"]);
 
         var record = new ConstantRecord<char>(["5", "Test"]);
@@ -32,7 +32,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Ctor_Parameter()
     {
-        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal }, false);
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
         var materializer = binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]);
         var record = new ConstantRecord<char>(["Test", "true"]);
         var result = materializer.Parse(ref record);
@@ -47,7 +47,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Properties()
     {
-        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal }, false);
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
 
         var materializer = binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]);
 
@@ -102,7 +102,7 @@ public static partial class HeaderBindingTests
     {
         Assert.SkipWhen(sourceGen, "Source generator for type proxies is not supported yet");
 
-        var bindings = new CsvReflectionBinder<char>(CsvOptions<char>.Default, false).GetMaterializer<ISomething>(
+        var bindings = new CsvReflectionBinder<char>(CsvOptions<char>.Default).GetMaterializer<ISomething>(
             ["Name", "IsEnabled", "Targeted"]
         );
 

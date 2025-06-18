@@ -44,7 +44,7 @@ partial class TypeMapGenerator
                 WriteMatchers(writer, typeMap, cancellationToken);
                 writer.WriteLine();
 
-                writer.WriteLine("if (this.IgnoreUnmatched)");
+                writer.WriteLine("if (options.IgnoreUnmatchedHeaders)");
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine("materializer.Targets[index] = -1;");
@@ -489,7 +489,7 @@ partial class TypeMapGenerator
             writer.Write("if (");
             writer.Write("(materializer.");
             member.WriteConverterName(writer);
-            writer.WriteLine(" is null || this.ThrowOnDuplicate) &&");
+            writer.WriteLine(" is null || !options.IgnoreDuplicateHeaders) &&");
 
             writer.IncreaseIndent();
 
@@ -541,7 +541,7 @@ partial class TypeMapGenerator
                 }
 
                 writer.WriteLine();
-                writer.WriteLine("if (this.ThrowOnDuplicate)");
+                writer.WriteLine("if (!options.IgnoreDuplicateHeaders)");
                 using (writer.WriteBlock())
                 {
                     writer.Write("base.ThrowDuplicate(");

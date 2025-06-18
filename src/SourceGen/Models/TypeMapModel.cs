@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -48,16 +49,6 @@ internal record TypeMapModel
     /// All values from <see cref="Properties"/> and <see cref="Parameters"/>, sorted by order.
     /// </summary>
     public EquatableArray<IMemberModel> AllMembers { get; }
-
-    /// <summary>
-    /// Whether to ignore unmatched headers when reading CSV.
-    /// </summary>
-    public bool IgnoreUnmatched { get; }
-
-    /// <summary>
-    /// Whether to throw on duplicate headers when reading CSV.
-    /// </summary>
-    public bool ThrowOnDuplicate { get; }
 
     /// <summary>
     /// Whether to scan for assembly attributes.
@@ -125,21 +116,8 @@ internal record TypeMapModel
         Token = new TypeRef(tokenSymbol);
         Type = new TypeRef(targetType);
 
-        foreach (var kvp in attribute.NamedArguments)
-        {
-            if (kvp.Key == "IgnoreUnmatched")
-            {
-                IgnoreUnmatched = kvp.Value.Value is true;
-            }
-            else if (kvp.Key == "ThrowOnDuplicate")
-            {
-                ThrowOnDuplicate = kvp.Value.Value is true;
-            }
-            else if (kvp.Key == "SupportsAssemblyAttributes")
-            {
-                SupportsAssemblyAttributes = kvp.Value.Value is true;
-            }
-        }
+        SupportsAssemblyAttributes =
+            attribute.TryGetNamedArgument("SupportsAssemblyAttributes", out var saa) && saa.Value is true;
 
         cancellationToken.ThrowIfCancellationRequested();
 

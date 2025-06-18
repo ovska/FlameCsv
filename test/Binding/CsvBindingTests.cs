@@ -39,11 +39,19 @@ public static class CsvBindingTests
     private record RecordTest(int Id, string Name);
 
     [Fact]
+    public static void Should_Throw_On_Duplicate_Headers()
+    {
+        Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvOptions<char> { IgnoreDuplicateHeaders = false }.TypeBinder.GetMaterializer<RecordTest>(["Id", "Id"])
+        );
+    }
+
+    [Fact]
     public static void Should_Bind_To_Record()
     {
         // records have parameters and init properties, ensure the binder only binds to the parameters
 
-        var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default, ignoreUnmatched: false);
+        var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default);
         var materializer = binder.GetMaterializer<RecordTest>(["Id", "Name"]);
 
         var record = new ConstantRecord("1", "Test");
@@ -59,7 +67,7 @@ public static class CsvBindingTests
     [Fact]
     public static void Should_Cache()
     {
-        var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default, ignoreUnmatched: false);
+        var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default);
 
         var m1 = binder.GetMaterializer<CacheTest>(["Id", "Name"]);
         var m2 = binder.GetMaterializer<CacheTest>(["Id", "Name"]);
@@ -91,16 +99,17 @@ public static class CsvBindingTests
     [Fact]
     public static void Should_Validate_Collection()
     {
-        Assert.Throws<ArgumentNullException>(() => new CsvBindingCollection<Class>(null!, false));
-        Assert.Throws<ArgumentException>(() => new CsvBindingCollection<Class>([], false));
+        Assert.Throws<ArgumentNullException>(() => new CsvBindingCollection<Class>(null!, false, false));
+        Assert.Throws<ArgumentException>(() => new CsvBindingCollection<Class>([], false, false));
 
         Assert.ThrowsAny<CsvBindingException>(() =>
-            new CsvBindingCollection<Class>([CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1)], false)
+            new CsvBindingCollection<Class>([CsvBinding.Ignore<Class>(0), CsvBinding.Ignore<Class>(1)], false, false)
         );
 
         Assert.ThrowsAny<CsvBindingException>(() =>
             new CsvBindingCollection<Class>(
                 [CsvBinding.For<Class>(0, x => x.Id), CsvBinding.For<Class>(0, x => x.Name)],
+                false,
                 false
             )
         );
@@ -108,12 +117,17 @@ public static class CsvBindingTests
         Assert.ThrowsAny<CsvBindingException>(() =>
             new CsvBindingCollection<Class>(
                 [CsvBinding.For<Class>(0, x => x.Id), CsvBinding.For<Class>(1, x => x.Id)],
+                false,
                 false
             )
         );
 
         Assert.ThrowsAny<CsvBindingException>(() =>
-            new CsvBindingCollection<Struct>([CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0])], false)
+            new CsvBindingCollection<Struct>(
+                [CsvBinding.ForMember<Struct>(0, typeof(Class).GetProperties()[0])],
+                false,
+                false
+            )
         );
     }
 
@@ -168,5 +182,5 @@ public static class CsvBindingTests
         public int Value { get; set; }
     }
 
-    private static CsvReflectionBinder<char> Binder => new(CsvOptions<char>.Default, false);
+    private static CsvReflectionBinder<char> Binder => new(CsvOptions<char>.Default);
 }

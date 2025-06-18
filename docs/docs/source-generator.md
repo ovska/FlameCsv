@@ -48,8 +48,6 @@ All features of the reflection-based API are supported.
 
 The code generation can be configured with these properties on @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
 
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.IgnoreUnmatched": Allows unmatched CSV headers to be ignored when reading. Useful when you only need a subset of fields, e.g., reading 3rd party data with unwanted metadata.
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.ThrowOnDuplicate": Configures the typemap to throw if the same member is matched multiple times. This can happen with duplicate headers or when using [header aliases](attributes.md#header-names).
  - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.SupportsAssemblyAttributes": Configures the source generator to scan the assembly for configuration attributes. By default, only attributes directly on the type and its members are scanned.
 
 ```cs

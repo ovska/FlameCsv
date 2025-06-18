@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
@@ -72,12 +73,15 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
     /// </summary>
     /// <param name="typeBindings">Bindings to initialize the collection with</param>
     /// <param name="write">The bindings are for writing and not reading CSV</param>
+    /// <param name="ignoreDuplicates">
+    /// Whether bindings targeting the same member/parameter should be ignored instead of throwing an exception
+    /// </param>
     /// <exception cref="CsvBindingException">Bindings are invalid</exception>
-    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> typeBindings, bool write)
+    public CsvBindingCollection(IEnumerable<CsvBinding<TValue>> typeBindings, bool write, bool ignoreDuplicates)
     {
         ArgumentNullException.ThrowIfNull(typeBindings);
 
-        List<CsvBinding<TValue>> bindingsList = typeBindings.ToList();
+        List<CsvBinding<TValue>> bindingsList = [.. typeBindings];
 
         if (bindingsList.Count == 0)
         {
@@ -93,8 +97,9 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         List<ParameterCsvBinding<TValue>> ctorBindings = [];
         ConstructorInfo? ctor = null;
 
-        foreach (var binding in bindings)
+        for (int i = 0; i < bindings.Length; i++)
         {
+            CsvBinding<TValue> binding = bindings[i];
             int expectedIndex = index++;
 
             // Indices should be gapless and start from zero
@@ -111,12 +116,25 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             }
 
             if (binding.IsIgnored)
+            {
                 continue;
+            }
+
+            if (IsDuplicate(bindings.Slice(0, i), binding, out var other))
+            {
+                if (!ignoreDuplicates)
+                {
+                    throw new CsvBindingException(first: binding, second: other);
+                }
+
+                // replace the binding with an ignored one if duplicates are allowed
+                binding = CsvBinding.Ignore<TValue>(expectedIndex);
+                continue;
+            }
 
             // Check that the member is unique among the bindings
             if (binding is MemberCsvBinding<TValue> memberBinding)
             {
-                ThrowIfDuplicate(memberBindings, memberBinding);
                 memberBindings.Add(memberBinding);
             }
             else if (!write && binding is ParameterCsvBinding<TValue> parameterBinding)
@@ -130,7 +148,6 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
                     throw new CsvBindingException(typeof(TValue), ctor, parameterBinding.Constructor);
                 }
 
-                ThrowIfDuplicate(ctorBindings, parameterBinding);
                 ctorBindings.Add(parameterBinding);
             }
             else
@@ -156,16 +173,23 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
         _ctor = ctor;
         _ctorParameters = GetConstructorParameters(ctorBindings, ctor);
 
-        static void ThrowIfDuplicate<TBinding>(List<TBinding> existing, TBinding binding)
-            where TBinding : CsvBinding<TValue>
+        static bool IsDuplicate(
+            ReadOnlySpan<CsvBinding<TValue>> existing,
+            CsvBinding<TValue> binding,
+            [NotNullWhen(true)] out CsvBinding<TValue>? other
+        )
         {
-            foreach (var duplicate in existing.AsSpan())
+            foreach (var duplicate in existing)
             {
-                if (duplicate.TargetEquals(binding))
+                if (!ReferenceEquals(duplicate, binding) && duplicate.TargetEquals(binding))
                 {
-                    throw new CsvBindingException(duplicate, binding) { TargetType = typeof(TValue) };
+                    other = duplicate;
+                    return true;
                 }
             }
+
+            other = null;
+            return false;
         }
     }
 

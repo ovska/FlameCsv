@@ -20,20 +20,8 @@ public abstract class CsvTypeMap
     protected abstract Type TargetType { get; }
 
     /// <summary>
-    /// If <c>true</c>, headers that cannot be matched to a member are ignored instead of throwing.
-    /// </summary>
-    public bool IgnoreUnmatched { get; init; }
-
-    /// <summary>
-    /// If <c>true</c>, multiple header field matches to a single member throw an exception.
-    /// The default behavior does not attempt to match already matched members.
-    /// </summary>
-    public bool ThrowOnDuplicate { get; init; }
-
-    /// <summary>
     /// Throws an exception for header field being bound multiple times.
     /// </summary>
-    /// <seealso cref="CsvTypeMapAttribute{T,TValue}.ThrowOnDuplicate"/>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -48,7 +36,6 @@ public abstract class CsvTypeMap
     /// <summary>
     /// Throws an exception for header field that wasn't matched to any member or parameter.
     /// </summary>
-    /// <seealso cref="CsvTypeMapAttribute{T,TValue}.IgnoreUnmatched"/>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -78,7 +65,6 @@ public abstract class CsvTypeMap
     /// <summary>
     /// Throws an exception for header that couldn't be bound to any member of parameter.
     /// </summary>
-    /// <seealso cref="CsvTypeMapAttribute{T,TValue}.IgnoreUnmatched"/>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]

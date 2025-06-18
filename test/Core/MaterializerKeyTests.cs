@@ -64,27 +64,33 @@ public static class MaterializerKeyTests
     [Theory, MemberData(nameof(ReadData))]
     public static void Should_Be_Equatable_Read_SourceGen(bool ignoreUnmatched, string[] headers)
     {
-        var tm1 = new FakeTypeMap { IgnoreUnmatched = ignoreUnmatched };
-        var tm2 = new AnotherFakeTypeMap { IgnoreUnmatched = ignoreUnmatched };
-        MaterializerKey key = new(StringComparer.OrdinalIgnoreCase, tm1, headers.ToImmutableArray());
-        MaterializerKey key2 = new(StringComparer.OrdinalIgnoreCase, tm1, headers.ToImmutableArray());
+        var tm1 = new FakeTypeMap();
+        var tm2 = new AnotherFakeTypeMap();
+        MaterializerKey key = new(StringComparer.OrdinalIgnoreCase, tm1, ignoreUnmatched, headers.ToImmutableArray());
+        MaterializerKey key2 = new(StringComparer.OrdinalIgnoreCase, tm1, ignoreUnmatched, headers.ToImmutableArray());
         Assert.Equal(key, key2);
         Assert.Equal(key.GetHashCode(), key2.GetHashCode());
         Assert.True(key.Equals((object)key2));
 
         MaterializerKey invalidKey = new(
             StringComparer.OrdinalIgnoreCase,
-            new FakeTypeMap { IgnoreUnmatched = !ignoreUnmatched },
+            new FakeTypeMap(),
+            !ignoreUnmatched,
             headers.ToImmutableArray()
         );
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(StringComparer.Ordinal, tm1, headers.ToImmutableArray());
+        invalidKey = new(StringComparer.Ordinal, tm1, ignoreUnmatched, headers.ToImmutableArray());
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(StringComparer.OrdinalIgnoreCase, tm1, headers.ToImmutableArray().Add("extra"));
+        invalidKey = new(
+            StringComparer.OrdinalIgnoreCase,
+            tm1,
+            ignoreUnmatched,
+            headers.ToImmutableArray().Add("extra")
+        );
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
     }
@@ -131,10 +137,7 @@ public static class MaterializerKeyTests
     public static void Should_Use_Value_Equality_For_TypeMap()
     {
         Assert.True(new FakeTypeMap().Equals((object)new FakeTypeMap()));
-        Assert.True(new FakeTypeMap { ThrowOnDuplicate = true }.Equals(new FakeTypeMap { ThrowOnDuplicate = true }));
-
         Assert.False(new FakeTypeMap().Equals(null));
-        Assert.False(new FakeTypeMap { ThrowOnDuplicate = true }.Equals(new FakeTypeMap { ThrowOnDuplicate = false }));
     }
 }
 
