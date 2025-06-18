@@ -67,7 +67,7 @@ internal static class AttributeConfiguration
             bool? knownParameter = null
         )
         {
-            string name = knownName ?? baseAttr.MemberName;
+            string? name = knownName ?? baseAttr.MemberName;
             bool isParameter = knownParameter ?? baseAttr.IsParameter;
 
             if (write && isParameter)
@@ -195,15 +195,16 @@ internal static class AttributeConfiguration
                     if (value is null)
                     {
                         value = headerAttr.Value;
-                        aliases = ImmutableCollectionsMarshal.AsImmutableArray(headerAttr.Aliases);
                     }
-                    else if (value != headerAttr.Value || !aliases.SequenceEqual(headerAttr.Aliases))
+                    else if (value != headerAttr.Value)
                     {
                         throw new CsvBindingException(
                             typeInfo.Type,
                             $"Multiple {nameof(CsvHeaderAttribute)} attributes found for {name}: '{value}' and '{headerAttr.Value}'."
                         );
                     }
+
+                    aliases = aliases.AddRange(headerAttr.Aliases);
                 }
                 else if (attr is CsvOrderAttribute orderAttr)
                 {

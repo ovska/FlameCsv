@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Attributes;
 
@@ -20,21 +21,11 @@ namespace FlameCsv.Attributes;
 [PublicAPI]
 public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
 {
-    private string _value = "";
-    private string[] _aliases = [];
-
     /// <summary>
     /// Header value used when reading or writing CSV.
+    /// If <c>null</c>, the member or parameter name is used as the header value (the default).
     /// </summary>
-    public string Value
-    {
-        get => _value;
-        init
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            _value = value;
-        }
-    }
+    public string? Value { get; set; }
 
     /// <summary>
     /// Additional values that can be used to match the header when reading CSV.
@@ -42,29 +33,22 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
     /// </summary>
     public string[] Aliases
     {
-        get => _aliases;
+        get => field;
         init
         {
-            ArgumentNullException.ThrowIfNull(value);
-            _aliases = value;
+            ValidateAliases(value);
+            field = value;
         }
-    }
+    } = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.
     /// </summary>
     /// <param name="value">Header value used when reading or writing CSV.</param>
     /// <param name="aliases">Additional values that can be used to match the header when reading CSV.</param>
-    public CsvHeaderAttribute(string value, params string[] aliases)
+    public CsvHeaderAttribute(string? value, params string[] aliases)
     {
-        ArgumentNullException.ThrowIfNull(value);
-        ArgumentNullException.ThrowIfNull(aliases);
-
-        for (int i = 0; i < aliases.Length; i++)
-        {
-            ArgumentNullException.ThrowIfNull(aliases[i]);
-        }
-
+        ValidateAliases(aliases);
         Value = value;
         Aliases = aliases;
     }
@@ -73,9 +57,23 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
     /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.
     /// </summary>
     /// <param name="value">Header value used when reading or writing CSV.</param>
-    public CsvHeaderAttribute(string value)
+    public CsvHeaderAttribute(string? value)
     {
-        ArgumentNullException.ThrowIfNull(value);
         Value = value;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvHeaderAttribute"/> class.
+    /// </summary>
+    public CsvHeaderAttribute() { }
+
+    private static void ValidateAliases([NotNull] string[] aliases)
+    {
+        ArgumentNullException.ThrowIfNull(aliases);
+
+        for (int i = 0; i < aliases.Length; i++)
+        {
+            ArgumentNullException.ThrowIfNull(aliases[i]);
+        }
     }
 }

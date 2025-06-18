@@ -9,19 +9,12 @@ namespace FlameCsv.Attributes;
 [PublicAPI]
 public abstract class CsvFieldConfigurationAttribute : CsvConfigurationAttribute
 {
-    private readonly string? _memberName;
-
     /// <summary>
     /// Name of the property, field, or parameter the attribute applies to.
     /// </summary>
-    /// <exception cref="ArgumentNullException">Thrown if the value is null</exception>
     /// <remarks>Must be set if this attribute is not placed directly on a property, field, or parameter.</remarks>
     /// <seealso cref="IsParameter"/>
-    public string MemberName
-    {
-        get => _memberName!;
-        init => _memberName = value ?? throw new ArgumentNullException(nameof(MemberName));
-    }
+    public string? MemberName { get; set; }
 
     /// <summary>
     /// Whether <see cref="MemberName"/> points to a parameter.
