@@ -133,13 +133,7 @@ internal record TypeMapModel
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var model = AttributeConfiguration.TryCreate(
-                    targetType,
-                    isOnAssembly: true,
-                    attr,
-                    in symbols,
-                    ref collector
-                );
+                var model = AttributeConfiguration.TryCreate(isOnAssembly: true, attr, in symbols, ref collector);
 
                 if (model is not null)
                 {
@@ -162,13 +156,7 @@ internal record TypeMapModel
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var model = AttributeConfiguration.TryCreate(
-                targetType,
-                isOnAssembly: false,
-                attr,
-                in symbols,
-                ref collector
-            );
+            var model = AttributeConfiguration.TryCreate(isOnAssembly: false, attr, in symbols, ref collector);
 
             if (model is not null)
             {

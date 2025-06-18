@@ -19,7 +19,7 @@ namespace FlameCsv.SourceGen.Helpers;
 internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnumerable<T>
     where T : IEquatable<T>
 {
-    public static readonly EquatableArray<T> Empty = new(ImmutableArray<T>.Empty);
+    public static EquatableArray<T> Empty => new(ImmutableArray<T>.Empty);
 
     /// <summary>
     /// The underlying <typeparamref name="T"/> array.
@@ -134,7 +134,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     /// <returns>An <see cref="ImmutableArray{T}.Enumerator"/> value to traverse items in the current array.</returns>
     public Enumerator GetEnumerator()
     {
-        return new(_array!);
+        return new(_array);
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
     /// <returns></returns>
     public WhereEnumerable Where(Func<T, bool> predicate)
     {
-        return new(_array!, predicate);
+        return new(_array, predicate);
     }
 
     /// <sinheritdoc/>
@@ -199,9 +199,9 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
         return !left.Equals(right);
     }
 
-    public struct Enumerator(T[] array)
+    public struct Enumerator(T[]? array)
     {
-        private readonly T[] _array = array;
+        private readonly T[] _array = array ?? [];
         private int _index = -1;
 
         public readonly ref readonly T Current
@@ -214,7 +214,7 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
         public bool MoveNext() => ++_index < _array.Length;
     }
 
-    public readonly struct WhereEnumerable(T[] array, Func<T, bool> predicate)
+    public readonly struct WhereEnumerable(T[]? array, Func<T, bool> predicate)
     {
         public WhereEnumerator GetEnumerator()
         {
@@ -222,9 +222,9 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
         }
     }
 
-    public struct WhereEnumerator(T[] array, Func<T, bool> predicate)
+    public struct WhereEnumerator(T[]? array, Func<T, bool> predicate)
     {
-        private readonly T[] _array = array;
+        private readonly T[] _array = array ?? [];
         private readonly Func<T, bool> _predicate = predicate;
         private int _index = -1;
 

@@ -31,7 +31,6 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
     public AttributeData Attribute => attribute;
 
     public static AttributeConfiguration? TryCreate(
-        ITypeSymbol targetType,
         bool isOnAssembly,
         AttributeData attribute,
         ref readonly FlameSymbols symbols,
@@ -41,6 +40,8 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         if (attribute.AttributeClass is not { } attrSymbol)
             return null;
 
+        var targetType = symbols.TargetType;
+
         string? memberName;
         bool isParameter = false;
 
@@ -49,7 +50,7 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         int? order = null;
         int? index = null;
         string? headerName = null;
-        ImmutableArray<TypedConstant> aliases = default;
+        ImmutableArray<TypedConstant> aliases = [];
 
         if (symbols.IsCsvHeaderAttribute(attrSymbol))
         {
@@ -190,6 +191,31 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         }
     }
 
+    public static void ParseHeader(
+        AttributeData attribute,
+        out string? headerName,
+        out ImmutableArray<TypedConstant> aliases
+    )
+    {
+        headerName =
+            attribute.ConstructorArguments is [var value, ..] ? value.Value?.ToString()
+            : attribute.TryGetNamedArgument("Value", out value) ? value.Value?.ToString()
+            : null;
+
+        // explicit property setter is prioritized over constructor argument
+        if (attribute.TryGetNamedArgument("Aliases", out var aliasesArg) && aliasesArg.Kind == TypedConstantKind.Array)
+        {
+            aliases = aliasesArg.Values;
+        }
+        else if (
+            attribute.ConstructorArguments.Length > 1
+            && attribute.ConstructorArguments[1] is { Kind: TypedConstantKind.Array } arr
+        )
+        {
+            aliases = arr.Values;
+        }
+    }
+
     public static void ParseIndex(AttributeData attribute, out int? index)
     {
         index = null;
@@ -207,35 +233,6 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         if (attribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Primitive, Value: int orderArg })
         {
             order = orderArg;
-        }
-    }
-
-    public static void ParseHeader(
-        AttributeData attribute,
-        out string? headerName,
-        out ImmutableArray<TypedConstant> aliases
-    )
-    {
-        aliases = default;
-
-        headerName =
-            attribute.ConstructorArguments is [var value, ..] ? value.Value?.ToString()
-            : attribute.TryGetNamedArgument("Value", out value) ? value.Value?.ToString()
-            : null;
-
-        if (
-            attribute.ConstructorArguments.Length > 1
-            && attribute.ConstructorArguments[1] is { Kind: TypedConstantKind.Array } arr
-        )
-        {
-            aliases = arr.Values;
-        }
-        else if (
-            attribute.TryGetNamedArgument("Aliases", out var aliasesArg)
-            && aliasesArg.Kind == TypedConstantKind.Array
-        )
-        {
-            aliases = aliasesArg.Values;
         }
     }
 

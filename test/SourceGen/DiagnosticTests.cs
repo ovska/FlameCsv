@@ -346,6 +346,25 @@ public class DiagnosticTests(MetadataFixture fixture)
     }
 
     [Fact]
+    public void Should_Report_Conflicting_On_Type()
+    {
+        AssertDiagnostic(
+            """
+            [CsvTypeMap<char, Obj>]
+            partial class ObjTypeMap;
+
+            [CsvHeader("Name", MemberName = "Name")]
+            [CsvHeader("Name_", MemberName = "Name")] // two different headers
+            class Obj
+            {
+                public string Name { get; set; }
+            }
+            """,
+            [Descriptors.ConflictingConfiguration]
+        );
+    }
+
+    [Fact]
     public void Should_Report_Conflicting_Index()
     {
         AssertDiagnostic(

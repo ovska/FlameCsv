@@ -83,7 +83,7 @@ internal readonly ref struct SymbolMetadata
 
             targeted.MatchFound = true;
 
-            HeaderName ??= TryGetHeaderName(
+            HeaderName = TryGetHeaderName(
                 HeaderName,
                 targeted.HeaderName,
                 targeted.Attribute,
@@ -116,12 +116,12 @@ internal readonly ref struct SymbolMetadata
 
         PooledList<string>.Release(configNames);
         PooledList<Location?>.Release(locations);
-        Aliases = aliasSet?.ToEquatableArrayAndFree() ?? [];
+        Aliases = aliasSet.ToEquatableArrayAndFree();
     }
 
     private static void AddAliases(ref HashSet<string>? aliasSet, ImmutableArray<TypedConstant> aliases)
     {
-        if (aliases.IsDefault)
+        if (aliases.IsDefaultOrEmpty)
             return;
 
         foreach (var alias in aliases)
@@ -181,13 +181,10 @@ internal readonly ref struct SymbolMetadata
         ref List<Location?>? locations
     )
     {
-        if (headerName is not null)
+        if (headerName is not null && existing is not null && existing != headerName)
         {
-            if (existing is not null && existing != headerName)
-            {
-                (configNames ??= PooledList<string>.Acquire()).Add("HeaderName");
-                (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
-            }
+            (configNames ??= PooledList<string>.Acquire()).Add("HeaderName");
+            (locations ??= PooledList<Location?>.Acquire()).Add(attribute.GetLocation());
         }
 
         return headerName;
