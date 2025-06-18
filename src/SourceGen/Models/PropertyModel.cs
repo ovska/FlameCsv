@@ -149,7 +149,7 @@ internal record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Order = meta.Order,
             Index = meta.Index,
             IsParsable = !propertySymbol.IsReadOnly && !meta.IsIgnored && IsVisible(setMethod),
-            IsFormattable = !propertySymbol.IsWriteOnly && meta.IsIgnored is not true && IsVisible(getMethod),
+            IsFormattable = !propertySymbol.IsWriteOnly && !meta.IsIgnored && IsVisible(getMethod),
             OverriddenConverter = ConverterModel.Create(propertySymbol, propertySymbol.Type, in symbols, ref collector),
             ExplicitInterfaceOriginalDefinitionName = explicitInterface?.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
@@ -184,7 +184,7 @@ internal record PropertyModel : IComparable<PropertyModel>, IMemberModel
             Order = meta.Order,
             Index = meta.Index,
             IsParsable = !fieldSymbol.IsReadOnly && !meta.IsIgnored,
-            IsFormattable = meta.IsIgnored is not true,
+            IsFormattable = !meta.IsIgnored, // fields can always be read from
             ExplicitInterfaceOriginalDefinitionName = null,
             Convertability = fieldSymbol.Type.GetBuiltinConvertability(in symbols),
             OverriddenConverter = ConverterModel.Create(fieldSymbol, fieldSymbol.Type, in symbols, ref collector),

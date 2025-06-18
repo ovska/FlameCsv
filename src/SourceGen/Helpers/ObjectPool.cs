@@ -17,18 +17,18 @@ namespace FlameCsv.SourceGen.Helpers;
 
 internal static class ObjectPool
 {
-    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this HashSet<T> set)
+    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this HashSet<T>? set)
         where T : IEquatable<T?>
     {
-        var result = set.Count == 0 ? [] : set.ToEquatableArray();
+        var result = set?.Count > 0 ? set.ToEquatableArray() : [];
         PooledSet<T>.Release(set);
         return result;
     }
 
-    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this List<T> list)
+    public static EquatableArray<T> ToEquatableArrayAndFree<T>(this List<T>? list)
         where T : IEquatable<T?>
     {
-        var result = list.Count == 0 ? [] : list.ToEquatableArray();
+        var result = list?.Count > 0 ? list.ToEquatableArray() : [];
         PooledList<T>.Release(list);
         return result;
     }

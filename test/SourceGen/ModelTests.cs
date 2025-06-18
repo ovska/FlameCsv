@@ -555,13 +555,7 @@ public class ModelTests(MetadataFixture fixture)
 
         foreach (var attr in compilation.Assembly.GetAttributes())
         {
-            var model = AttributeConfiguration.TryCreate(
-                classSymbol,
-                isOnAssembly: true,
-                attr,
-                in flameSymbols,
-                ref collector
-            );
+            var model = AttributeConfiguration.TryCreate(isOnAssembly: true, attr, in flameSymbols, ref collector);
 
             if (model is not null)
             {
