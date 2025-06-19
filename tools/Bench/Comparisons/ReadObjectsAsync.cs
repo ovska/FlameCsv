@@ -16,7 +16,7 @@ public class ReadObjectsAsync
     {
         HasHeader = true,
         Newline = CsvNewline.LF,
-        Converters = { new FloatTextParser() },
+        Converters = { new FloatTextParser(), new DoubleTextParser() },
     };
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
