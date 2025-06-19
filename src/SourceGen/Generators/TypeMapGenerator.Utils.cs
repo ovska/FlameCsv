@@ -6,6 +6,22 @@ namespace FlameCsv.SourceGen.Generators;
 
 partial class TypeMapGenerator
 {
+    public static void WriteConverterType(IndentedTextWriter writer, string token, IMemberModel member)
+    {
+        if (member.IsIgnored)
+        {
+            writer.Write($"global::FlameCsv.Binding.CsvIgnored.Converter<{token}, {member.Type.FullyQualifiedName}>");
+        }
+        else if (member.OverriddenConverter is { IsFactory: false, WrapInNullable: false } converter)
+        {
+            writer.Write(converter.ConverterType.FullyQualifiedName);
+        }
+        else
+        {
+            writer.Write($"global::FlameCsv.CsvConverter<{token}, {member.Type.FullyQualifiedName}>");
+        }
+    }
+
     public static void WriteConverter(IndentedTextWriter writer, string token, IMemberModel member)
     {
         if (member.IsIgnored)

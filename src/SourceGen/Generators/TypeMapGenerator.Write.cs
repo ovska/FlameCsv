@@ -57,9 +57,9 @@ partial class TypeMapGenerator
                 {
                     if (!property.IsFormattable)
                         continue;
-                    writer.Write(
-                        $"public required global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {property.Type.FullyQualifiedName}> "
-                    );
+                    writer.Write("public required ");
+                    WriteConverterType(writer, typeMap.Token.Name, property);
+                    writer.Write(' ');
                     property.WriteConverterName(writer);
                     writer.WriteLine(" { get; init; }");
                 }

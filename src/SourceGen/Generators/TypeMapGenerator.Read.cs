@@ -118,9 +118,9 @@ partial class TypeMapGenerator
             foreach (var member in typeMap.AllMembers.Readable())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                writer.Write(
-                    $"public global::FlameCsv.CsvConverter<{typeMap.Token.FullyQualifiedName}, {member.Type.FullyQualifiedName}> "
-                );
+                writer.Write("public ");
+                WriteConverterType(writer, typeMap.Token.FullyQualifiedName, member);
+                writer.Write(' ');
                 member.WriteConverterName(writer);
                 writer.WriteLine(";");
             }

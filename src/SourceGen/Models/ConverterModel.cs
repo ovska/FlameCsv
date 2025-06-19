@@ -6,6 +6,28 @@ namespace FlameCsv.SourceGen.Models;
 internal record ConverterModel
 {
     /// <summary>
+    /// Type of the converter override.
+    /// </summary>
+    public required TypeRef ConverterType { get; init; }
+
+    /// <summary>
+    /// Whether the constructor arguments are empty, options, or invalid.
+    /// </summary>
+    public required ConstructorArgumentType ConstructorArguments { get; init; }
+
+    /// <summary>
+    /// Whether the converter should be wrapped in a NullableConverter,
+    /// e.g., property is 'int?' but the converter is for int.
+    /// This is not needed for factories, as we can't statically analyze the converter type they return.
+    /// </summary>
+    public required bool WrapInNullable { get; init; }
+
+    /// <summary>
+    /// Whether the converter is a factory.
+    /// </summary>
+    public required bool IsFactory { get; init; }
+
+    /// <summary>
     /// Returns a converter override, or null.
     /// </summary>
     public static ConverterModel? Create(
@@ -92,11 +114,6 @@ internal record ConverterModel
             IsFactory = isFactory,
         };
     }
-
-    public required TypeRef ConverterType { get; init; }
-    public required ConstructorArgumentType ConstructorArguments { get; init; }
-    public required bool WrapInNullable { get; init; }
-    public required bool IsFactory { get; init; }
 
     public static bool IsConverterFactory(ITypeSymbol? type, ref readonly FlameSymbols symbols)
     {
