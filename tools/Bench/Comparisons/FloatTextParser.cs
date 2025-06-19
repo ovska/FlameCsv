@@ -12,3 +12,16 @@ internal sealed class FloatTextParser : CsvConverter<char, float>
         return value.TryFormat(destination, out charsWritten);
     }
 }
+
+internal sealed class DoubleTextParser : CsvConverter<char, double>
+{
+    public override bool TryParse(ReadOnlySpan<char> source, out double value)
+    {
+        return csFastFloat.FastDoubleParser.TryParseDouble(source, out value);
+    }
+
+    public override bool TryFormat(Span<char> destination, double value, out int charsWritten)
+    {
+        return value.TryFormat(destination, out charsWritten);
+    }
+}
