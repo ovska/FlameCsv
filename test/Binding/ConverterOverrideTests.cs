@@ -4,8 +4,14 @@ using FlameCsv.Attributes;
 
 namespace FlameCsv.Tests.Binding;
 
-public static class ConverterOverrideTests
+public static partial class ConverterOverrideTests
 {
+    [CsvTypeMap<char, TestObj>]
+    private partial class CharTypeMap;
+
+    [CsvTypeMap<byte, TestObj>]
+    private partial class ByteTypeMap;
+
     private class TestObj
     {
         [CsvConverter<CurrencyConverter>]
@@ -28,27 +34,40 @@ public static class ConverterOverrideTests
         }
     }
 
-    [Fact]
-    public static void Should_Use_Custom_Converter()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Use_Custom_Converter(bool sourceGen)
     {
         const string data = "Dollars\n\"$ 8,042.15\"\n$ 123.45\n";
         var options = new CsvOptions<char> { HasHeader = true, Newline = CsvNewline.LF };
-        var objs = CsvReader.Read<TestObj>(data, options).ToList();
+        var objs = sourceGen
+            ? CsvReader.Read(data, CharTypeMap.Default, options).ToList()
+            : CsvReader.Read<TestObj>(data, options).ToList();
         Assert.Equal(2, objs.Count);
         Assert.Equal(8042.15, objs[0].Dollars);
         Assert.Equal(123.45, objs[1].Dollars);
     }
 
-    [Fact]
-    public static void Should_Use_String_Pooling()
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Use_String_Pooling(bool sourceGen)
     {
         byte[] data = "Pooled\nabc\n\nabc\n"u8.ToArray();
-        var objs = CsvReader.Read<TestObj>(data).ToList();
+        var objs = sourceGen
+            ? CsvReader.Read(data, ByteTypeMap.Default).ToList()
+            : CsvReader.Read<TestObj>(data).ToList();
         Assert.Equal(3, objs.Count);
         Assert.Same(objs[0].Pooled, objs[2].Pooled);
 
         using MemoryStream ms = new();
-        CsvWriter.Write(ms, objs);
+
+        if (sourceGen)
+        {
+            CsvWriter.Write(ms, objs, ByteTypeMap.Default);
+        }
+        else
+        {
+            CsvWriter.Write(ms, objs);
+        }
+
         Assert.Equal("Dollars,Pooled\r\n0,abc\r\n0,\r\n0,abc\r\n", Encoding.UTF8.GetString(ms.ToArray()));
     }
 }

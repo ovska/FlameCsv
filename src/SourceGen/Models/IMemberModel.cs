@@ -51,6 +51,13 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     /// <summary>Returns whether the member is a parameter, property, or a field.</summary>
     ModelKind Kind { get; }
 
+    /// <summary>
+    /// Writes the parsing ID of the member to the writer.
+    /// </summary>
     void WriteId(IndentedTextWriter writer);
+
+    /// <summary>
+    /// Writes the converter name of the member to the writer.
+    /// </summary>
     void WriteConverterName(IndentedTextWriter writer);
 }
