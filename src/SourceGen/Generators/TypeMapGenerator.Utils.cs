@@ -1,5 +1,4 @@
-﻿using FlameCsv.SourceGen.Helpers;
-using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Generators;
@@ -12,7 +11,11 @@ partial class TypeMapGenerator
         {
             writer.Write($"global::FlameCsv.Binding.CsvIgnored.Converter<{token}, {member.Type.FullyQualifiedName}>");
         }
-        else if (member.OverriddenConverter is { IsFactory: false, WrapInNullable: false } converter)
+        else if (member.OverriddenConverter is StringPoolingConverterModel spcm)
+        {
+            writer.Write(spcm.GetName(token == "byte"));
+        }
+        else if (member.OverriddenConverter is ConverterModel { IsFactory: false, WrapInNullable: false } converter)
         {
             writer.Write(converter.ConverterType.FullyQualifiedName);
         }
@@ -30,8 +33,16 @@ partial class TypeMapGenerator
             return;
         }
 
-        bool wrapInNullable =
-            member.OverriddenConverter?.WrapInNullable ?? member.Type.SpecialType == SpecialType.System_Nullable_T;
+        if (member.OverriddenConverter is StringPoolingConverterModel spcm)
+        {
+            writer.Write(spcm.GetName(token == "byte"));
+            writer.Write(".Instance");
+            return;
+        }
+
+        var converter = member.OverriddenConverter as ConverterModel;
+
+        bool wrapInNullable = converter?.WrapInNullable ?? member.Type.SpecialType == SpecialType.System_Nullable_T;
 
         bool builtinConversion = false;
 
@@ -42,7 +53,7 @@ partial class TypeMapGenerator
             writer.Write(">(static options => ");
         }
 
-        if (member.OverriddenConverter is not { } converter)
+        if (converter is null)
         {
             builtinConversion = TryGetBuiltinConversion(token, member, out string? builtinMethodName);
 
@@ -86,7 +97,7 @@ partial class TypeMapGenerator
 
         if (wrapInNullable || builtinConversion)
         {
-            if (member.OverriddenConverter?.WrapInNullable ?? false)
+            if (converter?.WrapInNullable ?? false)
             {
                 // explicit converter override, don't cache this one
                 writer.Write(", canCache: false");

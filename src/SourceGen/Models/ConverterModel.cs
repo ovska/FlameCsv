@@ -2,8 +2,24 @@
 
 namespace FlameCsv.SourceGen.Models;
 
+internal interface IConverterModel : IEquatable<IConverterModel>;
+
+internal sealed class StringPoolingConverterModel : IConverterModel
+{
+    public static readonly StringPoolingConverterModel Instance = new();
+
+    private StringPoolingConverterModel() { }
+
+    public bool Equals(IConverterModel? other) => other is StringPoolingConverterModel;
+
+    public string GetName(bool isByte) =>
+        isByte
+            ? "global::FlameCsv.Converters.CsvPoolingStringUtf8Converter"
+            : "global::FlameCsv.Converters.CsvPoolingStringTextConverter";
+}
+
 // this is a class as it should be relatively rare, and would needlessly take space in other large structs
-internal record ConverterModel
+internal sealed record ConverterModel : IConverterModel
 {
     /// <summary>
     /// Type of the converter override.
@@ -30,14 +46,43 @@ internal record ConverterModel
     /// <summary>
     /// Returns a converter override, or null.
     /// </summary>
-    public static ConverterModel? Create(
+    public static IConverterModel? Create(
         ISymbol propertyOrParameter,
         ITypeSymbol convertedType,
         ref readonly FlameSymbols symbols,
         ref AnalysisCollector collector
     )
     {
-        if (!TryGetConverterAttribute(propertyOrParameter, in symbols, out var converter))
+        ITypeSymbol? converter = null;
+
+        foreach (AttributeData attribute in propertyOrParameter.GetAttributes())
+        {
+            if (attribute.TryGetFlameCsvAttribute(out var attrSymbol) is false)
+            {
+                continue;
+            }
+
+            if (
+                symbols.IsStringPoolingAttribute(attrSymbol)
+                && propertyOrParameter.GetMemberType() is { SpecialType: SpecialType.System_String }
+            )
+            {
+                return StringPoolingConverterModel.Instance;
+            }
+
+            if (
+                attrSymbol is { IsGenericType: true, Arity: 1 }
+                && symbols.IsCsvConverterOfTAttribute(attrSymbol.ConstructUnboundGenericType())
+                && IsConverterOrFactory(attrSymbol.TypeArguments[0], symbols.TokenType, in symbols)
+            )
+            {
+                converter = attrSymbol.TypeArguments[0];
+                break;
+            }
+        }
+
+        // no converter override
+        if (converter is null)
         {
             return null;
         }
@@ -161,26 +206,5 @@ internal record ConverterModel
         return false;
     }
 
-    private static bool TryGetConverterAttribute(
-        ISymbol propertyOrParameter,
-        ref readonly FlameSymbols symbols,
-        [NotNullWhen(true)] out ITypeSymbol? converter
-    )
-    {
-        foreach (var attributeData in propertyOrParameter.GetAttributes())
-        {
-            if (
-                attributeData.AttributeClass is { IsGenericType: true, Arity: 1 } attribute
-                && symbols.IsCsvConverterOfTAttribute(attribute.ConstructUnboundGenericType())
-                && IsConverterOrFactory(attribute.TypeArguments[0], symbols.TokenType, in symbols)
-            )
-            {
-                converter = attribute.TypeArguments[0];
-                return true;
-            }
-        }
-
-        converter = null;
-        return false;
-    }
+    public bool Equals(IConverterModel other) => Equals(other as ConverterModel);
 }

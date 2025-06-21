@@ -22,6 +22,7 @@ internal readonly ref struct FlameSymbols
     private readonly INamedTypeSymbol _requiredAttribute;
     private readonly INamedTypeSymbol _typeProxyAttribute;
     private readonly INamedTypeSymbol _ignoredIndexesAttribute;
+    private readonly INamedTypeSymbol _stringPoolingAttribute;
 
     private readonly INamedTypeSymbol _systemDateTimeOffset;
     private readonly INamedTypeSymbol _systemTimeSpan;
@@ -48,6 +49,7 @@ internal readonly ref struct FlameSymbols
         _requiredAttribute = Get(compilation, "FlameCsv.Attributes.CsvRequiredAttribute");
         _typeProxyAttribute = Get(compilation, "FlameCsv.Attributes.CsvTypeProxyAttribute");
         _ignoredIndexesAttribute = Get(compilation, "FlameCsv.Attributes.CsvIgnoredIndexesAttribute");
+        _stringPoolingAttribute = Get(compilation, "FlameCsv.Attributes.CsvStringPoolingAttribute");
 
         _systemDateTimeOffset = Get(compilation, "System.DateTimeOffset");
         _systemTimeSpan = Get(compilation, "System.TimeSpan");
@@ -58,15 +60,6 @@ internal readonly ref struct FlameSymbols
         _systemIUtf8SpanFormattable = Get(compilation, "System.IUtf8SpanFormattable");
     }
 
-#else
-    public FlameSymbols(ITypeSymbol tokenType, ITypeSymbol targetType)
-    {
-        TokenType = tokenType;
-        TargetType = targetType;
-    }
-#endif
-
-#if SOURCEGEN_USE_COMPILATION
     private static readonly SymbolEqualityComparer _seq = SymbolEqualityComparer.Default;
 
     public bool IsCsvConverterTTValue([NNW(true)] ISymbol? symbol) => _seq.Equals(_converter, symbol);
@@ -76,6 +69,8 @@ internal readonly ref struct FlameSymbols
     public bool IsCsvHeaderAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_headerAttribute, symbol);
 
     public bool IsCsvIgnoreAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoreAttribute, symbol);
+
+    public bool IsStringPoolingAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_stringPoolingAttribute, symbol);
 
     public bool IsCsvIndexAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_indexAttribute, symbol);
 
@@ -118,6 +113,12 @@ internal readonly ref struct FlameSymbols
         return Get(compilation, name).ConstructUnboundGenericType();
     }
 #else
+    public FlameSymbols(ITypeSymbol tokenType, ITypeSymbol targetType)
+    {
+        TokenType = tokenType;
+        TargetType = targetType;
+    }
+
     // ReSharper disable MemberCanBeMadeStatic.Global
     public bool IsCsvConverterTTValue([NNW(true)] ISymbol? symbol) => _converterTTValue.IsEqual(symbol);
 
@@ -138,6 +139,8 @@ internal readonly ref struct FlameSymbols
     public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _typeProxyAttribute.IsEqual(symbol);
 
     public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _ignoredIndexesAttribute.IsEqual(symbol);
+
+    public bool IsStringPoolingAttribute([NNW(true)] ISymbol? symbol) => _stringPoolingAttribute.IsEqual(symbol);
 
     public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => _systemDateTimeOffset.IsEqual(symbol);
 
@@ -163,6 +166,7 @@ internal readonly ref struct FlameSymbols
     private static readonly TypeData _requiredAttribute = new("FlameCsv.Attributes.CsvRequiredAttribute");
     private static readonly TypeData _typeProxyAttribute = new("FlameCsv.Attributes.CsvTypeProxyAttribute");
     private static readonly TypeData _ignoredIndexesAttribute = new("FlameCsv.Attributes.CsvIgnoredIndexesAttribute");
+    private static readonly TypeData _stringPoolingAttribute = new("FlameCsv.Attributes.CsvStringPoolingAttribute");
 
     private static readonly TypeData _systemDateTimeOffset = new("System.DateTimeOffset");
     private static readonly TypeData _systemTimeSpan = new("System.TimeSpan");

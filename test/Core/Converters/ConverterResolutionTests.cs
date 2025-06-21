@@ -28,7 +28,7 @@ public static partial class ConverterResolutionTests
         [CsvConverter<IdConverter>]
         public int Id { get; set; }
 
-        [CsvConverter<PoolingStringTextConverter>]
+        [CsvConverter<CsvPoolingStringTextConverter>]
         public string? Name { get; set; }
 
         [CsvConverter<IdConverter>]

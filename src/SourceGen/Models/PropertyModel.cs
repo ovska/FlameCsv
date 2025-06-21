@@ -69,7 +69,7 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
     /// <summary>
     /// Overridden converter for this property.
     /// </summary>
-    public required ConverterModel? OverriddenConverter { get; init; }
+    public required IConverterModel? OverriddenConverter { get; init; }
 
     /// <summary>
     /// Whether the type has interfaces that support builtin conversion.

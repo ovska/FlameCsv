@@ -10,7 +10,7 @@ public static class StringPoolConverterTests
     public static void Should_Pool()
     {
         StringPool pool = new(minimumSize: 32);
-        var converter = new PoolingStringUtf8Converter(pool);
+        var converter = new CsvPoolingStringUtf8Converter(pool);
 
         var longString = new string('a', 1024);
         Assert.True(converter.TryParse(Encoding.UTF8.GetBytes(longString), out var value));

@@ -342,6 +342,7 @@ public class ModelTests(MetadataFixture fixture)
                         [CsvConverterAttribute<NotConstructible>] public object IsAbstract { get; set; }
                         [CsvConverterAttribute<IntConverter>] public int? Wrappable { get; set; }
                         public object None { get; set; }
+                        [CsvStringPooling] public string? Pooled { get; set; }
                     }
 
                     class OptionsCtor(CsvOptions<char> _) : CsvConverter<char, object>
@@ -412,8 +413,14 @@ public class ModelTests(MetadataFixture fixture)
                 continue;
             }
 
-            Assert.NotNull(model);
-            models.Add(model);
+            if (member.Name == "Pooled")
+            {
+                Assert.IsType<StringPoolingConverterModel>(model);
+                continue;
+            }
+
+            Assert.IsType<ConverterModel>(model);
+            models.Add((ConverterModel)model);
         }
 
         Assert.Equal(6, models.Count);
