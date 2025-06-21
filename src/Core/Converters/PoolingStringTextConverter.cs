@@ -22,7 +22,15 @@ internal sealed class PoolingStringTextConverter : CsvConverter<char, string>
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
-        return value.AsSpan().TryCopyTo(destination, out charsWritten);
+        // use String.TryCopyTo to avoid conversion to span
+        if (value.TryCopyTo(destination))
+        {
+            charsWritten = value.Length;
+            return true;
+        }
+
+        charsWritten = 0;
+        return false;
     }
 
     public override bool TryParse(ReadOnlySpan<char> source, [MaybeNullWhen(false)] out string value)
