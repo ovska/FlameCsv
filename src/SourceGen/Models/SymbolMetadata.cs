@@ -41,8 +41,9 @@ internal readonly ref struct SymbolMetadata
 
         foreach (var attribute in symbol.GetAttributes())
         {
-            if (attribute.AttributeClass is not { } attrSymbol)
+            if (attribute.TryGetFlameCsvAttribute(out var attrSymbol) is false)
             {
+                // not a FlameCsv attribute, skip
                 continue;
             }
 
