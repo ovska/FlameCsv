@@ -4,7 +4,7 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal record TypeMapModel
+internal sealed record TypeMapModel
 {
     /// <summary>
     /// TypeRef to the TypeMap object

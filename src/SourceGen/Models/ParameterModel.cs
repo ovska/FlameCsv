@@ -4,7 +4,7 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal record ParameterModel : IComparable<ParameterModel>, IMemberModel
+internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberModel
 {
     /// <summary>
     /// 0-based index of the parameter in the constructor.

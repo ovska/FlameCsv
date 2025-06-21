@@ -3,7 +3,7 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal record PropertyModel : IComparable<PropertyModel>, IMemberModel
+internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
 {
     /// <summary>
     /// Property/field name, including a possible interface name, e.g. "ISomething_Prop"
