@@ -29,7 +29,7 @@ public static class ScenarioRunner
                 }
                 catch (ArgumentException e) when (e.ParamName == "chars")
                 {
-                    return;
+                    continue;
                 }
 
                 ReadOnlyMemory<char> chars = charMemory.Memory.Slice(0, written);

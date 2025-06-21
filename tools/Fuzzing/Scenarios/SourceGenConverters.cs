@@ -16,34 +16,8 @@ public partial class SourceGenConverters : IScenario
     private static void TestAll<T>(ReadOnlySpan<T> data)
         where T : unmanaged, IBinaryInteger<T>
     {
-        foreach (var configure in ConfigureOptions<T>.Configure)
+        foreach (var options in ConfigureOptions<T>.Values)
         {
-            CsvOptions<T> options = new();
-
-            try
-            {
-                if (typeof(T) == typeof(byte))
-                {
-                    var opts = (CsvOptions<byte>)(object)options;
-                    opts.Converters.Add(new EnumByteDof(opts));
-                    opts.Converters.Add(new EnumByteMio(opts));
-                    opts.Converters.Add(new EnumByteNa(opts));
-                }
-                else if (typeof(T) == typeof(char))
-                {
-                    var opts = (CsvOptions<char>)(object)options;
-                    opts.Converters.Add(new EnumCharDof(opts));
-                    opts.Converters.Add(new EnumCharMio(opts));
-                    opts.Converters.Add(new EnumCharNa(opts));
-                }
-            }
-            catch (NotSupportedException)
-            {
-                continue;
-            }
-
-            configure(options);
-
             Test<DayOfWeek>.Run(options, data);
             Test<MethodImplOptions>.Run(options, data);
             Test<NonAscii>.Run(options, data);
@@ -107,18 +81,50 @@ public partial class SourceGenConverters : IScenario
     private static class ConfigureOptions<T>
         where T : unmanaged, IBinaryInteger<T>
     {
-        public static readonly Action<CsvOptions<T>>[] Configure = (
-            from ignoreCase in (bool[])[true, false]
-            from allowUndefinedEnumValues in (bool[])[true, false]
-            from enumFormat in (string?[])[null, "G", "D", "X", "F"]
-            select (Action<CsvOptions<T>>)(
-                o =>
-                {
-                    o.IgnoreEnumCase = ignoreCase;
-                    o.AllowUndefinedEnumValues = allowUndefinedEnumValues;
-                    o.EnumFormat = enumFormat;
-                }
-            )
-        ).ToArray();
+        public static CsvOptions<T>[] Values =
+        [
+            .. (
+                from ignoreCase in (bool[])[true, false]
+                from allowUndefinedEnumValues in (bool[])[true, false]
+                from enumFormat in (string?[])[null, "G", "D", "X", "F"]
+                select (
+                    (Func<CsvOptions<T>?>)(
+                        () =>
+                        {
+                            var options = new CsvOptions<T>
+                            {
+                                IgnoreEnumCase = ignoreCase,
+                                AllowUndefinedEnumValues = allowUndefinedEnumValues,
+                                EnumFormat = enumFormat,
+                            };
+
+                            try
+                            {
+                                if (typeof(T) == typeof(byte))
+                                {
+                                    var opts = (CsvOptions<byte>)(object)options;
+                                    opts.Converters.Add(new EnumByteDof(opts));
+                                    opts.Converters.Add(new EnumByteMio(opts));
+                                    opts.Converters.Add(new EnumByteNa(opts));
+                                }
+                                else if (typeof(T) == typeof(char))
+                                {
+                                    var opts = (CsvOptions<char>)(object)options;
+                                    opts.Converters.Add(new EnumCharDof(opts));
+                                    opts.Converters.Add(new EnumCharMio(opts));
+                                    opts.Converters.Add(new EnumCharNa(opts));
+                                }
+                            }
+                            catch (NotSupportedException)
+                            {
+                                return null;
+                            }
+
+                            return options;
+                        }
+                    )
+                ).Invoke()
+            ).Where(o => o is not null),
+        ];
     }
 }
