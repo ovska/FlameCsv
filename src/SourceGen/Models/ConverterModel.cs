@@ -18,7 +18,6 @@ internal sealed class StringPoolingConverterModel : IConverterModel
             : "global::FlameCsv.Converters.CsvPoolingStringTextConverter";
 }
 
-// this is a class as it should be relatively rare, and would needlessly take space in other large structs
 internal sealed record ConverterModel : IConverterModel
 {
     /// <summary>
@@ -54,6 +53,8 @@ internal sealed record ConverterModel : IConverterModel
     )
     {
         ITypeSymbol? converter = null;
+        ITypeSymbol? converterActualTValue = null;
+        AttributeData? matchingAttribute = null;
 
         foreach (AttributeData attribute in propertyOrParameter.GetAttributes())
         {
@@ -73,9 +74,15 @@ internal sealed record ConverterModel : IConverterModel
             if (
                 attrSymbol is { IsGenericType: true, Arity: 1 }
                 && symbols.IsCsvConverterOfTAttribute(attrSymbol.ConstructUnboundGenericType())
-                && IsConverterOrFactory(attrSymbol.TypeArguments[0], symbols.TokenType, in symbols)
+                && IsConverterOrFactory(
+                    attrSymbol.TypeArguments[0],
+                    symbols.TokenType,
+                    in symbols,
+                    out converterActualTValue
+                )
             )
             {
+                matchingAttribute = attribute;
                 converter = attrSymbol.TypeArguments[0];
                 break;
             }
@@ -89,62 +96,59 @@ internal sealed record ConverterModel : IConverterModel
 
         TypeRef converterType = new(converter);
         ConstructorArgumentType constructorArguments = default;
-        bool wrapInNullable = false;
-        bool isFactory = IsConverterFactory(converter, in symbols);
+        bool isFactory = converterActualTValue is null; // if the converter is a factory, it has no TValue type argument
 
-        foreach (var member in converter.GetMembers())
+        foreach (var ctor in converter.GetInstanceConstructors())
         {
-            if (
-                member.Kind == SymbolKind.Method
-                && member is IMethodSymbol { MethodKind: MethodKind.Constructor } method
-            )
+            if (ctor.Parameters.IsEmpty)
             {
-                if (method.Parameters.IsEmpty)
-                {
-                    // don't break, we might find a better constructor
-                    constructorArguments = ConstructorArgumentType.Empty;
-                    continue;
-                }
+                // don't break, we might find a better constructor
+                constructorArguments = ConstructorArgumentType.Empty;
+                continue;
+            }
 
-                if (method.Parameters.Length == 1)
-                {
-                    if (symbols.IsCsvOptionsOfT(method.Parameters[0].Type))
-                    {
-                        constructorArguments = ConstructorArgumentType.Options;
-                        break; // we found the best constructor
-                    }
-                }
+            if (ctor.Parameters is [var singleParam] && symbols.IsCsvOptionsOfT(singleParam.Type))
+            {
+                constructorArguments = ConstructorArgumentType.Options;
+                break; // we found the best constructor
             }
         }
 
-        // wrap in nullable if needed, e.g., property is 'int?' but the converter is for int
+        bool wrapInNullable = false;
+
+        // check if the concrete type is not an exact match
         // leave factories as they are since we can't statically analyze if they support nullable types
-        if (!isFactory && convertedType.IsNullable(out var baseType))
+        if (!isFactory && !SymbolEqualityComparer.Default.Equals(convertedType, converterActualTValue))
         {
-            INamedTypeSymbol? current = converter.BaseType;
-            ITypeSymbol? resultType = null;
-
-            while (current != null)
+            // wrap in nullable if needed, e.g., property is 'int?' but the converter is for int
+            if (
+                convertedType.IsNullable(out ITypeSymbol? underlyingType)
+                && SymbolEqualityComparer.Default.Equals(underlyingType, converterActualTValue)
+            )
             {
-                if (current.IsGenericType)
-                {
-                    if (symbols.IsCsvConverterTTValue(current.ConstructUnboundGenericType()))
-                    {
-                        resultType = current.TypeArguments[1];
-                        break;
-                    }
-                }
-
-                current = current.BaseType;
+                wrapInNullable = true;
             }
+            else
+            {
+                collector.AddDiagnostic(
+                    Diagnostics.CsvConverterTypeMismatch(
+                        target: symbols.TargetType,
+                        converterType: converter,
+                        expectedType: convertedType,
+                        actualType: converterActualTValue!,
+                        location: matchingAttribute?.GetLocation()
+                    )
+                );
 
-            // if resultType is "int" here and convertedType is "int?", we need to wrap it in a NullableConverter
-            wrapInNullable = SymbolEqualityComparer.Default.Equals(baseType, resultType);
+                // don't return null so the incremental caching doesn't confuse between missing and invalid config
+            }
         }
 
         if (constructorArguments is ConstructorArgumentType.Invalid)
         {
-            collector.AddDiagnostic(Diagnostics.NoCsvFactoryConstructor(converter, converterType.Name, convertedType));
+            collector.AddDiagnostic(
+                Diagnostics.NoCsvConverterConstructor(converter, converterType.Name, convertedType)
+            );
         }
         else if (converterType.IsAbstract)
         {
@@ -160,22 +164,20 @@ internal sealed record ConverterModel : IConverterModel
         };
     }
 
-    public static bool IsConverterFactory(ITypeSymbol? type, ref readonly FlameSymbols symbols)
-    {
-        while (type is not null)
-        {
-            if (symbols.IsCsvConverterFactoryOfT(type))
-            {
-                return true;
-            }
-
-            type = type.BaseType;
-        }
-
-        return false;
-    }
-
-    public static bool IsConverterOrFactory(ITypeSymbol? type, ITypeSymbol tokenType, ref readonly FlameSymbols symbols)
+    /// <summary>
+    /// Determines if the type is a converter or factory for the given token type.
+    /// </summary>
+    /// <param name="type">Type to check</param>
+    /// <param name="tokenType">Token type (char or byte)</param>
+    /// <param name="symbols">Symbols to check against</param>
+    /// <param name="convertedType">Converted type if the type is <c>CsvConverter&lt;T, TResult&gt;</c></param>
+    /// <returns></returns>
+    public static bool IsConverterOrFactory(
+        ITypeSymbol? type,
+        ITypeSymbol tokenType,
+        ref readonly FlameSymbols symbols,
+        out ITypeSymbol? convertedType
+    )
     {
         while (type is not null)
         {
@@ -188,6 +190,7 @@ internal sealed record ConverterModel : IConverterModel
                         && SymbolEqualityComparer.Default.Equals(genericType.TypeArguments[0], tokenType)
                     )
                     {
+                        convertedType = genericType.TypeArguments[1];
                         return true;
                     }
                 }
@@ -195,6 +198,7 @@ internal sealed record ConverterModel : IConverterModel
                 {
                     if (symbols.IsCsvConverterFactoryOfT(genericType))
                     {
+                        convertedType = null;
                         return true;
                     }
                 }
@@ -203,6 +207,7 @@ internal sealed record ConverterModel : IConverterModel
             type = type.BaseType;
         }
 
+        convertedType = null;
         return false;
     }
 

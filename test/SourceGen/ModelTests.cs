@@ -388,7 +388,6 @@ public class ModelTests(MetadataFixture fixture)
 
         var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
 
-        var objectSymbol = compilation.GetTypeByMetadataName("System.Object")!;
         var classSymbol = semanticModel.GetDeclaredSymbol(
             semanticModel
                 .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
@@ -405,7 +404,7 @@ public class ModelTests(MetadataFixture fixture)
 
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
-            var model = ConverterModel.Create(member, objectSymbol, in flameSymbols, ref collector);
+            var model = ConverterModel.Create(member, member.Type, in flameSymbols, ref collector);
 
             if (member.Name == "None")
             {
@@ -439,11 +438,13 @@ public class ModelTests(MetadataFixture fixture)
         {
             Assert.Equal(expected[i].argType, models[i].ConstructorArguments);
             Assert.Equal(expected[i].isFactory, models[i].IsFactory);
+            Assert.Equal(expected[i].isAbstract, models[i].ConverterType.IsAbstract);
+            Assert.Equal(expected[i].wrap, models[i].WrapInNullable);
         }
 
         // need to do this here as we jam more diagnostics into the collector in the equality check below
         Assert.Equal(
-            [Descriptors.NoCsvFactoryConstructor.Id, Descriptors.CsvConverterAbstract.Id],
+            [Descriptors.NoCsvConverterConstructor.Id, Descriptors.CsvConverterAbstract.Id],
             collector.Diagnostics.Select(d => d.Id)
         );
 
@@ -451,8 +452,8 @@ public class ModelTests(MetadataFixture fixture)
         foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
         {
             Assert.Equal(
-                ConverterModel.Create(member, objectSymbol, in flameSymbols, ref collector),
-                ConverterModel.Create(member, objectSymbol, in flameSymbols, ref collector)
+                ConverterModel.Create(member, member.Type, in flameSymbols, ref collector),
+                ConverterModel.Create(member, member.Type, in flameSymbols, ref collector)
             );
         }
 

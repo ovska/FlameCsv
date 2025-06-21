@@ -219,6 +219,53 @@ public class DiagnosticTests(MetadataFixture fixture)
     }
 
     [Fact]
+    public void Should_Validate_Converter_Constructor()
+    {
+        AssertDiagnostic(
+            $$"""
+            [CsvTypeMap<char, Obj>]
+            partial class ObjTypeMap;
+
+            class Obj
+            {
+                [CsvConverter<MyConverter>]
+                public int Id { get; set; }
+            }
+
+            class MyConverter : CsvConverter<char, int>
+            {
+                public MyConverter(int value) { } // constructor with invalid parameter
+                {{ConverterBody}}
+            }
+            """,
+            [Descriptors.NoCsvConverterConstructor]
+        );
+    }
+
+    [Fact]
+    public void Should_Validate_Converter_Type()
+    {
+        AssertDiagnostic(
+            $$"""
+            [CsvTypeMap<char, Obj>]
+            partial class ObjTypeMap;
+
+            class Obj
+            {
+                [CsvConverter<MyConverter>]
+                public bool Id { get; set; }
+            }
+
+            class MyConverter : CsvConverter<char, int>
+            {
+                {{ConverterBody}}
+            }
+            """,
+            [Descriptors.CsvConverterTypeMismatch]
+        );
+    }
+
+    [Fact]
     public void Should_Validate_Readable_Members()
     {
         AssertDiagnostic(
@@ -520,4 +567,16 @@ public class DiagnosticTests(MetadataFixture fixture)
 
         Assert.Empty(runResult.GeneratedSources);
     }
+
+    private const string ConverterBody = """
+        public override bool TryFormat(Span<char> destination, int value, out int charsWritten)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override bool TryParse(ReadOnlySpan<char> source, out int value)
+        {
+            throw new NotImplementedException();
+        }
+        """;
 }

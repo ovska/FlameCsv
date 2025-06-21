@@ -120,10 +120,10 @@ internal static class Descriptors
         isEnabledByDefault: true
     );
 
-    public static readonly DiagnosticDescriptor NoCsvFactoryConstructor = new(
+    public static readonly DiagnosticDescriptor NoCsvConverterConstructor = new(
         id: "FLAMESG206",
-        title: "CsvConverterFactory with no valid constructor",
-        messageFormat: "Overridden converter factory type {0} on {1} must have an empty public constructor, or a constructor accepting CsvOptions<{2}>",
+        title: "CsvConverter with no valid constructor",
+        messageFormat: "Overridden converter {0} on {1} must have an empty public constructor, or a constructor accepting CsvOptions<{2}>",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
@@ -170,6 +170,15 @@ internal static class Descriptors
         title: "Gap in index attributes",
         messageFormat: "Cannot generate headerless CSV support: Index {0} was not configured on {1}",
         category: CategoryDesign,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
+
+    public static readonly DiagnosticDescriptor CsvConverterTypeMismatch = new(
+        id: "FLAMESG212",
+        title: "CsvConverter type mismatch",
+        messageFormat: "Converter {0} for {1} does not match the target type: expected {2}, got {3}",
+        category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );

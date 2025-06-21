@@ -79,6 +79,19 @@ namespace FlameCsv.Console
         public long? Age { get; set; }
     }
 
+    class MyConverter : CsvConverter<char, int>
+    {
+        public override bool TryFormat(Span<char> destination, int value, out int charsWritten)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override bool TryParse(ReadOnlySpan<char> source, out int value)
+        {
+            throw new System.NotImplementedException();
+        }
+    }
+
     public sealed class Entry
     {
         [CsvIndex(0)]

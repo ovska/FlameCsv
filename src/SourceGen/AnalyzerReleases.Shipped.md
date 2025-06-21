@@ -18,7 +18,7 @@
  FLAMESG203 | Usage    | Error    | No matching constructor
  FLAMESG204 | Usage    | Error    | Ignored parameter without default value
  FLAMESG205 | Usage    | Error    | Multiple type proxies
- FLAMESG206 | Usage    | Error    | No CsvConverterFactory ctor
+ FLAMESG206 | Usage    | Error    | No CsvConverter ctor
  FLAMESG207 | Usage    | Error    | Abstract CsvConverter
 
 ## Release 0.2.0
