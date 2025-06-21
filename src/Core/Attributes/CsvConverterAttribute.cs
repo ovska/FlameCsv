@@ -12,7 +12,11 @@ namespace FlameCsv.Attributes;
 /// This attribute is not recognized by the source generator,
 /// use <see cref="CsvConverterAttribute{TConverter}"/> instead.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter)]
+[AttributeUsage(
+    AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter,
+    // allowmultiple needed so both char and byte converters can be applied to the same member
+    AllowMultiple = true
+)]
 public abstract class CsvConverterAttribute : Attribute
 {
     /// <summary>
