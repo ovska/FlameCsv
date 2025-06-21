@@ -150,12 +150,33 @@ internal static class Diagnostics
         );
     }
 
-    public static Diagnostic NoCsvFactoryConstructor(ISymbol target, string factoryType, ITypeSymbol tokenType)
+    public static Diagnostic NoCsvConverterConstructor(ISymbol target, string factoryType, ITypeSymbol tokenType)
     {
         return Diagnostic.Create(
-            descriptor: Descriptors.NoCsvFactoryConstructor,
+            descriptor: Descriptors.NoCsvConverterConstructor,
             location: GetLocation(target),
             messageArgs: [target.ToDisplayString(), factoryType, tokenType.ToDisplayString()]
+        );
+    }
+
+    public static Diagnostic CsvConverterTypeMismatch(
+        ISymbol target,
+        ISymbol converterType,
+        ITypeSymbol expectedType,
+        ITypeSymbol actualType,
+        Location? location
+    )
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.CsvConverterTypeMismatch,
+            location: location ?? GetLocation(target),
+            messageArgs:
+            [
+                converterType.ToDisplayString(),
+                target.ToDisplayString(),
+                expectedType.ToDisplayString(),
+                actualType.ToDisplayString(),
+            ]
         );
     }
 
