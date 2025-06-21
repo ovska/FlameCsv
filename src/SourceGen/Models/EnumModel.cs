@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen.Models;
 
-internal record EnumModel
+internal sealed record EnumModel
 {
     public static bool TryGet(
         ISymbol converterSymbol,
