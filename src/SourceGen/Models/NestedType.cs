@@ -5,11 +5,24 @@ namespace FlameCsv.SourceGen.Models;
 
 internal readonly record struct NestedType
 {
-    public required bool IsReadOnly { get; init; }
-    public required bool IsRefLikeType { get; init; }
-    public required bool IsAbstract { get; init; }
-    public required bool IsValueType { get; init; }
-    public required string Name { get; init; }
+    public string Name { get; }
+    public bool IsReadOnly => (_config & Config.IsReadOnly) != 0;
+    public bool IsRefLikeType => (_config & Config.IsRefLikeType) != 0;
+    public bool IsAbstract => (_config & Config.IsAbstract) != 0;
+    public bool IsValueType => (_config & Config.IsValueType) != 0;
+
+    private readonly Config _config;
+
+    private NestedType(INamedTypeSymbol type)
+    {
+        Name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+        _config =
+            (type.IsReadOnly ? Config.IsReadOnly : 0)
+            | (type.IsRefLikeType ? Config.IsRefLikeType : 0)
+            | (type.IsAbstract ? Config.IsAbstract : 0)
+            | (type.IsValueType ? Config.IsValueType : 0);
+    }
 
     public static EquatableArray<NestedType> Parse(
         ITypeSymbol containingClass,
@@ -28,16 +41,7 @@ internal readonly record struct NestedType
         {
             Diagnostics.EnsurePartial(type, cancellationToken, diagnostics, generationTarget: containingClass);
 
-            wrappers.Add(
-                new NestedType
-                {
-                    IsReadOnly = type.IsReadOnly,
-                    IsRefLikeType = type.IsRefLikeType,
-                    IsAbstract = type.IsAbstract,
-                    IsValueType = type.IsValueType,
-                    Name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-                }
-            );
+            wrappers.Add(new NestedType(type));
 
             type = type.ContainingType;
         }
@@ -55,5 +59,14 @@ internal readonly record struct NestedType
         writer.Write(IsValueType ? "struct " : "class ");
         writer.Write(Name);
         writer.WriteLine(" {");
+    }
+
+    [Flags]
+    private enum Config : byte
+    {
+        IsReadOnly = 1 << 0,
+        IsRefLikeType = 1 << 1,
+        IsAbstract = 1 << 2,
+        IsValueType = 1 << 3,
     }
 }

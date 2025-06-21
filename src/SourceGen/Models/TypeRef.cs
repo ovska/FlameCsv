@@ -1,10 +1,12 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace FlameCsv.SourceGen.Models;
 
 // source: dotnet runtime (MIT license)
 
 [DebuggerDisplay("Name = {Name}")]
+[StructLayout(LayoutKind.Auto)]
 internal readonly record struct TypeRef : IComparable<TypeRef>
 {
     /// <summary>
@@ -23,9 +25,14 @@ internal readonly record struct TypeRef : IComparable<TypeRef>
     public SpecialType SpecialType { get; }
 
     /// <summary>
+    /// TypeKind of the type.
+    /// </summary>
+    public TypeKind Kind { get; }
+
+    /// <summary>
     /// Whether the type is ref-like, such as Span.
     /// </summary>
-    public bool IsRefLike { get; }
+    public bool IsRefLike => (_config & Config.IsRefLike) != 0;
 
     /// <summary>
     /// Whether the type is a value type.
@@ -33,22 +40,19 @@ internal readonly record struct TypeRef : IComparable<TypeRef>
     /// <remarks>
     /// Not needed by the generator, but should be included for type equality (+ padding space in the struct).
     /// </remarks>
-    public bool IsValueType { get; }
+    public bool IsValueType => (_config & Config.IsValueType) != 0;
 
     /// <summary>
     /// Whether the type is abstract.
     /// </summary>
-    public bool IsAbstract { get; }
-
-    /// <summary>
-    /// TypeKind of the type.
-    /// </summary>
-    public TypeKind Kind { get; }
+    public bool IsAbstract => (_config & Config.IsAbstract) != 0;
 
     /// <summary>
     /// If the type is an enum or a nullable enum.
     /// </summary>
-    public bool IsEnumOrNullableEnum { get; }
+    public bool IsEnumOrNullableEnum => (_config & Config.IsEnumOrNullableEnum) != 0;
+
+    private readonly Config _config;
 
     public TypeRef(ITypeSymbol type)
     {
@@ -61,18 +65,24 @@ internal readonly record struct TypeRef : IComparable<TypeRef>
 
         FullyQualifiedName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         SpecialType = type.OriginalDefinition.SpecialType;
-        IsRefLike = type.IsRefLikeType;
-        IsValueType = type.IsValueType;
-        IsAbstract = type.IsAbstract;
         Kind = type.TypeKind;
-        IsEnumOrNullableEnum =
-            type.TypeKind is TypeKind.Enum
-            || type
-                is INamedTypeSymbol
-                {
-                    OriginalDefinition.SpecialType: SpecialType.System_Nullable_T,
-                    TypeArguments: [{ TypeKind: TypeKind.Enum }]
-                };
+
+        _config =
+            (type.IsRefLikeType ? Config.IsRefLike : 0)
+            | (type.IsValueType ? Config.IsValueType : 0)
+            | (type.IsAbstract ? Config.IsAbstract : 0)
+            | (IsEnumOrNullableEnum(type) ? Config.IsEnumOrNullableEnum : 0);
+
+        static bool IsEnumOrNullableEnum(ITypeSymbol type)
+        {
+            return type.TypeKind is TypeKind.Enum
+                || type
+                    is INamedTypeSymbol
+                    {
+                        OriginalDefinition.SpecialType: SpecialType.System_Nullable_T,
+                        TypeArguments: [{ TypeKind: TypeKind.Enum }]
+                    };
+        }
     }
 
     public override string ToString() => $"{{ TypeRef: {Name} ({Kind}) }}";
@@ -82,4 +92,13 @@ internal readonly record struct TypeRef : IComparable<TypeRef>
     public bool Equals(TypeRef other) => FullyQualifiedName == other.FullyQualifiedName;
 
     public override int GetHashCode() => FullyQualifiedName.GetHashCode();
+
+    [Flags]
+    private enum Config : byte
+    {
+        IsRefLike = 1 << 0,
+        IsValueType = 1 << 1,
+        IsAbstract = 1 << 2,
+        IsEnumOrNullableEnum = 1 << 3,
+    }
 }
