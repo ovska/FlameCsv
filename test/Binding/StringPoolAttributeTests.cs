@@ -17,14 +17,8 @@ public static class StringPoolAttributeConverterTests
         Assert.True(
             props[nameof(Shim.Name)].TryCreateConverter(typeof(string), CsvOptions<char>.Default, out var converter)
         );
-        Assert.IsType<PoolingStringTextConverter>(converter);
-        Assert.Same(StringPool.Shared, ((PoolingStringTextConverter)converter).Pool);
-
-        Assert.True(
-            props[nameof(Shim.Description)].TryCreateConverter(typeof(string), CsvOptions<char>.Default, out converter)
-        );
-        Assert.IsType<PoolingStringTextConverter>(converter);
-        Assert.Same(Provider.Value, ((PoolingStringTextConverter)converter).Pool);
+        Assert.IsType<CsvPoolingStringTextConverter>(converter);
+        Assert.Same(StringPool.Shared, ((CsvPoolingStringTextConverter)converter).Pool);
     }
 
     [Fact]
@@ -37,23 +31,14 @@ public static class StringPoolAttributeConverterTests
         Assert.True(
             props[nameof(Shim.Name)].TryCreateConverter(typeof(string), CsvOptions<byte>.Default, out var converter)
         );
-        Assert.IsType<PoolingStringUtf8Converter>(converter);
-        Assert.Same(StringPool.Shared, ((PoolingStringUtf8Converter)converter).Pool);
-
-        Assert.True(
-            props[nameof(Shim.Description)].TryCreateConverter(typeof(string), CsvOptions<byte>.Default, out converter)
-        );
-        Assert.IsType<PoolingStringUtf8Converter>(converter);
-        Assert.Same(Provider.Value, ((PoolingStringUtf8Converter)converter).Pool);
+        Assert.IsType<CsvPoolingStringUtf8Converter>(converter);
+        Assert.Same(StringPool.Shared, ((CsvPoolingStringUtf8Converter)converter).Pool);
     }
 
     private class Shim
     {
         [CsvStringPooling]
         public string? Name { get; set; }
-
-        [CsvStringPooling(ProviderType = typeof(Provider), MemberName = "Value")]
-        public string? Description { get; set; }
     }
 
     private class Provider

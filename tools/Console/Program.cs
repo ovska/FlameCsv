@@ -68,6 +68,8 @@ namespace FlameCsv.Console
     {
         public DayOfWeek DOF { get; set; }
         public int Id { get; set; }
+
+        [CsvStringPooling]
         public string? Name { get; set; }
 
         [CsvHeader("Enabled")]

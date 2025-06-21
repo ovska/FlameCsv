@@ -40,7 +40,7 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     EquatableArray<string> Aliases { get; }
 
     /// <inheritdoc cref="PropertyModel.OverriddenConverter"/>
-    ConverterModel? OverriddenConverter { get; }
+    IConverterModel? OverriddenConverter { get; }
 
     /// <inheritdoc cref="PropertyModel.Type"/>
     TypeRef Type { get; }

@@ -58,7 +58,7 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
     /// <summary>
     /// Overridden converter for this parameter.
     /// </summary>
-    public required ConverterModel? OverriddenConverter { get; init; }
+    public required IConverterModel? OverriddenConverter { get; init; }
 
     /// <summary>
     /// Order of the parameter.
