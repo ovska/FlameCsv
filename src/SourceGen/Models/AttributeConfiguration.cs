@@ -37,8 +37,10 @@ internal readonly struct AttributeConfiguration(AttributeData attribute)
         ref AnalysisCollector collector
     )
     {
-        if (attribute.AttributeClass is not { } attrSymbol)
+        if (attribute.TryGetFlameCsvAttribute(out var attrSymbol) is false)
+        {
             return null;
+        }
 
         var targetType = symbols.TargetType;
 

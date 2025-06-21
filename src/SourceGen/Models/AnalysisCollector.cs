@@ -7,7 +7,7 @@ namespace FlameCsv.SourceGen.Models;
 [SuppressMessage("CodeQuality", "IDE0064:Make readonly fields writable", Justification = "<Pending>")]
 internal ref struct AnalysisCollector : IDisposable
 {
-    public override string ToString() =>
+    public override readonly string ToString() =>
         $"AnalysisCollector: {Diagnostics?.Count} diagnostics, {TargetAttributes.Count} targetAttributes, "
         + $"{IgnoredIndexes?.Count} ignoredIndexes, {Proxies?.Count} proxies";
 

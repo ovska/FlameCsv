@@ -10,6 +10,36 @@ namespace FlameCsv.SourceGen.Utilities;
 
 internal static class Extensions
 {
+    public static ITypeSymbol? GetMemberType(this ISymbol? symbol)
+    {
+        return symbol switch
+        {
+            IPropertySymbol property => property.Type,
+            IFieldSymbol field => field.Type,
+            IParameterSymbol parameter => parameter.Type,
+            _ => null,
+        };
+    }
+
+    public static bool TryGetFlameCsvAttribute(
+        this AttributeData attributeData,
+        [NotNullWhen(true)] out INamedTypeSymbol? attribute
+    )
+    {
+        if (
+            attributeData.AttributeClass
+                is { ContainingNamespace: { Name: "Attributes", ContainingNamespace.Name: "FlameCsv" } } attrSymbol
+            && attrSymbol.Name.StartsWith("Csv")
+        )
+        {
+            attribute = attrSymbol;
+            return true;
+        }
+
+        attribute = null;
+        return false;
+    }
+
     public static void ReportDiagnostics(in this SourceProductionContext context, Diagnostic[] diagnostics)
     {
         foreach (var diagnostic in diagnostics)
