@@ -15,7 +15,7 @@ internal readonly record struct NestedType
 
     private NestedType(INamedTypeSymbol type)
     {
-        Name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        Name = type.MetadataName;
 
         _config =
             (type.IsReadOnly ? Config.IsReadOnly : 0)
@@ -24,7 +24,7 @@ internal readonly record struct NestedType
             | (type.IsValueType ? Config.IsValueType : 0);
     }
 
-    public static EquatableArray<NestedType> Parse(
+    public static EquatableArray<NestedType> Create(
         ITypeSymbol containingClass,
         CancellationToken cancellationToken,
         List<Diagnostic> diagnostics
@@ -61,6 +61,7 @@ internal readonly record struct NestedType
         writer.WriteLine(" {");
     }
 
+    // shave off a few bytes of the struct size
     [Flags]
     private enum Config : byte
     {

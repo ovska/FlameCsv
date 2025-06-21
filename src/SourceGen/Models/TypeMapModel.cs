@@ -185,7 +185,7 @@ internal sealed record TypeMapModel
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        WrappingTypes = NestedType.Parse(containingClass, cancellationToken, collector.Diagnostics);
+        WrappingTypes = NestedType.Create(containingClass, cancellationToken, collector.Diagnostics);
 
         List<PropertyModel> properties = PooledList<PropertyModel>.Acquire();
 

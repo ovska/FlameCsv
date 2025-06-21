@@ -145,7 +145,7 @@ internal sealed record EnumModel
         ContiguousFromZero = isContiguous;
         ContiguousFromZeroCount = contiguousCount;
 
-        WrappingTypes = NestedType.Parse(converterType, cancellationToken, diagnostics);
+        WrappingTypes = NestedType.Create(converterType, cancellationToken, diagnostics);
         InGlobalNamespace = converterType.ContainingNamespace.IsGlobalNamespace;
         Namespace = converterType.ContainingNamespace.ToDisplayString();
         HasExplicitNames = Values.AsImmutableArray().Any(v => !string.IsNullOrEmpty(v.ExplicitName));

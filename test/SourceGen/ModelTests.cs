@@ -638,7 +638,7 @@ public class ModelTests(MetadataFixture fixture)
 
         using var writer = new IndentedTextWriter();
 
-        foreach (var item in NestedType.Parse(nestedSymbol, CancellationToken.None, []))
+        foreach (var item in NestedType.Create(nestedSymbol, CancellationToken.None, []))
         {
             item.WriteTo(writer);
         }
@@ -653,6 +653,44 @@ public class ModelTests(MetadataFixture fixture)
             """.ReplaceLineEndings("\n"),
             writer.ToString()
         );
+    }
+
+    [Fact]
+    public void Test_NestedType_GetFileName()
+    {
+        var compilation = CSharpCompilation.Create(
+            nameof(Test_NestedType),
+            [
+                CSharpSyntaxTree.ParseText(
+                    """
+                    namespace ShouldNotBeIncluded;
+
+                    partial class MyGeneric<T>
+                    {
+                        partial class Nested1
+                        {
+                        }
+                    }
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
+            ],
+            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());
+        var nestedSymbol = semanticModel.GetDeclaredSymbol(
+            semanticModel
+                .SyntaxTree.GetRoot(TestContext.Current.CancellationToken)
+                .DescendantNodes()
+                .OfType<TypeDeclarationSyntax>()
+                .Single(s => s.Identifier.Text == "Nested1"),
+            cancellationToken: TestContext.Current.CancellationToken
+        )!;
+
+        var nestedTypes = NestedType.Create(nestedSymbol, CancellationToken.None, []);
+        Assert.Equal("MyGeneric`1_Nested1.G.cs", GlobalConstants.GetFileName(nestedSymbol.Name, nestedTypes));
     }
 
     [Theory, InlineData(true), InlineData(false)]
