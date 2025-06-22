@@ -12,8 +12,8 @@ internal sealed class StringPoolingConverterModel : IConverterModel
 
     public bool Equals(IConverterModel? other) => other is StringPoolingConverterModel;
 
-    public string GetName(bool isByte) =>
-        isByte
+    public static string GetName(string token) =>
+        token == "byte"
             ? "global::FlameCsv.Converters.CsvPoolingStringUtf8Converter"
             : "global::FlameCsv.Converters.CsvPoolingStringTextConverter";
 }
