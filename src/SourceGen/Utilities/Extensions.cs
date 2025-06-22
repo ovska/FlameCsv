@@ -27,9 +27,8 @@ internal static class Extensions
     )
     {
         if (
-            attributeData.AttributeClass
-                is { ContainingNamespace: { Name: "Attributes", ContainingNamespace.Name: "FlameCsv" } } attrSymbol
-            && attrSymbol.Name.StartsWith("Csv")
+            attributeData.AttributeClass is
+            { ContainingNamespace: { Name: "Attributes", ContainingNamespace.Name: "FlameCsv" } } attrSymbol
         )
         {
             attribute = attrSymbol;
@@ -50,12 +49,12 @@ internal static class Extensions
 
     public static EquatableArray<IMemberModel>.WhereEnumerable Writable(in this EquatableArray<IMemberModel> members)
     {
-        return members.Where(m => m.IsFormattable);
+        return members.Where(static m => m.IsFormattable);
     }
 
     public static EquatableArray<IMemberModel>.WhereEnumerable Readable(in this EquatableArray<IMemberModel> members)
     {
-        return members.Where(m => m.IsParsable);
+        return members.Where(static m => m.IsParsable);
     }
 
     public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)
@@ -124,9 +123,9 @@ internal static class Extensions
     {
         return value switch
         {
-            null => "default",
+            null => "default", // null ref types and default/new() structs have this value
             bool b => b ? "true" : "false",
-            "" => "\"\"",
+            string s => ToStringLiteral(s),
             _ => GetLiteral(value)?.ToFullString() ?? value.ToString() ?? "",
         };
 
@@ -208,6 +207,9 @@ internal static class Extensions
         return false;
     }
 
+    /// <summary>
+    /// Returns true if the string contains only ASCII characters (0x00 to 0x7F), or is null or empty.
+    /// </summary>
     public static bool IsAscii(this string? value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
@@ -291,5 +293,5 @@ internal static class Extensions
         }
     }
 
-    public static bool IsByte(this TypeRef typeRef) => typeRef.SpecialType == SpecialType.System_Byte;
+    public static bool IsByte(in this TypeRef typeRef) => typeRef.SpecialType == SpecialType.System_Byte;
 }

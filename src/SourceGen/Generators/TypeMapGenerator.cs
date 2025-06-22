@@ -139,6 +139,17 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
         return SourceText.From(writer.ToString(), Encoding.UTF8);
     }
 
+    private static void WriteDefaultInstance(IndentedTextWriter writer, TypeMapModel typeMap)
+    {
+        writer.WriteLine("/// <summary>");
+        writer.WriteLine("/// Returns a thread-safe instance of the typemap with default options.");
+        writer.WriteLine("/// </summary>");
+        writer.WriteLine(
+            $"public static {typeMap.TypeMap.FullyQualifiedName} Default {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}();"
+        );
+        writer.WriteLine();
+    }
+
     private static void WriteIndexes(IndentedTextWriter writer, TypeMapModel typeMap)
     {
         // start from 1 so uninitialized members are zero and fail as expected

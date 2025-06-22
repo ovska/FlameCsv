@@ -5,15 +5,15 @@ namespace FlameCsv.SourceGen.Generators;
 
 partial class TypeMapGenerator
 {
-    public static void WriteConverterType(IndentedTextWriter writer, string token, IMemberModel member)
+    private static void WriteConverterType(IndentedTextWriter writer, string token, IMemberModel member)
     {
         if (member.IsIgnored)
         {
             writer.Write($"global::FlameCsv.Binding.CsvIgnored.Converter<{token}, {member.Type.FullyQualifiedName}>");
         }
-        else if (member.OverriddenConverter is StringPoolingConverterModel spcm)
+        else if (member.OverriddenConverter is StringPoolingConverterModel)
         {
-            writer.Write(spcm.GetName(token == "byte"));
+            writer.Write(StringPoolingConverterModel.GetName(token));
         }
         else if (member.OverriddenConverter is ConverterModel { IsFactory: false, WrapInNullable: false } converter)
         {
@@ -25,7 +25,7 @@ partial class TypeMapGenerator
         }
     }
 
-    public static void WriteConverter(IndentedTextWriter writer, string token, IMemberModel member)
+    private static void WriteConverter(IndentedTextWriter writer, string token, IMemberModel member)
     {
         if (member.IsIgnored)
         {
@@ -33,17 +33,19 @@ partial class TypeMapGenerator
             return;
         }
 
-        if (member.OverriddenConverter is StringPoolingConverterModel spcm)
+        if (member.OverriddenConverter is StringPoolingConverterModel)
         {
-            writer.Write(spcm.GetName(token == "byte"));
+            writer.Write(StringPoolingConverterModel.GetName(token));
             writer.Write(".Instance");
             return;
         }
 
-        var converter = member.OverriddenConverter as ConverterModel;
+        var @override = member.OverriddenConverter as ConverterModel;
 
-        bool wrapInNullable = converter?.WrapInNullable ?? member.Type.SpecialType == SpecialType.System_Nullable_T;
+        // converter is for T but member is T?, or the member is T? struct and we may need to wrap it in a NullableConverter
+        bool wrapInNullable = @override?.WrapInNullable ?? member.Type.SpecialType == SpecialType.System_Nullable_T;
 
+        // uses a built-in conversion (SpanFormattable/Parsable)
         bool builtinConversion = false;
 
         if (wrapInNullable)
@@ -53,7 +55,7 @@ partial class TypeMapGenerator
             writer.Write(">(static options => ");
         }
 
-        if (converter is null)
+        if (@override is null)
         {
             builtinConversion = TryGetBuiltinConversion(token, member, out string? builtinMethodName);
 
@@ -70,6 +72,7 @@ partial class TypeMapGenerator
                     member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<"
                 );
 
+                // need to trim out the question mark for nullable types
                 Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
                 writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
 
@@ -78,16 +81,17 @@ partial class TypeMapGenerator
         }
         else
         {
-            if (converter.IsFactory)
+            // converter override, create manually
+            if (@override.IsFactory)
             {
                 writer.Write($"(global::FlameCsv.CsvConverter<{token}, {member.Type.FullyQualifiedName}>)");
             }
 
             writer.Write("new ");
-            writer.Write(converter.ConverterType.FullyQualifiedName);
-            writer.Write(converter.ConstructorArguments == ConstructorArgumentType.Options ? "(options)" : "()");
+            writer.Write(@override.ConverterType.FullyQualifiedName);
+            writer.Write(@override.ConstructorArguments == ConstructorArgumentType.Options ? "(options)" : "()");
 
-            if (converter.IsFactory)
+            if (@override.IsFactory)
             {
                 writer.Write(".Create(typeof(");
                 writer.Write(member.Type.FullyQualifiedName);
@@ -97,29 +101,20 @@ partial class TypeMapGenerator
 
         if (wrapInNullable || builtinConversion)
         {
-            if (converter?.WrapInNullable ?? false)
+            writer.Write(", canCache: ");
+
+            // explicit converter override, don't cache this one
+            if (@override is { WrapInNullable: true })
             {
-                // explicit converter override, don't cache this one
-                writer.Write(", canCache: false");
+                writer.Write("false");
             }
             else if (member.Type.SpecialType == SpecialType.System_Nullable_T)
             {
-                writer.Write(", canCache: true");
+                writer.Write("true");
             }
 
             writer.Write(")");
         }
-    }
-
-    private static void WriteDefaultInstance(IndentedTextWriter writer, TypeMapModel typeMap)
-    {
-        writer.WriteLine("/// <summary>");
-        writer.WriteLine("/// Returns a thread-safe instance of the typemap with default options.");
-        writer.WriteLine("/// </summary>");
-        writer.WriteLine(
-            $"public static {typeMap.TypeMap.FullyQualifiedName} Default {{ get; }} = new {typeMap.TypeMap.FullyQualifiedName}();"
-        );
-        writer.WriteLine();
     }
 
     private static bool TryGetBuiltinConversion(
