@@ -6,6 +6,18 @@ namespace FlameCsv.Tests.SourceGen;
 public static class ExtensionTests
 {
     [Theory]
+    [InlineData(false, "abc")]
+    [InlineData(false, "ABC")]
+    [InlineData(false, "123abc")]
+    [InlineData(true, "123")]
+    [InlineData(true, " ")]
+    [InlineData(true, "🐉")]
+    public static void Test_IsCaseAgnostic(bool expected, string value)
+    {
+        Assert.Equal(expected, value.IsCaseAgnostic());
+    }
+
+    [Theory]
     [InlineData(null, "default")]
     [InlineData(1, "1")]
     [InlineData("abc", "\"abc\"")]

@@ -14,8 +14,8 @@ However, reflection and compiled expressions are incompatible with AOT compilati
 Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are
 relatively small.
 
-The source-generated [enum converter](#enum-converter-generator) is significantly faster than `Enum.TryParse` and `TryFormat`.
-For more details, see the [benchmarks](benchmarks.md#enums).
+The source-generated [enum converter](#enum-converter-generator) is significantly faster than `Enum.TryParse` and `TryFormat`,
+especially when reading UTF-8 bytes. For more details, see the [benchmarks](benchmarks.md#enums).
 
 ## Type Map Generator
 
@@ -635,8 +635,8 @@ optimize for performance, and they are fuzz-tested to ensure correctness.
 
 Simply apply the attribute to a `partial class`. The generated converter supports parsing and formatting numbers, enum names,
 @"System.Runtime.Serialization.EnumMemberAttribute", and case-insensitive parsing of both UTF-16 and UTF-8 data.
-The converter also correctly handles oddities on both UTF-8 and UTF-16, such as surrogates
-and non-ASCII data (emojis).
+The converter also correctly handles oddities on both UTF-8 and UTF-16, such as surrogates and non-ASCII data like emojis,
+and intelligently switches between raw byte/memory manipulation and transcoding to chars when necessary.
 
 ```cs
 [CsvEnumConverter<char, DayOfWeek>]
