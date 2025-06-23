@@ -236,41 +236,72 @@ partial class EnumConverterGenerator
                             // all entries are ASCII, so we can use a fast path
                             WriteStringMatchByte(model, writer, ignoreCase, lengthGroup, cancellationToken);
                         }
-                        else if (
-                            lengthGroup.All(g =>
-                                g.Name.ToLowerInvariant() == g.Name && g.Name.ToUpperInvariant() == g.Name
-                            )
-                        )
-                        {
-                            // all entries are case-agnostic
-                            WriteStringMatchByteAsciiOrdinal(
-                                model,
-                                writer,
-                                lengthGroup,
-                                cancellationToken,
-                                forceIfChain: true
-                            );
-                        }
                         else
                         {
-                            // get the max length of a valid entry
-                            int stackallocLength = Math.Min(128, lengthGroup.Max(e => e.Name.Length));
+                            int groupLength = lengthGroup.Count();
 
-                            writer.DebugLine("Slow path: not ascii and not case-agnostic");
-                            writer.WriteLine(
-                                $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{stackallocLength}], out char[]? toReturn);"
-                            );
-                            writer.WriteLine("bool retVal = false;");
-                            writer.WriteLine("__Unsafe.SkipInit(out value);");
-                            writer.WriteLine();
-                            WriteStringMatchChar(model, writer, ignoreCase, lengthGroup, cancellationToken);
+                            List<Entry> caseAgnosticValues = PooledList<Entry>.Acquire();
+                            List<Entry> complexValues = PooledList<Entry>.Acquire();
 
-                            writer.WriteLine(
-                                "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);"
-                            );
+                            foreach (var entry in lengthGroup)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                (entry.Name.IsCaseAgnostic() ? caseAgnosticValues : complexValues).Add(entry);
+                            }
 
-                            writer.WriteLine("if (retVal) return true;");
-                            writer.WriteLine("break;");
+                            if (caseAgnosticValues.Count() != 0)
+                            {
+                                bool allHandled = complexValues.Count == 0;
+
+                                // all entries are case-agnostic
+                                WriteStringMatchByteAsciiOrdinal(
+                                    model,
+                                    writer,
+                                    caseAgnosticValues.AsGrouping(lengthGroup.Key),
+                                    cancellationToken,
+                                    caseAgnostic: true,
+                                    writeTrailingBreak: allHandled
+                                );
+
+                                writer.WriteLineIf(!allHandled);
+                            }
+
+                            if (complexValues.Count != 0)
+                            {
+                                var complexGroup = complexValues.AsGrouping(lengthGroup.Key);
+
+                                if (complexGroup.All(e => e.Name.IsAscii()))
+                                {
+                                    writer.DebugLine("Remaining values are all ASCII, use fast path");
+                                    WriteStringMatchByte(model, writer, ignoreCase, complexGroup, cancellationToken);
+                                }
+                                else
+                                {
+                                    // there are non-case agnostic non-ascii entries, use the slowest path
+
+                                    // get the max length of a valid entry
+                                    int stackallocLength = Math.Min(128, lengthGroup.Max(e => e.Name.Length));
+
+                                    writer.DebugLine("Slow path: not ascii and not case-agnostic");
+                                    writer.WriteLine(
+                                        $"global::System.ReadOnlySpan<char> source_chars = GetChars(source, stackalloc char[{stackallocLength}], out char[]? toReturn);"
+                                    );
+                                    writer.WriteLine("bool retVal = false;");
+                                    writer.WriteLine("__Unsafe.SkipInit(out value);");
+                                    writer.WriteLine();
+                                    WriteStringMatchChar(model, writer, ignoreCase, complexGroup, cancellationToken);
+
+                                    writer.WriteLine(
+                                        "if (toReturn is not null) global::System.Buffers.ArrayPool<char>.Shared.Return(toReturn, clearArray: true);"
+                                    );
+
+                                    writer.WriteLine("if (retVal) return true;");
+                                    writer.WriteLine("break;");
+                                }
+                            }
+
+                            PooledList<Entry>.Release(caseAgnosticValues);
+                            PooledList<Entry>.Release(complexValues);
                         }
                     }
                     else
@@ -408,24 +439,20 @@ partial class EnumConverterGenerator
         IndentedTextWriter writer,
         IGrouping<int, Entry> entriesByLength,
         CancellationToken cancellationToken,
-        bool forceIfChain = false
+        bool caseAgnostic = false,
+        bool writeTrailingBreak = true
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         writer.DebugLine(nameof(WriteStringMatchByteAsciiOrdinal));
 
-        if (forceIfChain || entriesByLength.Count() < 3 || entriesByLength.Any(e => e.Name.ContainsSurrogates()))
+        if (caseAgnostic || entriesByLength.Count() < 3 || entriesByLength.Any(e => e.Name.ContainsSurrogates()))
         {
-            writer.DebugLineIf(forceIfChain, "if-chain forced");
-            writer.DebugLineIf(!forceIfChain, "< 3 values, or contains surrogates");
+            writer.DebugLineIf(caseAgnostic, "if-chain forced");
+            writer.DebugLineIf(!caseAgnostic, "< 3 values, or contains surrogates");
 
-            if (forceIfChain)
-            {
-                writer.Write("// case-agnostic value");
-                writer.WriteIf(entriesByLength.Count() > 1, "s");
-                writer.WriteLine();
-            }
+            writer.WriteLineIf(caseAgnostic, "// case-agnostic value(s)");
 
             foreach (var single in entriesByLength)
             {
@@ -440,7 +467,7 @@ partial class EnumConverterGenerator
                 }
             }
 
-            writer.WriteLine("break;");
+            writer.WriteLineIf(writeTrailingBreak, "break;");
             return;
         }
 
@@ -480,7 +507,7 @@ partial class EnumConverterGenerator
             }
         }
 
-        writer.WriteLine("break;");
+        writer.WriteLineIf(writeTrailingBreak, "break;");
     }
 
     private static void WriteStringMatchByte(
@@ -533,16 +560,15 @@ partial class EnumConverterGenerator
                         else
                         {
                             char compare = entry.Name[i];
+                            bool isAscii = compare.IsAsciiLetter();
 
                             if (ignoreCase)
                             {
-                                writer.WriteIf(compare.IsAsciiLetter(), '(');
+                                writer.WriteIf(isAscii, '(');
                                 WriteIndexAccess(writer, i);
-                                writer.Write(compare.IsAsciiLetter() ? " | 0x20) == " : " == ");
+                                writer.Write(isAscii ? " | 0x20) == " : " == ");
                                 writer.Write(
-                                    compare.IsAsciiLetter()
-                                        ? char.ToLowerInvariant(compare).ToCharLiteral()
-                                        : compare.ToCharLiteral()
+                                    isAscii ? char.ToLowerInvariant(compare).ToCharLiteral() : compare.ToCharLiteral()
                                 );
                             }
                             else
@@ -576,7 +602,7 @@ partial class EnumConverterGenerator
                         writer.Write(type);
                         writer.Write(">(");
                         writer.Write(entry.Name.Substring(i, count).ToLowerInvariant().ToStringLiteral());
-                        writer.Write("u8 == ");
+                        writer.Write("u8) == ");
 
                         writer.WriteIf(ignoreCase, "(");
                         writer.Write($"__Unsafe.ReadUnaligned<{type}>(ref ");
@@ -801,7 +827,7 @@ partial class EnumConverterGenerator
             return;
         }
 
-        // TODO: remove when JIT is smart enough to optimize the bounds checks
+        // TODO: remove when JIT is smart enough to optimize the bounds checks with switch/case
         // on net9, byte ignorecase tryparse for System.TypeCode produces 755 bytes of ASM with this (vs 934 without)
         writer.Write($"__Unsafe.Add(ref first, {depth})");
     }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿using System.Collections;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
@@ -294,4 +295,23 @@ internal static class Extensions
     }
 
     public static bool IsByte(in this TypeRef typeRef) => typeRef.SpecialType == SpecialType.System_Byte;
+
+    public static bool IsCaseAgnostic(this string value)
+    {
+        return value.ToLowerInvariant() == value.ToUpperInvariant();
+    }
+
+    public static IGrouping<TKey, TElement> AsGrouping<TKey, TElement>(this IEnumerable<TElement> source, TKey key)
+    {
+        return new Grouping<TKey, TElement>(key, source);
+    }
+
+    private sealed class Grouping<TKey, TElement>(TKey key, IEnumerable<TElement> elements) : IGrouping<TKey, TElement>
+    {
+        public TKey Key => key;
+
+        public IEnumerator<TElement> GetEnumerator() => elements.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 }
