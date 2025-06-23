@@ -575,27 +575,14 @@ partial class EnumConverterGenerator
                         writer.Write("__MemoryMarshal.Read<");
                         writer.Write(type);
                         writer.Write(">(");
-
-                        Span<char> chars = stackalloc char[count];
-                        entry.Name.AsSpan(i, count).CopyTo(chars);
-                        foreach (ref char c in chars)
-                            c = char.ToLowerInvariant(c);
-                        var littleEndian = chars.ToString().ToStringLiteral();
-
-                        writer.Write($"{littleEndian}u8)");
-                        writer.Write(" == ");
+                        writer.Write(entry.Name.Substring(i, count).ToLowerInvariant().ToStringLiteral());
+                        writer.Write("u8 == ");
 
                         writer.WriteIf(ignoreCase, "(");
                         writer.Write($"__Unsafe.ReadUnaligned<{type}>(ref ");
 
-                        if (i != 0)
-                        {
-                            writer.Write($"__Unsafe.Add(ref first, {i}))");
-                        }
-                        else
-                        {
-                            writer.Write("first)");
-                        }
+                        writer.WriteIf(i != 0, $"__Unsafe.Add(ref first, {i}))");
+                        writer.WriteIf(i == 0, "first)");
 
                         if (ignoreCase)
                         {
