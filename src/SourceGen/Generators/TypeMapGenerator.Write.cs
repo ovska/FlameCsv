@@ -42,7 +42,7 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine(
-                $"Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>"
+                $"Dematerializer : global::FlameCsv.Writing.IDematerializer<{typeMap.TokenName}, {typeMap.Type.FullyQualifiedName}>"
             );
 
             using (writer.WriteBlock())
@@ -58,7 +58,7 @@ partial class TypeMapGenerator
                     if (!property.IsFormattable)
                         continue;
                     writer.Write("public required ");
-                    WriteConverterType(writer, typeMap.Token.Name, property);
+                    WriteConverterType(writer, typeMap.TokenName, property);
                     writer.Write(' ');
                     property.WriteConverterName(writer);
                     writer.WriteLine(" { get; init; }");
@@ -68,7 +68,7 @@ partial class TypeMapGenerator
                 cancellationToken.ThrowIfCancellationRequested();
 
                 writer.WriteLine(
-                    $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer, {typeMap.Type.FullyQualifiedName} obj)"
+                    $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.TokenName}> writer, {typeMap.Type.FullyQualifiedName} obj)"
                 );
 
                 using (writer.WriteBlock())
@@ -102,7 +102,7 @@ partial class TypeMapGenerator
                 cancellationToken.ThrowIfCancellationRequested();
 
                 writer.WriteLine(
-                    $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.Token.FullyQualifiedName}> writer)"
+                    $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.TokenName}> writer)"
                 );
                 using (writer.WriteBlock())
                 {
@@ -116,20 +116,13 @@ partial class TypeMapGenerator
 
                     bool first = true;
 
-                    // write directly to the writer for char and byte
-                    (string suffix, string method) = typeMap.Token.SpecialType switch
-                    {
-                        SpecialType.System_Char => ("", "WriteRaw"),
-                        SpecialType.System_Byte => ("u8", "WriteRaw"),
-                        _ => ("", "WriteText"),
-                    };
-
                     foreach (var member in typeMap.AllMembers.Writable())
                     {
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
-                        writer.Write($"writer.{method}(");
+                        writer.Write("writer.WriteRaw(");
                         writer.Write(member.HeaderName.ToStringLiteral());
-                        writer.WriteLine($"{suffix});");
+                        writer.WriteIf(typeMap.IsByte, "u8");
+                        writer.WriteLine(");");
                         first = false;
                     }
                 }
@@ -144,7 +137,7 @@ partial class TypeMapGenerator
     )
     {
         writer.WriteLine(
-            $"protected override global::FlameCsv.Writing.IDematerializer<{typeMap.Token.Name}, {typeMap.Type.FullyQualifiedName}> BindForWriting(global::FlameCsv.CsvOptions<{typeMap.Token.Name}> options)"
+            $"protected override global::FlameCsv.Writing.IDematerializer<{typeMap.TokenName}, {typeMap.Type.FullyQualifiedName}> BindForWriting(global::FlameCsv.CsvOptions<{typeMap.TokenName}> options)"
         );
 
         writableCount = 0;
@@ -163,7 +156,7 @@ partial class TypeMapGenerator
                 {
                     property.WriteConverterName(writer);
                     writer.Write(" = ");
-                    WriteConverter(writer, typeMap.Token.Name, property);
+                    WriteConverter(writer, typeMap.TokenName, property);
                     writer.WriteLine(",");
 
                     writableCount++;
@@ -191,7 +184,7 @@ partial class TypeMapGenerator
                 {
                     property.WriteConverterName(writer);
                     writer.Write(" = ");
-                    WriteConverter(writer, typeMap.Token.Name, property);
+                    WriteConverter(writer, typeMap.TokenName, property);
                     writer.WriteLine(",");
                 }
 

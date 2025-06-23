@@ -117,7 +117,7 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(
-            $"partial class {typeMap.TypeMap.Name} : global::FlameCsv.Binding.CsvTypeMap<{typeMap.Token.FullyQualifiedName}, {typeMap.Type.FullyQualifiedName}>"
+            $"partial class {typeMap.TypeMap.Name} : global::FlameCsv.Binding.CsvTypeMap<{typeMap.TokenName}, {typeMap.Type.FullyQualifiedName}>"
         );
 
         using (writer.WriteBlock())
