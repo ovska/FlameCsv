@@ -66,13 +66,13 @@ partial class EnumConverterGenerator
                     .Skip(fastPathCount ?? 0)
                     .ToList();
 
-                // all are 2 digits long?
-                bool skipLengthCheck = numericValues.All(v => v.Value.ToString().Length == 2);
+                HashSet<int> distinctLengths = [.. numericValues.Select(v => v.Value.ToString().Length)];
+                bool skipLengthCheck = distinctLengths.Count == 1;
 
                 if (skipLengthCheck)
                 {
-                    writer.DebugLine("All values are 2 digits long, skipping length checks inside the switch");
-                    writer.WriteLine("if (destination.Length >= 2)");
+                    writer.DebugLine("All values have the same # of digits, skipping length checks inside the switch");
+                    writer.WriteLine($"if (destination.Length >= {distinctLengths.First()})");
                 }
 
                 using (writer.WriteBlockIf(skipLengthCheck))

@@ -97,6 +97,12 @@ public abstract class EnumTests<T>
             ImplFormat(Animal.Platypus1, format, converter);
             ImplFormat(Animal.Com0doDr4gon, format, converter);
             ImplFormat(Animal.SuperLongEnumNameThatGoesOnAndOn, format, converter);
+            ImplFormat(
+                Animal.SuperLongEnumNameThatGoesOnAndOn2,
+                format,
+                converter,
+                format == "G" ? "SuperLong^EnumNameThatGoesOnAndOn" : null
+            );
             ImplFormat(Animal.Zebra, format, converter, format == "G" ? "Zebra Animal!" : null);
         }
 
@@ -108,10 +114,11 @@ public abstract class EnumTests<T>
                 ImplParse(value, value.ToString("D"), converter);
             }
 
+            ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn2, "SuperLong^EnumNameThatGoesOnAndOn", converter);
             ImplParse(Animal.Zebra, "Zebra Animal!", converter);
 
             ImplNotParsable("-1", converter);
-            ImplNotParsable("13", converter);
+            ImplNotParsable("14", converter);
 
             if (ignoreCase)
             {
@@ -120,6 +127,9 @@ public abstract class EnumTests<T>
                 ImplParse(Animal.Crocodile, "CROCODILE", converter);
                 ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn, "superlongenumnamethatgoesonandon", converter);
                 ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn, "SUPERLONGENUMNAMETHATGOESONANDON", converter);
+                ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn2, "superlongenumnamethatgoesonandon2", converter);
+                ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn2, "SUPERLONGENUMNAMETHATGOESONANDON2", converter);
+                ImplParse(Animal.SuperLongEnumNameThatGoesOnAndOn2, "superlong^enumnamethatgoesonandon", converter);
                 ImplParse(Animal.Zebra, "zebra", converter);
                 ImplParse(Animal.Zebra, "ZEBRA", converter);
                 ImplParse(Animal.Zebra, "ZEBRA ANIMAL!", converter);
@@ -132,6 +142,9 @@ public abstract class EnumTests<T>
                 ImplNotParsable("CROCODILE", converter);
                 ImplNotParsable("superlongenumnamethatgoesonandon", converter);
                 ImplNotParsable("SUPERLONGENUMNAMETHATGOESONANDON", converter);
+                ImplNotParsable("superlongenumnamethatgoesonandon2", converter);
+                ImplNotParsable("SUPERLONGENUMNAMETHATGOESONANDON2", converter);
+                ImplNotParsable("superlong^enumnamethatgoesonandon", converter);
                 ImplNotParsable("zebra", converter);
                 ImplNotParsable("ZEBRA", converter);
                 ImplNotParsable("ZEBRA ANIMAL!", converter);
@@ -436,6 +449,9 @@ public abstract class EnumTests<T>
         Zebra = 11,
 
         SuperLongEnumNameThatGoesOnAndOn = 12,
+
+        [System.Runtime.Serialization.EnumMember(Value = "SuperLong^EnumNameThatGoesOnAndOn")]
+        SuperLongEnumNameThatGoesOnAndOn2 = 13,
     }
 
     protected enum Negatives : sbyte
