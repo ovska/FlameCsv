@@ -83,7 +83,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         writer.WriteLine("using __Unsafe = global::System.Runtime.CompilerServices.Unsafe;");
         writer.WriteLine("using __MemoryMarshal = global::System.Runtime.InteropServices.MemoryMarshal;");
-        writer.WriteLine("using __BitConverter = global::System.BitConverter;");
+        writer.WriteLine("using __BP = global::System.Buffers.Binary.BinaryPrimitives;");
         WriteVectorImport(writer, model);
         writer.WriteLine();
 

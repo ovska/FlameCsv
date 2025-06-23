@@ -150,7 +150,7 @@ partial class EnumConverterGenerator
                 if (group.Key == 2)
                 {
                     writer.DebugLine("Special case: 2-length integers");
-                    WriteSwitchTwoCharacters(model, 0, writer, group, cancellationToken);
+                    WriteSwitchTwoCharacters(model, writer, group, cancellationToken);
                     writer.WriteLine("break;");
                     continue;
                 }
@@ -711,7 +711,6 @@ partial class EnumConverterGenerator
 
     private static void WriteSwitchTwoCharacters(
         EnumModel model,
-        int offset,
         IndentedTextWriter writer,
         IEnumerable<(string name, BigInteger value)> values,
         CancellationToken cancellationToken
@@ -721,30 +720,22 @@ partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteSwitchTwoCharacters));
 
-        (string type, int shift) = model.IsByte ? ("ushort", 8) : ("uint", 16);
+        string type = model.IsByte ? "ushort" : "uint";
 
-        writer.Write(type);
-        writer.Write(" __mask = ");
-        writer.Write("__Unsafe.ReadUnaligned<"); // TODO: MemoryMarshal.Read in .NET 10 should have fixed bounds checks
-        writer.Write(type);
-        writer.Write(">(ref ");
+        writer.Write($"switch (__BP.ReadUInt");
+        writer.Write(model.IsByte ? "16" : "32");
+        writer.Write($"LittleEndian(");
 
         if (model.IsByte)
         {
-            WriteIndexAccess(writer, offset);
+            writer.Write("source");
         }
         else
         {
-            writer.Write("__Unsafe.As<char, byte>(ref ");
-            WriteIndexAccess(writer, offset);
-            writer.Write(")");
+            writer.Write("__MemoryMarshal.Cast<char, byte>(source)");
         }
 
-        writer.WriteLine(");");
-        writer.WriteLine(
-            "if (!__BitConverter.IsLittleEndian) __mask = global::System.Buffers.Binary.BinaryPrimitives.ReverseEndianness(__mask);"
-        );
-        writer.WriteLine("switch (__mask)");
+        writer.WriteLine($"))");
 
         using (writer.WriteBlock())
         {
@@ -754,7 +745,7 @@ partial class EnumConverterGenerator
                 writer.Write(name[0].ToCharLiteral());
                 writer.Write(" | (");
                 writer.Write(name[1].ToCharLiteral());
-                writer.Write($" << {shift})): value = ({model.EnumType.FullyQualifiedName})");
+                writer.Write($" << {(model.IsByte ? 8 : 16)})): value = ({model.EnumType.FullyQualifiedName})");
                 writer.WriteIf(value < 0, "(");
                 writer.Write(value.ToString());
                 writer.WriteIf(value < 0, ")");
@@ -800,32 +791,36 @@ partial class EnumConverterGenerator
         writer.WriteIf(offset != 0, $"__Unsafe.Add(ref first, {offset}))");
         writer.WriteIf(offset == 0, "first)");
 
+        Span<bool> bytes = stackalloc bool[width];
+        bool? allSame = GetMaskLittleEndian(bytes, entry.Name, offset);
+
+        // no mask needed, no case-sensitive characters
+        if (allSame is false)
+        {
+            writer.Write(")");
+            return;
+        }
+
         writer.Write(" | ");
 
-        Span<bool> bytes = stackalloc bool[width];
-        bool isSymmetric = GetMaskLittleEndian(bytes, entry.Name, offset, out _);
-
-        if (!isSymmetric)
+        if (allSame is true)
         {
-            writer.Write("(__BitConverter.IsLittleEndian ? ");
+            writer.Write("0x20202020");
+            writer.WriteIf(width == 8, "20202020");
+            writer.Write(")");
+            return;
         }
 
-        writer.Write("0x");
+        writer.Write("__BP.ReadUInt");
+        writer.Write(width == 8 ? "64" : "32");
+        writer.Write("LittleEndian(\"");
 
         foreach (var b in bytes)
-            writer.Write(b ? "20" : "00");
-        writer.Write(width == 8 ? "UL" : "U");
-
-        if (!isSymmetric)
         {
-            writer.Write(" : 0x");
-            bytes.Reverse();
-            foreach (var b in bytes)
-                writer.Write(b ? "20" : "00");
-            writer.Write(width == 8 ? "UL)" : "U)");
+            writer.Write(b ? " " : "\\0");
         }
 
-        writer.Write(")");
+        writer.Write("\"u8))");
     }
 
     /// <summary>
@@ -845,7 +840,7 @@ partial class EnumConverterGenerator
         writer.Write("u8[0]) == ");
 
         Span<bool> bytes = stackalloc bool[width];
-        _ = GetMaskLittleEndian(bytes, entry.Name, offset, out bool? allSame);
+        bool? allSame = GetMaskLittleEndian(bytes, entry.Name, offset);
 
         writer.WriteIf(allSame is null or true, "(");
         writer.Write($"__Vector128.LoadUnsafe(in first");
@@ -854,19 +849,14 @@ partial class EnumConverterGenerator
 
         if (allSame is null)
         {
-            writer.Write($" | __Vector128.Create((byte)");
+            writer.Write($" | __Vector128.LoadUnsafe(in \"");
 
             for (int i = 0; i < width; i++)
             {
-                writer.Write(bytes[i] ? "0x20" : "0x00");
-
-                if (i < width - 1)
-                {
-                    writer.Write(", ");
-                }
+                writer.Write(bytes[i] ? " " : "\\0");
             }
 
-            writer.Write("))");
+            writer.Write("\"u8[0]))");
         }
         else if (allSame is true)
         {
@@ -884,7 +874,7 @@ partial class EnumConverterGenerator
     /// <param name="value"></param>
     /// <param name="offset"></param>
     /// <returns></returns>
-    public static bool GetMaskLittleEndian(Span<bool> span, string value, int offset, out bool? allSame)
+    public static bool? GetMaskLittleEndian(Span<bool> span, string value, int offset)
     {
         int trueCount = 0;
         int falseCount = 0;
@@ -904,26 +894,8 @@ partial class EnumConverterGenerator
             }
         }
 
-        allSame =
-            trueCount == 0 ? false
+        return trueCount == 0 ? false
             : falseCount == 0 ? true
             : null;
-
-        // if all values are the same, we are guaranteed to be symmetric
-        if (allSame.HasValue)
-        {
-            return true;
-        }
-
-        span.Reverse();
-
-        for (int i = 0; i < span.Length / 2; i++)
-        {
-            if (span[i] != span[span.Length - 1 - i])
-            {
-                return false;
-            }
-        }
-        return true;
     }
 }
