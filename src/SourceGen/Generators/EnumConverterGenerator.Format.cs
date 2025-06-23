@@ -67,10 +67,11 @@ partial class EnumConverterGenerator
                     .ToList();
 
                 // all are 2 digits long?
-                bool skipLengthCheck = numericValues.All(v => v.Value < 100 && v.Value > -10);
+                bool skipLengthCheck = numericValues.All(v => v.Value.ToString().Length == 2);
 
                 if (skipLengthCheck)
                 {
+                    writer.DebugLine("All values are 2 digits long, skipping length checks inside the switch");
                     writer.WriteLine("if (destination.Length >= 2)");
                 }
 
