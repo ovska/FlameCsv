@@ -27,7 +27,7 @@ partial class EnumConverterGenerator
 
         writer.WriteLine();
 
-        writer.WriteLine($"ref {model.TokenType.Name} first = ref __MemoryMarshal.GetReference(source);");
+        writer.WriteLine($"ref {model.Token} first = ref __MemoryMarshal.GetReference(source);");
         writer.WriteLine();
 
         // write the fast path if:
@@ -69,7 +69,7 @@ partial class EnumConverterGenerator
         writer.WriteLine();
         writer.WriteLine("// unknown value, defer to Enum.TryParse");
 
-        if (model.TokenType.IsByte())
+        if (model.IsByte)
         {
             writer.WriteLine("return TryParseFromUtf16(source, out value);");
         }
@@ -133,7 +133,7 @@ partial class EnumConverterGenerator
                         foreach ((string name, BigInteger value) in group)
                         {
                             writer.Write("case ");
-                            writer.WriteIf(model.TokenType.IsByte(), "(byte)");
+                            writer.WriteIf(model.IsByte, "(byte)");
                             writer.Write(name[0].ToCharLiteral());
                             writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
                             writer.WriteIf(value < 0, "(");
@@ -162,7 +162,7 @@ partial class EnumConverterGenerator
                     foreach (var firstCharGroup in group.GroupBy(g => g.name[0]))
                     {
                         writer.Write("case ");
-                        writer.WriteIf(model.TokenType.IsByte(), "(byte)");
+                        writer.WriteIf(model.IsByte, "(byte)");
                         writer.WriteLine($"{firstCharGroup.Key.ToCharLiteral()}:");
 
                         using (writer.WriteBlock())
@@ -170,7 +170,7 @@ partial class EnumConverterGenerator
                             foreach ((string name, BigInteger value) in firstCharGroup)
                             {
                                 writer.Write($"if ({MemExt}.EndsWith(source, \"{name[1..]}\"");
-                                writer.WriteLine(model.TokenType.IsByte() ? "u8))" : "))");
+                                writer.WriteLine(model.IsByte ? "u8))" : "))");
                                 using (writer.WriteBlock())
                                 {
                                     writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName}){value};");
@@ -200,18 +200,18 @@ partial class EnumConverterGenerator
         writer.DebugLine(nameof(WriteSwitch));
 
         writer.WriteLine(
-            $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)"
+            $"public override bool TryParse(global::System.ReadOnlySpan<{model.Token}> source, out {model.EnumType.FullyQualifiedName} value)"
         );
         using var block = writer.WriteBlock();
 
-        writer.WriteLine($"ref {model.TokenType.Name} first = ref __MemoryMarshal.GetReference(source);");
+        writer.WriteLine($"ref {model.Token} first = ref __MemoryMarshal.GetReference(source);");
         writer.WriteLine();
 
         var entries = GetEntries(model, ignoreCase, cancellationToken);
 
         writer.WriteLine("switch (source.Length)");
 
-        bool isByte = model.TokenType.IsByte();
+        bool isByte = model.IsByte;
 
         using (writer.WriteBlock())
         {
@@ -334,7 +334,7 @@ partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteStringMatchChar));
 
-        bool isByte = model.TokenType.IsByte();
+        bool isByte = model.IsByte;
         string sourceName = isByte ? "source_chars" : "source";
 
         // up to 3 entries provides marginal performance benefits before falling back to the switch
@@ -777,7 +777,7 @@ partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteSwitchTwoCharacters));
 
-        (string type, int shift) = model.TokenType.IsByte() ? ("ushort", 8) : ("uint", 16);
+        (string type, int shift) = model.IsByte ? ("ushort", 8) : ("uint", 16);
 
         writer.Write(type);
         writer.Write(" __mask = ");
@@ -785,7 +785,7 @@ partial class EnumConverterGenerator
         writer.Write(type);
         writer.Write(">(ref ");
 
-        if (model.TokenType.IsByte())
+        if (model.IsByte)
         {
             WriteIndexAccess(writer, offset);
         }
