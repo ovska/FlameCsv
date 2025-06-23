@@ -229,12 +229,13 @@ partial class EnumConverterGenerator
                     {
                         if (!ignoreCase)
                         {
+                            // case-sensitive comparisons always use SequenceEqual (autovectorized by JIT)
                             WriteStringMatchByteAsciiOrdinal(model, writer, lengthGroup, cancellationToken);
                         }
                         else if (lengthGroup.All(e => e.Name.IsAscii()))
                         {
                             // all entries are ASCII, so we can use a fast path
-                            WriteStringMatchByte(model, writer, ignoreCase, lengthGroup, cancellationToken);
+                            WriteStringMatchByteIgnoreCase(model, writer, lengthGroup, cancellationToken);
                         }
                         else
                         {
@@ -273,7 +274,7 @@ partial class EnumConverterGenerator
                                 if (complexGroup.All(e => e.Name.IsAscii()))
                                 {
                                     writer.DebugLine("Remaining values are all ASCII, use fast path");
-                                    WriteStringMatchByte(model, writer, ignoreCase, complexGroup, cancellationToken);
+                                    WriteStringMatchByteIgnoreCase(model, writer, complexGroup, cancellationToken);
                                 }
                                 else
                                 {
@@ -510,17 +511,16 @@ partial class EnumConverterGenerator
         writer.WriteLineIf(writeTrailingBreak, "break;");
     }
 
-    private static void WriteStringMatchByte(
+    private static void WriteStringMatchByteIgnoreCase(
         EnumModel model,
         IndentedTextWriter writer,
-        bool ignoreCase,
         IGrouping<int, Entry> entriesByLength,
         CancellationToken cancellationToken
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        writer.DebugLine(nameof(WriteStringMatchByte));
+        writer.DebugLine(nameof(WriteStringMatchByteIgnoreCase));
 
         string enumTypeFullName = model.EnumType.FullyQualifiedName;
 
@@ -562,20 +562,12 @@ partial class EnumConverterGenerator
                             char compare = entry.Name[i];
                             bool isAscii = compare.IsAsciiLetter();
 
-                            if (ignoreCase)
-                            {
-                                writer.WriteIf(isAscii, '(');
-                                WriteIndexAccess(writer, i);
-                                writer.Write(isAscii ? " | 0x20) == " : " == ");
-                                writer.Write(
-                                    isAscii ? char.ToLowerInvariant(compare).ToCharLiteral() : compare.ToCharLiteral()
-                                );
-                            }
-                            else
-                            {
-                                WriteIndexAccess(writer, i);
-                                writer.Write($" == {compare.ToCharLiteral()}");
-                            }
+                            writer.WriteIf(isAscii, '(');
+                            WriteIndexAccess(writer, i);
+                            writer.Write(isAscii ? " | 0x20) == " : " == ");
+                            writer.Write(
+                                isAscii ? char.ToLowerInvariant(compare).ToCharLiteral() : compare.ToCharLiteral()
+                            );
 
                             i++;
                         }
@@ -604,51 +596,47 @@ partial class EnumConverterGenerator
                         writer.Write(entry.Name.Substring(i, count).ToLowerInvariant().ToStringLiteral());
                         writer.Write("u8) == ");
 
-                        writer.WriteIf(ignoreCase, "(");
-                        writer.Write($"__Unsafe.ReadUnaligned<{type}>(ref ");
+                        writer.Write($"(__Unsafe.ReadUnaligned<{type}>(ref ");
 
                         writer.WriteIf(i != 0, $"__Unsafe.Add(ref first, {i}))");
                         writer.WriteIf(i == 0, "first)");
 
-                        if (ignoreCase)
+                        writer.Write(" | ");
+
+                        Span<bool> bytes = stackalloc bool[count];
+                        bool allLetters = true;
+
+                        for (int byteIndex = 0; byteIndex < count; byteIndex++)
                         {
-                            writer.Write(" | ");
+                            bool isLetter = entry.Name[i + byteIndex].IsAsciiLetter();
+                            bytes[byteIndex] = isLetter;
+                            if (!isLetter)
+                                allLetters = false;
+                        }
 
-                            Span<bool> bytes = stackalloc bool[count];
-                            bool allLetters = true;
+                        bytes.Reverse();
 
-                            for (int byteIndex = 0; byteIndex < count; byteIndex++)
-                            {
-                                bool isLetter = entry.Name[i + byteIndex].IsAsciiLetter();
-                                bytes[byteIndex] = isLetter;
-                                if (!isLetter)
-                                    allLetters = false;
-                            }
+                        if (!allLetters)
+                        {
+                            writer.Write("(__BitConverter.IsLittleEndian ? ");
+                        }
 
+                        writer.Write("0x");
+
+                        foreach (var b in bytes)
+                            writer.Write(b ? "20" : "00");
+                        writer.Write(count == 8 ? "UL" : "U");
+
+                        if (!allLetters)
+                        {
+                            writer.Write(" : 0x");
                             bytes.Reverse();
-
-                            if (!allLetters)
-                            {
-                                writer.Write("(__BitConverter.IsLittleEndian ? ");
-                            }
-
-                            writer.Write("0x");
-
                             foreach (var b in bytes)
                                 writer.Write(b ? "20" : "00");
-                            writer.Write(count == 8 ? "UL" : "U");
-
-                            if (!allLetters)
-                            {
-                                writer.Write(" : 0x");
-                                bytes.Reverse();
-                                foreach (var b in bytes)
-                                    writer.Write(b ? "20" : "00");
-                                writer.Write(count == 8 ? "UL)" : "U)");
-                            }
-
-                            writer.Write(")");
+                            writer.Write(count == 8 ? "UL)" : "U)");
                         }
+
+                        writer.Write(")");
                     }
                 }
             }
@@ -658,17 +646,13 @@ partial class EnumConverterGenerator
 
                 List<Entry> innerEntries = PooledList<Entry>.Acquire();
 
-                writer.Write("switch (");
-                writer.WriteIf(ignoreCase, "(");
+                writer.Write("switch ((");
                 WriteIndexAccess(writer, depth);
-                writer.WriteIf(ignoreCase, " | 0x20)");
-                writer.WriteLine(")");
+                writer.WriteLine(" | 0x20))");
 
                 using (writer.WriteBlock())
                 {
-                    foreach (
-                        var firstChar in entries.GroupBy(e => ignoreCase ? char.ToLowerInvariant(e.Name[0]) : e.Name[0])
-                    )
+                    foreach (var firstChar in entries.GroupBy(e => char.ToLowerInvariant(e.Name[0])))
                     {
                         innerEntries.Clear();
                         innerEntries.AddRange(firstChar);
