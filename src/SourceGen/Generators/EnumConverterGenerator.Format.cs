@@ -71,13 +71,6 @@ partial class EnumConverterGenerator
 
                 if (skipLengthCheck)
                 {
-                    // writer.WriteLine($"if (value > {model.EnumType.FullyQualifiedName}.{model.Values[^1].Name})");
-                    // using (writer.WriteBlock())
-                    // {
-                    //     writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
-                    // }
-
-                    // writer.WriteLine();
                     writer.WriteLine("if (destination.Length >= 2)");
                 }
 
@@ -105,6 +98,7 @@ partial class EnumConverterGenerator
             else
             {
                 writer.DebugLine("All values are contiguous from zero");
+                writer.WriteLine("// unknown value");
                 writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
             }
         }
@@ -138,45 +132,44 @@ partial class EnumConverterGenerator
 
         writer.WriteLine("switch (value)");
 
-        using var block = writer.WriteBlock();
-
-        foreach (var value in values)
+        using (writer.WriteBlock())
         {
-            writer.WriteLine($"case {model.EnumType.FullyQualifiedName}.{value.Name}:");
-            using (writer.WriteBlock())
+            foreach (var value in values)
             {
-                string formattedValue = getValue(value);
-
-                if (TryWriteDirectFormat(writer, model, cancellationToken, formattedValue, skipLengthCheck))
-                {
-                    continue;
-                }
-
-                writer.Write($"if ({formattedValue.ToStringLiteral()}");
-                writer.WriteIf(model.TokenType.IsByte(), "u8");
-                writer.WriteLine(".TryCopyTo(destination))");
+                writer.WriteLine($"case {model.EnumType.FullyQualifiedName}.{value.Name}:");
                 using (writer.WriteBlock())
                 {
-                    writer.Write("charsWritten = ");
-                    writer.Write(
-                        (
-                            model.TokenType.IsByte()
-                                ? Encoding.UTF8.GetByteCount(formattedValue)
-                                : formattedValue.Length
-                        ).ToString()
-                    );
-                    writer.WriteLine(";");
-                    writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
-                }
+                    string formattedValue = getValue(value);
 
-                writer.WriteLine("return global::System.Buffers.OperationStatus.DestinationTooSmall;");
+                    if (TryWriteDirectFormat(writer, model, cancellationToken, formattedValue, skipLengthCheck))
+                    {
+                        continue;
+                    }
+
+                    writer.Write($"if ({formattedValue.ToStringLiteral()}");
+                    writer.WriteIf(model.TokenType.IsByte(), "u8");
+                    writer.WriteLine(".TryCopyTo(destination))");
+                    using (writer.WriteBlock())
+                    {
+                        writer.Write("charsWritten = ");
+                        writer.Write(
+                            (
+                                model.TokenType.IsByte()
+                                    ? Encoding.UTF8.GetByteCount(formattedValue)
+                                    : formattedValue.Length
+                            ).ToString()
+                        );
+                        writer.WriteLine(";");
+                        writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
+                    }
+
+                    writer.WriteLine("return global::System.Buffers.OperationStatus.DestinationTooSmall;");
+                }
             }
         }
 
-        // ReSharper disable once DisposeOnUsingVariable
-        block.Dispose();
-
         writer.WriteLine();
+        writer.WriteLine("// unknown value");
         writer.WriteLine("return global::System.Buffers.OperationStatus.InvalidData;");
     }
 
@@ -205,10 +198,11 @@ partial class EnumConverterGenerator
             return true;
         }
 
-        int max = model.TokenType.IsByte() ? (sizeof(long)) + 1 : (sizeof(long) / 2) + 1;
-        if (value.Length > max)
+        // don't unroll too long values; TryCopyTo should produce better vectorized codegen
+        // TODO: profile and revisit in .NET 10 if TryCopyTo performance improves further
+        if (value.Length > 7)
         {
-            writer.DebugLine("Cannot unroll formatting; value is too long");
+            writer.DebugLine($"Not unrolling; value is too long ({value.Length} > 7)");
             return false;
         }
 
@@ -216,54 +210,49 @@ partial class EnumConverterGenerator
 
         writer.WriteLineIf(!skipLengthCheck, $"if (destination.Length >= {value.Length})");
 
-        int remaining = value.Length;
-        int offset = 0;
-
         using (writer.WriteBlockIf(!skipLengthCheck))
         {
-            while (remaining > 0)
+            // jit optimizes multiple Unsafe.Add writes to a single call for bytes, but not for chars
+            if (model.TokenType.IsByte())
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                // jit optimizes multiple Unsafe.Add writes to a single call for bytes, but not for chars
-                // so write the unaligned writes directly
-                if (remaining >= 2)
+                for (int i = 0; i < value.Length; i++)
                 {
-                    (int size, string type) = GetTypeAndSize(remaining, model);
+                    writer.WriteLine($"destination[{i}] = (byte){value[i].ToCharLiteral()};");
+                }
+            }
+            else
+            {
+                int remaining = value.Length;
+                int offset = 0;
 
-                    if (model.TokenType.IsByte())
-                    {
-                        writer.Write("__Unsafe.WriteUnaligned(ref ");
-                        writer.WriteIf(offset != 0, $"__Unsafe.Add(ref dst, {offset})");
-                        writer.WriteIf(offset == 0, "dst");
-                        writer.Write($", __MemoryMarshal.Read<{type}>(");
-                        writer.Write(value.Substring(offset, size).ToStringLiteral());
-                        writer.WriteLine("u8));");
-                        offset += size;
-                        remaining -= size;
-                    }
-                    else
-                    {
-                        writer.Write($"__Unsafe.As<char, {type}>(ref ");
-                        writer.WriteIf(offset != 0, "Unsafe.Add(ref dst, offset)");
-                        writer.WriteIf(offset == 0, "dst");
-                        writer.Write($") = __Unsafe.As<char, {type}>(ref __MemoryMarshal.GetReference(");
-                        writer.Write(value.Substring(offset, size).ToStringLiteral());
-                        writer.WriteLine(".AsSpan()));");
-                        offset += size;
-                        remaining -= size;
-                    }
+                while (remaining >= 2)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                    continue;
+                    // write 4 or 2 chars at a time
+                    (int size, string type) = remaining >= 4 ? (4, "ulong") : (2, "uint");
+
+                    writer.Write($"__Unsafe.As<char, {type}>(ref ");
+                    writer.WriteIf(offset == 0, "dst");
+                    writer.WriteIf(offset > 0, $"__Unsafe.Add(ref dst, {offset})");
+                    writer.Write($") = __Unsafe.As<char, {type}>(ref __MemoryMarshal.GetReference<char>(");
+                    writer.Write(value.Substring(offset, size).ToStringLiteral());
+                    writer.WriteLine("));");
+
+                    offset += size;
+                    remaining -= size;
                 }
 
-                writer.WriteIf(offset != 0, $"__Unsafe.Add(ref dst, {offset})");
-                writer.WriteIf(offset == 0, "dst");
-                writer.Write(" = ");
-                writer.WriteIf(model.TokenType.IsByte(), "(byte)");
-                writer.WriteLine($"{value[offset].ToCharLiteral()};");
-                offset++;
-                remaining--;
+                while (remaining > 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    writer.Write($"__Unsafe.Add(ref dst, {offset})");
+                    writer.Write(" = ");
+                    writer.WriteLine($"{value[offset].ToCharLiteral()};");
+                    offset++;
+                    remaining--;
+                }
             }
 
             writer.WriteLine($"charsWritten = {value.Length};");
@@ -297,18 +286,5 @@ partial class EnumConverterGenerator
         writer.WriteLine(" ? global::System.Buffers.OperationStatus.Done");
         writer.WriteLine(" : global::System.Buffers.OperationStatus.DestinationTooSmall;");
         writer.DecreaseIndent();
-    }
-
-    private static (int size, string type) GetTypeAndSize(int remaining, EnumModel model)
-    {
-        bool isByte = model.TokenType.IsByte();
-
-        return remaining switch
-        {
-            >= 8 when isByte => (8, "ulong"),
-            >= 4 => isByte ? (4, "uint") : (4, "ulong"),
-            >= 2 => isByte ? (2, "ushort") : (2, "uint"),
-            _ => throw new System.Diagnostics.UnreachableException(),
-        };
     }
 }
