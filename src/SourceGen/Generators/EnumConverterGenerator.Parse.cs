@@ -854,7 +854,7 @@ partial class EnumConverterGenerator
 
         if (allSame is null)
         {
-            writer.Write($" | __Vector128.Create(");
+            writer.Write($" | __Vector128.Create((byte)");
 
             for (int i = 0; i < width; i++)
             {
@@ -866,9 +866,9 @@ partial class EnumConverterGenerator
                 }
             }
 
-            writer.Write(")");
+            writer.Write("))");
         }
-        else if (allSame.Value == true)
+        else if (allSame is true)
         {
             writer.Write($" | __Vector128.Create((byte)0x20))");
         }
