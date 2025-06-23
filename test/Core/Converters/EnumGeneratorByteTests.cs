@@ -1,8 +1,6 @@
-﻿using System.Runtime.Intrinsics;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using FlameCsv.Attributes;
-using __V128 = System.Runtime.Intrinsics.Vector128;
-using __V256 = System.Runtime.Intrinsics.Vector256;
-using __V512 = System.Runtime.Intrinsics.Vector512;
 
 namespace FlameCsv.Tests.Converters;
 

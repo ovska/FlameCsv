@@ -84,6 +84,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("using __Unsafe = global::System.Runtime.CompilerServices.Unsafe;");
         writer.WriteLine("using __MemoryMarshal = global::System.Runtime.InteropServices.MemoryMarshal;");
         writer.WriteLine("using __BitConverter = global::System.BitConverter;");
+        WriteVectorImport(writer, model);
         writer.WriteLine();
 
         if (model.InGlobalNamespace)
@@ -398,5 +399,22 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         writer.Write(", ");
         writer.Write(model.EnumType.FullyQualifiedName);
         writer.Write(">");
+    }
+
+    private static void WriteVectorImport(IndentedTextWriter writer, EnumModel model)
+    {
+        if (!model.IsByte)
+        {
+            return;
+        }
+
+        foreach (var value in model.Values)
+        {
+            if (value.Name.Length >= 16 || value.ExplicitName?.Length >= 16 || value.Value.ToString().Length >= 16)
+            {
+                writer.WriteLine($"using __Vector128 = global::System.Runtime.Intrinsics.Vector128;");
+                return;
+            }
+        }
     }
 }
