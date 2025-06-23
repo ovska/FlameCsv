@@ -197,11 +197,12 @@ partial class EnumConverterGenerator
             return true;
         }
 
-        // don't unroll too long values; TryCopyTo should produce better vectorized codegen
+        // don't unroll too long values; TryCopyTo should produce better codegen
         // TODO: profile and revisit in .NET 10 if TryCopyTo performance improves further
-        if (value.Length > 7)
+        int threshold = model.IsByte ? 8 : 4;
+        if (value.Length > threshold)
         {
-            writer.DebugLine($"Not unrolling; value is too long ({value.Length} > 7)");
+            writer.DebugLine($"Not unrolling; value is too long ({value.Length} > {threshold})");
             return false;
         }
 
