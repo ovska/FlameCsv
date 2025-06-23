@@ -351,10 +351,14 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         writer.WriteLine("/// <summary>");
         writer.WriteLine("/// Determines whether a specified value is defined for the enumeration.");
         writer.WriteLine("/// </summary>");
-        writer.WriteLine("/// <remarks>");
-        writer.WriteLine("/// Unlike Enum.IsDefined, this method returns <c>true</c> for flags-enums that are not");
-        writer.WriteLine("/// explicitly defined, but are a combination of defined values.");
-        writer.WriteLine("/// </remarks>");
+
+        if (model.HasFlagsAttribute)
+        {
+            writer.WriteLine("/// <remarks>");
+            writer.Write("/// Unlike Enum.IsDefined, this method returns <c>true</c> for flags-enums that are not ");
+            writer.WriteLine("explicitly defined, but are a combination of defined values.");
+            writer.WriteLine("/// </remarks>");
+        }
         writer.WriteLineIf(model.ContiguousFromZero, GlobalConstants.AggressiveInliningAttr);
         writer.WriteLine($"public static bool IsDefined({model.EnumType.FullyQualifiedName} value)");
         using var _ = writer.WriteBlock();
@@ -372,19 +376,21 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             return;
         }
 
-        writer.WriteLine("return value switch");
-
-        writer.WriteLine("{");
+        writer.Write("return value");
         writer.IncreaseIndent();
+
+        bool first = true;
 
         foreach (var value in model.Values.DistinctBy(v => v.Value))
         {
-            writer.WriteLine($"{model.EnumType.FullyQualifiedName}.{value.Name} => true,");
+            writer.WriteLine();
+            writer.Write(first ? "is " : "or ");
+            writer.Write($"{model.EnumType.FullyQualifiedName}.{value.Name}");
+            first = false;
         }
 
-        writer.WriteLine("_ => false,");
         writer.DecreaseIndent();
-        writer.WriteLine("};");
+        writer.WriteLine(";");
     }
 
     private static void WriteStrategyGenerics(
