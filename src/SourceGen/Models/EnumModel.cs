@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Diagnostics;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -38,7 +39,7 @@ internal sealed record EnumModel
 
             model = new EnumModel(
                 enumType: enumType,
-                tokenType: tokenType,
+                isByte: tokenType.SpecialType == SpecialType.System_Byte,
                 converterType: converterType,
                 cancellationToken,
                 diagList
@@ -58,7 +59,9 @@ internal sealed record EnumModel
         return false;
     }
 
-    public TypeRef TokenType { get; }
+    public bool IsByte { get; }
+    public string Token => IsByte ? "byte" : "char";
+
     public TypeRef ConverterType { get; }
     public TypeRef EnumType { get; }
     public TypeRef UnderlyingType { get; }
@@ -84,13 +87,13 @@ internal sealed record EnumModel
 
     private EnumModel(
         INamedTypeSymbol enumType,
-        ITypeSymbol tokenType,
+        bool isByte,
         ITypeSymbol converterType,
         CancellationToken cancellationToken,
         List<Diagnostic> diagnostics
     )
     {
-        TokenType = new TypeRef(tokenType);
+        IsByte = isByte;
         ConverterType = new TypeRef(converterType);
         EnumType = new TypeRef(enumType);
         UnderlyingType = new TypeRef(enumType.EnumUnderlyingType!);

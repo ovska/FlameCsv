@@ -104,7 +104,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(
-            $"partial class {model.ConverterType.Name} : global::FlameCsv.CsvConverter<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>"
+            $"partial class {model.ConverterType.Name} : global::FlameCsv.CsvConverter<{(model.Token)}, {model.EnumType.FullyQualifiedName}>"
         );
 
         using (writer.WriteBlock())
@@ -126,7 +126,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("private readonly string? _format;");
 
             writer.WriteLine();
-            writer.WriteLine($"public {model.ConverterType.Name}(CsvOptions<{model.TokenType.Name}> options)");
+            writer.WriteLine($"public {model.ConverterType.Name}(CsvOptions<{model.Token}> options)");
             using (writer.WriteBlock())
             {
                 writer.WriteLine("global::System.ArgumentNullException.ThrowIfNull(options);");
@@ -139,7 +139,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.Write("_parseStrategy = ");
                 writer.WriteIf(
                     model.HasFlagsAttribute,
-                    $"new global::FlameCsv.Converters.Enums.CsvEnumFlagsParseStrategy<{model.TokenType.Name}, {model.EnumType.FullyQualifiedName}>(options, "
+                    $"new global::FlameCsv.Converters.Enums.CsvEnumFlagsParseStrategy<{model.Token}, {model.EnumType.FullyQualifiedName}>(options, "
                 );
                 writer.Write("_ignoreCase ? IgnoreCaseStrategy : OrdinalStrategy");
                 writer.WriteIf(model.HasFlagsAttribute, ")");
@@ -157,7 +157,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.Write("\"f\" or \"F\" => ");
                 if (model.HasFlagsAttribute)
                 {
-                    string specifier = model.TokenType.IsByte() ? "Utf8" : "Text";
+                    string specifier = model.IsByte ? "Utf8" : "Text";
                     writer.WriteLine(
                         $"new global::FlameCsv.Converters.Enums.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),"
                     );
@@ -179,7 +179,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public override bool TryParse(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)"
+                $"public override bool TryParse(global::System.ReadOnlySpan<{model.Token}> source, out {model.EnumType.FullyQualifiedName} value)"
             );
             using (writer.WriteBlock())
             {
@@ -189,7 +189,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
 
             writer.WriteLine(
-                $"public override bool TryFormat(global::System.Span<{model.TokenType.Name}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten)"
+                $"public override bool TryFormat(global::System.Span<{model.Token}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten)"
             );
             using (writer.WriteBlock())
             {
@@ -210,7 +210,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 );
                 writer.WriteLine();
                 writer.WriteLine("// unknown value, defer to Enum.TryFormat");
-                if (model.TokenType.SpecialType is SpecialType.System_Byte)
+                if (model.IsByte)
                 {
                     // TODO: simplify when Enum implements IUtf8Formattable
                     writer.WriteLine(
@@ -241,14 +241,14 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine();
             WriteDefinedCheck(model, writer, context.CancellationToken);
 
-            if (model.TokenType.IsByte())
+            if (model.IsByte)
             {
                 writer.WriteLine();
                 writer.WriteLine("/// <summary>");
                 writer.WriteLine("/// Transcodes the input value to chars and calls Enum.TryParse.");
                 writer.WriteLine("/// </summary>");
                 writer.WriteLine(
-                    $"private bool TryParseFromUtf16(global::System.ReadOnlySpan<{model.TokenType.Name}> source, out {model.EnumType.FullyQualifiedName} value)"
+                    $"private bool TryParseFromUtf16(global::System.ReadOnlySpan<{model.Token}> source, out {model.EnumType.FullyQualifiedName} value)"
                 );
                 using (writer.WriteBlock())
                 {
@@ -261,7 +261,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine("/// </summary>");
                 writer.WriteLine(GlobalConstants.NoInliningAttr);
                 writer.WriteLine(
-                    $"private static global::System.ReadOnlySpan<char> GetChars(global::System.ReadOnlySpan<{model.TokenType.Name}> source, global::System.Span<char> buffer, out char[]? toReturn)"
+                    $"private static global::System.ReadOnlySpan<char> GetChars(global::System.ReadOnlySpan<{model.Token}> source, global::System.Span<char> buffer, out char[]? toReturn)"
                 );
                 using (writer.WriteBlock())
                 {
@@ -394,7 +394,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
         writer.Write("<");
-        writer.Write(model.TokenType.Name);
+        writer.Write(model.Token);
         writer.Write(", ");
         writer.Write(model.EnumType.FullyQualifiedName);
         writer.Write(">");

@@ -30,7 +30,7 @@ public class EnumGenTests(MetadataFixture fixture)
             out CSharpCompilation compilation
         );
 
-        Assert.Equal("byte", model.TokenType.Name);
+        Assert.True(model.IsByte);
         Assert.Equal("TestEnum", model.EnumType.Name);
 
         Assert.Equal(3, model.Values.Length);

@@ -19,13 +19,13 @@ partial class EnumConverterGenerator
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
-            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)"
+            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.Token}> destination, {enumName} value, out int charsWritten)"
         );
         using var block = writer.WriteBlock();
 
         writer.WriteLine("__Unsafe.SkipInit(out charsWritten);");
         writer.WriteLine();
-        writer.WriteLine($"ref {model.TokenType.Name} dst = ref destination[0];");
+        writer.WriteLine($"ref {model.Token} dst = ref destination[0];");
         writer.WriteLine();
 
         if (numbers)
@@ -46,7 +46,7 @@ partial class EnumConverterGenerator
                 writer.WriteLine($")value < {fastPathCount})");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine($"dst = ({model.TokenType.Name})('0' + (uint)value);");
+                    writer.WriteLine($"dst = ({model.Token})('0' + (uint)value);");
                     writer.WriteLine("charsWritten = 1;");
                     writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
                 }
@@ -148,16 +148,14 @@ partial class EnumConverterGenerator
                     }
 
                     writer.Write($"if ({formattedValue.ToStringLiteral()}");
-                    writer.WriteIf(model.TokenType.IsByte(), "u8");
+                    writer.WriteIf(model.IsByte, "u8");
                     writer.WriteLine(".TryCopyTo(destination))");
                     using (writer.WriteBlock())
                     {
                         writer.Write("charsWritten = ");
                         writer.Write(
                             (
-                                model.TokenType.IsByte()
-                                    ? Encoding.UTF8.GetByteCount(formattedValue)
-                                    : formattedValue.Length
+                                model.IsByte ? Encoding.UTF8.GetByteCount(formattedValue) : formattedValue.Length
                             ).ToString()
                         );
                         writer.WriteLine(";");
@@ -192,7 +190,7 @@ partial class EnumConverterGenerator
         {
             writer.DebugLine("Formatting directly; value is 1 char");
             writer.Write("dst = ");
-            writer.WriteIf(model.TokenType.IsByte(), "(byte)");
+            writer.WriteIf(model.IsByte, "(byte)");
             writer.WriteLine($"{value[0].ToCharLiteral()};");
             writer.WriteLine("charsWritten = 1;");
             writer.WriteLine("return global::System.Buffers.OperationStatus.Done;");
@@ -214,7 +212,7 @@ partial class EnumConverterGenerator
         using (writer.WriteBlockIf(!skipLengthCheck))
         {
             // jit optimizes multiple Unsafe.Add writes to a single call for bytes, but not for chars
-            if (model.TokenType.IsByte())
+            if (model.IsByte)
             {
                 for (int i = 0; i < value.Length; i++)
                 {
@@ -277,7 +275,7 @@ partial class EnumConverterGenerator
         string enumName = model.EnumType.FullyQualifiedName;
 
         writer.WriteLine(
-            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.TokenType.Name}> destination, {enumName} value, out int charsWritten)"
+            $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.Token}> destination, {enumName} value, out int charsWritten)"
         );
         using var block = writer.WriteBlock();
         writer.WriteLine(
