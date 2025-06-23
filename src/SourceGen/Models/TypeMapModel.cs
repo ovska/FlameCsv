@@ -12,9 +12,11 @@ internal sealed record TypeMapModel
     public TypeRef TypeMap { get; }
 
     /// <summary>
-    /// Ref to the token type
+    /// Whether the token type is for UTF-8 bytes.
     /// </summary>
-    public TypeRef Token { get; }
+    public bool IsByte { get; }
+
+    public string TokenName => IsByte ? "byte" : "char";
 
     /// <summary>
     /// Ref to the converted type.
@@ -113,7 +115,7 @@ internal sealed record TypeMapModel
 #endif
             tokenSymbol, targetType);
 
-        Token = new TypeRef(tokenSymbol);
+        IsByte = tokenSymbol.SpecialType == SpecialType.System_Byte;
         Type = new TypeRef(targetType);
 
         SupportsAssemblyAttributes =
