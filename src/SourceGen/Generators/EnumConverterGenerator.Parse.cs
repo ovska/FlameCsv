@@ -543,39 +543,52 @@ partial class EnumConverterGenerator
                     writer.Write("if (");
                     writer.IncreaseIndent();
 
-                    int i = depth;
+                    int offset = depth;
 
-                    while (i < entry.Length)
+                    while (offset < entry.Length)
                     {
-                        if ((entry.Length - i) >= 8)
+                        int remaining = entry.Length - offset;
+
+                        if (remaining >= 16)
                         {
-                            WriteUnrolled(8);
-                            i += 8;
+                            writer.WriteLine("(__Vector128.IsHardwareAccelerated");
+                            writer.IncreaseIndent();
+                            writer.Write("? (");
+                            WriteByteAsciiLowercaseCheckVectorized(writer, entry, offset);
+                            writer.WriteLine(")");
+                            writer.Write(": (");
+                            WriteByteAsciiLowercaseCheck(writer, entry, offset, 8);
+                            writer.Write(" && ");
+                            WriteByteAsciiLowercaseCheck(writer, entry, offset + 8, 8);
+                            writer.DecreaseIndent();
+                            writer.WriteLine();
+                            writer.Write("))");
+                            offset += 16;
                         }
-                        else if ((entry.Length - i) >= 4)
+                        else if (remaining >= 8)
                         {
-                            WriteUnrolled(4);
-                            i += 4;
+                            WriteByteAsciiLowercaseCheck(writer, entry, offset, 8);
+                            offset += 8;
+                        }
+                        else if (remaining >= 4)
+                        {
+                            WriteByteAsciiLowercaseCheck(writer, entry, offset, 4);
+                            offset += 4;
                         }
                         else
                         {
-                            char compare = entry.Name[i];
-                            bool isAscii = compare.IsAsciiLetter();
+                            char compare = entry.Name[offset];
+                            bool isLetter = compare.IsAsciiLetter();
 
-                            writer.WriteIf(isAscii, '(');
-                            WriteIndexAccess(writer, i);
-                            writer.Write(isAscii ? " | 0x20) == " : " == ");
-                            writer.Write(
-                                isAscii ? char.ToLowerInvariant(compare).ToCharLiteral() : compare.ToCharLiteral()
-                            );
+                            writer.WriteIf(isLetter, '(');
+                            WriteIndexAccess(writer, offset);
+                            writer.Write(isLetter ? " | 0x20) == " : " == ");
+                            writer.Write(char.ToLowerInvariant(compare).ToCharLiteral());
 
-                            i++;
+                            offset++;
                         }
 
-                        if (i != entry.Length)
-                        {
-                            writer.WriteLine(" &&");
-                        }
+                        writer.WriteLineIf(offset != entry.Length, " &&");
                     }
 
                     writer.DecreaseIndent();
@@ -584,59 +597,6 @@ partial class EnumConverterGenerator
                     {
                         writer.WriteLine($"value = {enumTypeFullName}.{entry.MemberName};");
                         writer.WriteLine("return true;");
-                    }
-
-                    void WriteUnrolled(int count)
-                    {
-                        string type = count == 8 ? "ulong" : "uint";
-
-                        writer.Write("__MemoryMarshal.Read<");
-                        writer.Write(type);
-                        writer.Write(">(");
-                        writer.Write(entry.Name.Substring(i, count).ToLowerInvariant().ToStringLiteral());
-                        writer.Write("u8) == ");
-
-                        writer.Write($"(__Unsafe.ReadUnaligned<{type}>(ref ");
-
-                        writer.WriteIf(i != 0, $"__Unsafe.Add(ref first, {i}))");
-                        writer.WriteIf(i == 0, "first)");
-
-                        writer.Write(" | ");
-
-                        Span<bool> bytes = stackalloc bool[count];
-                        bool allLetters = true;
-
-                        for (int byteIndex = 0; byteIndex < count; byteIndex++)
-                        {
-                            bool isLetter = entry.Name[i + byteIndex].IsAsciiLetter();
-                            bytes[byteIndex] = isLetter;
-                            if (!isLetter)
-                                allLetters = false;
-                        }
-
-                        bytes.Reverse();
-
-                        if (!allLetters)
-                        {
-                            writer.Write("(__BitConverter.IsLittleEndian ? ");
-                        }
-
-                        writer.Write("0x");
-
-                        foreach (var b in bytes)
-                            writer.Write(b ? "20" : "00");
-                        writer.Write(count == 8 ? "UL" : "U");
-
-                        if (!allLetters)
-                        {
-                            writer.Write(" : 0x");
-                            bytes.Reverse();
-                            foreach (var b in bytes)
-                                writer.Write(b ? "20" : "00");
-                            writer.Write(count == 8 ? "UL)" : "U)");
-                        }
-
-                        writer.Write(")");
                     }
                 }
             }
@@ -803,16 +763,167 @@ partial class EnumConverterGenerator
         }
     }
 
-    private static void WriteIndexAccess(IndentedTextWriter writer, int depth)
+    private static void WriteIndexAccess(IndentedTextWriter writer, int offset)
     {
-        if (depth == 0)
+        if (offset == 0)
         {
             writer.Write("first");
             return;
         }
 
         // TODO: remove when JIT is smart enough to optimize the bounds checks with switch/case
-        // on net9, byte ignorecase tryparse for System.TypeCode produces 755 bytes of ASM with this (vs 934 without)
-        writer.Write($"__Unsafe.Add(ref first, {depth})");
+        // e.g.: on net9, byte ignorecase tryparse for System.TypeCode produces 755 vs 934 bytes of ASM
+        // should be: source[offset]
+        writer.Write($"__Unsafe.Add(ref first, {offset})");
+    }
+
+    /// <summary>
+    /// Writes a case-insensitive check for <paramref name="width"/> bytes at a time against the entry's name at
+    /// <paramref name="offset"/>.
+    /// </summary>
+    /// <param name="writer">Writer</param>
+    /// <param name="entry">Entry to write</param>
+    /// <param name="offset">Offset from the start of the input</param>
+    /// <param name="width">Number of characters checked</param>
+    private static void WriteByteAsciiLowercaseCheck(IndentedTextWriter writer, in Entry entry, int offset, int width)
+    {
+        string type = width == 8 ? "ulong" : "uint";
+
+        writer.Write("__MemoryMarshal.Read<");
+        writer.Write(type);
+        writer.Write(">(");
+        writer.Write(entry.Name.Substring(offset, width).ToLowerInvariant().ToStringLiteral());
+        writer.Write("u8) == ");
+
+        writer.Write($"(__Unsafe.ReadUnaligned<{type}>(ref ");
+
+        writer.WriteIf(offset != 0, $"__Unsafe.Add(ref first, {offset}))");
+        writer.WriteIf(offset == 0, "first)");
+
+        writer.Write(" | ");
+
+        Span<bool> bytes = stackalloc bool[width];
+        bool isSymmetric = GetMaskLittleEndian(bytes, entry.Name, offset, out _);
+
+        if (!isSymmetric)
+        {
+            writer.Write("(__BitConverter.IsLittleEndian ? ");
+        }
+
+        writer.Write("0x");
+
+        foreach (var b in bytes)
+            writer.Write(b ? "20" : "00");
+        writer.Write(width == 8 ? "UL" : "U");
+
+        if (!isSymmetric)
+        {
+            writer.Write(" : 0x");
+            bytes.Reverse();
+            foreach (var b in bytes)
+                writer.Write(b ? "20" : "00");
+            writer.Write(width == 8 ? "UL)" : "U)");
+        }
+
+        writer.Write(")");
+    }
+
+    /// <summary>
+    /// Writes a case-insensitive check for <paramref name="width"/> bytes at a time against the entry's name at
+    /// <paramref name="offset"/>.
+    /// </summary>
+    /// <param name="writer">Writer</param>
+    /// <param name="entry">Entry to write</param>
+    /// <param name="offset">Offset from the start of the input</param>
+    /// <param name="width">Number of characters checked</param>
+    private static int WriteByteAsciiLowercaseCheckVectorized(IndentedTextWriter writer, in Entry entry, int offset)
+    {
+        const int width = 128 / 8;
+
+        writer.Write($"__Vector128.LoadUnsafe(in ");
+        writer.Write(entry.Name.Substring(offset, width).ToLowerInvariant().ToStringLiteral());
+        writer.Write("u8[0]) == ");
+
+        Span<bool> bytes = stackalloc bool[width];
+        _ = GetMaskLittleEndian(bytes, entry.Name, offset, out bool? allSame);
+
+        writer.WriteIf(allSame is null or true, "(");
+        writer.Write($"__Vector128.LoadUnsafe(in first");
+        writer.WriteIf(offset != 0, $", {offset}");
+        writer.Write(")");
+
+        if (allSame is null)
+        {
+            writer.Write($" | __Vector128.Create(");
+
+            for (int i = 0; i < width; i++)
+            {
+                writer.Write(bytes[i] ? "0x20" : "0x00");
+
+                if (i < width - 1)
+                {
+                    writer.Write(", ");
+                }
+            }
+
+            writer.Write(")");
+        }
+        else if (allSame.Value == true)
+        {
+            writer.Write($" | __Vector128.Create((byte)0x20))");
+        }
+
+        return 128 / 8;
+    }
+
+    /// <summary>
+    /// Returns mask for the given <paramref name="value"/> in little-endian format,
+    /// where values are <c>true</c> for bytes that are case-sensitive.
+    /// </summary>
+    /// <param name="span"></param>
+    /// <param name="value"></param>
+    /// <param name="offset"></param>
+    /// <returns></returns>
+    public static bool GetMaskLittleEndian(Span<bool> span, string value, int offset, out bool? allSame)
+    {
+        int trueCount = 0;
+        int falseCount = 0;
+
+        for (int byteIndex = 0; byteIndex < span.Length; byteIndex++)
+        {
+            bool isLetter = value[offset + byteIndex].IsAsciiLetter();
+            span[byteIndex] = isLetter;
+
+            if (isLetter)
+            {
+                trueCount++;
+            }
+            else
+            {
+                falseCount++;
+            }
+        }
+
+        allSame =
+            trueCount == 0 ? false
+            : falseCount == 0 ? true
+            : null;
+
+        // if all values are the same, we are guaranteed to be symmetric
+        if (allSame.HasValue)
+        {
+            return true;
+        }
+
+        span.Reverse();
+
+        for (int i = 0; i < span.Length / 2; i++)
+        {
+            if (span[i] != span[span.Length - 1 - i])
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
