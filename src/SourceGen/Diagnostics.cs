@@ -88,23 +88,35 @@ internal static class Diagnostics
 
     public static Diagnostic NoTargetTypeOnAssembly(AttributeData attribute, ITypeSymbol attributeClass)
     {
+        string name = attributeClass.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+        if (name.EndsWith("Attribute", StringComparison.Ordinal))
+        {
+            name = name[..^"Attribute".Length];
+        }
+
         return Diagnostic.Create(
             descriptor: Descriptors.NoTargetTypeOnAssembly,
             location: attribute.GetLocation() ?? GetLocation(attributeClass),
-            messageArgs: [attributeClass.ToDisplayString()]
+            messageArgs: [name]
         );
     }
 
     public static Diagnostic NoMemberNameOnAttribute(AttributeData attribute, bool isOnAssembly)
     {
+        string name =
+            attribute.AttributeClass?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+            ?? (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)?.Name?.ToString()
+            ?? "<unknown>";
+
+        if (name.EndsWith("Attribute", StringComparison.Ordinal))
+        {
+            name = name[..^"Attribute".Length];
+        }
+
         return Diagnostic.Create(
             descriptor: Descriptors.NoMemberNameOnAttribute,
             location: attribute.GetLocation() ?? GetLocation(attribute.AttributeClass),
-            messageArgs:
-            [
-                attribute.AttributeClass?.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat) ?? "<unknown>",
-                isOnAssembly ? "assembly" : "type",
-            ]
+            [name, isOnAssembly ? "an assembly" : "a type"]
         );
     }
 
@@ -256,13 +268,14 @@ internal static class Diagnostics
         ISymbol enumSymbol,
         IFieldSymbol fieldSymbol,
         Location? location,
-        string explicitName
+        string explicitName,
+        string reason
     )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.EnumInvalidExplicitName,
             location: location ?? GetLocation(fieldSymbol, enumSymbol),
-            messageArgs: [explicitName, enumSymbol.Name, fieldSymbol.Name]
+            messageArgs: [explicitName, enumSymbol.Name, fieldSymbol.Name, reason]
         );
     }
 
