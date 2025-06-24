@@ -165,6 +165,7 @@ public class EnumGenTests(MetadataFixture fixture)
             [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
             partial class EnumConverter;
 
+            [System.Flags]
             enum TestEnum { A = 1, B = 2 }
             """
         );
@@ -172,7 +173,7 @@ public class EnumGenTests(MetadataFixture fixture)
         Assert.True(model.InGlobalNamespace);
         Assert.Equal("<global namespace>", model.Namespace);
         Assert.False(model.HasNegativeValues);
-        Assert.False(model.HasFlagsAttribute);
+        Assert.True(model.HasFlagsAttribute);
         Assert.False(model.ContiguousFromZero);
         Assert.Equal(0, model.ContiguousFromZeroCount); // no contiguous values from zero
 
@@ -183,15 +184,14 @@ public class EnumGenTests(MetadataFixture fixture)
             [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
             partial class EnumConverter;
 
-            [System.Flags]
-            public enum TestEnum { A = 1, B = -2 }
+            public enum TestEnum { A = 1, B = -1 }
             """
         );
 
         Assert.False(model.InGlobalNamespace);
         Assert.Equal("MyNamespace", model.Namespace);
         Assert.True(model.HasNegativeValues);
-        Assert.True(model.HasFlagsAttribute);
+        Assert.False(model.HasFlagsAttribute);
         Assert.False(model.ContiguousFromZero);
         Assert.Equal(0, model.ContiguousFromZeroCount); // no contiguous values from zero
     }
@@ -244,7 +244,8 @@ public class EnumGenTests(MetadataFixture fixture)
                 TestContext.Current.CancellationToken,
                 out var diagnostics,
                 out var model
-            )
+            ),
+            $"Should have gotten model, but got: {string.Join("\n", diagnostics.Select(d => d.ToString()))}"
         );
         Assert.Empty(diagnostics);
 

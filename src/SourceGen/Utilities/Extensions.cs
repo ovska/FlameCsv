@@ -11,6 +11,18 @@ namespace FlameCsv.SourceGen.Utilities;
 
 internal static class Extensions
 {
+    public static ulong AsUInt64Bits(in this BigInteger bigInteger)
+    {
+        if (bigInteger.IsZero)
+            return 0;
+
+        if (bigInteger >= 0)
+            return (ulong)bigInteger;
+
+        long value = (long)bigInteger;
+        return Unsafe.As<long, ulong>(ref value);
+    }
+
     public static ITypeSymbol? GetMemberType(this ISymbol? symbol)
     {
         return symbol switch

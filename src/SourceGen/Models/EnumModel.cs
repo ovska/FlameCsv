@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -99,7 +99,7 @@ internal sealed record EnumModel
         EnumType = new TypeRef(enumType);
         UnderlyingType = new TypeRef(enumType.EnumUnderlyingType!);
 
-        HasFlagsAttribute = enumType.GetAttributes().Any(a => a.AttributeClass is { Name: "FlagsAttribute" });
+        HasFlagsAttribute = enumType.GetAttributes().Any(a => a is { AttributeClass.Name: "FlagsAttribute" });
 
         List<EnumValueModel> values = PooledList<EnumValueModel>.Acquire();
         HashSet<BigInteger> uniqueValues = PooledSet<BigInteger>.Acquire();
@@ -159,6 +159,11 @@ internal sealed record EnumModel
         {
             CheckExplicitNameDuplicates(enumType, diagnostics);
         }
+
+        if (HasFlagsAttribute)
+        {
+            CheckFlags(enumType, diagnostics);
+        }
     }
 
     private void CheckExplicitNameDuplicates(INamedTypeSymbol enumType, List<Diagnostic> diagnostics)
@@ -189,13 +194,7 @@ internal sealed record EnumModel
                     }
 
                     string invalidName = value.Name;
-
-                    Location? location = enumType
-                        .GetMembers()
-                        .FirstOrDefault(m => m is IFieldSymbol f && f.Name == invalidName)
-                        ?.DeclaringSyntaxReferences.FirstOrDefault()
-                        ?.GetSyntax()
-                        .GetLocation();
+                    Location? location = GetMemberLocation(enumType, invalidName);
 
                     diagnostics.Add(
                         Diagnostics.EnumDuplicateName(
@@ -211,82 +210,47 @@ internal sealed record EnumModel
 
         PooledSet<string>.Release(handled);
     }
-}
 
-internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
-{
-    public string Name { get; }
-    public string? ExplicitName { get; }
-    public BigInteger Value { get; }
-    public string DisplayName => ExplicitName ?? Name;
-
-    public EnumValueModel(IFieldSymbol enumValue, bool isUnsigned, List<Diagnostic> diagnostics)
+    private void CheckFlags(INamedTypeSymbol enumType, List<Diagnostic> diagnostics)
     {
-        Name = enumValue.Name;
-        Value = isUnsigned
-            ? new BigInteger(Convert.ToUInt64(enumValue.ConstantValue))
-            : new BigInteger(Convert.ToInt64(enumValue.ConstantValue));
+        ulong loneBits = 0;
 
-        foreach (var attribute in enumValue.GetAttributes())
+        foreach (ref readonly var value in Values)
         {
-            if (attribute.AttributeClass?.ToDisplayString() != "System.Runtime.Serialization.EnumMemberAttribute")
+            var uint64 = value.Value.AsUInt64Bits();
+
+            if (HasOnlyOneBitSet(uint64))
             {
-                continue;
+                loneBits |= uint64;
             }
+        }
 
-            // position of the named argument "Value"; should not be necessary but just in case
-            int valueArgumentIndex = 0;
+        foreach (ref readonly var value in Values)
+        {
+            var uint64 = value.Value.AsUInt64Bits();
 
-            // Check named arguments
-            foreach (var namedArg in attribute.NamedArguments)
+            if (uint64 != 0 && !HasOnlyOneBitSet(uint64) && (uint64 & ~loneBits) != 0)
             {
-                if (
-                    string.Equals(namedArg.Key, "Value", StringComparison.Ordinal)
-                    && namedArg.Value.Value is string value
-                )
-                {
-                    ExplicitName = value;
-                    break;
-                }
-
-                valueArgumentIndex++;
-            }
-
-            if (HasInvalidExplicitName)
-            {
-                Location? location = (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)
-                    ?.ArgumentList?.Arguments.ElementAtOrDefault(valueArgumentIndex)
-                    ?.GetLocation();
-
+                // This value has a bit set that is also set in another value
                 diagnostics.Add(
-                    Diagnostics.EnumInvalidExplicitName(
-                        enumValue.ContainingSymbol,
-                        enumValue,
-                        location ?? attribute.GetLocation(),
-                        ExplicitName!
-                    )
+                    Diagnostics.EnumUnsupportedFlag(enumType, value.Name, GetMemberLocation(enumType, value.Name))
                 );
             }
+        }
 
-            break;
+        static bool HasOnlyOneBitSet(ulong value)
+        {
+            return value != 0 && (value & (value - 1)) == 0;
         }
     }
 
-    public int CompareTo(EnumValueModel other)
+    private static Location? GetMemberLocation(INamedTypeSymbol enumType, string invalidName)
     {
-        int cmp = Value.CompareTo(other.Value);
-        if (cmp == 0)
-            cmp = StringComparer.Ordinal.Compare(Name, other.Name); // fields cannot have the same name
-        return cmp;
+        return enumType
+            .GetMembers()
+            .FirstOrDefault(m => m is IFieldSymbol f && f.Name == invalidName)
+            ?.DeclaringSyntaxReferences.FirstOrDefault()
+            ?.GetSyntax()
+            .GetLocation();
     }
-
-    public bool HasInvalidExplicitName =>
-        ExplicitName switch
-        {
-            null => false,
-            "" => true,
-            _ => ExplicitName[0].IsAsciiNumeric(),
-        };
-
-    public bool HasValidExplicitName => ExplicitName is not null && !HasInvalidExplicitName;
 }

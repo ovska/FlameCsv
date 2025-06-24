@@ -280,6 +280,15 @@ internal static class Diagnostics
         );
     }
 
+    public static Diagnostic EnumUnsupportedFlag(ISymbol enumSymbol, string memberName, Location? location)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.EnumUnsupportedFlag,
+            location: location ?? GetLocation(enumSymbol),
+            messageArgs: [enumSymbol.Name, memberName]
+        );
+    }
+
     /// <summary>
     /// Returns the first valid non-empty source location from the given symbols, checked in order.
     /// </summary>
