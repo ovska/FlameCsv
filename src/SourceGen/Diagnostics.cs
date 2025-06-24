@@ -173,22 +173,16 @@ internal static class Diagnostics
 
     public static Diagnostic CsvConverterTypeMismatch(
         ISymbol target,
-        ISymbol converterType,
-        ITypeSymbol expectedType,
-        ITypeSymbol actualType,
+        string converterType,
+        string expectedType,
+        string actualType,
         Location? location
     )
     {
         return Diagnostic.Create(
             descriptor: Descriptors.CsvConverterTypeMismatch,
             location: location ?? GetLocation(target),
-            messageArgs:
-            [
-                converterType.ToDisplayString(),
-                target.ToDisplayString(),
-                expectedType.ToDisplayString(),
-                actualType.ToDisplayString(),
-            ]
+            messageArgs: [converterType, target.ToDisplayString(), expectedType, actualType]
         );
     }
 
