@@ -24,38 +24,27 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                 continue;
             }
 
-            // position of the named argument "Value"; should not be necessary but just in case
-            int valueArgumentIndex = 0;
-
-            // Check named arguments
-            foreach (var namedArg in attribute.NamedArguments)
+            if (attribute.TryGetNamedArgument("Value", out var value) && value.Value is string explicitName)
             {
-                if (
-                    string.Equals(namedArg.Key, "Value", StringComparison.Ordinal)
-                    && namedArg.Value.Value is string value
-                )
+                ExplicitName = explicitName;
+
+                if (!HasValidExplicitName)
                 {
-                    ExplicitName = value;
-                    break;
+                    Location? location = (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)
+                        ?.ArgumentList?.Arguments.FirstOrDefault(a =>
+                            a.NameEquals?.Name.Identifier.ValueText == "Value"
+                        )
+                        ?.GetLocation();
+
+                    diagnostics.Add(
+                        Diagnostics.EnumInvalidExplicitName(
+                            enumValue.ContainingSymbol,
+                            enumValue,
+                            location ?? attribute.GetLocation(),
+                            ExplicitName!
+                        )
+                    );
                 }
-
-                valueArgumentIndex++;
-            }
-
-            if (HasInvalidExplicitName)
-            {
-                Location? location = (attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax)
-                    ?.ArgumentList?.Arguments.ElementAtOrDefault(valueArgumentIndex)
-                    ?.GetLocation();
-
-                diagnostics.Add(
-                    Diagnostics.EnumInvalidExplicitName(
-                        enumValue.ContainingSymbol,
-                        enumValue,
-                        location ?? attribute.GetLocation(),
-                        ExplicitName!
-                    )
-                );
             }
 
             break;
@@ -70,13 +59,5 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
         return cmp;
     }
 
-    public bool HasInvalidExplicitName =>
-        ExplicitName switch
-        {
-            null => false,
-            "" => true,
-            _ => ExplicitName[0].IsAsciiNumeric(),
-        };
-
-    public bool HasValidExplicitName => ExplicitName is not null && !HasInvalidExplicitName;
-}
+    public bool HasValidExplicitName => ExplicitName is { Length: > 0 } value && !value[0].IsAsciiNumeric();
+};

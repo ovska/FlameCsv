@@ -172,6 +172,7 @@ public class EnumGenTests(MetadataFixture fixture)
 
         Assert.True(model.InGlobalNamespace);
         Assert.Equal("<global namespace>", model.Namespace);
+        Assert.Equal("int", model.UnderlyingType);
         Assert.False(model.HasNegativeValues);
         Assert.True(model.HasFlagsAttribute);
         Assert.False(model.ContiguousFromZero);
@@ -184,12 +185,13 @@ public class EnumGenTests(MetadataFixture fixture)
             [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
             partial class EnumConverter;
 
-            public enum TestEnum { A = 1, B = -1 }
+            public enum TestEnum : short { A = 1, B = -1 }
             """
         );
 
         Assert.False(model.InGlobalNamespace);
         Assert.Equal("MyNamespace", model.Namespace);
+        Assert.Equal("short", model.UnderlyingType);
         Assert.True(model.HasNegativeValues);
         Assert.False(model.HasFlagsAttribute);
         Assert.False(model.ContiguousFromZero);
@@ -211,6 +213,49 @@ public class EnumGenTests(MetadataFixture fixture)
         Assert.False(model.ContiguousFromZero);
         Assert.Equal(6, model.ContiguousFromZeroCount);
         Assert.Equal([0, 1, 2, 3, 4, 5, 7], model.UniqueValues);
+    }
+
+    [Fact]
+    public void Test_Invalid_Explicit_Names()
+    {
+        var compilation = CSharpCompilation.Create(
+            null,
+            [
+                CSharpSyntaxTree.ParseText(
+                    """
+                    [FlameCsv.Attributes.CsvEnumConverter<byte, TestEnum>]
+                    partial class EnumConverter;
+
+                    enum TestEnum
+                    {
+                        [global::System.Runtime.Serialization.EnumMember(Value = "")]
+                        A,
+                        
+                        [global::System.Runtime.Serialization.EnumMember(Value = "-Dash")]
+                        B,
+                        
+                        [global::System.Runtime.Serialization.EnumMember(Value = "0number")]
+                        C,
+                    }
+                    """,
+                    cancellationToken: TestContext.Current.CancellationToken
+                ),
+            ],
+            [fixture.FlameCsvCore, .. Net90.References.All],
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+        Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));
+
+        List<Diagnostic> diagnostics = [];
+
+        foreach (var f in compilation.GetTypeByMetadataName("TestEnum")!.GetMembers().OfType<IFieldSymbol>())
+        {
+            var value = new EnumValueModel(f, isUnsigned: false, diagnostics);
+            Assert.NotNull(value.ExplicitName);
+            Assert.False(value.HasValidExplicitName);
+        }
+
+        Assert.NotEmpty(diagnostics);
     }
 
     private EnumModel GetValidModel(string source, [CallerMemberName] string? assemblyName = null) =>
