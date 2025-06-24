@@ -15,6 +15,7 @@ internal readonly record struct NestedType
 
     private NestedType(INamedTypeSymbol type)
     {
+        // metadataname writes generics as TypeName`1 so it can be used in filenames
         Name = type.MetadataName;
 
         _config =

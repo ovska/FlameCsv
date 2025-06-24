@@ -109,33 +109,19 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         ref AnalysisCollector collector
     )
     {
-        List<ParameterModel> models = PooledList<ParameterModel>.Acquire();
-
         ImmutableArray<IParameterSymbol> parameters = constructor.Parameters;
+
+        if (parameters.IsDefaultOrEmpty)
+        {
+            return [];
+        }
+
+        List<ParameterModel> models = PooledList<ParameterModel>.Acquire();
 
         for (int index = 0; index < parameters.Length; index++)
         {
             IParameterSymbol parameter = parameters[index];
             SymbolMetadata meta = new(parameter.Name, parameter, in symbols, ref collector);
-
-            ParameterModel parameterModel = new()
-            {
-                ParameterIndex = index,
-                ParameterType = new TypeRef(parameter.Type),
-                HeaderName = parameter.Name,
-                Identifier = "p_" + parameter.Name,
-                Aliases = meta.Aliases,
-                Order = meta.Order,
-                Index = meta.Index,
-                IsIgnored = meta.IsIgnored,
-                IsRequiredByAttribute = meta.IsRequired,
-                HasDefaultValue = parameter.HasExplicitDefaultValue,
-                DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
-                RefKind = parameter.RefKind,
-                Convertability = parameter.Type.GetBuiltinConvertability(in symbols),
-                OverriddenConverter = ConverterModel.Create(parameter, parameter.Type, in symbols, ref collector),
-            };
-            models.Add(parameterModel);
 
             if (parameter.RefKind is not (RefKind.None or RefKind.In or RefKind.RefReadOnlyParameter))
             {
@@ -155,6 +141,26 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
             {
                 collector.AddDiagnostic(Diagnostics.IgnoredParameterWithoutDefaultValue(parameter, targetType));
             }
+
+            models.Add(
+                new ParameterModel()
+                {
+                    ParameterIndex = index,
+                    ParameterType = new TypeRef(parameter.Type),
+                    HeaderName = parameter.Name,
+                    Identifier = "p_" + parameter.Name,
+                    Aliases = meta.Aliases,
+                    Order = meta.Order,
+                    Index = meta.Index,
+                    IsIgnored = meta.IsIgnored,
+                    IsRequiredByAttribute = meta.IsRequired,
+                    HasDefaultValue = parameter.HasExplicitDefaultValue,
+                    DefaultValue = parameter.HasExplicitDefaultValue ? parameter.ExplicitDefaultValue : null,
+                    RefKind = parameter.RefKind,
+                    Convertability = parameter.Type.GetBuiltinConvertability(in symbols),
+                    OverriddenConverter = ConverterModel.Create(parameter, parameter.Type, in symbols, ref collector),
+                }
+            );
         }
 
         models.Sort();
