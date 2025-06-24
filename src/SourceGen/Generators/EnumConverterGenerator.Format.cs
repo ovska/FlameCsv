@@ -37,13 +37,7 @@ partial class EnumConverterGenerator
                 writer.DebugLine("Fast path, has values contiguous from zero");
 
                 fastPathCount = Math.Min(model.ContiguousFromZeroCount, 10);
-                writer.Write("if ((");
-                writer.Write(
-                    model.UnderlyingType.SpecialType is SpecialType.System_Int64 or SpecialType.System_UInt64
-                        ? "ulong"
-                        : "uint"
-                );
-                writer.WriteLine($")value < {fastPathCount})");
+                writer.WriteLine($"if ((ulong)value < {fastPathCount})");
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine($"dst = ({model.Token})('0' + (uint)value);");
@@ -279,9 +273,7 @@ partial class EnumConverterGenerator
             $"public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<{model.Token}> destination, {enumName} value, out int charsWritten)"
         );
         using var block = writer.WriteBlock();
-        writer.WriteLine(
-            $"return (({model.UnderlyingType.FullyQualifiedName})value).TryFormat(destination, out charsWritten)"
-        );
+        writer.WriteLine($"return (({model.UnderlyingType})value).TryFormat(destination, out charsWritten)");
         writer.IncreaseIndent();
         writer.WriteLine(" ? global::System.Buffers.OperationStatus.Done");
         writer.WriteLine(" : global::System.Buffers.OperationStatus.DestinationTooSmall;");

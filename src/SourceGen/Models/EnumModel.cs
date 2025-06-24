@@ -1,7 +1,4 @@
-﻿using System.Buffers.Binary;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using FlameCsv.SourceGen.Helpers;
+﻿using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
@@ -65,15 +62,17 @@ internal sealed record EnumModel
 
     public string ConverterTypeName { get; }
     public TypeRef EnumType { get; }
-    public TypeRef UnderlyingType { get; }
+    public string UnderlyingType { get; }
     public EquatableArray<BigInteger> UniqueValues { get; }
     public EquatableArray<EnumValueModel> Values { get; }
-    public bool HasFlagsAttribute { get; }
-    public bool ContiguousFromZero { get; }
+    public bool HasFlagsAttribute => (_config & Config.HasFlagsAttribute) != 0;
+    public bool ContiguousFromZero => (_config & Config.ContiguousFromZero) != 0;
     public int ContiguousFromZeroCount { get; }
     public EquatableArray<NestedType> WrappingTypes { get; }
-    public bool HasExplicitNames { get; }
-    public bool HasNegativeValues { get; }
+    public bool HasExplicitNames => (_config & Config.HasExplicitNames) != 0;
+    public bool HasNegativeValues => (_config & Config.HasNegativeValues) != 0;
+
+    private readonly Config _config;
 
     /// <summary>
     /// Whether the typemap is in the global namespace.
@@ -97,9 +96,9 @@ internal sealed record EnumModel
         IsByte = isByte;
         ConverterTypeName = converterType.Name;
         EnumType = new TypeRef(enumType);
-        UnderlyingType = new TypeRef(enumType.EnumUnderlyingType!);
+        UnderlyingType = enumType.EnumUnderlyingType!.ToDisplayString();
 
-        HasFlagsAttribute = enumType.GetAttributes().Any(a => a is { AttributeClass.Name: "FlagsAttribute" });
+        _config = default;
 
         List<EnumValueModel> values = PooledList<EnumValueModel>.Acquire();
         HashSet<BigInteger> uniqueValues = PooledSet<BigInteger>.Acquire();
@@ -112,9 +111,6 @@ internal sealed record EnumModel
                     or SpecialType.System_UInt64
                     or SpecialType.System_UIntPtr;
 
-        bool hasExplicitNames = false;
-
-        // loop over the enum's values
         foreach (var member in enumType.GetMembers())
         {
             if (member is IFieldSymbol { HasConstantValue: true } enumValue)
@@ -122,8 +118,6 @@ internal sealed record EnumModel
                 var value = new EnumValueModel(enumValue, isUnsigned, diagnostics);
                 values.Add(value);
                 uniqueValues.Add(value.Value);
-
-                hasExplicitNames |= value.HasValidExplicitName;
             }
         }
 
@@ -146,22 +140,31 @@ internal sealed record EnumModel
             contiguousCount++;
         }
 
-        ContiguousFromZero = isContiguous;
+        if (isContiguous)
+        {
+            _config |= Config.ContiguousFromZero;
+        }
+
         ContiguousFromZeroCount = contiguousCount;
 
         WrappingTypes = NestedType.Create(converterType, cancellationToken, diagnostics);
         InGlobalNamespace = converterType.ContainingNamespace.IsGlobalNamespace;
         Namespace = converterType.ContainingNamespace.ToDisplayString();
-        HasExplicitNames = Values.AsImmutableArray().Any(v => !string.IsNullOrEmpty(v.ExplicitName));
-        HasNegativeValues = UniqueValues.AsImmutableArray().Any(v => v < BigInteger.Zero);
 
-        if (HasExplicitNames)
+        if (UniqueValues.AsImmutableArray().Any(v => v < BigInteger.Zero))
         {
+            _config |= Config.HasNegativeValues;
+        }
+
+        if (Values.AsImmutableArray().Any(v => v.HasValidExplicitName))
+        {
+            _config |= Config.HasExplicitNames;
             CheckExplicitNameDuplicates(enumType, diagnostics);
         }
 
-        if (HasFlagsAttribute)
+        if (enumType.GetAttributes().Any(a => a is { AttributeClass.Name: "FlagsAttribute" }))
         {
+            _config |= Config.HasFlagsAttribute;
             CheckFlags(enumType, diagnostics);
         }
     }
@@ -170,7 +173,7 @@ internal sealed record EnumModel
     {
         HashSet<string>? handled = null; // report only one diagnostic per duplicate name
 
-        foreach (ref readonly var value in Values)
+        foreach (ref readonly EnumValueModel value in Values)
         {
             if (!value.HasValidExplicitName)
             {
@@ -178,7 +181,7 @@ internal sealed record EnumModel
                 continue;
             }
 
-            foreach (ref readonly var innerValue in Values)
+            foreach (ref readonly EnumValueModel innerValue in Values)
             {
                 if (value == innerValue)
                 {
@@ -215,7 +218,7 @@ internal sealed record EnumModel
     {
         ulong loneBits = 0;
 
-        foreach (ref readonly var value in Values)
+        foreach (ref readonly EnumValueModel value in Values)
         {
             var uint64 = value.Value.AsUInt64Bits();
 
@@ -225,7 +228,7 @@ internal sealed record EnumModel
             }
         }
 
-        foreach (ref readonly var value in Values)
+        foreach (ref readonly EnumValueModel value in Values)
         {
             var uint64 = value.Value.AsUInt64Bits();
 
@@ -244,13 +247,22 @@ internal sealed record EnumModel
         }
     }
 
-    private static Location? GetMemberLocation(INamedTypeSymbol enumType, string invalidName)
+    private static Location? GetMemberLocation(INamedTypeSymbol enumType, string name)
     {
         return enumType
             .GetMembers()
-            .FirstOrDefault(m => m is IFieldSymbol f && f.Name == invalidName)
+            .FirstOrDefault(m => m is IFieldSymbol f && f.Name == name)
             ?.DeclaringSyntaxReferences.FirstOrDefault()
             ?.GetSyntax()
             .GetLocation();
+    }
+
+    [Flags]
+    private enum Config : byte
+    {
+        HasFlagsAttribute = 1 << 0,
+        ContiguousFromZero = 1 << 1,
+        HasExplicitNames = 1 << 2,
+        HasNegativeValues = 1 << 3,
     }
 }
