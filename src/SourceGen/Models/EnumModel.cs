@@ -62,7 +62,7 @@ internal sealed record EnumModel
     public bool IsByte { get; }
     public string Token => IsByte ? "byte" : "char";
 
-    public TypeRef ConverterType { get; }
+    public string ConverterTypeName { get; }
     public TypeRef EnumType { get; }
     public TypeRef UnderlyingType { get; }
     public EquatableArray<BigInteger> UniqueValues { get; }
@@ -94,7 +94,7 @@ internal sealed record EnumModel
     )
     {
         IsByte = isByte;
-        ConverterType = new TypeRef(converterType);
+        ConverterTypeName = converterType.Name;
         EnumType = new TypeRef(enumType);
         UnderlyingType = new TypeRef(enumType.EnumUnderlyingType!);
 

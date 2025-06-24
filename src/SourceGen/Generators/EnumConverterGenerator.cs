@@ -63,7 +63,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         context.CancellationToken.ThrowIfCancellationRequested();
 
-        string sourceName = GlobalConstants.GetFileName(model.ConverterType.Name, model.WrappingTypes);
+        string sourceName = GlobalConstants.GetFileName(model.ConverterTypeName, model.WrappingTypes);
         context.AddSource(sourceName, writer.ToString());
     }
 
@@ -105,7 +105,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(
-            $"partial class {model.ConverterType.Name} : global::FlameCsv.CsvConverter<{(model.Token)}, {model.EnumType.FullyQualifiedName}>"
+            $"partial class {model.ConverterTypeName} : global::FlameCsv.CsvConverter<{(model.Token)}, {model.EnumType.FullyQualifiedName}>"
         );
 
         using (writer.WriteBlock())
@@ -127,7 +127,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("private readonly string? _format;");
 
             writer.WriteLine();
-            writer.WriteLine($"public {model.ConverterType.Name}(CsvOptions<{model.Token}> options)");
+            writer.WriteLine($"public {model.ConverterTypeName}(CsvOptions<{model.Token}> options)");
             using (writer.WriteBlock())
             {
                 writer.WriteLine("global::System.ArgumentNullException.ThrowIfNull(options);");
@@ -359,7 +359,6 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("explicitly defined, but are a combination of defined values.");
             writer.WriteLine("/// </remarks>");
         }
-        writer.WriteLineIf(model.ContiguousFromZero, GlobalConstants.AggressiveInliningAttr);
         writer.WriteLine($"public static bool IsDefined({model.EnumType.FullyQualifiedName} value)");
         using var _ = writer.WriteBlock();
 
