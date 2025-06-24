@@ -155,8 +155,8 @@ internal static class Descriptors
     /// <summary>FLAMESG208</summary>
     public static readonly DiagnosticDescriptor NoTargetTypeOnAssembly = new(
         id: "FLAMESG208",
-        title: "No TargetType on attribute applied to assembly",
-        messageFormat: "Attribute {0} applied to assembly must have a TargetType",
+        title: "No TargetType on attribute applied to an assembly",
+        messageFormat: "Attribute [{0}] applied to an assembly must have a TargetType",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
@@ -166,7 +166,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NoMemberNameOnAttribute = new(
         id: "FLAMESG209",
         title: "No MemberName on attribute",
-        messageFormat: "Attribute {0} applied to {1} must have a MemberName",
+        messageFormat: "Attribute [{0}] applied to {1} must have a MemberName",
         category: CategoryDesign,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
@@ -216,7 +216,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor EnumInvalidExplicitName = new(
         id: "FLAMESG502",
         title: "Invalid explicit enum name",
-        messageFormat: "Cannot generate enum converter: Explicit enum name \"{0}\" for {1}.{2} is not supported: value must not be empty, and must not start with a digit, plus, or minus",
+        messageFormat: "Cannot generate enum converter: Explicit enum name \"{0}\" for {1}.{2} is not supported: {3}",
         category: CategoryUsage,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true

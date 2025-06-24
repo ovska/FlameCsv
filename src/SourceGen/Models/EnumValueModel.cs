@@ -41,7 +41,10 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
                             enumValue.ContainingSymbol,
                             enumValue,
                             location ?? attribute.GetLocation(),
-                            ExplicitName!
+                            explicitName,
+                            explicitName.Length == 0
+                                ? "value must not be empty"
+                                : "value must not start with a digit, plus, or minus"
                         )
                     );
                 }
