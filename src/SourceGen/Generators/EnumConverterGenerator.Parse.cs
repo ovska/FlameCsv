@@ -155,6 +155,25 @@ partial class EnumConverterGenerator
                     continue;
                 }
 
+                if (group.Count() <= 5)
+                {
+                    writer.DebugLine("Under 5 values, compare directly");
+
+                    foreach (var (name, value) in group)
+                    {
+                        writer.Write($"if ({MemExt}.SequenceEqual(source, {name.ToStringLiteral()}");
+                        writer.WriteLine(model.IsByte ? "u8))" : "))");
+                        using (writer.WriteBlock())
+                        {
+                            writer.WriteLine($"value = ({model.EnumType.FullyQualifiedName}){value};");
+                            writer.WriteLine("return true;");
+                        }
+                    }
+
+                    writer.WriteLine("break;");
+                    continue;
+                }
+
                 writer.DebugLine("Slow path: over 2-length integers");
                 writer.WriteLine("switch (first)");
                 using (writer.WriteBlock())

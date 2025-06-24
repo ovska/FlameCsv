@@ -57,6 +57,6 @@ internal static class SymbolExtensions
         baseType = null;
         return false;
     }
-    
+
     public static bool IsByte(in this TypeRef typeRef) => typeRef.SpecialType == SpecialType.System_Byte;
 }
