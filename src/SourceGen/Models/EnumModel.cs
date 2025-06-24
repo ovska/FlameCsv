@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -174,7 +175,7 @@ internal sealed record EnumModel
 
             foreach (ref readonly var innerValue in Values)
             {
-                if (!innerValue.HasValidExplicitName || value == innerValue)
+                if (value == innerValue)
                 {
                     continue;
                 }
