@@ -74,7 +74,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // ensure quote count is even and not too large
         if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
         {
-            ThrowInvalidRFC(quoteCount, false);
+            return ThrowInvalidRFC(quoteCount, false);
         }
 
         return Unsafe.BitCast<long, Meta>((uint)end | ((long)quoteCount << 35) | (1L << 32));
@@ -86,7 +86,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // ensure quote count is even and not too large
         if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
         {
-            ThrowInvalidRFC(quoteCount, false);
+            return ThrowInvalidRFC(quoteCount, false);
         }
 
         return Unsafe.BitCast<long, Meta>(
@@ -100,7 +100,7 @@ internal readonly struct Meta : IEquatable<Meta>
         // ensure quote count is even and not too large
         if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
         {
-            ThrowInvalidRFC(quoteCount, isEOL);
+            return ThrowInvalidRFC(quoteCount, isEOL);
         }
 
         long newlineMask = unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32);
@@ -134,7 +134,7 @@ internal readonly struct Meta : IEquatable<Meta>
     {
         if ((quoteCount % 2 != 0) || (escapeCount > 0 && quoteCount != 2) || escapeCount > MaxSpecialCount)
         {
-            ThrowInvalidUnix(quoteCount, escapeCount, isEOL);
+            return ThrowInvalidUnix(quoteCount, escapeCount, isEOL);
         }
 
         // if escapeCount is 0, and we only have quotes, leave isEscape flag off
@@ -325,8 +325,10 @@ internal readonly struct Meta : IEquatable<Meta>
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowInvalidRFC(uint quoteCount, bool isEOL)
+    private static Meta ThrowInvalidRFC(uint quoteCount, bool isEOL)
     {
+        // note: this method should return so calling it produces a tail jmp instead of having to preserve the stack frame
+
         string info = isEOL ? " at EOL" : "";
 
         if (quoteCount > MaxSpecialCount)
@@ -341,7 +343,7 @@ internal readonly struct Meta : IEquatable<Meta>
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowInvalidUnix(uint quoteCount, uint escapeCount, bool isEOL)
+    private static Meta ThrowInvalidUnix(uint quoteCount, uint escapeCount, bool isEOL)
     {
         string info = isEOL ? " at EOL" : "";
 
