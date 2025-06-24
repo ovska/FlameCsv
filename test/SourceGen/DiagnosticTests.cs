@@ -275,6 +275,9 @@ public class DiagnosticTests(MetadataFixture fixture)
             {
                 [CsvConverter<MyConverter>]
                 public bool Id { get; set; }
+                
+                [CsvStringPooling]
+                public int Value { get; set; }
             }
 
             class MyConverter : CsvConverter<char, int>
@@ -282,7 +285,7 @@ public class DiagnosticTests(MetadataFixture fixture)
                 {{ConverterBody}}
             }
             """,
-            [Descriptors.CsvConverterTypeMismatch]
+            [Descriptors.CsvConverterTypeMismatch, Descriptors.CsvConverterTypeMismatch]
         );
     }
 

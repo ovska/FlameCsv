@@ -12,10 +12,17 @@ internal sealed class StringPoolingConverterModel : IConverterModel
 
     public bool Equals(IConverterModel? other) => other is StringPoolingConverterModel;
 
-    public static string GetName(string token) =>
-        token == "byte"
-            ? "global::FlameCsv.Converters.CsvPoolingStringUtf8Converter"
-            : "global::FlameCsv.Converters.CsvPoolingStringTextConverter";
+    public static string GetName(string token, bool full = true)
+    {
+        if (full)
+        {
+            return token == "byte"
+                ? "global::FlameCsv.Converters.CsvPoolingStringUtf8Converter"
+                : "global::FlameCsv.Converters.CsvPoolingStringTextConverter";
+        }
+
+        return token == "byte" ? "CsvPoolingStringUtf8Converter" : "CsvPoolingStringTextConverter";
+    }
 }
 
 internal sealed record ConverterModel : IConverterModel
@@ -63,11 +70,29 @@ internal sealed record ConverterModel : IConverterModel
                 continue;
             }
 
-            if (
-                symbols.IsStringPoolingAttribute(attrSymbol)
-                && propertyOrParameter.GetMemberType() is { SpecialType: SpecialType.System_String }
-            )
+            if (symbols.IsStringPoolingAttribute(attrSymbol))
             {
+                var memberType = propertyOrParameter switch
+                {
+                    IPropertySymbol property => property.Type,
+                    IFieldSymbol field => field.Type,
+                    IParameterSymbol parameter => parameter.Type,
+                    _ => null,
+                };
+
+                if (memberType is not { SpecialType: SpecialType.System_String })
+                {
+                    collector.AddDiagnostic(
+                        Diagnostics.CsvConverterTypeMismatch(
+                            target: symbols.TargetType,
+                            converterType: StringPoolingConverterModel.GetName(symbols.TokenType.Name, full: false),
+                            expectedType: "string",
+                            actualType: memberType?.ToDisplayString() ?? "<unknown>",
+                            location: attribute.GetLocation()
+                        )
+                    );
+                }
+
                 return StringPoolingConverterModel.Instance;
             }
 
@@ -133,9 +158,9 @@ internal sealed record ConverterModel : IConverterModel
                 collector.AddDiagnostic(
                     Diagnostics.CsvConverterTypeMismatch(
                         target: symbols.TargetType,
-                        converterType: converter,
-                        expectedType: convertedType,
-                        actualType: converterActualTValue!,
+                        converterType: converter.ToDisplayString(),
+                        expectedType: convertedType.ToDisplayString(),
+                        actualType: converterActualTValue!.ToDisplayString(),
                         location: matchingAttribute?.GetLocation()
                     )
                 );

@@ -5,17 +5,6 @@ namespace FlameCsv.SourceGen.Utilities;
 
 internal static class SymbolExtensions
 {
-    public static ITypeSymbol? GetMemberType(this ISymbol? symbol)
-    {
-        return symbol switch
-        {
-            IPropertySymbol property => property.Type,
-            IFieldSymbol field => field.Type,
-            IParameterSymbol parameter => parameter.Type,
-            _ => null,
-        };
-    }
-
     public static bool TryGetFlameCsvAttribute(
         this AttributeData attributeData,
         [NotNullWhen(true)] out INamedTypeSymbol? attribute
@@ -57,6 +46,4 @@ internal static class SymbolExtensions
         baseType = null;
         return false;
     }
-
-    public static bool IsByte(in this TypeRef typeRef) => typeRef.SpecialType == SpecialType.System_Byte;
 }
