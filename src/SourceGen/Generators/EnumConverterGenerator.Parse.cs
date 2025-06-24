@@ -720,6 +720,25 @@ partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteSwitchTwoCharacters));
 
+        if (values.Select(v => (char?)v.name[0]).Aggregate((a, b) => a == b ? a : null) is char sharedFirstChar)
+        {
+            writer.DebugLine("All cases share the same first character");
+            writer.WriteLine($"if (first == {sharedFirstChar.ToCharLiteral()})");
+            using (writer.WriteBlock())
+            {
+                writer.WriteLine("switch (source[1])");
+                using (writer.WriteBlock())
+                {
+                    WriteCases(name =>
+                    {
+                        writer.WriteIf(model.IsByte, "(byte)");
+                        writer.Write(name[1].ToCharLiteral());
+                    });
+                }
+            }
+            return;
+        }
+
         string type = model.IsByte ? "ushort" : "uint";
 
         writer.Write($"switch (__BP.ReadUInt");
@@ -739,13 +758,23 @@ partial class EnumConverterGenerator
 
         using (writer.WriteBlock())
         {
-            foreach ((string name, BigInteger value) in values)
+            WriteCases(name =>
             {
-                writer.Write("case (");
+                writer.Write('(');
                 writer.Write(name[0].ToCharLiteral());
                 writer.Write(" | (");
                 writer.Write(name[1].ToCharLiteral());
-                writer.Write($" << {(model.IsByte ? 8 : 16)})): value = ({model.EnumType.FullyQualifiedName})");
+                writer.Write($" << {(model.IsByte ? 8 : 16)}))");
+            });
+        }
+
+        void WriteCases(Action<string> writeCase)
+        {
+            foreach ((string name, BigInteger value) in values)
+            {
+                writer.Write("case ");
+                writeCase(name);
+                writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
                 writer.WriteIf(value < 0, "(");
                 writer.Write(value.ToString());
                 writer.WriteIf(value < 0, ")");
