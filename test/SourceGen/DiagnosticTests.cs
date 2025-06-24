@@ -137,6 +137,27 @@ public class DiagnosticTests(MetadataFixture fixture)
     }
 
     [Fact]
+    public void Should_Ensure_Enum_Flags_Validity()
+    {
+        AssertDiagnostic(
+            """
+            [CsvEnumConverter<char, MyEnum>]
+            partial class FileScoped;
+
+            [System.Flags]
+            enum MyEnum
+            {
+                A = 0b0001,
+                B = 0b0010,
+                C = 0b0110, // invalid, has a bit that is only in a combination value
+            }
+            """,
+            [Descriptors.EnumUnsupportedFlag],
+            enumGen: true
+        );
+    }
+
+    [Fact]
     public void Should_Validate_Targeted_Member_Existence()
     {
         AssertDiagnostic(
