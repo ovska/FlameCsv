@@ -21,11 +21,10 @@ public sealed class CsvConverterMissingException(Type resultType)
     /// </summary>
     public Type ResultType { get; } = resultType;
 
-    /// <exception cref="CsvConverterMissingException" />
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     [StackTraceHidden]
-    public static void Throw(Type resultType)
+    internal static void Throw(Type resultType)
     {
         throw new CsvConverterMissingException(resultType ?? typeof(void));
     }

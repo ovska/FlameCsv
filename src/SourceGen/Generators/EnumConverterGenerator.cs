@@ -417,7 +417,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         {
             if (value.Name.Length >= 16 || value.ExplicitName?.Length >= 16 || value.Value.ToString().Length >= 16)
             {
-                writer.WriteLine($"using __Vector128 = global::System.Runtime.Intrinsics.Vector128;");
+                writer.WriteLine("using __Vector128 = global::System.Runtime.Intrinsics.Vector128;");
                 return;
             }
         }

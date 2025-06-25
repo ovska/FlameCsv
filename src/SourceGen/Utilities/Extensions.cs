@@ -7,7 +7,7 @@ namespace FlameCsv.SourceGen.Utilities;
 
 internal static class UtilityExtensions
 {
-    public static ulong AsUInt64Bits(in this BigInteger bigInteger)
+    public static ulong AsUInt64Bits(this BigInteger bigInteger)
     {
         if (bigInteger.IsZero)
             return 0;

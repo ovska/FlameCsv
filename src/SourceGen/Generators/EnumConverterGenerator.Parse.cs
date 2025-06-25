@@ -760,9 +760,9 @@ partial class EnumConverterGenerator
 
         string type = model.IsByte ? "ushort" : "uint";
 
-        writer.Write($"switch (__BP.ReadUInt");
+        writer.Write("switch (__BP.ReadUInt");
         writer.Write(model.IsByte ? "16" : "32");
-        writer.Write($"LittleEndian(");
+        writer.Write("LittleEndian(");
 
         if (model.IsByte)
         {
@@ -773,7 +773,7 @@ partial class EnumConverterGenerator
             writer.Write("__MemoryMarshal.Cast<char, byte>(source)");
         }
 
-        writer.WriteLine($"))");
+        writer.WriteLine("))");
 
         using (writer.WriteBlock())
         {
@@ -872,18 +872,17 @@ partial class EnumConverterGenerator
     }
 
     /// <summary>
-    /// Writes a case-insensitive check for <paramref name="width"/> bytes at a time against the entry's name at
+    /// Writes a case-insensitive check for 16 bytes at a time against the entry's name at
     /// <paramref name="offset"/>.
     /// </summary>
     /// <param name="writer">Writer</param>
     /// <param name="entry">Entry to write</param>
     /// <param name="offset">Offset from the start of the input</param>
-    /// <param name="width">Number of characters checked</param>
     private static int WriteByteAsciiLowercaseCheckVectorized(IndentedTextWriter writer, in Entry entry, int offset)
     {
         const int width = 128 / 8;
 
-        writer.Write($"__Vector128.LoadUnsafe(in ");
+        writer.Write("__Vector128.LoadUnsafe(in ");
         writer.Write(entry.Name.Substring(offset, width).ToLowerInvariant().ToStringLiteral());
         writer.Write("u8[0]) == ");
 
@@ -891,13 +890,13 @@ partial class EnumConverterGenerator
         bool? allSame = GetMaskLittleEndian(bytes, entry.Name, offset);
 
         writer.WriteIf(allSame is null or true, "(");
-        writer.Write($"__Vector128.LoadUnsafe(in first");
+        writer.Write("__Vector128.LoadUnsafe(in first");
         writer.WriteIf(offset != 0, $", {offset}");
         writer.Write(")");
 
         if (allSame is null)
         {
-            writer.Write($" | __Vector128.LoadUnsafe(in \"");
+            writer.Write(" | __Vector128.LoadUnsafe(in \"");
 
             for (int i = 0; i < width; i++)
             {
@@ -908,7 +907,7 @@ partial class EnumConverterGenerator
         }
         else if (allSame is true)
         {
-            writer.Write($" | __Vector128.Create((byte)0x20))");
+            writer.Write(" | __Vector128.Create((byte)0x20))");
         }
 
         return 128 / 8;

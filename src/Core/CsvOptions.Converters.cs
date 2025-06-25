@@ -94,7 +94,9 @@ partial class CsvOptions<T>
         }
 
         if (converter is null)
+        {
             CsvConverterMissingException.Throw(resultType);
+        }
 
         if (created)
         {

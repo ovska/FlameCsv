@@ -23,7 +23,9 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     private readonly MemoryPool<T> _pool;
     private IMemoryOwner<T> _owner;
 
-    /// <summary></summary>
+    /// <summary>
+    /// Minimum length of data yielded by Read and ReadAsync before more data is read from the underlying source.
+    /// </summary>
     private readonly int _minimumReadSize;
 
     /// <summary>Buffer to read the data to</summary>
