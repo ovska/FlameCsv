@@ -71,11 +71,7 @@ internal readonly struct Meta : IEquatable<Meta>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta RFC(int end, uint quoteCount)
     {
-        // ensure quote count is even and not too large
-        if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
-        {
-            return ThrowInvalidRFC(quoteCount, false);
-        }
+        _ = checked((ushort)(quoteCount >> (29 - 16))); // ensure that quoteCount fits in 29 bits
 
         return Unsafe.BitCast<long, Meta>((uint)end | ((long)quoteCount << 35) | (1L << 32));
     }
@@ -83,11 +79,7 @@ internal readonly struct Meta : IEquatable<Meta>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta EOL(int end, uint quoteCount, int newlineLength)
     {
-        // ensure quote count is even and not too large
-        if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
-        {
-            return ThrowInvalidRFC(quoteCount, false);
-        }
+        _ = checked((ushort)(quoteCount >> (29 - 16))); // ensure that quoteCount fits in 29 bits
 
         return Unsafe.BitCast<long, Meta>(
             (uint)end | unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32) | ((long)quoteCount << 35)
@@ -97,11 +89,7 @@ internal readonly struct Meta : IEquatable<Meta>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta RFC(int end, uint quoteCount, bool isEOL, int newlineLength)
     {
-        // ensure quote count is even and not too large
-        if ((quoteCount & (1 | ~MaxSpecialCount)) != 0)
-        {
-            return ThrowInvalidRFC(quoteCount, isEOL);
-        }
+        _ = checked((ushort)(quoteCount >> (29 - 16))); // ensure that quoteCount fits in 29 bits
 
         long newlineMask = unchecked((uint)EOLMask) | (((long)(uint)newlineLength) << 32);
         long isEolMask = isEOL.ToBitwiseMask64();
@@ -132,7 +120,7 @@ internal readonly struct Meta : IEquatable<Meta>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Meta Unix(int end, uint quoteCount, uint escapeCount, bool isEOL, int newlineLength)
     {
-        if ((quoteCount % 2 != 0) || (escapeCount > 0 && quoteCount != 2) || escapeCount > MaxSpecialCount)
+        if ((escapeCount > 0 && quoteCount != 2) || escapeCount > MaxSpecialCount)
         {
             return ThrowInvalidUnix(quoteCount, escapeCount, isEOL);
         }
@@ -257,7 +245,8 @@ internal readonly struct Meta : IEquatable<Meta>
             uint specialCount = SpecialCount;
 
             if (
-                fieldLength <= 1
+                specialCount % 2 != 0
+                || fieldLength <= 1
                 || Unsafe.Add(ref data, start) != quote
                 || Unsafe.Add(ref data, start + fieldLength - 1) != quote
             )
@@ -333,12 +322,12 @@ internal readonly struct Meta : IEquatable<Meta>
 
         if (quoteCount > MaxSpecialCount)
         {
-            throw new NotSupportedException(
+            throw new OverflowException(
                 $"Csv field had too many quotes ({quoteCount}){info}, up to {SpecialCountMask} supported."
             );
         }
 
-        throw new CsvFormatException($"Invalid CSV field{info}, unbalanced quotes ({quoteCount}).");
+        throw new OverflowException($"Invalid CSV field{info}, unbalanced quotes ({quoteCount}).");
     }
 
     [DoesNotReturn]
@@ -349,12 +338,12 @@ internal readonly struct Meta : IEquatable<Meta>
 
         if (escapeCount > MaxSpecialCount)
         {
-            throw new NotSupportedException(
+            throw new OverflowException(
                 $"Csv field had too many escapes ({escapeCount}){info}, up to {SpecialCountMask} supported."
             );
         }
 
-        throw new CsvFormatException($"Invalid CSV field{info}, unbalanced quotes ({quoteCount}).");
+        throw new OverflowException($"Invalid CSV field{info}, unbalanced quotes ({quoteCount}).");
     }
 
     public bool Equals(Meta other) => Unsafe.BitCast<Meta, long>(this) == Unsafe.BitCast<Meta, long>(other);
