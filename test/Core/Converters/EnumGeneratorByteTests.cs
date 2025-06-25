@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using FlameCsv.Attributes;
+﻿using FlameCsv.Attributes;
 
 namespace FlameCsv.Tests.Converters;
 
