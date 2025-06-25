@@ -13,8 +13,10 @@ internal static class ReadExtensions
     public static int GetRecordLength(this ReadOnlySpan<Meta> meta, bool includeTrailingNewline = false)
     {
         Meta lastMeta = meta[^1];
-        int end = includeTrailingNewline ? lastMeta.NextStart : lastMeta.End;
-        return end - meta[0].NextStart;
+        int end = lastMeta.End;
+        return end
+            - meta[0].NextStart
+            + (includeTrailingNewline ? (lastMeta._specialCountAndOffset & Meta.EndOffsetMask) : 0);
     }
 
     public static bool TryParseFromUtf8<TValue>(

@@ -44,6 +44,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// <inheritdoc/>
     public int FieldCount
     {
+        // storing this in a property simplifies looping over the fields a bit
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get;
     }
@@ -55,12 +56,11 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         get
         {
             // separate local yields 158 bytes of code vs 163, it _might_ matter under some conditions and produces
-            // [mov mov cmp jae] for loading the span and length, instead of [mov cmp jae mov]
-            // which should allow parallelization by the CPU
-            ReadOnlySpan<Meta> meta = _meta;
+            // [mov mov cmp jae] for loading the span and length, instead of [mov cmp jae mov] should also allow ILP
+            // inlining NextStart eliminates one lea (total 3 bytes less)
 
-            int start = meta[index].NextStart;
-            return meta[index + 1].GetField(start, ref _data, _reader);
+            ReadOnlySpan<Meta> meta = _meta;
+            return meta[index + 1].GetField(meta[index].NextStart, ref _data, _reader);
         }
     }
 
@@ -68,7 +68,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// Returns the raw unescaped span of the field at the specified index.
     /// </summary>
     /// <param name="index">0-based field index</param>
-    /// <exception cref="ArgumentOutOfRangeException">
+    /// <exception cref="IndexOutOfRangeException">
     /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -87,7 +87,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         get
         {
             ReadOnlySpan<Meta> meta = _meta;
-            int end = meta[^1].End; // JIT doesn't optimize bounds checks unless the last index is accessed first
+            int end = meta[^1].End; // JIT doesn't optimize the other bounds check unless the last index is accessed first
             int start = meta[0].NextStart;
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
         }
@@ -115,16 +115,11 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
             return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Uninitialized }}";
         }
 
-        if (typeof(T) == typeof(char))
-        {
-            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{MemoryMarshal.Cast<T, char>(RawValue)}\" }}";
-        }
-
         if (typeof(T) == typeof(byte))
         {
             return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(RawValue))}\" }}";
         }
 
-        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Length: {RawValue.Length} }}";
+        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{RawValue.ToString()}\" }}";
     }
 }
