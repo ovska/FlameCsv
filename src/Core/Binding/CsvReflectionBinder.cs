@@ -202,7 +202,7 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
         return _options.GetMaterializer([], static (options, _) => options.GetMaterializerNoHeader<T, TValue>());
     }
 
-    /// <inheritoc />
+    /// <inheritdoc />
     /// <remarks>
     /// Caches the return values based on the options.
     /// </remarks>
