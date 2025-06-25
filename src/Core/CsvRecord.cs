@@ -65,7 +65,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     /// <inheritdoc cref="CsvPreservedRecord{T}.this[CsvFieldIdentifier]"/>
     public ReadOnlySpan<T> this[CsvFieldIdentifier id] => GetField(id);
 
-    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => GetField(index, out _);
+    ReadOnlySpan<T> ICsvRecord<T>.this[int index] => _slice.GetField(index);
 
     internal readonly IRecordOwner _owner;
     internal readonly CsvSlice<T> _slice;
