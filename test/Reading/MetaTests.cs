@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
@@ -79,30 +80,46 @@ public static class MetaTests
             { 3, 0 },
             { 3, 2 },
             { 3, 3 },
+            { Meta.MaxSpecialCount + 1, 0 },
+            { 2, Meta.MaxSpecialCount + 1 },
         };
 
     [Theory]
     [MemberData(nameof(InvalidMetaData))]
     public static void Should_Validate_Args(uint quoteCount, uint escapeCount)
     {
+        Func<Meta>[] funcs;
+
         if (escapeCount == 0)
         {
-            Func<object?>[] funcs =
+            funcs =
             [
                 () => Meta.RFC(0, quoteCount, isEOL: false, newlineLength: 2),
                 () => Meta.RFC(0, quoteCount, isEOL: true, newlineLength: 2),
                 () => Meta.EOL(0, quoteCount, newlineLength: 2),
                 () => Meta.RFC(0, quoteCount),
             ];
-
-            foreach (var func in funcs)
-            {
-                Assert.Throws<CsvFormatException>(func);
-            }
         }
         else
         {
-            Assert.Throws<CsvFormatException>(() => Meta.Unix(0, quoteCount, escapeCount, false, newlineLength: 2));
+            funcs = [() => Meta.Unix(0, quoteCount, escapeCount, false, newlineLength: 2)];
+        }
+
+        foreach (var func in funcs)
+        {
+            var ex = Record.Exception(() => func());
+
+            if (ex is not null)
+            {
+                Assert.IsType<OverflowException>(ex);
+            }
+            else
+            {
+                var meta = func();
+                byte[] data = new byte[1];
+                using var reader = new CsvReader<byte>(CsvOptions<byte>.Default, data);
+                Assert.Throws<CsvFormatException>(() => meta.GetField(0, ref data[0], reader));
+            }
         }
     }
 
@@ -133,12 +150,16 @@ public static class MetaTests
     [Fact]
     public static void Should_Check_SpecialCount()
     {
-        const int max = 0x3FFF_FFFF;
+        const uint max = Meta.MaxSpecialCount;
 
-        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, true, 2));
-        Assert.Throws<NotSupportedException>(() => Meta.RFC(0, max + 1, false, 2));
-        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1, false, 2));
-        Assert.Throws<NotSupportedException>(() => Meta.Unix(0, 2, max + 1, true, 2));
+        Assert.Throws<OverflowException>(() => Meta.RFC(0, max + 1, true, 2));
+        Assert.Throws<OverflowException>(() => Meta.RFC(0, max + 1, false, 2));
+        Assert.Throws<OverflowException>(() => Meta.Unix(0, 2, max + 1, false, 2));
+        Assert.Throws<OverflowException>(() => Meta.Unix(0, 2, max + 1, true, 2));
+        Assert.Throws<OverflowException>(() => Meta.RFC(0, max + 2, true, 2));
+        Assert.Throws<OverflowException>(() => Meta.RFC(0, max + 2, false, 2));
+        Assert.Throws<OverflowException>(() => Meta.Unix(0, 2, max + 2, false, 2));
+        Assert.Throws<OverflowException>(() => Meta.Unix(0, 2, max + 2, true, 2));
     }
 
     [Fact]

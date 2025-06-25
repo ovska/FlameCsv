@@ -26,10 +26,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             return 0;
         }
 
-        // search space of T is set to 1 vector less, possibly leaving space for a newline token so we don't need
-        // to do bounds checks in the loops
-        scoped ref T first =
-            ref MemoryMarshal.GetReference(data);
+        scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = (uint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
@@ -37,8 +34,9 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
         // search space of Meta is set to vector length from actual so we don't need to do bounds checks in the loops
         // ensure the worst case doesn't read past the end (data ends in Vector.Count delimiters)
-        scoped ref Meta currentMeta =
-            ref MemoryMarshal.GetReference(metaBuffer);
+        Debug.Assert(metaBuffer.Length >= TVector.Count);
+
+        scoped ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
         scoped ref readonly Meta metaEnd = ref Unsafe.Add(
             ref MemoryMarshal.GetReference(metaBuffer),
             metaBuffer.Length - TVector.Count
@@ -205,6 +203,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             // [John, "Doe"]
             // [, 123, 4567]
             // use a separate loop so the branch predictor can create a separate table for ParseAny without quotes
+
+            // TODO: profile if this is common enough to warrant a separate loop (might not get inlined if too rare)
             currentMeta = ref ParseAnyNoQuotes(
                 maskAny,
                 ref first,
