@@ -204,10 +204,10 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Attempts to reset the parser to the beginning of the data source.
+    /// Attempts to reset the reader to the beginning of the data source.
     /// </summary>
     /// <returns>
-    /// <c>true</c> if the inner data source supports resetion and was successfully reset;
+    /// <c>true</c> if the inner data source supports rewinding and was successfully reset;
     /// otherwise <c>false</c>.
     /// </returns>
     public bool TryReset()
@@ -223,6 +223,20 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Resets the reader to the beginning of the data source.
+    /// </summary>
+    /// <exception cref="NotSupportedException">
+    /// The inner data source does not support rewinding.
+    /// </exception>
+    public void Reset()
+    {
+        if (!TryReset())
+        {
+            throw new NotSupportedException("The inner data source does not support rewinding");
+        }
     }
 
     /// <summary>

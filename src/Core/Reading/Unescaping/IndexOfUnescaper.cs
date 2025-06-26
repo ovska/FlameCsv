@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading.Internal;
 
@@ -42,7 +43,8 @@ internal static class IndexOfUnescaper
     }
 
     [DoesNotReturn]
-    public static void Invalid<T>(ReadOnlySpan<T> field, ref readonly Meta meta)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static ReadOnlySpan<T> Invalid<T>(ReadOnlySpan<T> field, scoped ref readonly Meta meta)
         where T : unmanaged, IBinaryInteger<T>
     {
         string str;

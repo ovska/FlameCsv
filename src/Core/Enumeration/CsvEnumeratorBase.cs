@@ -199,11 +199,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <exception cref="NotSupportedException">The internal reader does not support rewinding</exception>
     protected void ResetCore()
     {
-        if (!_reader.TryReset())
-        {
-            throw new NotSupportedException("The inner data source does not support rewinding");
-        }
-
+        _reader.Reset();
         Line = 0;
         Position = 0;
     }

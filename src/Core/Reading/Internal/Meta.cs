@@ -244,13 +244,12 @@ internal readonly struct Meta : IEquatable<Meta>
             uint specialCount = SpecialCount;
 
             if (
-                specialCount % 2 != 0
-                || fieldLength <= 1
+                fieldLength <= 1
                 || Unsafe.Add(ref data, start) != quote
                 || Unsafe.Add(ref data, start + fieldLength - 1) != quote
             )
             {
-                IndexOfUnescaper.Invalid(field, in this);
+                goto Invalid;
             }
 
             field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start + 1), fieldLength - 2);
@@ -268,6 +267,11 @@ internal readonly struct Meta : IEquatable<Meta>
             }
             else if (!IsEscape && specialCount != 2) // already trimmed the quotes
             {
+                if (specialCount % 2 != 0)
+                {
+                    goto Invalid;
+                }
+
                 Span<T> buffer = reader.GetUnescapeBuffer(fieldLength - 2);
 
                 // Vector<char> is not supported
@@ -291,6 +295,9 @@ internal readonly struct Meta : IEquatable<Meta>
         }
 
         return field;
+
+        Invalid:
+        return IndexOfUnescaper.Invalid(field, in this);
     }
 
     static Meta()
