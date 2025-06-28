@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 
@@ -6,6 +7,15 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Bithacks
 {
+    /// <summary>
+    /// Whether the current architecture prefers reversed bit manipulation (lzcnt instead of tzcnt).
+    /// </summary>
+    public static bool PreferReversed
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => RuntimeInformation.ProcessArchitecture is Architecture.Arm or Architecture.Arm64;
+    }
+
     /// <summary>
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
@@ -23,7 +33,7 @@ internal static class Bithacks
         quoteMask ^= prevIterInsideQuote;
 
         // save if this iteration ended in a quote
-        prevIterInsideQuote = T.Zero - (quoteMask >> (Unsafe.SizeOf<T>() * 8 - 1));
+        prevIterInsideQuote = T.Zero - (quoteMask >> ((Unsafe.SizeOf<T>() * 8) - 1));
 
         return quoteMask;
     }
@@ -34,21 +44,25 @@ internal static class Bithacks
     {
         if (Pclmulqdq.IsSupported && (Avx2.IsSupported || Sse2.IsSupported))
         {
-            ulong quoteMask = Pclmulqdq
-                .CarrylessMultiply(
-                    Vector128.Create(ulong.CreateTruncating(quoteBits), 0UL),
-                    Vector128.Create((byte)0xFF).AsUInt64(),
-                    0
-                )
-                .GetElement(0);
-            return T.CreateTruncating(quoteMask);
+            var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
+            var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
+            return T.CreateTruncating(result.GetElement(0));
         }
 
         // no separate PMULL path, see:
         // https://github.com/simdjson/simdjson/blob/d84c93476894dc3230e7379cd9322360435dd0f9/include/simdjson/arm64/bitmask.h#L24
 
         // Fallback to software implementation
-        return ComputeQuoteMaskSoftwareFallback(quoteBits);
+        T mask = quoteBits ^ (quoteBits << 1);
+        mask ^= (mask << 2);
+        mask ^= (mask << 4);
+        if (Unsafe.SizeOf<T>() >= sizeof(ushort))
+            mask ^= (mask << 8);
+        if (Unsafe.SizeOf<T>() >= sizeof(uint))
+            mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() >= sizeof(ulong))
+            mask ^= (mask << 32);
+        return mask;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

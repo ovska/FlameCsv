@@ -77,15 +77,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 if (quotesConsumed != 0)
                     goto TrySkipQuoted;
 
-                // ParseDelimiters
-                do
-                {
-                    int offset = BitOperations.TrailingZeroCount(maskDelimiter);
-                    maskDelimiter &= (maskDelimiter - 1); // clear lowest bit
-                    currentMeta = Meta.Plain((int)runningIndex + offset);
-                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-                } while (maskDelimiter != 0); // no bounds-check, meta-buffer always has space for a full vector
-
+                currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
                 goto ContinueRead;
             }
 
@@ -99,7 +91,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
                 if (maskDelimiter != 0)
                 {
-                    int lastDelimiter = (nuint.Size * 8 - 1) - BitOperations.LeadingZeroCount(maskDelimiter);
+                    int lastDelimiter = (nuint.Size * 8) - 1 - BitOperations.LeadingZeroCount(maskDelimiter);
                     int firstDelimiter = BitOperations.TrailingZeroCount(maskDelimiter);
                     nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
                     int firstNewline = BitOperations.TrailingZeroCount(maskNewline);
@@ -108,22 +100,14 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                     // or all newlines before all delimiters)
                     if (
                         lastDelimiter < firstNewline
-                        || (nuint.Size * 8 - 1) - BitOperations.LeadingZeroCount(maskNewline) < firstDelimiter
+                        || (nuint.Size * 8) - 1 - BitOperations.LeadingZeroCount(maskNewline) < firstDelimiter
                     )
                     {
                         // The bits are not interleaved - they're fully separated
                         if (firstDelimiter < firstNewline)
                         {
                             // All delimiters are before any newlines
-
-                            // ParseDelimiters
-                            do
-                            {
-                                int offset = BitOperations.TrailingZeroCount(maskDelimiter);
-                                maskDelimiter &= (maskDelimiter - 1); // clear lowest bit
-                                currentMeta = Meta.Plain((int)runningIndex + offset);
-                                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-                            } while (maskDelimiter != 0);
+                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
 
                             // Fall through to parse line ends
                             maskNewlineOrDelimiter = maskNewline;
@@ -140,15 +124,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                             );
 
                             // Process delimiters afterward
-
-                            // ParseDelimiters
-                            do
-                            {
-                                int offset = BitOperations.TrailingZeroCount(maskDelimiter);
-                                maskDelimiter &= (maskDelimiter - 1); // clear lowest bit
-                                currentMeta = Meta.Plain((int)runningIndex + offset);
-                                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-                            } while (maskDelimiter != 0);
+                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
                             goto ContinueRead;
                         }
                     }
@@ -222,21 +198,44 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         return (int)byteOffset / Unsafe.SizeOf<Meta>();
     }
 
-#if false
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref Meta ParseDelimiters(nuint mask, nuint runningIndex, ref Meta currentMeta)
     {
-        do
-        {
-            int offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1); // clear lowest bit
-            currentMeta = Meta.Plain((int)runningIndex + offset);
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+        int count = BitOperations.PopCount(mask);
 
-        return ref currentMeta;
+        // we might write more values than we have bits in the mask, but the meta buffer always has space,
+        // and we return the correct reference at the end. this way we can avoid branching 99%+ of the time here
+        Unsafe.Add(ref currentMeta, 0u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+        mask &= (mask - 1);
+        Unsafe.Add(ref currentMeta, 1u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+        mask &= (mask - 1);
+        Unsafe.Add(ref currentMeta, 2u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+        mask &= (mask - 1);
+
+        // unrolling to 5 is faster for 256 bit vectors, while 3 is optimal for 128 bit vectors
+        if (TVector.Count > 16)
+        {
+            Unsafe.Add(ref currentMeta, 3u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+            mask &= (mask - 1);
+            Unsafe.Add(ref currentMeta, 4u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+            mask &= (mask - 1);
+        }
+
+        int unrollFactor = TVector.Count > 16 ? 5 : 3;
+
+        if (count > unrollFactor)
+        {
+            uint index = (uint)unrollFactor;
+            do
+            {
+                int offset = BitOperations.TrailingZeroCount(mask);
+                mask &= (mask - 1);
+                Unsafe.Add(ref currentMeta, index++) = Meta.Plain((int)runningIndex + offset);
+            } while (mask != 0);
+        }
+
+        return ref Unsafe.Add(ref currentMeta, (uint)count);
     }
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref Meta ParseLineEnds(
