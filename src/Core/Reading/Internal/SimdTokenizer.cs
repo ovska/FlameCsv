@@ -15,9 +15,17 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
     // vector count to avoid reading past the buffer
     // vector count for prefetching
     // and 1 for reading past the current vector to check two token sequences
-    private static int EndOffset => (TVector.Count * 2) + (TNewline.IsCRLF ? 1 : 0);
+    private static int EndOffset
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (TVector.Count * 2) + (TNewline.IsCRLF ? 1 : 0);
+    }
 
-    public override int PreferredLength => TVector.Count * 4;
+    public override int PreferredLength
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => TVector.Count * 4;
+    }
 
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
@@ -246,14 +254,17 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         ref TVector nextVector
     )
     {
+        int offset;
+        bool isMultitoken;
+
         do
         {
-            int offset = BitOperations.TrailingZeroCount(mask);
+            offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
             // no need to call IsNewline(), the mask contains only newlines
             // this whole method should be exceedingly rare anyways
-            bool isMultitoken = TNewline.IsMultitoken(ref Unsafe.Add(ref first, runningIndex + (nuint)offset));
+            isMultitoken = TNewline.IsMultitoken(ref Unsafe.Add(ref first, runningIndex + (nuint)offset));
 
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -262,17 +273,17 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
-
-                // Branch predictor expects forward branches to be NOT taken (common case)
-                // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
-                if (offset == TVector.Count - 1)
-                {
-                    // do not reorder
-                    runningIndex += 1;
-                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
-                }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+
+        // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
+        // offset will be 31 only if the final bit was a CR; a block ending in CRLF will have offset of 30
+        if (TNewline.IsCRLF && isMultitoken && offset == TVector.Count - 1)
+        {
+            // do not reorder
+            runningIndex += 1;
+            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
+        }
 
         return ref currentMeta;
     }
@@ -288,14 +299,14 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
     {
         int offset;
         bool isEOL;
+        bool isMultitoken;
 
         do
         {
             offset = BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            // this can only return false for pathological data, e.g. \r followed by \r or comma
-            isEOL = TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out bool isMultitoken);
+            isEOL = TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out isMultitoken);
 
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
@@ -303,14 +314,14 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
             if (TNewline.IsCRLF && isEOL && isMultitoken)
             {
-                // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
-        // Branch predictor expects forward branches to be NOT taken (common case)
         // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
-        if (TNewline.IsCRLF && isEOL && offset == TVector.Count - 1)
+        // offset will be e.g. 31 only if the final bit was a delimiter; a block ending in CRLF
+        // will have offset of 30 instead
+        if (TNewline.IsCRLF && isEOL && isMultitoken && offset == TVector.Count - 1)
         {
             // do not reorder
             runningIndex += 1;
@@ -372,48 +383,6 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
         // can't lift out the EOL check to here, as we might have a quote after the last EOL leaving it in the wrong state
-
-        return ref currentMeta;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseAnyNoQuotes(
-        nuint mask,
-        ref T first,
-        scoped ref nuint runningIndex,
-        ref Meta currentMeta,
-        scoped ref uint quotesConsumed,
-        ref TVector nextVector
-    )
-    {
-        do
-        {
-            int offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1); // clear lowest bit
-
-            bool isEOL = TNewline.IsNewline(
-                ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                out bool isMultitoken
-            );
-
-            currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.GetLength(isMultitoken));
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-            quotesConsumed = 0;
-
-            // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.IsCRLF && isEOL && isMultitoken)
-            {
-                // clear the next bit, or adjust the index if we crossed a vector boundary
-                mask &= (mask - 1);
-
-                if (offset == TVector.Count - 1)
-                {
-                    // do not reorder
-                    runningIndex += 1;
-                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
-                }
-            }
-        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
         return ref currentMeta;
     }

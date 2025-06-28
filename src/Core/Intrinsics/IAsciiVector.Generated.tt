@@ -201,6 +201,7 @@ internal interface IAsciiVector<TVector> where TVector : struct, IAsciiVector<TV
 [SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
+[DebuggerDisplay("{ToString(),nq}")]
 internal readonly struct <#= typeName #> : IAsciiVector<<#= typeName #>>
 {
     private readonly Vector<#= width #><byte> _value;
