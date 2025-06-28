@@ -14,7 +14,7 @@ public class TokenizationBench
     public bool CRLF { get; set; }
 
     [Params(false, true)]
-    public bool Alt { get; set; }
+    public bool Quoted { get; set; }
 
     [Params(false, true)]
     public bool Chars { get; set; }
@@ -29,8 +29,8 @@ public class TokenizationBench
     private static readonly byte[] _bytes0CRLF = Encoding.UTF8.GetBytes(_chars0CRLF);
     private static readonly byte[] _bytes1CRLF = Encoding.UTF8.GetBytes(_chars1CRLF);
 
-    private string CharData => Alt ? (CRLF ? _chars1CRLF : _chars1LF) : (CRLF ? _chars0CRLF : _chars0LF);
-    private byte[] ByteData => Alt ? (CRLF ? _bytes1CRLF : _bytes1LF) : (CRLF ? _bytes0CRLF : _bytes0LF);
+    private string CharData => Quoted ? (CRLF ? _chars1CRLF : _chars1LF) : (CRLF ? _chars0CRLF : _chars0LF);
+    private byte[] ByteData => Quoted ? (CRLF ? _bytes1CRLF : _bytes1LF) : (CRLF ? _bytes0CRLF : _bytes0LF);
 
     private static readonly CsvOptions<char> _dCharLF = new CsvOptions<char>
     {

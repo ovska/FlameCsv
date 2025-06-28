@@ -27,13 +27,13 @@
 | V128   | False | 2,601.7 us | 18.92 us |  1.00 |
 | V128   | True  |   906.3 us |  4.28 us |  1.00 |
 
-### #### Unroll factor 3
+### #### Unroll factor 3 ❌
 | Method | Alt   |       Mean |  StdDev | Ratio |
 | ------ | ----- | ---------: | ------: | ----: |
 | V128   | False | 1,964.9 us | 4.60 us |  1.00 |
 | V128   | True  |   798.9 us | 7.01 us |  1.00 |
 
-#### Unroll factor 4
+#### Unroll factor 4 ✔
  | Method | Alt   |       Mean |   StdDev | Ratio |
  | ------ | ----- | ---------: | -------: | ----: |
  | V128   | False | 2,244.7 us | 10.90 us |  1.00 |
@@ -45,37 +45,55 @@
 | V256   | False | 1,725.7 us | 7.91 us |
 | V256   | True  |   681.9 us | 3.44 us |
 
-#### Unroll factor 4
+#### Unroll factor 4 ❌
 | Method | Alt   |       Mean |  StdDev |
 | ------ | ----- | ---------: | ------: |
 | V256   | False | 1,543.9 us | 6.15 us |
 | V256   | True  |   647.2 us | 4.39 us |
 
-#### Unroll factor 5
+#### Unroll factor 5 ✔
 | Method | Alt   |       Mean |  StdDev |
 | ------ | ----- | ---------: | ------: |
 | V256   | False | 1,518.5 us | 4.44 us |
 | V256   | True  |   629.3 us | 2.73 us |
 
-#### goto instead of embedding ParseDelimiters
+#### goto instead of embedding ParseDelimiters ✔
 
 | Method | Alt   |       Mean |  StdDev |
 | ------ | ----- | ---------: | ------: |
 | V256   | False | 1,472.5 us | 6.04 us |
 | V256   | True  |   621.7 us | 2.67 us |
 
-#### Moving hasDelimiter movemask before check for maskAny
+#### Moving hasDelimiter movemask before check for maskAny ✔
 
 | Method | Alt   |       Mean |  StdDev |
 | ------ | ----- | ---------: | ------: |
 | V256   | False | 1,442.1 us | 1.39 us |
 | V256   | True  |   612.4 us | 3.14 us |
 
-#### Specialized AllBitsBefore impl
+#### Specialized AllBitsBefore impl ✔
 | Method | Alt   |       Mean |  StdDev |
 | ------ | ----- | ---------: | ------: |
 | V256   | False | 1,432.9 us | 7.25 us |
 | V256   | True  |   610.2 us | 2.46 us |
+
+#### Moving ParseDelimiters closer to the beginning of the loop ✔
+| Method | Alt   |       Mean |  StdDev |
+| ------ | ----- | ---------: | ------: |
+| V256   | False | 1,428.0 us | 6.02 us |
+| V256   | True  |   608.3 us | 3.10 us |
+
+#### Using an early-bail out for when there are unresolved quotes ✔
+| Method | Alt   |       Mean |  StdDev |
+| ------ | ----- | ---------: | ------: |
+| V256   | False | 1,425.3 us | 3.56 us |
+| V256   | True  |   596.1 us | 1.34 us |
+
+#### Omitting the TrySkipQuoted branch ❌
+| Method | Alt   |       Mean |  StdDev |
+| ------ | ----- | ---------: | ------: |
+| V256   | False | 1,466.6 us | 4.10 us |
+| V256   | True  |   610.8 us | 2.97 us |
 
 ## Notes
 

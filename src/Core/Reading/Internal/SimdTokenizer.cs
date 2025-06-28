@@ -83,15 +83,16 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 goto ContinueRead;
             }
 
+            // we have read quotes, must use ParseAny to handle them (or possibly we can skip the whole vector)
+            if (quotesConsumed != 0)
+            {
+                goto TrySkipQuoted;
+            }
+
             // only delimiters
             if (maskDelimiter != maskAny)
             {
                 goto HandleNewlines;
-            }
-
-            if (quotesConsumed != 0)
-            {
-                goto TrySkipQuoted;
             }
 
             HandleDelimiters:
@@ -106,12 +107,6 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             if (maskNewlineOrDelimiter != maskAny)
             {
                 goto HandleAny;
-            }
-
-            // no quotes but might be in a string
-            if (quotesConsumed != 0)
-            {
-                goto TrySkipQuoted;
             }
 
             if (maskDelimiter != 0)
@@ -162,18 +157,18 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             goto ContinueRead;
 
             TrySkipQuoted:
-            // there are unresolved quotes but the current vector had none
-            Debug.Assert(hasQuote == TVector.Zero);
+            Debug.Assert(quotesConsumed > 0, "quotesConsumed should be greater than 0 here");
 
-            // verifiably in a string? should be rare
-            if (quotesConsumed % 2 == 1)
+            // if there are dangling quotes but the current vector has none, we must be in a string.
+            // check if we can skip it
+            if (hasQuote == TVector.Zero && quotesConsumed % 2 == 1)
             {
                 //              -- current --
                 // [1, "John ""][The Amazing]["" Doe", 00]
                 goto ContinueRead;
             }
 
-            // the current vector has no quotes, but a string might have just ended (and other possible weird cases)
+            // the current vector has no quotes, but a string might have just ended
             // as the other paths don't use quotesConsumed and this case is exceedlingly rare (0,028%)
             // just use the ParseAny path
             //              -- current --
