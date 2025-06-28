@@ -57,13 +57,25 @@
 | V256   | False | 1,518.5 us | 4.44 us |
 | V256   | True  |   629.3 us | 2.73 us |
 
+#### goto instead of embedding ParseDelimiters
+
+| Method | Alt   |       Mean |  StdDev |
+| ------ | ----- | ---------: | ------: |
+| V256   | False | 1,472.5 us | 6.04 us |
+| V256   | True  |   621.7 us | 2.67 us |
+
+#### Moving hasDelimiter movemask before check for maskAny
+
+| Method | Alt   |       Mean |  StdDev |
+| ------ | ----- | ---------: | ------: |
+| V256   | False | 1,442.1 us | 1.39 us |
+| V256   | True  |   612.4 us | 3.14 us |
 
 ## Notes
 
 - `uint` instead of `nuint` for masks seems to just produce a ~dozen extra `mov`s in the Tokenize-method
 - Aligned vector reads aren't worth it since I/O is such a small part of the equation; the code complexity and extra path to align the data isn't worth it
 - Prefetching the vector gives a massive 5% speedup in an otherwise well-optimized method
-- Using a goto from multiple paths to `ParseDelimiters` (instead of calling it every time) improves 1,518us -> 1473us and 629us -> 621us improvement
 
 ## To-do
 

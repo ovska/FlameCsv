@@ -45,7 +45,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
         // search space of Meta is set to vector length from actual so we don't need to do bounds checks in the loops
-        // ensure the worst case doesn't read past the end (data ends in Vector.Count delimiters)
+        // ensure the worst case doesn't read past the end (e.g. data ends in Vector.Count delimiters)
         Debug.Assert(metaBuffer.Length >= TVector.Count);
 
         scoped ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
@@ -74,14 +74,13 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             TVector hasAny = hasNewline | hasDelimiter | hasQuote;
 
             nuint maskAny = hasAny.ExtractMostSignificantBits();
+            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
 
             // nothing of note in this slice
             if (maskAny == 0)
             {
                 goto ContinueRead;
             }
-
-            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
 
             // only delimiters
             if (maskDelimiter == maskAny)
