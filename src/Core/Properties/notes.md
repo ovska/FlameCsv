@@ -71,6 +71,12 @@
 | V256   | False | 1,442.1 us | 1.39 us |
 | V256   | True  |   612.4 us | 3.14 us |
 
+#### Specialized AllBitsBefore impl
+| Method | Alt   |       Mean |  StdDev |
+| ------ | ----- | ---------: | ------: |
+| V256   | False | 1,432.9 us | 7.25 us |
+| V256   | True  |   610.2 us | 2.46 us |
+
 ## Notes
 
 - `uint` instead of `nuint` for masks seems to just produce a ~dozen extra `mov`s in the Tokenize-method

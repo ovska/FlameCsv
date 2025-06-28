@@ -1,11 +1,21 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using FlameCsv.Reading.Internal;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Tests.Reading;
 
 public class BithackTests
 {
+    [Fact]
+    public static void Should_Check_If_All_Bits_Before()
+    {
+        Assert.True(Bithacks.AllBitsBefore(0b0000000000000001, 0b0000000000000010));
+        Assert.True(Bithacks.AllBitsBefore(0b0000000000000010, 0b0000000000000100));
+        Assert.False(Bithacks.AllBitsBefore(0b0000000000000010, 0b0000000100000010));
+        Assert.False(Bithacks.AllBitsBefore(0b10000000, 0b01010101));
+        Assert.True(Bithacks.AllBitsBefore(0b00_01000000, 0b01010101_10000000));
+    }
+
     public static TheoryData<ulong, ulong> TestData =>
         new()
         {

@@ -151,6 +151,7 @@ public class TokenizationTests
         var tokenizer = new SimdTokenizer<char, TNewline, TVector>(CsvOptions<char>.Default);
 
         Meta[] metaBuffer = ArrayPool<Meta>.Shared.Rent(4096);
+        metaBuffer.AsSpan().Clear();
         int count = tokenizer.Tokenize(metaBuffer.AsSpan(1), buffer, 0);
 
         Assert.Equal(

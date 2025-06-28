@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -101,45 +102,34 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
                 if (maskDelimiter != 0)
                 {
-                    int lastDelimiter = (nuint.Size * 8) - 1 - BitOperations.LeadingZeroCount(maskDelimiter);
-                    int firstDelimiter = BitOperations.TrailingZeroCount(maskDelimiter);
+                    // Check if the sets are fully separated
                     nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
-                    int firstNewline = BitOperations.TrailingZeroCount(maskNewline);
 
-                    // Check if the sets are fully separated (either all delimiters before all newlines,
-                    // or all newlines before all delimiters)
-                    if (
-                        lastDelimiter < firstNewline
-                        || (nuint.Size * 8) - 1 - BitOperations.LeadingZeroCount(maskNewline) < firstDelimiter
-                    )
+                    if (Bithacks.AllBitsBefore(maskDelimiter, maskNewline))
                     {
-                        // The bits are not interleaved - they're fully separated
-                        if (firstDelimiter < firstNewline)
-                        {
-                            // All delimiters are before any newlines
-                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+                        // all delimiters are before any newlines
+                        currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
 
-                            // Fall through to parse line ends
-                            maskNewlineOrDelimiter = maskNewline;
-                        }
-                        else
-                        {
-                            // All newlines are before any delimiters
-                            currentMeta = ref ParseLineEnds(
-                                maskNewline,
-                                ref first,
-                                ref runningIndex,
-                                ref currentMeta,
-                                ref nextVector
-                            );
+                        // Fall through to parse line ends
+                        maskNewlineOrDelimiter = maskNewline;
+                    }
+                    else if (Bithacks.AllBitsBefore(maskNewline, maskDelimiter))
+                    {
+                        // all newlines are before any delimiters
+                        currentMeta = ref ParseLineEnds(
+                            maskNewline,
+                            ref first,
+                            ref runningIndex,
+                            ref currentMeta,
+                            ref nextVector
+                        );
 
-                            // Process delimiters afterward
-                            goto HandleDelimiters;
-                        }
+                        // Process delimiters afterward
+                        goto HandleDelimiters;
                     }
                     else
                     {
-                        // Bits are interleaved, handle the mixed case
+                        // bits are interleaved, handle the mixed case
                         Debug.Assert(quotesConsumed == 0);
                         currentMeta = ref ParseDelimitersAndLineEnds(
                             maskNewlineOrDelimiter,
