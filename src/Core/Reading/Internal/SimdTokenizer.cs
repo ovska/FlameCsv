@@ -81,8 +81,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 if (quotesConsumed != 0)
                     goto TrySkipQuoted;
 
-                currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
-                goto ContinueRead;
+                goto HandleDelimiters;
             }
 
             nuint maskNewlineOrDelimiter = (hasNewline | hasDelimiter).ExtractMostSignificantBits();
@@ -128,8 +127,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                             );
 
                             // Process delimiters afterward
-                            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
-                            goto ContinueRead;
+                            goto HandleDelimiters;
                         }
                     }
                     else
@@ -158,6 +156,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             }
 
             // any combination of delimiters, quotes, and newlines
+            HandleAny:
             currentMeta = ref ParseAny(
                 maskAny,
                 ref first,
@@ -184,15 +183,10 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             // [, 123, 4567]
             // use a separate loop so the branch predictor can create a separate table for ParseAny without quotes
 
-            // TODO: profile if this is common enough to warrant a separate loop (might not get inlined if too rare)
-            currentMeta = ref ParseAnyNoQuotes(
-                maskAny,
-                ref first,
-                ref runningIndex,
-                ref currentMeta,
-                ref quotesConsumed,
-                ref nextVector
-            );
+            goto HandleAny;
+
+            HandleDelimiters:
+            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
 
             ContinueRead:
             runningIndex += (nuint)TVector.Count;

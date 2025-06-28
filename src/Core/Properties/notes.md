@@ -63,7 +63,7 @@
 - `uint` instead of `nuint` for masks seems to just produce a ~dozen extra `mov`s in the Tokenize-method
 - Aligned vector reads aren't worth it since I/O is such a small part of the equation; the code complexity and extra path to align the data isn't worth it
 - Prefetching the vector gives a massive 5% speedup in an otherwise well-optimized method
-- 
+- Using a goto from multiple paths to `ParseDelimiters` (instead of calling it every time) improves 1,518us -> 1473us and 629us -> 621us improvement
 
 ## To-do
 
