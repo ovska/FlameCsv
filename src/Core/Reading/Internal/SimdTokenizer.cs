@@ -11,7 +11,11 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
     where TNewline : struct, INewline
     where TVector : struct, IAsciiVector<TVector>
 {
-    private static int EndOffset => (TVector.Count * 2) + (int)TNewline.OffsetFromEnd;
+    // leave space for 2 vectors;
+    // vector count to avoid reading past the buffer
+    // vector count for prefetching
+    // and 1 for reading past the current vector to check two token sequences
+    private static int EndOffset => (TVector.Count * 2) + (TNewline.IsCRLF ? 1 : 0);
 
     public override int PreferredLength => TVector.Count * 4;
 
@@ -201,7 +205,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ref Meta ParseDelimiters(nuint mask, nuint runningIndex, ref Meta currentMeta)
     {
-        int count = BitOperations.PopCount(mask);
+        uint count = (uint)BitOperations.PopCount(mask);
 
         // we might write more values than we have bits in the mask, but the meta buffer always has space,
         // and we return the correct reference at the end. this way we can avoid branching 99%+ of the time here
@@ -213,6 +217,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         mask &= (mask - 1);
 
         // unrolling to 5 is faster for 256 bit vectors, while 3 is optimal for 128 bit vectors
+        // 512 bit vectors aren't used currently as 256 bit vectors are faster even on Avx512BW
         if (TVector.Count > 16)
         {
             Unsafe.Add(ref currentMeta, 3u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
@@ -221,11 +226,12 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             mask &= (mask - 1);
         }
 
-        int unrollFactor = TVector.Count > 16 ? 5 : 3;
-
-        if (count > unrollFactor)
+        // don't store this into a local, it doesn't need to live in a register
+        if (count > (TVector.Count > 16 ? 5u : 3u))
         {
-            uint index = (uint)unrollFactor;
+            // for some reason this is faster than incrementing a pointer
+            uint index = TVector.Count > 16 ? 5u : 3u;
+
             do
             {
                 int offset = BitOperations.TrailingZeroCount(mask);
@@ -234,7 +240,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             } while (mask != 0);
         }
 
-        return ref Unsafe.Add(ref currentMeta, (uint)count);
+        return ref Unsafe.Add(ref currentMeta, count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -258,7 +264,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.GetLength(isMultitoken));
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
-            if (TNewline.OffsetFromEnd != 0 && isMultitoken) // runtime constant
+            if (TNewline.IsCRLF && isMultitoken) // runtime constant
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
@@ -268,7 +274,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 if (offset == TVector.Count - 1)
                 {
                     // do not reorder
-                    runningIndex += TNewline.OffsetFromEnd;
+                    runningIndex += 1;
                     nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }
@@ -301,7 +307,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             currentMeta = ref Unsafe.Add(ref currentMeta, 1);
 
             // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.OffsetFromEnd != 0 && isEOL && isMultitoken)
+            if (TNewline.IsCRLF && isEOL && isMultitoken)
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
@@ -310,10 +316,10 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
         // Branch predictor expects forward branches to be NOT taken (common case)
         // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
-        if (TNewline.OffsetFromEnd != 0 && isEOL && offset == TVector.Count - 1)
+        if (TNewline.IsCRLF && isEOL && offset == TVector.Count - 1)
         {
             // do not reorder
-            runningIndex += TNewline.OffsetFromEnd;
+            runningIndex += 1;
             nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
         }
 
@@ -357,7 +363,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             quotesConsumed = 0;
 
             // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.OffsetFromEnd != 0 && isEOL && isMultitoken)
+            if (TNewline.IsCRLF && isEOL && isMultitoken)
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
@@ -365,7 +371,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 if (offset == TVector.Count - 1)
                 {
                     // do not reorder
-                    runningIndex += TNewline.OffsetFromEnd;
+                    runningIndex += 1;
                     nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }
@@ -401,7 +407,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             quotesConsumed = 0;
 
             // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.OffsetFromEnd != 0 && isEOL && isMultitoken)
+            if (TNewline.IsCRLF && isEOL && isMultitoken)
             {
                 // clear the next bit, or adjust the index if we crossed a vector boundary
                 mask &= (mask - 1);
@@ -409,7 +415,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 if (offset == TVector.Count - 1)
                 {
                     // do not reorder
-                    runningIndex += TNewline.OffsetFromEnd;
+                    runningIndex += 1;
                     nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }

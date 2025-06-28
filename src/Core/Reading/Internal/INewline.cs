@@ -15,10 +15,9 @@ internal interface INewline
     static abstract int GetLength(bool isMultitoken);
 
     /// <summary>
-    /// Returns the offset required in the search space to be able to read the whole newline value.<br/>
-    /// This is always <c>0</c> or <c>1</c>.
+    /// Returns whether the newline is a two-token sequence or not.
     /// </summary>
-    static abstract nuint OffsetFromEnd { get; }
+    static abstract bool IsCRLF { get; }
 
     /// <summary>
     /// Determines if the specified value is part of a two-token newline sequence.
@@ -56,10 +55,10 @@ internal readonly struct NewlineLF : INewline
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1;
 
-    public static nuint OffsetFromEnd
+    public static bool IsCRLF
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => 0;
+        get => false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -111,10 +110,10 @@ internal readonly struct NewlineCRLF : INewline
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetLength(bool isMultitoken) => 1 + isMultitoken.ToByte();
 
-    public static nuint OffsetFromEnd
+    public static bool IsCRLF
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => 1;
+        get => true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -56,3 +56,16 @@
 | ------ | ----- | ---------: | ------: |
 | V256   | False | 1,518.5 us | 4.44 us |
 | V256   | True  |   629.3 us | 2.73 us |
+
+
+## Notes
+
+- `uint` instead of `nuint` for masks seems to just produce a ~dozen extra `mov`s in the Tokenize-method
+- Aligned vector reads aren't worth it since I/O is such a small part of the equation; the code complexity and extra path to align the data isn't worth it
+- Prefetching the vector gives a massive 5% speedup in an otherwise well-optimized method
+- 
+
+## To-do
+
+- Profile: whether a separate `LF` parsing path is worth it, as `CRLF` config can read `LF` files just fine, just a tiny bit slower
+- Profile: Reverse movemask bits and use `LZCNT` on ARM (a `ClearNextBit(ref nuint mask)` method inlines nicely on x86 with identical ASM)
