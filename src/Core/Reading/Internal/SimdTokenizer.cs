@@ -84,74 +84,100 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             }
 
             // only delimiters
-            if (maskDelimiter == maskAny)
+            if (maskDelimiter != maskAny)
             {
-                if (quotesConsumed != 0)
-                    goto TrySkipQuoted;
-
-                goto HandleDelimiters;
+                goto HandleNewlines;
             }
 
+            if (quotesConsumed != 0)
+            {
+                goto TrySkipQuoted;
+            }
+
+            HandleDelimiters:
+            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+            runningIndex += (nuint)TVector.Count;
+            continue;
+
+            HandleNewlines:
             nuint maskNewlineOrDelimiter = (hasNewline | hasDelimiter).ExtractMostSignificantBits();
 
-            // only newlines or delimiters
-            if (maskNewlineOrDelimiter == maskAny)
+            // if vector is not only newlines or delimiters, go to quote handling
+            if (maskNewlineOrDelimiter != maskAny)
             {
-                if (quotesConsumed != 0)
-                    goto TrySkipQuoted;
+                goto HandleAny;
+            }
 
-                if (maskDelimiter != 0)
+            // no quotes but might be in a string
+            if (quotesConsumed != 0)
+            {
+                goto TrySkipQuoted;
+            }
+
+            if (maskDelimiter != 0)
+            {
+                // Check if the sets are fully separated
+                nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
+
+                if (Bithacks.AllBitsBefore(maskDelimiter, maskNewline))
                 {
-                    // Check if the sets are fully separated
-                    nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
-
-                    if (Bithacks.AllBitsBefore(maskDelimiter, maskNewline))
-                    {
-                        // all delimiters are before any newlines
-                        currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
-
-                        // Fall through to parse line ends
-                        maskNewlineOrDelimiter = maskNewline;
-                    }
-                    else if (Bithacks.AllBitsBefore(maskNewline, maskDelimiter))
-                    {
-                        // all newlines are before any delimiters
-                        currentMeta = ref ParseLineEnds(
-                            maskNewline,
-                            ref first,
-                            ref runningIndex,
-                            ref currentMeta,
-                            ref nextVector
-                        );
-
-                        // Process delimiters afterward
-                        goto HandleDelimiters;
-                    }
-                    else
-                    {
-                        // bits are interleaved, handle the mixed case
-                        Debug.Assert(quotesConsumed == 0);
-                        currentMeta = ref ParseDelimitersAndLineEnds(
-                            maskNewlineOrDelimiter,
-                            ref first,
-                            ref runningIndex,
-                            ref currentMeta,
-                            ref nextVector
-                        );
-                        goto ContinueRead;
-                    }
+                    currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+                    maskNewlineOrDelimiter = maskNewline;
+                    // Fall through to parse line ends
                 }
+                else if (Bithacks.AllBitsBefore(maskNewline, maskDelimiter))
+                {
+                    currentMeta = ref ParseLineEnds(
+                        maskNewline,
+                        ref first,
+                        ref runningIndex,
+                        ref currentMeta,
+                        ref nextVector
+                    );
 
-                currentMeta = ref ParseLineEnds(
-                    maskNewlineOrDelimiter,
-                    ref first,
-                    ref runningIndex,
-                    ref currentMeta,
-                    ref nextVector
-                );
+                    goto HandleDelimiters;
+                }
+                else
+                {
+                    // bits are interleaved, handle the mixed case
+                    Debug.Assert(quotesConsumed == 0);
+                    currentMeta = ref ParseDelimitersAndLineEnds(
+                        maskNewlineOrDelimiter,
+                        ref first,
+                        ref runningIndex,
+                        ref currentMeta,
+                        ref nextVector
+                    );
+                    goto ContinueRead;
+                }
+            }
+
+            currentMeta = ref ParseLineEnds(
+                maskNewlineOrDelimiter,
+                ref first,
+                ref runningIndex,
+                ref currentMeta,
+                ref nextVector
+            );
+            goto ContinueRead;
+
+            TrySkipQuoted:
+            // there are unresolved quotes but the current vector had none
+            Debug.Assert(hasQuote == TVector.Zero);
+
+            // verifiably in a string? should be rare
+            if (quotesConsumed % 2 == 1)
+            {
+                //              -- current --
+                // [1, "John ""][The Amazing]["" Doe", 00]
                 goto ContinueRead;
             }
 
+            // the current vector has no quotes, but a string might have just ended (and other possible weird cases)
+            // as the other paths don't use quotesConsumed and this case is exceedlingly rare (0,028%)
+            // just use the ParseAny path
+            //              -- current --
+            // [John, "Doe"][, 123, 4567]
             // any combination of delimiters, quotes, and newlines
             HandleAny:
             currentMeta = ref ParseAny(
@@ -163,27 +189,6 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 ref quotesConsumed,
                 ref nextVector
             );
-            goto ContinueRead;
-
-            TrySkipQuoted:
-            // there are unresolved quotes but the current vector had none
-            Debug.Assert(hasQuote == TVector.Zero);
-
-            // verifiably in a string?
-            if (quotesConsumed % 2 == 1)
-            {
-                goto ContinueRead;
-            }
-
-            // the current vector has no quotes, but a string might have just ended, e.g.:
-            // [John, "Doe"]
-            // [, 123, 4567]
-            // use a separate loop so the branch predictor can create a separate table for ParseAny without quotes
-
-            goto HandleAny;
-
-            HandleDelimiters:
-            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
 
             ContinueRead:
             runningIndex += (nuint)TVector.Count;
