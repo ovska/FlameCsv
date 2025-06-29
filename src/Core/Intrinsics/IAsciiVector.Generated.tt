@@ -72,7 +72,7 @@
             Write("""
                           if (Avx512BW.VL.IsSupported)
                           {
-                              var v = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+                              Vector256<ushort> v = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
                               return Avx512BW.VL.ConvertToVector128ByteWithSaturation(v);
                           }
 
@@ -87,7 +87,7 @@
             Write("""
                           if (Avx512BW.IsSupported)
                           {
-                              var v = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+                              Vector512<ushort> v = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
                               return Avx512BW.ConvertToVector256ByteWithSaturation(v);
                           }
 
@@ -258,7 +258,20 @@ internal readonly struct <#= typeName #> : IAsciiVector<<#= typeName #>>
     }
 
     <#= MethodAttribute #>
-    public nuint ExtractMostSignificantBits() => (nuint)<#= width == "512" ? "(ulong)" : "(uint)" #>_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits()
+    {
+        <#
+            string type = width == "512" ? "ulong" : "uint";
+            string armISA = width == "512" ? "ArmBase.Arm64" : "ArmBase";
+        #><#= type #> result = (<#= type #>)_value.ExtractMostSignificantBits();
+
+        /* if (<#= armISA #>.IsSupported)
+        {
+            return (nuint)<#= armISA #>.ReverseElementBits(result);
+        } */
+
+        return (nuint)result;
+    }
 
     <#= MethodAttribute #>
     public static <#= typeName #> operator |(<#= typeName #> left, <#= typeName #> right) => left._value | right._value;

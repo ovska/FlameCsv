@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Intrinsics;
@@ -9,12 +9,26 @@ namespace FlameCsv.Intrinsics;
 internal static class Bithacks
 {
     /// <summary>
-    /// Whether the current architecture prefers reversed bit manipulation (lzcnt instead of tzcnt).
+    /// Clears either the least significant bit or the most significant bit in the mask, depending on the architecture.
     /// </summary>
-    public static bool PreferReversed
+    /// <param name="mask">The bitmask to clear the bit from</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetNextBitAndClear(ref nuint mask)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RuntimeInformation.ProcessArchitecture is Architecture.Arm or Architecture.Arm64;
+        Debug.Assert(mask > 0, $"Mask must be non-zero, was: {mask:B}");
+
+        if (ArmBase.IsSupported || ArmBase.Arm64.IsSupported)
+        {
+            int result = BitOperations.LeadingZeroCount(mask);
+            mask &= ~(nuint)(1 << result);
+            return result;
+        }
+        else
+        {
+            int result = BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1);
+            return result;
+        }
     }
 
     /// <summary>
@@ -25,14 +39,15 @@ internal static class Bithacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool AllBitsBefore(nuint mask, nuint other)
     {
-        Debug.Assert(mask > 0 && other > 0, "Both mask and other must be non-zero.");
+        Debug.Assert(mask > 0 && other > 0, $"Both mask and other must be non-zero, were: {mask:B} and {other:B}");
 
+        // this is a slight optimization over using BitOperations.Log2 directly, as it must ensure that mask is not zero
         if (nuint.Size == 8)
         {
-            return (63 ^ (int)BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+            return (63 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
         }
 
-        return (31 ^ (int)BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+        return (31 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
     }
 
     /// <summary>
@@ -98,66 +113,5 @@ internal static class Bithacks
         if (Unsafe.SizeOf<T>() >= sizeof(ulong))
             mask ^= (mask << 32);
         return mask;
-    }
-
-    internal static int StorePositions(uint mask, int index, ref int destination)
-    {
-        // should be rare and predictable
-        if (mask == 0)
-        {
-            return 0;
-        }
-
-        int count = BitOperations.PopCount((uint)mask);
-
-        Unsafe.Add(ref destination, index + 0) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 1) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 2) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 3) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 4) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 5) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 6) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref destination, index + 7) = BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-
-        if (count > 8)
-        {
-            Unsafe.Add(ref destination, index + 8) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 9) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 10) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 11) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 12) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 13) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 14) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            Unsafe.Add(ref destination, index + 15) = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-        }
-        if (count > 16)
-        {
-            index += 16;
-
-            do
-            {
-                Unsafe.Add(ref destination, index) = BitOperations.TrailingZeroCount(mask);
-                mask &= (mask - 1);
-                index++;
-            } while (mask != 0);
-        }
-
-        return count;
     }
 }

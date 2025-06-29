@@ -127,7 +127,7 @@ internal readonly struct Vec128 : IAsciiVector<Vec128>
 
         if (Avx512BW.VL.IsSupported)
         {
-            var v = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+            Vector256<ushort> v = Vector256.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
             return Avx512BW.VL.ConvertToVector128ByteWithSaturation(v);
         }
 
@@ -158,7 +158,17 @@ internal readonly struct Vec128 : IAsciiVector<Vec128>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public nuint ExtractMostSignificantBits() => (nuint)(uint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits()
+    {
+        uint result = (uint)_value.ExtractMostSignificantBits();
+
+        /* if (ArmBase.IsSupported)
+        {
+            return (nuint)ArmBase.ReverseElementBits(result);
+        } */
+
+        return (nuint)result;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec128 operator |(Vec128 left, Vec128 right) => left._value | right._value;
@@ -245,7 +255,7 @@ internal readonly struct Vec256 : IAsciiVector<Vec256>
 
         if (Avx512BW.IsSupported)
         {
-            var v = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
+            Vector512<ushort> v = Vector512.LoadUnsafe(ref Unsafe.As<T, ushort>(ref source), offset);
             return Avx512BW.ConvertToVector256ByteWithSaturation(v);
         }
 
@@ -270,7 +280,17 @@ internal readonly struct Vec256 : IAsciiVector<Vec256>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public nuint ExtractMostSignificantBits() => (nuint)(uint)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits()
+    {
+        uint result = (uint)_value.ExtractMostSignificantBits();
+
+        /* if (ArmBase.IsSupported)
+        {
+            return (nuint)ArmBase.ReverseElementBits(result);
+        } */
+
+        return (nuint)result;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec256 operator |(Vec256 left, Vec256 right) => left._value | right._value;
@@ -375,7 +395,17 @@ internal readonly struct Vec512 : IAsciiVector<Vec512>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
-    public nuint ExtractMostSignificantBits() => (nuint)(ulong)_value.ExtractMostSignificantBits();
+    public nuint ExtractMostSignificantBits()
+    {
+        ulong result = (ulong)_value.ExtractMostSignificantBits();
+
+        /* if (ArmBase.Arm64.IsSupported)
+        {
+            return (nuint)ArmBase.Arm64.ReverseElementBits(result);
+        } */
+
+        return (nuint)result;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerStepThrough]
     public static Vec512 operator |(Vec512 left, Vec512 right) => left._value | right._value;
