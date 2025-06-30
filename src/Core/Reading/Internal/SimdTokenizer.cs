@@ -269,9 +269,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         // offset will be 31 only if the final bit was a CR; a block ending in CRLF will have offset of 30
         if (TNewline.IsCRLF && isMultitoken && offset == TVector.Count - 1)
         {
-            // do not reorder
+            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count + 1);
             runningIndex += 1;
-            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
         }
 
         return ref currentMeta;
@@ -312,9 +311,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
         // will have offset of 30 instead
         if (TNewline.IsCRLF && isEOL && isMultitoken && offset == TVector.Count - 1)
         {
-            // do not reorder
+            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count + 1);
             runningIndex += 1;
-            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
         }
 
         return ref currentMeta;
@@ -364,9 +362,8 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
                 if (offset == TVector.Count - 1)
                 {
-                    // do not reorder
+                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count + 1);
                     runningIndex += 1;
-                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
                 }
             }
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
