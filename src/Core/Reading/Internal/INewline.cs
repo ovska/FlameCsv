@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
 
@@ -126,12 +127,12 @@ internal readonly struct NewlineCRLF : INewline
         // no difference for char at 26, but we'll leave it in case something changes in a future .NET update
         if (Unsafe.SizeOf<T>() is sizeof(byte))
         {
-            return Unsafe.As<T, byte>(ref value) == '\r' && Unsafe.Add(ref Unsafe.As<T, byte>(ref value), 1) == '\n';
+            return Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
         }
 
         if (Unsafe.SizeOf<T>() is sizeof(char))
         {
-            return Unsafe.As<T, char>(ref value) == '\r' && Unsafe.Add(ref Unsafe.As<T, char>(ref value), 1) == '\n';
+            return Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
         }
 
         throw Token<T>.NotSupported;
@@ -179,7 +180,6 @@ internal readonly struct NewlineCRLF : INewline
             throw Token<T>.NotSupported;
         }
 
-        Unsafe.SkipInit(out isMultitoken); // shave off 2-3 bytes, this is never checked if returned false
         return false;
     }
 

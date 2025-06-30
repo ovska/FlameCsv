@@ -158,3 +158,6 @@ resharper_convert_to_primary_constructor_highlighting = none
 resharper_for_can_be_converted_to_foreach_highlighting = none
 resharper_separate_local_functions_with_jump_statement_highlighting = none
 resharper_virtual_member_never_overridden_global_highlighting = none
+
+# RCS1233: Use short-circuiting operator
+dotnet_diagnostic.RCS1233.severity = none
