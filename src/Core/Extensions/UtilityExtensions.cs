@@ -64,11 +64,11 @@ internal static class UtilityExtensions
         return value.ToString();
     }
 
-    public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment)
+    public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment, int offset = 0)
     {
         return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(segment.Array!), segment.Offset),
-            segment.Count
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(segment.Array!), segment.Offset + offset),
+            segment.Count - offset
         );
     }
 

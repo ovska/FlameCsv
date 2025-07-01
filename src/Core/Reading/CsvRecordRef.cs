@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -24,12 +25,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(scoped ref readonly CsvSlice<T> slice)
     {
-        ReadOnlySpan<Meta> fieldMeta = slice.Fields.AsSpanUnsafe();
-
         _reader = slice.Reader;
         _data = ref MemoryMarshal.GetReference(slice.Data.Span);
-        _meta = fieldMeta;
-        FieldCount = fieldMeta.Length - 1;
+        _meta = slice.Fields.AsSpanUnsafe(1); // skip the first which points to the start of the record
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -37,16 +35,14 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     {
         _reader = reader;
         _data = ref data;
-        _meta = meta;
-        FieldCount = meta.Length - 1;
+        _meta = meta.Slice(1); // skip the first which points to the start of the record
     }
 
     /// <inheritdoc/>
     public int FieldCount
     {
-        // storing this in a property simplifies looping over the fields a bit
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
+        get => _meta.Length;
     }
 
     /// <inheritdoc/>
@@ -55,11 +51,14 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            // separate local yields 158 bytes of code vs 163, it _might_ matter under some conditions and produces
-            // [mov mov cmp jae] for loading the span and length, instead of [mov cmp jae mov] should also allow ILP
             ReadOnlySpan<Meta> meta = _meta;
-            Meta current = meta[index + 1];
-            int start = meta[index].NextStart;
+
+            // takes care of bounds checks; meta is guaranteed to have 1 element at the head
+            // always access this before the previous field to ensure we have the correct start
+            ref readonly Meta current = ref meta[index];
+
+            // very important to access the previous field in this manner for the CPU to optimize it with offset access
+            int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
 
             if (
                 _reader._dialect.Trimming == CsvFieldTrimming.None
@@ -84,8 +83,13 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
         ReadOnlySpan<Meta> meta = _meta;
-        int start = meta[index].NextStart;
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), meta[index + 1].End - start);
+
+        // takes care of bounds checks; meta is guaranteed to have 1 element at the head
+        // always access this before the previous field to ensure we have the correct start
+        Meta current = meta[index];
+
+        int start = Unsafe.Add(ref MemoryMarshal.GetReference(meta), index - 1).NextStart;
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), current.End - start);
     }
 
     /// <summary>
@@ -96,8 +100,8 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         get
         {
             ReadOnlySpan<Meta> meta = _meta;
-            int end = meta[^1].End; // JIT doesn't optimize the other bounds check unless the last index is accessed first
-            int start = meta[0].NextStart;
+            int end = meta[^1].End;
+            int start = Unsafe.Add(ref MemoryMarshal.GetReference(meta), -1).NextStart;
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
         }
     }
@@ -108,7 +112,11 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// <param name="includeTrailingNewline">Whether to include the length of the possible trailing newline</param>
     public int GetRecordLength(bool includeTrailingNewline = false)
     {
-        return _meta.GetRecordLength(includeTrailingNewline);
+        ReadOnlySpan<Meta> meta = _meta;
+
+        return MemoryMarshal
+            .CreateReadOnlySpan(ref Unsafe.Add(ref MemoryMarshal.GetReference(meta), -1), meta.Length + 1)
+            .GetRecordLength(includeTrailingNewline);
     }
 
     /// <summary>
