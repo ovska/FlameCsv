@@ -105,3 +105,19 @@
 
 - Profile: whether a separate `LF` parsing path is worth it, as `CRLF` config can read `LF` files just fine, just a tiny bit slower
 - Profile: Reverse movemask bits and use `LZCNT` on ARM (a `ClearNextBit(ref nuint mask)` method inlines nicely on x86 with identical ASM)
+
+# GetField
+
+## Original
+| Method   | Quoted |       Mean |   Error |  StdDev | Ratio |
+| -------- | ------ | ---------: | ------: | ------: | ----: |
+| GetField | False  | 1,077.4 us | 2.55 us | 3.23 us |  1.00 |
+|          |        |            |         |         |       |
+| GetField | True   |   271.0 us | 0.49 us | 0.56 us |  1.00 |
+
+## Only unquoted happy case
+| Method   | Quoted |     Mean |   Error |  StdDev | Ratio |
+| -------- | ------ | -------: | ------: | ------: | ----: |
+| GetField | False  | 814.6 us | 0.76 us | 0.93 us |  1.00 |
+|          |        |          |         |         |       |
+| GetField | True   | 286.8 us | 0.40 us | 0.47 us |  1.00 |

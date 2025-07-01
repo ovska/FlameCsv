@@ -196,7 +196,7 @@ internal readonly struct Meta : IEquatable<Meta>
         where T : unmanaged, IBinaryInteger<T>
     {
         // loading the trimming to a local and checking it first (as the value never changes during execution)
-        // gives a 5% performance improvement, which is great considering how optimizedf this method is already
+        // gives a 5% performance improvement, which is great considering how optimized this method is already
         // 861us vs 819us on 65k records
         CsvFieldTrimming trimming = reader._dialect.Trimming;
 
@@ -224,61 +224,52 @@ internal readonly struct Meta : IEquatable<Meta>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ReadOnlySpan<T> GetFieldSlow<T>(int start, scoped ref T data, CsvReader<T> reader)
+    public ReadOnlySpan<T> GetFieldSlow<T>(int start, scoped ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Dialect<T> dialect = reader._dialect;
-
-        int fieldLength = End - start;
-        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), End - start);
+        int end = End;
 
         // trim before unquoting to preserve spaces in strings
-        if (field.NeedsTrimming(dialect.Trimming))
+        if (reader._dialect.Trimming != CsvFieldTrimming.None)
         {
-            field = field.Trim(dialect.Trimming);
+            reader._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
         }
+
+        int length = end - start;
+        ReadOnlySpan<T> field;
 
         if ((_specialCountAndOffset & (IsEscapeMask | SpecialCountMask)) != 0)
         {
-            T quote = dialect.Quote;
             uint specialCount = SpecialCount;
+            T quote = reader._dialect.Quote;
 
-            if (
-                fieldLength <= 1
-                || Unsafe.Add(ref data, start) != quote
-                || Unsafe.Add(ref data, start + fieldLength - 1) != quote
-            )
+            if (length < 2 || Unsafe.Add(ref data, start) != quote || Unsafe.Add(ref data, end - 1) != quote)
             {
                 goto Invalid;
             }
 
-            field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start + 1), fieldLength - 2);
+            field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start + 1), length - 2);
 
             // for escapes, special count refers to the number of escape characters
             // for RFC, special count refers to the _total_ number of quotes, including wrapping
-            if (IsEscape && specialCount != 0)
+            if (IsEscape)
             {
-                Debug.Assert(dialect.Escape != default, "Escape character is not set");
-                var unescaper = new IndexOfUnixUnescaper<T>(dialect.Escape, specialCount);
-                int length = IndexOfUnixUnescaper<T>.UnescapedLength(field.Length, specialCount);
-                Span<T> buffer = reader.GetUnescapeBuffer(length);
-                IndexOfUnescaper.Field(field, unescaper, buffer);
-                field = buffer.Slice(0, length);
+                field = IndexOfUnescaper.Unix(field, reader, specialCount);
             }
-            else if (!IsEscape && specialCount != 2) // already trimmed the quotes
+            else if (specialCount != 2) // already trimmed the quotes
             {
                 if (specialCount % 2 != 0)
                 {
                     goto Invalid;
                 }
 
-                Span<T> buffer = reader.GetUnescapeBuffer(fieldLength - 2);
+                Span<T> buffer = reader.GetUnescapeBuffer(length - 2);
 
                 // Vector<char> is not supported
                 if (Unsafe.SizeOf<T>() is sizeof(char))
                 {
                     RFC4180Mode<ushort>.Unescape(
-                        ushort.CreateTruncating(dialect.Quote),
+                        ushort.CreateTruncating(quote),
                         buffer.Cast<T, ushort>(),
                         field.Cast<T, ushort>(),
                         specialCount - 2
@@ -286,18 +277,24 @@ internal readonly struct Meta : IEquatable<Meta>
                 }
                 else
                 {
-                    RFC4180Mode<T>.Unescape(dialect.Quote, buffer, field, specialCount - 2);
+                    RFC4180Mode<T>.Unescape(quote, buffer, field, specialCount - 2);
                 }
 
                 int unescapedLength = field.Length - unchecked((int)((specialCount - 2) / 2));
                 field = buffer.Slice(0, unescapedLength);
             }
         }
+        else
+        {
+            field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), length);
+        }
 
+        Ret:
         return field;
 
         Invalid:
-        return IndexOfUnescaper.Invalid(field, in this);
+        field = IndexOfUnescaper.Invalid(in this, ref data, start, length);
+        goto Ret;
     }
 
     static Meta()

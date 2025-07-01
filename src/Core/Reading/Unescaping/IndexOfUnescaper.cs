@@ -1,5 +1,7 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading.Internal;
 
@@ -7,6 +9,17 @@ namespace FlameCsv.Reading.Unescaping;
 
 internal static class IndexOfUnescaper
 {
+    public static ReadOnlySpan<T> Unix<T>(ReadOnlySpan<T> field, CsvReader<T> reader, uint specialCount)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        Debug.Assert(reader._dialect.Escape != default, "Escape character is not set");
+        var unescaper = new IndexOfUnixUnescaper<T>(reader._dialect.Escape, specialCount);
+        int unescapedLength = IndexOfUnixUnescaper<T>.UnescapedLength(field.Length, specialCount);
+        Span<T> buffer = reader.GetUnescapeBuffer(unescapedLength);
+        Field(field, unescaper, buffer);
+        return buffer.Slice(0, unescapedLength);
+    }
+
     public static void Field<T, TUnescaper>(ReadOnlySpan<T> field, TUnescaper unescaper, scoped Span<T> destination)
         where T : unmanaged, IBinaryInteger<T>
         where TUnescaper : struct, IIndexOfUnescaper<T>
@@ -44,9 +57,11 @@ internal static class IndexOfUnescaper
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> Invalid<T>(ReadOnlySpan<T> field, scoped ref readonly Meta meta)
+    public static ReadOnlySpan<T> Invalid<T>(scoped ref readonly Meta meta, scoped ref T data, int start, int length)
         where T : unmanaged, IBinaryInteger<T>
     {
+        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref data, length);
+
         string str;
 
         try

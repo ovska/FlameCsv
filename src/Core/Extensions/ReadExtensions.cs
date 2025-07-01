@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Unicode;
 using FlameCsv.Reading.Internal;
@@ -85,6 +86,49 @@ internal static class ReadExtensions
         where T : unmanaged, IBinaryInteger<T>
     {
         return value.Length > 0 & (trimming & CsvFieldTrimming.Both) != 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TrimUnsafe<T>(
+        this CsvFieldTrimming trimming,
+        scoped ref T data,
+        scoped ref int start,
+        scoped ref int end
+    )
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        T space;
+
+        if (typeof(T) == typeof(byte))
+        {
+            space = Unsafe.BitCast<byte, T>((byte)' ');
+        }
+        else if (typeof(T) == typeof(char))
+        {
+            space = Unsafe.BitCast<char, T>(' ');
+        }
+        else
+        {
+            space = T.CreateTruncating(' ');
+        }
+
+        if ((trimming & CsvFieldTrimming.Leading) != 0)
+        {
+            for (; start < end; start++)
+            {
+                if (Unsafe.Add(ref data, start) != space)
+                    break;
+            }
+        }
+
+        if ((trimming & CsvFieldTrimming.Trailing) != 0)
+        {
+            for (; end > start; end--)
+            {
+                if (Unsafe.Add(ref data, end - 1) != space)
+                    break;
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

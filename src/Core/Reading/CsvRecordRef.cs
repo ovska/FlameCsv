@@ -57,10 +57,19 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         {
             // separate local yields 158 bytes of code vs 163, it _might_ matter under some conditions and produces
             // [mov mov cmp jae] for loading the span and length, instead of [mov cmp jae mov] should also allow ILP
-            // inlining NextStart eliminates one lea (total 3 bytes less)
-
             ReadOnlySpan<Meta> meta = _meta;
-            return meta[index + 1].GetField(meta[index].NextStart, ref _data, _reader);
+            Meta current = meta[index + 1];
+            int start = meta[index].NextStart;
+
+            if (
+                _reader._dialect.Trimming == CsvFieldTrimming.None
+                && (current._specialCountAndOffset & Meta.SpecialCountMask) == 0
+            )
+            {
+                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), current.End - start);
+            }
+
+            return current.GetFieldSlow(start, ref _data, _reader);
         }
     }
 

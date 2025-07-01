@@ -38,7 +38,8 @@ internal readonly struct Dialect<T>
             throw Token<T>.NotSupported;
         }
 
-        Trimming = options.Trimming;
+        // remove undefined bits so we can cmp against zero later
+        Trimming = options.Trimming & CsvFieldTrimming.Both;
     }
 }
 

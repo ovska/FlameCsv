@@ -227,4 +227,33 @@ public class CsvReaderTests
 
         Assert.Equal(["Hello", "World!"], results.Select(Encoding.UTF8.GetString));
     }
+
+    [Fact]
+    public void Should_Trim()
+    {
+        string[][] data =
+        [
+            [" 1 ", " 2 ", " 3 "],
+            ["\" 4 \"", " 5 ", "\" 6 \""],
+            [" 7 ", "  \" 8 \"  ", " 9 "],
+        ];
+
+        string csv = string.Join("\n", data.Select(line => string.Join(",", line))) + '\n';
+
+        var options = new CsvOptions<char> { Trimming = CsvFieldTrimming.Both, Newline = CsvNewline.LF };
+
+        List<List<string>> results = [];
+
+        foreach (var record in new CsvReader<char>(options, csv.AsMemory()).ParseRecords())
+        {
+            List<string> fields = [];
+            for (int i = 0; i < record.FieldCount; i++)
+            {
+                fields.Add(record[i].ToString());
+            }
+            results.Add(fields);
+        }
+
+        Assert.Equal(data.Select(line => line.Select(s => s.Trim(' ').Trim('"')).ToList()), results);
+    }
 }

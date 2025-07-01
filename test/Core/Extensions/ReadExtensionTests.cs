@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
@@ -55,6 +56,13 @@ public static class ReadExtensionTests
     {
         Assert.Equal(expected, input.AsSpan().Trim(value).ToString());
         Assert.Equal(expected, Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(input).AsSpan().Trim(value)));
+
+        ref char firstChar = ref MemoryMarshal.GetReference(input.AsSpan());
+        int start = 0;
+        int end = input.Length;
+
+        value.TrimUnsafe(ref firstChar, ref start, ref end);
+        Assert.Equal(expected, input.AsSpan(start, end - start).ToString());
     }
 
     [Theory, MemberData(nameof(TrimmingData))]
