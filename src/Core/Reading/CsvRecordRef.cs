@@ -108,6 +108,12 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     {
         ReadOnlySpan<Meta> meta = _meta;
 
+        // ensure default(CsvRecordRef<T>) is handled correctly
+        if (meta.IsEmpty)
+        {
+            return 0;
+        }
+
         return MemoryMarshal
             .CreateReadOnlySpan(ref Unsafe.Add(ref MemoryMarshal.GetReference(meta), -1), meta.Length + 1)
             .GetRecordLength(includeTrailingNewline);
@@ -123,7 +129,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     {
         if (FieldCount == 0)
         {
-            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Uninitialized }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[0]: Uninitialized }}";
         }
 
         if (typeof(T) == typeof(byte))
