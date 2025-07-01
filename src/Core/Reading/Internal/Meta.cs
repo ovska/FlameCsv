@@ -241,6 +241,7 @@ internal readonly struct Meta : IEquatable<Meta>
             uint specialCount = SpecialCount;
             int length = end - start;
             ReadOnlySpan<T> field;
+            ref T first = ref Unsafe.Add(ref data, (uint)start);
 
             if (specialCount != 0)
             {
@@ -248,12 +249,12 @@ internal readonly struct Meta : IEquatable<Meta>
 
                 Debug.Assert(specialCount % 2 == 0, "Special count should be even here");
 
-                if (length < 2 || Unsafe.Add(ref data, start) != quote || Unsafe.Add(ref data, end - 1) != quote)
+                if (length < 2 || first != quote || Unsafe.Add(ref first, length - 1) != quote)
                 {
                     goto Invalid;
                 }
 
-                field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start + 1), length - 2);
+                field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
 
                 if (specialCount != 2) // already trimmed the quotes
                 {
@@ -280,7 +281,7 @@ internal readonly struct Meta : IEquatable<Meta>
             }
             else
             {
-                field = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), length);
+                field = MemoryMarshal.CreateReadOnlySpan(ref first, length);
             }
 
             return field;

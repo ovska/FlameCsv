@@ -2,7 +2,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
@@ -76,13 +75,10 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        ReadOnlySpan<Meta> meta = _meta;
+        // always access this first to ensure index is within bounds
+        Meta current = _meta[index];
 
-        // takes care of bounds checks; meta is guaranteed to have 1 element at the head
-        // always access this before the previous field to ensure we have the correct start
-        Meta current = meta[index];
-
-        int start = Unsafe.Add(ref MemoryMarshal.GetReference(meta), index - 1).NextStart;
+        int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
         return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), current.End - start);
     }
 
@@ -94,7 +90,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         get
         {
             ReadOnlySpan<Meta> meta = _meta;
-            int end = meta[^1].End;
+            int end = meta[^1].End; // ensures the span is not empty
             int start = Unsafe.Add(ref MemoryMarshal.GetReference(meta), -1).NextStart;
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
         }
