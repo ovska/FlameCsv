@@ -109,19 +109,25 @@
 # GetField
 
 ## Original
-| Method   | Quoted |       Mean |   Error |  StdDev | Ratio |
-| -------- | ------ | ---------: | ------: | ------: | ----: |
-| GetField | False  | 1,077.4 us | 2.55 us | 3.23 us |  1.00 |
-| GetField | True   |   271.0 us | 0.49 us | 0.56 us |  1.00 |
+| Method   | Quoted |       Mean |
+| -------- | ------ | ---------: |
+| GetField | False  | 1,077.4 us |
+| GetField | True   |   271.0 us |
 
 ## Only unquoted happy case
-| Method   | Quoted |     Mean |   Error |  StdDev | Ratio |
-| -------- | ------ | -------: | ------: | ------: | ----: |
-| GetField | False  | 814.6 us | 0.76 us | 0.93 us |  1.00 |
-| GetField | True   | 286.8 us | 0.40 us | 0.47 us |  1.00 |
+| Method   | Quoted |     Mean |
+| -------- | ------ | -------: |
+| GetField | False  | 814.6 us |
+| GetField | True   | 286.8 us |
 
 ## After slicing first field from Meta span at constructor
-| Method   | Quoted |     Mean |   Error |  StdDev | Ratio | RatioSD |
-| -------- | ------ | -------: | ------: | ------: | ----: | ------: |
-| GetField | False  | 745.4 us | 0.60 us | 0.71 us |  1.00 |    0.00 |
-| GetField | True   | 269.9 us | 4.72 us | 6.13 us |  1.00 |    0.03 |
+| Method   | Quoted |     Mean |
+| -------- | ------ | -------: |
+| GetField | False  | 745.4 us |
+| GetField | True   | 269.9 us |
+
+## Bitwise OR for trimming & special count
+| Method   | Quoted | Mean     |
+| -------- |------- |---------:|
+| GetField | False  | 712.6 us |
+| GetField | True   | 248.8 us |

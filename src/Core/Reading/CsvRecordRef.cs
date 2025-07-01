@@ -51,18 +51,13 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ReadOnlySpan<Meta> meta = _meta;
-
             // always access this first to ensure index is within bounds
-            ref readonly Meta current = ref meta[index];
+            ref readonly Meta current = ref _meta[index];
 
             // very important to access the previous field in this manner for the CPU to optimize it with offset access
             int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
 
-            if (
-                _reader._dialect.Trimming != CsvFieldTrimming.None
-                || (current._specialCountAndOffset & Meta.SpecialCountMask) != 0
-            )
+            if ((((int)_reader._dialect.Trimming) | (current._specialCountAndOffset & Meta.SpecialCountMask)) != 0)
             {
                 return current.GetFieldSlow(start, ref _data, _reader);
             }
