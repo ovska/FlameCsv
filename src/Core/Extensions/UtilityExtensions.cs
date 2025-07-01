@@ -1,8 +1,10 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Unicode;
 
 namespace FlameCsv.Extensions;
 
@@ -40,28 +42,72 @@ internal static class UtilityExtensions
         }
     }
 
+    /// <inheritdoc cref="AsPrintableString{T}(ReadOnlySpan{T})"/>
+    [ExcludeFromCodeCoverage]
     public static string AsPrintableString<T>(this Span<T> value)
         where T : unmanaged, IBinaryInteger<T> => AsPrintableString((ReadOnlySpan<T>)value);
 
+    /// <summary>
+    /// Returns a printable string representation of the value for use in error messages or debugging.
+    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
+    [ExcludeFromCodeCoverage]
     public static string AsPrintableString<T>(this ReadOnlySpan<T> value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (typeof(T) == typeof(byte))
+        if (value.IsEmpty)
         {
-            ReadOnlySpan<byte> bytes = MemoryMarshal.AsBytes(value);
-
-            try
-            {
-                return Encoding.UTF8.GetString(bytes);
-            }
-            catch
-            {
-                return Convert.ToHexString(bytes);
-            }
+            return "<empty>";
         }
 
-        return value.ToString();
+        if (typeof(T) == typeof(byte) && !Utf8.IsValid(MemoryMarshal.AsBytes(value)))
+        {
+            return Convert.ToHexString(MemoryMarshal.AsBytes(value));
+        }
+
+        StringBuilder result = new(value.Length);
+
+        foreach (T item in value)
+        {
+            AppendSingle(result, item);
+        }
+
+        return result.ToString();
+
+        static void AppendSingle(StringBuilder sb, T value)
+        {
+            char c = (char)ushort.CreateTruncating(value);
+            switch (c)
+            {
+                case '\0':
+                    sb.Append(@"\0");
+                    break;
+                case '\r':
+                    sb.Append(@"\r");
+                    break;
+                case '\n':
+                    sb.Append(@"\n");
+                    break;
+                case '\t':
+                    sb.Append(@"\t");
+                    break;
+                case '\f':
+                    sb.Append(@"\f");
+                    break;
+                case '\v':
+                    sb.Append(@"\v");
+                    break;
+                case '\\':
+                    sb.Append(@"\\");
+                    break;
+                case char v when v is < (char)32 or (char)127:
+                    sb.Append($@"\u{(uint)v:X4}");
+                    break;
+                default:
+                    sb.Append(c);
+                    break;
+            }
+        }
     }
 
     public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment, int offset = 0)

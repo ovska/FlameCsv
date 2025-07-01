@@ -1,4 +1,5 @@
-﻿using FlameCsv.Extensions;
+﻿using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities.Comparers;
 
 // ReSharper disable PreferConcreteValueOverDefault
@@ -7,6 +8,19 @@ namespace FlameCsv.Tests.Extensions;
 
 public static class UtilityExtensionTests
 {
+    [Fact]
+    public static void Should_Print()
+    {
+        string input = "\0\r\n\t\f\v\\abc\u0010";
+        var actual = input.AsSpan().AsPrintableString();
+        string expected = @"\0\r\n\t\f\v\\abc\u0010";
+        Assert.Equal(expected, actual);
+        Assert.Equal(expected, Encoding.UTF8.GetBytes(input).AsSpan().AsPrintableString());
+        Assert.Equal("8182838D", ((ReadOnlySpan<byte>)([129, 130, 131, 141])).AsPrintableString());
+        Assert.Equal("<empty>", Span<char>.Empty.AsPrintableString());
+        Assert.Equal("<empty>", Span<byte>.Empty.AsPrintableString());
+    }
+
     [Fact]
     public static void Should_Have_Nullable_Equality()
     {
