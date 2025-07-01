@@ -53,22 +53,21 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         {
             ReadOnlySpan<Meta> meta = _meta;
 
-            // takes care of bounds checks; meta is guaranteed to have 1 element at the head
-            // always access this before the previous field to ensure we have the correct start
+            // always access this first to ensure index is within bounds
             ref readonly Meta current = ref meta[index];
 
             // very important to access the previous field in this manner for the CPU to optimize it with offset access
             int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
 
             if (
-                _reader._dialect.Trimming == CsvFieldTrimming.None
-                && (current._specialCountAndOffset & Meta.SpecialCountMask) == 0
+                _reader._dialect.Trimming != CsvFieldTrimming.None
+                || (current._specialCountAndOffset & Meta.SpecialCountMask) != 0
             )
             {
-                return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), current.End - start);
+                return current.GetFieldSlow(start, ref _data, _reader);
             }
 
-            return current.GetFieldSlow(start, ref _data, _reader);
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), current.End - start);
         }
     }
 
