@@ -10,13 +10,12 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "RatioSD")]
 public class TokenizationBench
 {
-    [Params(false, true)]
-    public bool CRLF { get; set; }
+    // [Params(false, true)]
+    public bool CRLF { get; set; } = true;
 
-    [Params(false, true)]
-    public bool Quoted { get; set; }
+    // [Params(false, true)]
+    public bool Quoted { get; set; } = true;
 
-    [Params(false, true)]
     public bool Chars { get; set; }
 
     private static readonly Meta[] _metaBuffer = new Meta[24 * 65535];

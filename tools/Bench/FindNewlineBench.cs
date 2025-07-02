@@ -7,7 +7,7 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
 
-public class GetFieldBench
+public class FindNewlineBench
 {
     private readonly byte[] _dataUnquoted;
     private readonly byte[] _dataQuoted;
@@ -22,7 +22,7 @@ public class GetFieldBench
 
     public bool Raw { get; set; }
 
-    public GetFieldBench()
+    public FindNewlineBench()
     {
         _dataUnquoted = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
         _dataQuoted = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
@@ -31,30 +31,21 @@ public class GetFieldBench
 
         _countQuoted = tokenizer.Tokenize(_metaUnquoted.AsSpan(1), _dataUnquoted, 0) + 1;
         _countUnquoted = tokenizer.Tokenize(_metaQuoted.AsSpan(1), _dataQuoted, 0) + 1;
+
+        _buffer = new();
     }
 
-    [Benchmark(Baseline = true)]
-    public void GetField()
-    {
-        var record = new CsvRecordRef<byte>(
-            _reader,
-            ref (Quoted ? ref _dataQuoted[0] : ref _dataUnquoted[0]),
-            Quoted ? _metaQuoted.AsSpan(0, _countUnquoted) : _metaUnquoted.AsSpan(0, _countQuoted)
-        );
+    private readonly MetaBuffer _buffer;
 
-        if (Raw)
-        {
-            for (int i = 0; i < record.FieldCount; i++)
-            {
-                _ = record.GetRawSpan(i);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < record.FieldCount; i++)
-            {
-                _ = record[i];
-            }
-        }
+    [Benchmark(Baseline = true)]
+    public void TryPop()
+    {
+        // ugly hacks
+        _buffer.UnsafeGetArrayRef() = [];
+        _buffer.Dispose(); // reset counts
+        _buffer.UnsafeGetArrayRef() = Quoted ? _metaQuoted : _metaUnquoted;
+        _buffer.SetFieldsRead(Quoted ? _countQuoted : _countUnquoted);
+
+        while (_buffer.TryPop(out _)) { }
     }
 }

@@ -356,33 +356,15 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     internal Span<T> GetUnescapeBuffer(int length)
     {
-        if (typeof(T) == typeof(byte))
+        int stackLength = EnumeratorStack.Length / Unsafe.SizeOf<T>();
+
+        // allocate a new buffer if the requested length is larger than the stack buffer
+        if (length > stackLength)
         {
-            const int stackLength = EnumeratorStack.Length / sizeof(byte);
-
-            // allocate a new buffer if the requested length is larger than the stack buffer
-            if (length > stackLength)
-            {
-                return _unescapeAllocator.GetSpan(length);
-            }
-
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
+            return _unescapeAllocator.GetSpan(length);
         }
 
-        if (typeof(T) == typeof(char))
-        {
-            const int stackLength = EnumeratorStack.Length / sizeof(char);
-
-            // allocate a new buffer if the requested length is larger than the stack buffer
-            if (length > stackLength)
-            {
-                return _unescapeAllocator.GetSpan(length);
-            }
-
-            return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
-        }
-
-        throw Token<T>.NotSupported;
+        return MemoryMarshal.Cast<byte, T>((Span<byte>)_stackMemory);
     }
 
     private enum State : byte

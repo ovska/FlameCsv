@@ -79,7 +79,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         ref readonly Meta current = ref _meta[index];
 
         int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), current.End - start);
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), current.End - start);
     }
 
     /// <summary>
