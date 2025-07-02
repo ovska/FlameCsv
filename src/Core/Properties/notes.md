@@ -131,3 +131,22 @@
 | -------- | ------ | -------: |
 | GetField | False  | 712.6 us |
 | GetField | True   | 248.8 us |
+
+# TryPop in MetaBuffer
+
+## Original
+| Method |     Mean |    Error |   StdDev | Ratio |
+| ------ | -------: | -------: | -------: | ----: |
+| TryPop | 77.61 us | 0.167 us | 0.199 us |  1.00 |
+
+## Loading the address outright and adjusting it
+
+| Method |     Mean |    Error |   StdDev | Ratio |
+| ------ | -------: | -------: | -------: | ----: |
+| TryPop | 64.30 us | 0.195 us | 0.239 us |  1.00 |
+
+## Using pointer arithmetic instead of manual position adjustment
+| Method |     Mean |    Error |   StdDev | Ratio |
+| ------ | -------: | -------: | -------: | ----: |
+| TryPop | 70.87 us | 0.131 us | 0.166 us |  1.00 |
+

@@ -134,7 +134,7 @@ internal sealed class MetaBuffer : IDisposable
         // Get reference to the 4th byte of each Meta struct (where bit 31 of the ulong lives)
         ref byte metaByte = ref Unsafe.Add(
             ref Unsafe.As<Meta, byte>(ref MemoryMarshal.GetArrayDataReference(_array)),
-            (_index + 1) * sizeof(ulong) + 3
+            ((uint)(_index + 1u) * sizeof(ulong)) + 3u // force zero extension
         );
 
         int end = _count - _index;
@@ -144,10 +144,11 @@ internal sealed class MetaBuffer : IDisposable
 
         while (pos < unrolledEnd)
         {
-            byte b0 = Unsafe.Add(ref metaByte, (pos + 0) * sizeof(ulong));
-            byte b1 = Unsafe.Add(ref metaByte, (pos + 1) * sizeof(ulong));
-            byte b2 = Unsafe.Add(ref metaByte, (pos + 2) * sizeof(ulong));
-            byte b3 = Unsafe.Add(ref metaByte, (pos + 3) * sizeof(ulong));
+            // load the position first and add the constants to it first, 248 -> 216 bytes of code
+            ref byte b0 = ref Unsafe.Add(ref metaByte, pos * sizeof(ulong));
+            byte b1 = Unsafe.Add(ref b0, sizeof(ulong));
+            byte b2 = Unsafe.Add(ref b0, sizeof(ulong) * 2);
+            byte b3 = Unsafe.Add(ref b0, sizeof(ulong) * 3);
 
             if ((b0 & mask) != 0)
             {
