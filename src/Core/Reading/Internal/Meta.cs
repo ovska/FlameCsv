@@ -240,8 +240,9 @@ internal readonly struct Meta : IEquatable<Meta>
 
             uint specialCount = SpecialCount;
             int length = end - start;
-            ReadOnlySpan<T> field;
             ref T first = ref Unsafe.Add(ref data, (uint)start);
+
+            ReadOnlySpan<T> field;
 
             if (specialCount != 0)
             {
@@ -249,7 +250,7 @@ internal readonly struct Meta : IEquatable<Meta>
 
                 Debug.Assert(specialCount % 2 == 0, "Special count should be even here");
 
-                if (length < 2 || first != quote || Unsafe.Add(ref first, length - 1) != quote)
+                if (length < 2 || first != quote || Unsafe.Add(ref first, (uint)length - 1u) != quote)
                 {
                     goto Invalid;
                 }

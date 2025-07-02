@@ -76,7 +76,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
         // always access this first to ensure index is within bounds
-        Meta current = _meta[index];
+        ref readonly Meta current = ref _meta[index];
 
         int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
         return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), current.End - start);
