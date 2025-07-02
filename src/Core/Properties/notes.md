@@ -150,3 +150,7 @@
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 70.87 us | 0.131 us | 0.166 us |  1.00 |
 
+## Using nint for pos and end index
+| Method |     Mean |    Error |   StdDev | Ratio |
+| ------ | -------: | -------: | -------: | ----: |
+| TryPop | 60.96 us | 0.156 us | 0.180 us |  1.00 |

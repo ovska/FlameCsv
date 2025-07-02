@@ -137,9 +137,9 @@ internal sealed class MetaBuffer : IDisposable
             ((uint)(_index + 1u) * sizeof(ulong)) + 3u // force zero extension
         );
 
-        int end = _count - _index;
-        int unrolledEnd = end - 4;
-        int pos = 0;
+        nint end = _count - _index;
+        nint unrolledEnd = end - 4;
+        nint pos = 0;
         bool found = false;
 
         while (pos < unrolledEnd)
@@ -196,11 +196,11 @@ internal sealed class MetaBuffer : IDisposable
         Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
         {
             array = _array,
-            count = pos + 1,
+            count = (int)pos + 1,
             offset = _index,
         };
 
-        _index += pos;
+        _index += (int)pos;
         return true;
     }
 
