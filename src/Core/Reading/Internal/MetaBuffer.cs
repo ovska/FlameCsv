@@ -140,11 +140,9 @@ internal sealed class MetaBuffer : IDisposable
         nint end = _count - _index;
         nint unrolledEnd = end - 4;
         nint pos = 0;
-        bool found = false;
 
         while (pos < unrolledEnd)
         {
-            // load the position first and add the constants to it first, 248 -> 216 bytes of code
             ref byte b0 = ref Unsafe.Add(ref metaByte, pos * sizeof(ulong));
             byte b1 = Unsafe.Add(ref b0, sizeof(ulong));
             byte b2 = Unsafe.Add(ref b0, sizeof(ulong) * 2);
@@ -153,46 +151,37 @@ internal sealed class MetaBuffer : IDisposable
             if ((b0 & mask) != 0)
             {
                 pos += 1;
-                found = true;
-                break;
+                goto Found;
             }
             if ((b1 & mask) != 0)
             {
                 pos += 2;
-                found = true;
-                break;
+                goto Found;
             }
             if ((b2 & mask) != 0)
             {
                 pos += 3;
-                found = true;
-                break;
+                goto Found;
             }
             if ((b3 & mask) != 0)
             {
                 pos += 4;
-                found = true;
-                break;
+                goto Found;
             }
 
             pos += 4;
         }
 
-        while (!found && pos < end)
+        while (pos < end)
         {
             if ((Unsafe.Add(ref metaByte, pos++ * sizeof(ulong)) & mask) != 0)
             {
-                found = true;
-                break;
+                goto Found;
             }
         }
+        return false;
 
-        // ran out of data
-        if (!found)
-        {
-            return false;
-        }
-
+        Found:
         Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
         {
             array = _array,

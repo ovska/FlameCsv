@@ -138,12 +138,13 @@
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 77.61 us | 0.167 us | 0.199 us |  1.00 |
+Code size: 248
 
 ## Loading the address outright and adjusting it
-
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 64.30 us | 0.195 us | 0.239 us |  1.00 |
+Code size: 216
 
 ## Using pointer arithmetic instead of manual position adjustment
 | Method |     Mean |    Error |   StdDev | Ratio |
@@ -154,3 +155,11 @@
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 60.96 us | 0.156 us | 0.180 us |  1.00 |
+Code size: 186
+
+## Omitting found-bool and using goto directly
+| Method |     Mean |    Error |   StdDev | Ratio |
+| ------ | -------: | -------: | -------: | ----: |
+| TryPop | 53.54 us | 0.106 us | 0.138 us |  1.00 |
+
+Code size: 186
