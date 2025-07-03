@@ -144,29 +144,22 @@ internal sealed class MetaBuffer : IDisposable
         while (pos < unrolledEnd)
         {
             ref byte b0 = ref Unsafe.Add(ref metaByte, pos * sizeof(ulong));
-            byte b1 = Unsafe.Add(ref b0, sizeof(ulong));
-            byte b2 = Unsafe.Add(ref b0, sizeof(ulong) * 2);
-            byte b3 = Unsafe.Add(ref b0, sizeof(ulong) * 3);
 
             if ((b0 & mask) != 0)
             {
-                pos += 1;
-                goto Found;
+                goto Found1;
             }
-            if ((b1 & mask) != 0)
+            if ((Unsafe.Add(ref b0, sizeof(ulong)) & mask) != 0)
             {
-                pos += 2;
-                goto Found;
+                goto Found2;
             }
-            if ((b2 & mask) != 0)
+            if ((Unsafe.Add(ref b0, sizeof(ulong) * 2) & mask) != 0)
             {
-                pos += 3;
-                goto Found;
+                goto Found3;
             }
-            if ((b3 & mask) != 0)
+            if ((Unsafe.Add(ref b0, sizeof(ulong) * 3) & mask) != 0)
             {
-                pos += 4;
-                goto Found;
+                goto Found4;
             }
 
             pos += 4;
@@ -180,6 +173,21 @@ internal sealed class MetaBuffer : IDisposable
             }
         }
         return false;
+
+        Found4:
+        pos += 4;
+        goto Found;
+
+        Found3:
+        pos += 3;
+        goto Found;
+
+        Found2:
+        pos += 2;
+        goto Found;
+
+        Found1:
+        pos += 1;
 
         Found:
         Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields)) = new()
