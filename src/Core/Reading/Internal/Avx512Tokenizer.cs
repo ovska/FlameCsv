@@ -197,7 +197,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 maskControl &= ~maskUpToPos;
                 maskQuote &= ~maskUpToPos;
 
-                Field.SaturateQuotes(ref quotesConsumed);
+                Field.SaturateTo7Bits(ref quotesConsumed);
 
                 FieldFlag isLF = Unsafe.SizeOf<T>() switch
                 {
@@ -238,11 +238,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                     maskControl &= (maskControl - 1);
                     maskQuote &= ~maskUpToPos; // consume
 
-                    // saturate quotes to 6 bits. this is extremely rare so a branch is optimal
-                    if (quotesConsumed > byte.MaxValue)
-                    {
-                        quotesConsumed = byte.MaxValue;
-                    }
+                    Field.SaturateTo7Bits(ref quotesConsumed);
 
                     uint newlineFlag2 = (uint)
                         TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, pos + runningIndex), ref maskControl);

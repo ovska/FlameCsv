@@ -274,4 +274,36 @@ public class CsvReaderTests
             Assert.Equal("3\r", record[2].ToString());
         }
     }
+
+    [Theory, InlineData(true), InlineData(false)]
+    public void Should_Handle_Large_Quote_Counts(bool escape)
+    {
+        char c = escape ? '\\' : '"';
+
+        StringBuilder data = new();
+        data.Append("test,\"");
+
+        for (int i = 0; i < 200; i++)
+        {
+            data.Append(c);
+            data.Append('"');
+        }
+
+        data.Append("\",test\n");
+
+        data.Append(data);
+
+        foreach (
+            var record in new CsvReader<char>(
+                new CsvOptions<char> { Escape = escape ? c : null, Newline = CsvNewline.LF },
+                data.ToString().AsMemory()
+            ).ParseRecords()
+        )
+        {
+            Assert.Equal(3, record.FieldCount);
+            Assert.Equal("test", record[0].ToString());
+            Assert.Equal(new string('"', 200), record[1].ToString());
+            Assert.Equal("test", record[2].ToString());
+        }
+    }
 }

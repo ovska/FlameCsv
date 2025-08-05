@@ -70,7 +70,7 @@ internal static class Field
     public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        int end = (int)(field & EndMask);
+        int end = End(field);
 
         // trim before unquoting to preserve spaces in strings
         if (reader._dialect.Trimming != CsvFieldTrimming.None)
@@ -83,7 +83,7 @@ internal static class Field
         ref T first = ref Unsafe.Add(ref data, (uint)start);
         ReadOnlySpan<T> retVal;
 
-        if ((quote & 0x80) != 0)
+        if (IsEscape(quote))
         {
             goto Invalid;
         }
@@ -92,9 +92,7 @@ internal static class Field
         {
             T q = reader._dialect.Quote;
 
-            Debug.Assert(quote % 2 == 0, "Special count should be even here");
-
-            if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1u) != q)
+            if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1) != q)
             {
                 goto Invalid;
             }
@@ -103,7 +101,16 @@ internal static class Field
 
             if (quote != 2) // already trimmed the quotes
             {
-                Span<T> buffer = reader.GetUnescapeBuffer(length - 2);
+                uint quoteCount = IsSaturated(quote)
+                    ? (uint)System.MemoryExtensions.Count(retVal, q)
+                    : (uint)(quote - 2); // TODO: make a quote agnostic unescaper?
+
+                if (quoteCount % 2 != 0)
+                {
+                    goto Invalid;
+                }
+
+                Span<T> buffer = reader.GetUnescapeBuffer(retVal.Length);
 
                 // Vector<char> is not supported
                 if (Unsafe.SizeOf<T>() is sizeof(char))
@@ -112,15 +119,15 @@ internal static class Field
                         ushort.CreateTruncating(q),
                         buffer.Cast<T, ushort>(),
                         retVal.Cast<T, ushort>(),
-                        (uint)quote - 2
+                        quoteCount
                     );
                 }
                 else
                 {
-                    RFC4180Mode<T>.Unescape(q, buffer, retVal, (uint)quote - 2);
+                    RFC4180Mode<T>.Unescape(q, buffer, retVal, quoteCount);
                 }
 
-                int unescapedLength = retVal.Length - unchecked((int)((quote - 2) / 2));
+                int unescapedLength = retVal.Length - unchecked((int)(quoteCount / 2));
                 retVal = buffer.Slice(0, unescapedLength);
             }
         }
@@ -150,21 +157,37 @@ internal static class Field
             .CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), length)
             .Trim(reader._dialect.Trimming);
 
-        if (retVal.Length < 2 || retVal[^1] != reader._dialect.Quote || retVal[0] != reader._dialect.Quote)
+        if (
+            retVal.Length < 2
+            || retVal[^1] != reader._dialect.Quote
+            || retVal[0] != reader._dialect.Quote
+            || quote % 2 != 0
+        )
         {
             return IndexOfUnescaper.Invalid(retVal, field, quote);
         }
 
+        uint specialCount = IsSaturated(quote)
+            ? (uint)System.MemoryExtensions.Count(retVal, reader._dialect.Escape)
+            : (uint)(quote - 2); // TODO: make a quote agnostic unescaper?
+
         Debug.Assert((quote & 0x80) != 0, $"Should be escape: {retVal.AsPrintableString()}");
-        return IndexOfUnescaper.Unix(retVal[1..^1], reader, (uint)(quote & 0x7F));
+        return IndexOfUnescaper.Unix(retVal[1..^1], reader, specialCount);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SaturateQuotes(ref uint quotesConsumed)
+    public static void SaturateTo7Bits(ref uint quotesConsumed)
     {
+        // this should be highly predictable so a branch is optimal
         if (quotesConsumed > 127)
         {
             quotesConsumed = 127;
         }
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsEscape(byte quote) => (quote & 0x80) != 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsSaturated(byte quote) => (quote & 0x7F) == 0x7F;
 }

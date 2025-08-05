@@ -9,29 +9,6 @@ namespace FlameCsv.Intrinsics;
 internal static class Bithacks
 {
     /// <summary>
-    /// Clears either the least significant bit or the most significant bit in the mask, depending on the architecture.
-    /// </summary>
-    /// <param name="mask">The bitmask to clear the bit from</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetNextBitAndClear(ref nuint mask)
-    {
-        Debug.Assert(mask > 0, $"Mask must be non-zero, was: {mask:B}");
-
-        if (ArmBase.IsSupported || ArmBase.Arm64.IsSupported)
-        {
-            int result = BitOperations.LeadingZeroCount(mask);
-            mask &= ~(nuint)(1 << result);
-            return result;
-        }
-        else
-        {
-            int result = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-            return result;
-        }
-    }
-
-    /// <summary>
     /// Checks if all bits in the mask are before the first bit set in the other value.
     /// </summary>
     /// <param name="mask">A non-zero bitmask</param>
@@ -97,17 +74,7 @@ internal static class Bithacks
         // no separate PMULL path, see:
         // https://github.com/simdjson/simdjson/blob/d84c93476894dc3230e7379cd9322360435dd0f9/include/simdjson/arm64/bitmask.h#L24
 
-        // Fallback to software implementation
-        T mask = quoteBits ^ (quoteBits << 1);
-        mask ^= (mask << 2);
-        mask ^= (mask << 4);
-        if (Unsafe.SizeOf<T>() >= sizeof(ushort))
-            mask ^= (mask << 8);
-        if (Unsafe.SizeOf<T>() >= sizeof(uint))
-            mask ^= (mask << 16);
-        if (Unsafe.SizeOf<T>() >= sizeof(ulong))
-            mask ^= (mask << 32);
-        return mask;
+        return ComputeQuoteMaskSoftwareFallback(quoteBits);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

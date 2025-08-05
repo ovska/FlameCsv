@@ -136,7 +136,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
 
             FoundNonQuote:
 
-            Field.SaturateQuotes(ref quotesConsumed);
+            Field.SaturateTo7Bits(ref quotesConsumed);
 
             // TODO FIXME
             Unsafe.SkipInit(out uint tmp);
@@ -232,7 +232,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             if ((nint)runningIndex == (data.Length - 1))
             {
                 T final = Unsafe.Add(ref first, runningIndex);
-                Field.SaturateQuotes(ref quotesConsumed);
+                Field.SaturateTo7Bits(ref quotesConsumed);
 
                 if (TNewline.IsNewline(final))
                 {
@@ -256,7 +256,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
                 }
             }
 
-            Field.SaturateQuotes(ref quotesConsumed);
+            Field.SaturateTo7Bits(ref quotesConsumed);
             Unsafe.Add(ref dstField, fieldIndex) = (uint)++runningIndex | Field.StartOrEnd;
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;

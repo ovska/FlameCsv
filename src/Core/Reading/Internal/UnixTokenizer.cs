@@ -121,7 +121,7 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
     {
         if (escapesConsumed == 0)
         {
-            Field.SaturateQuotes(ref quotesConsumed);
+            Field.SaturateTo7Bits(ref quotesConsumed);
             return (byte)quotesConsumed;
         }
         else
@@ -131,7 +131,7 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
                 ThrowHelper.ThrowInvalidQuoteCount(quotesConsumed, escapesConsumed);
             }
 
-            Field.SaturateQuotes(ref escapesConsumed);
+            Field.SaturateTo7Bits(ref escapesConsumed);
             return (byte)(0x80 | escapesConsumed);
         }
     }
