@@ -41,7 +41,6 @@ public readonly struct CsvExceptionHandlerArgs<T>
         Line = lineIndex;
         Position = position;
         Exception = exception;
-        FieldCount = slice.Fields.Count - 1;
 
         _useSlice = true;
     }
@@ -61,7 +60,6 @@ public readonly struct CsvExceptionHandlerArgs<T>
         Line = record.Line;
         Position = record.Position;
         Exception = exception;
-        FieldCount = record.FieldCount;
 
         _record = record;
         _useSlice = false;
@@ -73,7 +71,7 @@ public readonly struct CsvExceptionHandlerArgs<T>
     public ImmutableArray<string> Header { get; }
 
     /// <inheritdoc cref="ICsvRecord{T}.FieldCount"/>
-    public int FieldCount { get; }
+    public int FieldCount => _useSlice ? _slice.FieldCount : _record.FieldCount;
 
     /// <summary>
     /// Exception thrown.

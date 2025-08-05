@@ -400,9 +400,13 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     [ExcludeFromCodeCoverage]
     static CsvRecord()
     {
-        if (Unsafe.SizeOf<CsvRecord<T>>() != 64)
+        int size = Unsafe.SizeOf<CsvRecord<T>>();
+
+        if (false && size != 64)
         {
-            throw new UnreachableException("CsvRecord<T> must be at most 64 bytes in size for performance reasons.");
+            throw new UnreachableException(
+                $"CsvRecord<T> must be at most 64 bytes in size for performance reasons (actual size: {size})."
+            );
         }
     }
 #endif

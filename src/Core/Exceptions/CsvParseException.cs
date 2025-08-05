@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -160,7 +161,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
 
         if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {
-            int offset = record.Fields[index].NextStart - record.Fields[0].NextStart;
+            int offset = Field.NextStart(record.Record.Fields[index]) - Field.NextStart(record.Record.Fields[0]);
 
             FieldPosition ??= position + offset;
             FieldValue ??= record.GetField(index, raw: true).AsPrintableString();

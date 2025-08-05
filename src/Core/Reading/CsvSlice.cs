@@ -14,43 +14,47 @@ internal readonly struct CsvSlice<T>
 {
     public CsvReader<T> Reader { get; init; }
     public ReadOnlyMemory<T> Data { get; init; }
-    public ArraySegment<Meta> Fields { get; init; }
+    public RecordView Record { get; init; }
 
     public ReadOnlySpan<T> RawValue
     {
         get
         {
-            ReadOnlySpan<Meta> fields = Fields;
-            return Data[fields[0].NextStart..fields[^1].End].Span;
+            ReadOnlySpan<uint> fields = Record.Fields;
+
+            uint last = fields[^1];
+            uint first = fields[0];
+
+            return Data[Field.NextStart(first)..Field.End(last)].Span;
         }
     }
 
-    public int FieldCount => Fields.Count - 1;
+    public int FieldCount => Record.FieldCount;
 
     public ReadOnlySpan<T> GetField(int index, bool raw = false)
     {
         ReadOnlySpan<T> data = Data.Span;
-        ReadOnlySpan<Meta> fields = Fields;
-        int start = fields[index].NextStart;
-        Meta meta = fields[index + 1];
+        ReadOnlySpan<uint> fields = Record.Fields;
+        int start = Field.NextStart(fields[index]);
+        uint field = fields[index + 1];
 
         if (raw)
         {
-            return data[start..meta.End];
+            return data[start..Field.End(field)];
         }
 
-        return meta.GetField(start, ref MemoryMarshal.GetReference(data), Reader);
+        return Field.GetValue(start, field, Record.Quotes[index + 1], ref MemoryMarshal.GetReference(data), Reader);
     }
 
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        if (Fields.Count == 0)
+        if (Record.Count == 0)
         {
             return $"{{ CsvSlice<{Token<T>.Name}>[0] \"\" }}";
         }
 
-        return $"{{ CsvSlice<{Token<T>.Name}>[{Fields.Count - 1}]: \"{Transcode.ToString(RawValue)}\" }}";
+        return $"{{ CsvSlice<{Token<T>.Name}>[{Record.FieldCount}]: \"{Transcode.ToString(RawValue)}\" }}";
     }
 
     [ExcludeFromCodeCoverage]

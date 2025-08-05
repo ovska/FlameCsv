@@ -1,9 +1,19 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
-using FlameCsv.Intrinsics;
+using System.Runtime.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
+
+#pragma warning disable RCS1154 // Sort enum members
+
+internal enum FieldFlag : uint
+{
+    None = 0,
+    EOL = Field.IsEOL,
+    CRLF = Field.IsCRLF,
+}
+
+#pragma warning restore RCS1154 // Sort enum members
 
 /// <summary>
 /// Interface to provide high-performance generic handling for variable length newlines.
@@ -11,31 +21,9 @@ namespace FlameCsv.Reading.Internal;
 internal interface INewline
 {
     /// <summary>
-    /// Returns the length of the newline sequence.
-    /// </summary>
-    static abstract int GetLength(bool isMultitoken);
-
-    /// <summary>
     /// Returns whether the newline is a two-token sequence or not.
     /// </summary>
     static abstract bool IsCRLF { get; }
-
-    /// <summary>
-    /// Determines if the specified value is part of a two-token newline sequence.
-    /// </summary>
-    /// <remarks>For single token newlines, always returns false</remarks>
-    static abstract bool IsMultitoken<T>(ref T value)
-        where T : unmanaged, IBinaryInteger<T>;
-
-    /// <summary>
-    /// Determines if the specified value represents a delimiter or a newline.
-    /// </summary>
-    /// <param name="value">The value to check against</param>
-    /// <param name="isMultitoken">When true, whether the next token was part of the newline as well.</param>
-    /// <returns>True if the value represents a newline instead of a delimiter.</returns>
-    /// <remarks>For single token newlines, always returns true</remarks>
-    static abstract bool IsNewline<T>(ref T value, out bool isMultitoken)
-        where T : unmanaged, IBinaryInteger<T>;
 
     /// <summary>
     /// Determines if the specified value represents any newline character.
@@ -43,18 +31,21 @@ internal interface INewline
     static abstract bool IsNewline<T>(T value)
         where T : unmanaged, IBinaryInteger<T>;
 
-    /// <summary>
-    /// Checks if the input vector contains a newline.
-    /// </summary>
-    static abstract TVector HasNewline<TVector>(TVector input)
-        where TVector : struct, IAsciiVector<TVector>;
+    static abstract FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
+        where T : unmanaged, IBinaryInteger<T>
+        where TMask : unmanaged, IBinaryInteger<TMask>;
+
+    static abstract FieldFlag GetKnownNewlineFlag<T, TMask>(ref T value, ref TMask mask)
+        where T : unmanaged, IBinaryInteger<T>
+        where TMask : unmanaged, IBinaryInteger<TMask>;
 }
 
 [SkipLocalsInit]
 internal readonly struct NewlineLF : INewline
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetLength(bool isMultitoken) => 1;
+    public static FieldFlag GetFlag<T>(ref T value)
+        where T : unmanaged, IBinaryInteger<T> => FieldFlag.EOL;
 
     public static bool IsCRLF
     {
@@ -63,29 +54,29 @@ internal readonly struct NewlineLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsMultitoken<T>(ref T value)
+    public static FieldFlag GetKnownNewlineFlag<T, TMask>(ref T value, ref TMask mask)
         where T : unmanaged, IBinaryInteger<T>
+        where TMask : unmanaged, IBinaryInteger<TMask>
     {
-        // single token newlines are never multitoken
-        return false;
+        // marginal improvement over ?: return by loading the common case into the register already
+        FieldFlag retVal = FieldFlag.None;
+
+        if (
+            Unsafe.SizeOf<T>() switch
+            {
+                sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
+                sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
+                _ => throw Token<T>.NotSupported,
+            }
+        )
+        {
+            retVal = FieldFlag.EOL;
+        }
+
+        return retVal;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNewline<T>(ref T value, out bool isMultitoken)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        // the HasNewline vector only contains the correct values, e.g., \n, so this check should always succeed
-        isMultitoken = false;
-
-        // compared to T.CreateTruncating this type check produces 13 vs 16 bytes of code for byte (char unchanged at 14)
-        return Unsafe.SizeOf<T>() switch
-        {
-            sizeof(byte) => Unsafe.As<T, byte>(ref value) == '\n',
-            sizeof(char) => Unsafe.As<T, char>(ref value) == '\n',
-            _ => throw Token<T>.NotSupported,
-        };
-    }
-
     public static bool IsNewline<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -98,89 +89,36 @@ internal readonly struct NewlineLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TVector HasNewline<TVector>(TVector input)
-        where TVector : struct, IAsciiVector<TVector>
+    public static FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
+        where T : unmanaged, IBinaryInteger<T>
+        where TMask : unmanaged, IBinaryInteger<TMask>
     {
-        return TVector.Equals(input, TVector.Create((byte)'\n'));
+        // TODO: profile if branch wins
+        bool isLF = Unsafe.SizeOf<T>() switch
+        {
+            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
+            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
+            _ => throw Token<T>.NotSupported,
+        };
+
+        FieldFlag flag = FieldFlag.None;
+
+        if (isLF)
+        {
+            flag = FieldFlag.EOL;
+        }
+
+        return flag;
     }
 }
 
 [SkipLocalsInit]
 internal readonly struct NewlineCRLF : INewline
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetLength(bool isMultitoken) => 1 + isMultitoken.ToByte();
-
     public static bool IsCRLF
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsMultitoken<T>(ref T value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        // only \r\n is considered a multitoken newline, other combinations e.g. \n\n are two distinct newlines
-
-        // compared to T.CreateTruncating, this type check produces 20 bytes of code for byte.
-        // no difference for char at 26, but we'll leave it in case something changes in a future .NET update
-        if (Unsafe.SizeOf<T>() is sizeof(byte))
-        {
-            return Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
-        }
-
-        if (Unsafe.SizeOf<T>() is sizeof(char))
-        {
-            return Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
-        }
-
-        throw Token<T>.NotSupported;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNewline<T>(ref T value, out bool isMultitoken)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        isMultitoken = false;
-
-        // this type check produces less ASM code than simple generics: 42 vs 50 for byte, 43 vs 50 for char
-        if (Unsafe.SizeOf<T>() is sizeof(byte))
-        {
-            ref byte v = ref Unsafe.As<T, byte>(ref value);
-
-            if (v == '\r')
-            {
-                // Highly predictable branch - almost always true
-                isMultitoken = Unsafe.Add(ref v, 1) == '\n';
-                return true;
-            }
-            if (v == '\n')
-            {
-                return true;
-            }
-        }
-        else if (Unsafe.SizeOf<T>() is sizeof(char))
-        {
-            ref char v = ref Unsafe.As<T, char>(ref value);
-
-            if (v == '\r')
-            {
-                // Highly predictable branch - almost always true
-                isMultitoken = Unsafe.Add(ref v, 1) == '\n';
-                return true;
-            }
-            if (v == '\n')
-            {
-                return true;
-            }
-        }
-        else
-        {
-            throw Token<T>.NotSupported;
-        }
-
-        return false;
     }
 
     public static bool IsNewline<T>(T value)
@@ -195,9 +133,74 @@ internal readonly struct NewlineCRLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TVector HasNewline<TVector>(TVector input)
-        where TVector : struct, IAsciiVector<TVector>
+    public static FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
+        where T : unmanaged, IBinaryInteger<T>
+        where TMask : unmanaged, IBinaryInteger<TMask>
     {
-        return TVector.Equals(input, TVector.Create((byte)'\r')) | TVector.Equals(input, TVector.Create((byte)'\n'));
+        FieldFlag retVal = 0;
+
+        if (delimiter != value)
+        {
+            bool isCRLF;
+
+            if (Unsafe.SizeOf<T>() is sizeof(byte))
+            {
+                isCRLF = Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
+            }
+            else if (Unsafe.SizeOf<T>() is sizeof(char))
+            {
+                isCRLF =
+                    Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
+            }
+            else
+            {
+                throw Token<T>.NotSupported;
+            }
+
+            if (isCRLF)
+            {
+                retVal = FieldFlag.CRLF;
+                mask &= (mask - TMask.One); // lowered to blsr by jit
+            }
+            else
+            {
+                retVal = FieldFlag.EOL;
+            }
+        }
+
+        return retVal;
+    }
+
+    public static FieldFlag GetKnownNewlineFlag<T, TMask>(ref T value, ref TMask mask)
+        where T : unmanaged, IBinaryInteger<T>
+        where TMask : unmanaged, IBinaryInteger<TMask>
+    {
+        FieldFlag retVal;
+        bool isCRLF;
+
+        if (Unsafe.SizeOf<T>() is sizeof(byte))
+        {
+            isCRLF = Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
+        }
+        else if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            isCRLF = Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
+        }
+        else
+        {
+            throw Token<T>.NotSupported;
+        }
+
+        if (isCRLF)
+        {
+            retVal = FieldFlag.CRLF;
+            mask &= (mask - TMask.One);
+        }
+        else
+        {
+            retVal = FieldFlag.EOL;
+        }
+
+        return retVal;
     }
 }

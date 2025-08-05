@@ -256,4 +256,22 @@ public class CsvReaderTests
 
         Assert.Equal(data.Select(line => line.Select(s => s.Trim(' ').Trim('"')).ToList()), results);
     }
+
+    [Theory, InlineData(true), InlineData(false)]
+    public void Should_Ignore_CR_On_LF_Parser(bool escape)
+    {
+        // large enough string so we force a SIMD path too
+        string data = string.Join("\r\n", Enumerable.Repeat("1,2,3", 100)) + "\r\n";
+
+        var options = new CsvOptions<char> { Newline = CsvNewline.LF, Escape = escape ? '\\' : null };
+        using var reader = new CsvReader<char>(options, data.AsMemory());
+
+        foreach (var record in reader.ParseRecords())
+        {
+            Assert.Equal(3, record.FieldCount);
+            Assert.Equal("1", record[0].ToString());
+            Assert.Equal("2", record[1].ToString());
+            Assert.Equal("3\r", record[2].ToString());
+        }
+    }
 }

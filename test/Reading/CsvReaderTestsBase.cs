@@ -308,7 +308,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                 index++;
                 Assert.Equal(hasHeader ? index + 1 : index, record.Line);
                 Assert.Equal(tokenPosition, record.Position);
-                tokenPosition += record._slice.Fields.AsSpanUnsafe().GetRecordLength(includeTrailingNewline: true);
+                tokenPosition += record._slice.Record.Fields.GetRecordLength(includeTrailingNewline: true);
             }
 
             Obj obj = new()

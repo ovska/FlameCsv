@@ -88,7 +88,7 @@ partial class CsvReader<T>
         [HandlesResourceDisposal]
         private readonly CsvReader<T> _reader;
 
-        private ReadOnlySpan<Meta> _meta;
+        private RecordView _view;
         private ref T _data;
 
         internal Enumerator(CsvReader<T> reader)
@@ -100,7 +100,7 @@ partial class CsvReader<T>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvRecordRef<T> Current => new(_reader, ref _data, _meta);
+        public CsvRecordRef<T> Current => new(_reader, ref _data, _view);
 
         /// <summary>
         /// Attempts to read the next record.
@@ -111,9 +111,8 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
-            if (_reader._metaBuffer.TryPop(out ArraySegment<Meta> meta))
+            if (_reader._recordBuffer.TryPop(out _view))
             {
-                _meta = meta.AsSpanUnsafe();
                 return true;
             }
 
@@ -139,13 +138,13 @@ partial class CsvReader<T>
             if (!_reader.TryReadLine(out slice))
             {
                 _data = ref Unsafe.NullRef<T>();
-                _meta = default;
+                _view = default;
                 return false;
             }
 
             ConstructValue:
             _data = ref MemoryMarshal.GetReference(slice.Data.Span);
-            _meta = slice.Fields;
+            _view = slice.Record;
             return true;
         }
 
@@ -155,11 +154,11 @@ partial class CsvReader<T>
         public void Dispose()
         {
             _reader.Dispose();
-            _meta = default;
+            _view = default;
             _data = ref Unsafe.NullRef<T>();
         }
 
-        CsvRecordRef<T> IEnumerator<CsvRecordRef<T>>.Current => new(_reader, ref _data, _meta);
+        CsvRecordRef<T> IEnumerator<CsvRecordRef<T>>.Current => new(_reader, ref _data, _view);
         readonly object IEnumerator.Current => throw new NotSupportedException();
 
         bool IEnumerator.MoveNext() => MoveNext();
@@ -167,7 +166,7 @@ partial class CsvReader<T>
         void IEnumerator.Reset()
         {
             _reader.Reset();
-            _meta = default;
+            _view = default;
             _data = ref Unsafe.NullRef<T>();
         }
     }

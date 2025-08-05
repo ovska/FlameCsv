@@ -21,16 +21,26 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
         _newlineLength = options.Newline.GetTokens(out _newlineFirst, out _newlineSecond);
     }
 
-    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
+    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
     {
-        int metaIndex = 0;
+        FieldBuffer destination = recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
+
+        if (data.IsEmpty || data.Length < startIndex)
+        {
+            return false;
+        }
+
+        Span<uint> fields = destination.Fields;
+        Span<byte> flags = destination.Quotes;
+        int fieldIndex = 0;
+
         int index = startIndex;
 
         uint quotesConsumed = 0;
         uint escapesConsumed = 0;
         bool inEscape = false;
 
-        while (index < data.Length && metaIndex < metaBuffer.Length)
+        while (index < data.Length && fieldIndex < fields.Length)
         {
             if (inEscape)
             {
@@ -62,24 +72,27 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
             {
                 bool isEOL = current != _delimiter;
                 int newlineLength = _newlineLength;
+                FieldFlag flag = isEOL ? FieldFlag.EOL : FieldFlag.None;
 
-                if (isEOL && newlineLength == 2)
+                if (
+                    isEOL
+                    && newlineLength == 2
+                    && index + 1 < data.Length
+                    && current == _newlineFirst
+                    && data[index + 1] == _newlineSecond
+                )
                 {
-                    if (index + 1 < data.Length && current == _newlineFirst && data[index + 1] == _newlineSecond)
-                    {
-                        newlineLength = 2;
-                    }
-                    else
-                    {
-                        newlineLength = 1;
-                    }
+                    flag = FieldFlag.CRLF;
                 }
 
-                Meta meta = Meta.Unix(index, quotesConsumed, escapesConsumed, isEOL, newlineLength);
-                metaBuffer[metaIndex++] = meta;
+                fields[fieldIndex] = (uint)index | (uint)flag;
+                flags[fieldIndex] = GetQuoteFlag(quotesConsumed, escapesConsumed);
+
+                fieldIndex++;
                 quotesConsumed = 0;
                 escapesConsumed = 0;
-                index += meta.EndOffset;
+                index += (flag == FieldFlag.CRLF) ? 2 : 1;
+
                 continue;
             }
 
@@ -92,18 +105,35 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
             ThrowHelper.ThrowLeftInEscape();
         }
 
-        if (readToEnd && index == data.Length && metaIndex < metaBuffer.Length)
+        if (readToEnd && index == data.Length && fieldIndex < fields.Length)
         {
-            metaBuffer[metaIndex++] = Meta.Unix(
-                data.Length,
-                quotesConsumed,
-                escapesConsumed,
-                isEOL: true,
-                newlineLength: 0
-            );
+            // 0 length newline
+            fields[fieldIndex] = (uint)index | Field.StartOrEnd;
+            flags[fieldIndex] = GetQuoteFlag(quotesConsumed, escapesConsumed);
+            fieldIndex++;
         }
 
-        return metaIndex;
+        recordBuffer.SetFieldsRead(fieldIndex);
+        return fieldIndex > 0;
+    }
+
+    private static byte GetQuoteFlag(uint quotesConsumed, uint escapesConsumed)
+    {
+        if (escapesConsumed == 0)
+        {
+            Field.SaturateQuotes(ref quotesConsumed);
+            return (byte)quotesConsumed;
+        }
+        else
+        {
+            if (quotesConsumed != 2)
+            {
+                ThrowHelper.ThrowInvalidQuoteCount(quotesConsumed, escapesConsumed);
+            }
+
+            Field.SaturateQuotes(ref escapesConsumed);
+            return (byte)(0x80 | escapesConsumed);
+        }
     }
 }
 
@@ -112,5 +142,12 @@ file static class ThrowHelper
     public static void ThrowLeftInEscape()
     {
         throw new CsvFormatException("The final field ended in an escape token.");
+    }
+
+    public static void ThrowInvalidQuoteCount(uint quoteCount, uint escapeCount)
+    {
+        throw new CsvFormatException(
+            $"There must be exactly 2 quotes in escape-style field (had {quoteCount} quotes and {escapeCount} escapes)"
+        );
     }
 }

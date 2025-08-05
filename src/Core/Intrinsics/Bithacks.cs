@@ -72,11 +72,22 @@ internal static class Bithacks
         return quoteMask;
     }
 
+    /// <inheritdoc cref="FindQuoteMask{T}(T, ref T)"/>
+    internal static ulong FindQuoteMask(ulong quoteBits, ref ulong prevIterInsideQuote)
+    {
+        Vector128<ulong> vec = Vector128.CreateScalar(quoteBits);
+        Vector128<ulong> result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
+        ulong quoteMask = result.GetElement(0);
+        quoteMask ^= prevIterInsideQuote;
+        prevIterInsideQuote = 0UL - (quoteMask >> 63);
+        return quoteMask;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T ComputeQuoteMask<T>(T quoteBits)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (Pclmulqdq.IsSupported && (Avx2.IsSupported || Sse2.IsSupported))
+        if (Pclmulqdq.IsSupported && Sse2.IsSupported)
         {
             var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
             var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);

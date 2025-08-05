@@ -1,5 +1,7 @@
 ## ParseDelimiters popcount frequencies
 
+Benchmarks done with LF.
+
 ### 256 bit vectors
 | Count | 65K    | Sample |
 | ----- | ------ | ------ |
@@ -27,13 +29,13 @@
 | V128   | False  | 2,601.7 us | 18.92 us |  1.00 |
 | V128   | True   |   906.3 us |  4.28 us |  1.00 |
 
-### #### Unroll factor 3 ❌
+### #### Unroll factor 3 👎
 | Method | Quoted |       Mean |  StdDev | Ratio |
 | ------ | ------ | ---------: | ------: | ----: |
 | V128   | False  | 1,964.9 us | 4.60 us |  1.00 |
 | V128   | True   |   798.9 us | 7.01 us |  1.00 |
 
-#### Unroll factor 4 ✔
+#### Unroll factor 4 👍
  | Method | Quoted |       Mean |   StdDev | Ratio |
  | ------ | ------ | ---------: | -------: | ----: |
  | V128   | False  | 2,244.7 us | 10.90 us |  1.00 |
@@ -45,55 +47,95 @@
 | V256   | False  | 1,725.7 us | 7.91 us |
 | V256   | True   |   681.9 us | 3.44 us |
 
-#### Unroll factor 4 ❌
+#### Unroll factor 4 👎
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,543.9 us | 6.15 us |
 | V256   | True   |   647.2 us | 4.39 us |
 
-#### Unroll factor 5 ✔
+#### Unroll factor 5 👍
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,518.5 us | 4.44 us |
 | V256   | True   |   629.3 us | 2.73 us |
 
-#### goto instead of embedding ParseDelimiters ✔
+#### goto instead of embedding ParseDelimiters 👍
 
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,472.5 us | 6.04 us |
 | V256   | True   |   621.7 us | 2.67 us |
 
-#### Moving hasDelimiter movemask before check for maskAny ✔
+#### Moving hasDelimiter movemask before check for maskAny 👍
 
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,442.1 us | 1.39 us |
 | V256   | True   |   612.4 us | 3.14 us |
 
-#### Specialized AllBitsBefore impl ✔
+#### Specialized AllBitsBefore impl 👍
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,432.9 us | 7.25 us |
 | V256   | True   |   610.2 us | 2.46 us |
 
-#### Moving ParseDelimiters closer to the beginning of the loop ✔
+#### Moving ParseDelimiters closer to the beginning of the loop 👍
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,428.0 us | 6.02 us |
 | V256   | True   |   608.3 us | 3.10 us |
 
-#### Using an early-bail out for when there are unresolved quotes ✔
+#### Using an early-bail out for when there are unresolved quotes 👍
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,425.3 us | 3.56 us |
 | V256   | True   |   596.1 us | 1.34 us |
 
-#### Omitting the TrySkipQuoted branch ❌
+#### Omitting the TrySkipQuoted branch 👎
 | Method | Quoted |       Mean |  StdDev |
 | ------ | ------ | ---------: | ------: |
 | V256   | False  | 1,466.6 us | 4.10 us |
 | V256   | True   |   610.8 us | 2.97 us |
+
+### Storing newline meta indexes experiment
+
+Data seeking was 650 us and 1.490 us. Might be worth exploring further.
+
+FindNewlineBench:
+| Method      |      Mean |     Error |    StdDev | Ratio |
+| ----------- | --------: | --------: | --------: | ----: |
+| FromIndices |  5.046 us | 0.0191 us | 0.0249 us |  0.09 |
+| TryPop      | 56.664 us | 0.0503 us | 0.0599 us |  1.00 |
+
+After optimizing the newline storing
+| Method | Quoted |       Mean |       Mean |
+| ------ | ------ | ---------: | ---------: |
+| V256   | False  | 1,464.6 us | 1,465.0 us |
+| V256   | True   |   612.6 us |   618.3 us |
+
+Note: don't store EOL in meta if going this route, should give a ~1% perf boost when tokenizing.
+
+No eol storage 👎
+| Method | Quoted |       Mean | Mean       |
+| ------ | ------ | ---------: |-----------:|
+| V256   | False  | 1,475.5 us | 1,471.1 us |
+| V256   | True   |   618.6 us |   619.9 us |
+
+Storing both currentMeta and EOLs in the same ref struct 👎
+| Method | Quoted |       Mean |  StdDev |
+| ------ | ------ | ---------: | ------: |
+| V256   | False  | 1,569.6 us | 6.71 us |
+| V256   | True   |   659.1 us | 2.52 us |
+
+Comparing with the old method
+| Method |     Mean |     Error |    StdDev | Ratio |
+| ------ | -------: | --------: | --------: | ----: |
+| Old    | 1.706 ms | 0.0050 ms | 0.0064 ms |  1.00 |
+| New    | 1.596 ms | 0.0036 ms | 0.0047 ms |  0.94 |
+
+Other benefits:
+- Record count known up-front
+- No need to iterate fields to find record bounds
 
 ## Notes
 
@@ -114,19 +156,19 @@
 | GetField | False  | 1,077.4 us |
 | GetField | True   |   271.0 us |
 
-## Only unquoted happy case
+## Only unquoted happy case 👍
 | Method   | Quoted |     Mean |
 | -------- | ------ | -------: |
 | GetField | False  | 814.6 us |
 | GetField | True   | 286.8 us |
 
-## After slicing first field from Meta span at constructor
+## After slicing first field from Meta span at constructor 👍
 | Method   | Quoted |     Mean |
 | -------- | ------ | -------: |
 | GetField | False  | 745.4 us |
 | GetField | True   | 269.9 us |
 
-## Bitwise OR for trimming & special count
+## Bitwise OR for trimming & special count 👍
 | Method   | Quoted |     Mean |
 | -------- | ------ | -------: |
 | GetField | False  | 712.6 us |
@@ -140,34 +182,34 @@
 | TryPop | 77.61 us | 0.167 us | 0.199 us |  1.00 |
 Code size: 248
 
-## Loading the address outright and adjusting it
+## Loading the address outright and adjusting it 👍
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 64.30 us | 0.195 us | 0.239 us |  1.00 |
-Code size: 216
+Code size: 216 👍
 
-## Using pointer arithmetic instead of manual position adjustment
+## Using pointer arithmetic instead of manual position adjustment 👎
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 70.87 us | 0.131 us | 0.166 us |  1.00 |
 
-## Using nint for pos and end index
+## Using nint for pos and end index 👍
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 60.96 us | 0.156 us | 0.180 us |  1.00 |
-Code size: 186
+Code size: 186 👍
 
-## Omitting found-bool and using goto directly
+## Omitting found-bool and using goto directly 👍
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 53.54 us | 0.106 us | 0.138 us |  1.00 |
-Code size: 186
+Code size: 186 🤏
 
-## Comparing directly with memory instead of loading bytes to variables/registers
+## Comparing directly with memory instead of loading bytes to variables/registers 🤏
 | Method |     Mean |    Error |   StdDev | Ratio |
 | ------ | -------: | -------: | -------: | ----: |
 | TryPop | 53.63 us | 0.069 us | 0.084 us |  1.00 |
-Code size: 175
+Code size: 175 👍
 
 ### TODO:
 
@@ -177,4 +219,257 @@ ref MetaSegment ms = ref Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.A
 ms.count = (int)pos + 1;
 ms.offset = _index;
 ms.array = _array;
+```
+
+### Tests on newline bit packing
+
+| CRLF  | Quoted |       Mean |   StdDev |
+| ----- | ------ | ---------: | -------: |
+| False | False  | 1,466.7 us |  3.56 us |
+| False | True   |   614.7 us |  1.59 us |
+| True  | False  | 1,553.1 us | 13.37 us |
+| True  | True   |   640.1 us |  3.90 us |
+
+
+
+### Passing delimiter to IsNewline ❓❔
+| CRLF  | Quoted |       Mean |  StdDev |
+| ----- | ------ | ---------: | ------: |
+| False | False  | 1,490.2 us | 5.50 us |
+| False | True   |   375.4 us | 1.69 us |
+| True  | False  | 1,572.2 us | 5.89 us |
+| True  | True   |   397.2 us | 2.01 us |
+
+
+### Short circuit on popcount 1 in parseline ends
+| CRLF  | Quoted |       Mean |  StdDev |
+| ----- | ------ | ---------: | ------: |
+| False | False  | 1,481.6 us | 3.58 us |
+| False | True   |   369.8 us | 1.97 us |
+| True  | False  | 1,587.2 us | 8.23 us |
+| True  | True   |   404.0 us | 1.83 us |
+
+
+### Calculating offset from first in start of method
+| CRLF  | Quoted |       Mean |  StdDev |
+|------ |------- |-----------:|--------:|
+| False | False  | 1,492.3 us | 6.78 us |
+| False | True   |   375.5 us | 1.49 us |
+| True  | False  | 1,573.0 us | 6.79 us |
+| True  | True   |   394.5 us | 1.92 us |
+
+
+### Using bitwise tricks for quoteCount and isQuote
+| CRLF  | Quoted |     Mean |  StdDev | Ratio |
+| ----- |------- | -------: | ------: | ----: |
+| False | True   | 371.0 us | 1.25 us |  1.00 |
+| True  | True   | 384.3 us | 1.79 us |  1.00 |
+
+### After all optimizations
+| Newline      | Quoted | Chars |       Mean |  StdDev |
+| ------------ | ------ | ----- | ---------: | ------: |
+| LF           | False  | False | 1,488.4 us | 9.26 us |
+| LF_With_CRLF | False  | False | 1,590.6 us | 6.33 us |
+| CRLF         | False  | False | 1,578.1 us | 6.65 us |
+| LF           | False  | True  | 1,650.4 us | 6.20 us |
+| LF_With_CRLF | False  | True  | 1,722.2 us | 6.12 us |
+| CRLF         | False  | True  | 1,729.1 us | 6.38 us |
+| LF           | True   | False |   376.2 us | 2.23 us |
+| LF_With_CRLF | True   | False |   388.7 us | 2.52 us |
+| CRLF         | True   | False |   392.2 us | 3.13 us |
+| LF           | True   | True  |   400.9 us | 1.91 us |
+| LF_With_CRLF | True   | True  |   408.0 us | 3.53 us |
+| CRLF         | True   | True  |   409.4 us | 3.36 us |
+
+### Eager vector loading
+| Method | Newline      | Quoted | Chars |       Mean |   StdDev | Ratio |
+| ------ | ------------ | ------ | ----- | ---------: | -------: | ----: |
+| V256   | LF           | False  | False | 1,483.3 us |  9.56 us |  1.00 |
+| V256   | LF_With_CRLF | False  | False | 1,578.5 us |  8.29 us |  1.00 |
+| V256   | CRLF         | False  | False | 1,554.7 us |  8.70 us |  1.00 |
+| V256   | LF           | False  | True  | 1,608.0 us |  7.76 us |  1.00 |
+| V256   | LF_With_CRLF | False  | True  | 1,695.8 us |  7.91 us |  1.00 |
+| V256   | CRLF         | False  | True  | 1,706.9 us | 16.99 us |  1.00 |
+| V256   | LF           | True   | False |   368.2 us |  3.77 us |  1.00 |
+| V256   | LF_With_CRLF | True   | False |   378.1 us |  2.79 us |  1.00 |
+| V256   | CRLF         | True   | False |   394.3 us |  4.35 us |  1.00 |
+| V256   | LF           | True   | True  |   389.6 us |  2.59 us |  1.00 |
+| V256   | LF_With_CRLF | True   | True  |   410.9 us |  2.62 us |  1.00 |
+| V256   | CRLF         | True   | True  |   407.2 us |  2.26 us |  1.00 |
+
+## Swapping quotecount and newline zero checks
+| Newline | Quoted | Chars |     Mean |  StdDev |
+| ------- | ------ | ----- | -------: | ------: |
+| LF      | False  | False | 355.8 us | 2.27 us |
+| CRLF    | False  | False | 389.0 us | 2.29 us |
+
+## PopCount 1 optimization for newlines
+| Quoted | Newline |       Mean |  StdDev |
+| ------ | ------- | ---------: | ------: |
+| False  | LF      | 1,456.9 us | 4.27 us |
+| False  | CRLF    | 1,554.4 us | 3.49 us |
+| True   | LF      |   370.9 us | 1.43 us |
+| True   | CRLF    |   386.1 us | 2.35 us |
+
+## Use a branch for record end offset writing
+| Method | Quoted | Newline |       Mean |  StdDev | Ratio |
+| ------ | ------ | ------- | ---------: | ------: | ----: |
+| V256   | False  | CRLF    | 1,512.3 us | 7.59 us |  1.00 |
+| V256   | True   | CRLF    |   366.2 us | 2.70 us |  1.00 |
+
+## Use a branch for newline check in ParseDelimitersAndLineEnds
+| Method | Quoted | Newline |       Mean |  StdDev | Ratio |
+| ------ | ------ | ------- | ---------: | ------: | ----: |
+| V256   | False  | LF      | 1,403.1 us | 2.86 us |  1.00 |
+| V256   | False  | CRLF    | 1,487.5 us | 5.20 us |  1.00 |
+| V256   | True   | LF      |   357.0 us | 0.51 us |  1.00 |
+| V256   | True   | CRLF    |   355.0 us | 2.68 us |  1.00 |
+
+
+## nuint vs uint masks
+
+Before:
+| Quoted | Newline |       Mean |  StdDev |
+| ------ | ------- | ---------: | ------: |
+| False  | LF      | 1,430.9 us | 7.83 us |
+| False  | CRLF    | 1,483.6 us | 4.61 us |
+| True   | LF      |   370.8 us | 3.77 us |
+| True   | CRLF    |   350.1 us | 1.88 us |
+
+After:
+| Quoted | Newline |       Mean |  StdDev |
+| ------ | ------- | ---------: | ------: |
+| False  | LF      | 1,381.0 us | 6.90 us |
+| False  | CRLF    | 1,461.9 us | 6.59 us |
+| True   | LF      |   364.3 us | 4.07 us |
+| True   | CRLF    |   345.1 us | 3.45 us |
+
+## Precompute delimiter offset
+
+Before:
+| Method | Newline |     Mean |    StdDev |
+| ------ | ------- | -------: | --------: |
+| V128   | LF      | 1.380 ms | 0.0017 ms |
+| V128   | CRLF    | 1.455 ms | 0.0035 ms |
+
+After:
+| Method | Newline |     Mean |    StdDev |
+| ------ | ------- | -------: | --------: |
+| V128   | LF      | 1.354 ms | 0.0039 ms |
+| V128   | CRLF    | 1.397 ms | 0.0048 ms |
+
+## Scalar parser
+
+| Method | Chars | Newline |      Mean |    StdDev | Ratio |
+| ------ | ----- | ------- | --------: | --------: | ----: |
+| Old    | False | LF      |  8.644 ms | 0.0405 ms |  1.00 |
+| LUT    | False | LF      |  6.473 ms | 0.0490 ms |  0.75 |
+|        |       |         |           |           |       |
+| Old    | False | CRLF    | 10.831 ms | 0.0169 ms |  1.00 |
+| LUT    | False | CRLF    |  6.401 ms | 0.0330 ms |  0.59 |
+|        |       |         |           |           |       |
+| Old    | True  | LF      |  8.384 ms | 0.0158 ms |  1.00 |
+| LUT    | True  | LF      |  7.219 ms | 0.0363 ms |  0.86 |
+|        |       |         |           |           |       |
+| Old    | True  | CRLF    |  9.669 ms | 0.0334 ms |  1.00 |
+| LUT    | True  | CRLF    |  7.315 ms | 0.0778 ms |  0.76 |
+
+## Using AVX512VBMI2.VL.Compress for delimiters
+Before: 851.7 and 928.7
+After: 821.4 and 909.0
+
+## Prefetching
+
+| Prefetch Distance | UTF8 (Chars=False) | UTF16 (Chars=True) |
+| ----------------: | -----------------: | -----------------: |
+|              None |           1.310 ms |           1.482 ms |
+|               128 |           1.333 ms |           1.464 ms |
+|               256 |           1.333 ms |           1.445 ms |
+|               384 |           1.338 ms |           1.433 ms |
+|               512 |           1.328 ms |           1.444 ms |
+
+## Frequencies
+
+```
+Delim + Line ends
+Total: 1104
+1   0
+2   0
+3   302
+4   731
+
+Delimiters
+Total: 16861
+1   1455
+2   2175
+3   3374
+4   7476
+5   2370
+6   11
+
+Only line ends
+Total: 3575
+1   3575
+
+-----------------------------
+
+Any
+Total 4018
+1   32
+2   384
+3   971
+4   1572
+5   705
+6   222
+7   103
+8   25
+9   4
+
+AnyNoQuotes
+Total 65
+1   0
+2   0
+3   5
+4   39
+5   21
+
+Delimiters
+Total: 14181
+1   3038
+2   2286
+3   2928
+4   3298
+5   2502
+6   128
+7   1
+
+Delimiters and line ends
+Total: 3317
+1   0
+2   0
+3   1844
+4   1151
+5   248
+6   74
+
+Line ends
+Total: 1680
+1   1680
+
+
+-----------------------------
+
+Quoted Data:
+total iters     23400
+delim/lf total  4999
+delim before lf 915
+delim after lf  765
+mixed           3317
+
+Unquoted Data:
+total iters     18290
+delim/lf total  4679
+delim before lf 2205
+delim after lf  1078
+mixed           1104
 ```

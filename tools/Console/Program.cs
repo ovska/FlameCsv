@@ -5,11 +5,15 @@
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Formattable;
+using FlameCsv.Intrinsics;
 using FlameCsv.IO;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using JetBrains.Profiler.Api;
 
 namespace FlameCsv.Console
@@ -22,14 +26,18 @@ namespace FlameCsv.Console
         static void Main([NotNull] string[] args)
         {
             FileInfo file = new(
-                @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\65K_Records_Data.csv"
-            // @"C:\Users\Sipi\source\repos\FlameCsv\FlameCsv.Benchmark\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
+                @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\65K_Records_Data.csv"
+                // @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
             );
 
             byte[] byteArray = File.ReadAllBytes(file.FullName);
+            // var metas = new Reading.Internal.Meta[65536];
+
+            // var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);
+            // _ = tokenizer.Tokenize(metas, byteArray, 0);
 
             // MemoryProfiler.CollectAllocations(true);
-            MeasureProfiler.StartCollectingData();
+            // MeasureProfiler.StartCollectingData();
 
             for (int i = 0; i < 10_000; i++)
             {
@@ -38,13 +46,45 @@ namespace FlameCsv.Console
                     MeasureProfiler.StartCollectingData();
                 }
 
-                var parser = new CsvReader<byte>(_options, CsvBufferReader.Create(byteArray));
+                using var parser = new CsvReader<byte>(_options, CsvBufferReader.Create(byteArray));
 
                 foreach (var r in parser.ParseRecords())
                 {
-                    _ = r;
+                    IterateFields(in r);
                 }
             }
+
+            MeasureProfiler.StopCollectingData();
+
+            [MethodImpl(MethodImplOptions.NoInlining)]
+            static void IterateFields(ref readonly CsvRecordRef<byte> record)
+            {
+                for (int i = 0; i < record.FieldCount; i++)
+                {
+                    _ = record[i];
+                }
+            }
+
+            /*
+1   20161
+2   29957
+3   46465
+4   104816
+5   33603
+6   134
+7   0
+
+1   8814
+2   6534
+3   8482
+4   10145
+5   7989
+6   519
+0
+0
+            */
+
+            _ = 1;
         }
 
 #pragma warning disable IL2026

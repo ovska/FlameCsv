@@ -80,7 +80,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             result = MoveNextCore(in record);
         }
 
-        Position += record.Fields.AsSpanUnsafe().GetRecordLength(includeTrailingNewline: true);
+        Position += record.Record.Fields.GetRecordLength(includeTrailingNewline: true);
         return result;
     }
 

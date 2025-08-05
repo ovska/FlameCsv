@@ -1,16 +1,16 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options) : CsvPartialTokenizer<T>
+internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline
-    where TVector : struct, IAsciiVector<TVector>
 {
     // leave space for 2 vectors;
     // vector count to avoid reading past the buffer
@@ -19,63 +19,83 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
     private static int EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (TVector.Count * 2) + (TNewline.IsCRLF ? 1 : 0);
+        get => (Vector256<byte>.Count * 2) + (TNewline.IsCRLF ? 1 : 0);
     }
 
     public override int PreferredLength
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => TVector.Count * 4;
+        get => Vector256<byte>.Count * 4;
     }
 
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
+    private static Vector256<byte> ZeroFirst => Vector256.Create(-256L, ~0L, ~0L, ~0L).AsByte();
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex)
+    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
     {
+        FieldBuffer destination = recordBuffer.GetUnreadBuffer(
+            minimumLength: Vector256<byte>.Count,
+            out int startIndex
+        );
+
         if ((data.Length - startIndex) < EndOffset)
         {
-            return 0;
+            return false;
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = (uint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
-        Debug.Assert(searchSpaceEnd < (nuint)data.Length);
+        scoped ref uint dstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        nuint fieldIndex = 0;
+        nuint fieldEnd = Math.Max(0, (nuint)destination.Fields.Length - (nuint)EndOffset);
 
-        // search space of Meta is set to vector length from actual so we don't need to do bounds checks in the loops
         // ensure the worst case doesn't read past the end (e.g. data ends in Vector.Count delimiters)
-        Debug.Assert(metaBuffer.Length >= TVector.Count);
-
-        scoped ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
-        scoped ref readonly Meta metaEnd = ref Unsafe.Add(
-            ref MemoryMarshal.GetReference(metaBuffer),
-            metaBuffer.Length - TVector.Count
-        );
+        // we do this so there are no bounds checks in the loops
+        Debug.Assert(searchSpaceEnd < (nuint)data.Length);
+        Debug.Assert(destination.Fields.Length >= Vector256<byte>.Count);
+        Debug.Assert(destination.Quotes.Length >= Vector256<byte>.Count);
 
         // load the constants into registers
+        T delimiter = _delimiter;
         T quote = _quote;
-        TVector delimiterVec = TVector.Create(_delimiter);
-        TVector quoteVec = TVector.Create(_quote);
         uint quotesConsumed = 0;
 
-        TVector nextVector = TVector.LoadUnaligned(ref first, runningIndex);
+        Vector256<byte> delimiterVec = AsciiVector.Create(delimiter);
+        Vector256<byte> quoteVec = AsciiVector.Create(quote);
+        Vector256<byte> lfVec = AsciiVector.Create((byte)'\n');
+        Vector256<byte> crVec = TNewline.IsCRLF ? AsciiVector.Create((byte)'\r') : default;
 
-        while (Unsafe.IsAddressLessThan(in currentMeta, in metaEnd) && runningIndex <= searchSpaceEnd)
+        Vector256<byte> vector = AsciiVector.Load(ref first, runningIndex);
+        Vector256<byte> hasNewline = TNewline.IsCRLF
+            ? Vector256.Equals(vector, lfVec) | Vector256.Equals(vector, crVec)
+            : Vector256.Equals(vector, lfVec);
+        Vector256<byte> hasDelimiter = Vector256.Equals(vector, delimiterVec);
+        Vector256<byte> hasQuote = Vector256.Equals(vector, quoteVec);
+        Vector256<byte> hasAny = hasNewline | hasDelimiter | hasQuote;
+
+        while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
         {
+            if (typeof(T) == typeof(char) && Sse.IsSupported)
+            {
+                uint prefetch = Avx512BW.IsSupported ? 192u : 384u;
+
+                unsafe
+                {
+                    Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex + prefetch)));
+                }
+            }
+
+            uint maskAny = hasAny.ExtractMostSignificantBits();
+            uint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
+
             // prefetch the next vector so we can process the current without waiting for it to load
-            TVector vector = nextVector;
-            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count);
-
-            TVector hasDelimiter = TVector.Equals(vector, delimiterVec);
-            TVector hasQuote = TVector.Equals(vector, quoteVec);
-            TVector hasNewline = TNewline.HasNewline(vector);
-            TVector hasAny = hasNewline | hasDelimiter | hasQuote;
-
-            nuint maskAny = hasAny.ExtractMostSignificantBits();
-            nuint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
+            vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
 
             // nothing of note in this slice
             if (maskAny == 0)
@@ -96,12 +116,11 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             }
 
             HandleDelimiters:
-            currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
-            runningIndex += (nuint)TVector.Count;
-            continue;
+            ParseDelimiters(maskDelimiter, runningIndex, ref fieldIndex, ref dstField);
+            goto ContinueRead;
 
             HandleNewlines:
-            nuint maskNewlineOrDelimiter = (hasNewline | hasDelimiter).ExtractMostSignificantBits();
+            uint maskNewlineOrDelimiter = (hasNewline | hasDelimiter).ExtractMostSignificantBits();
 
             // if vector is not only newlines or delimiters, go to quote handling
             if (maskNewlineOrDelimiter != maskAny)
@@ -109,26 +128,23 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 goto HandleAny;
             }
 
+            uint maskNewline;
+
             if (maskDelimiter != 0)
             {
                 // Check if the sets are fully separated
-                nuint maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
+                maskNewline = maskNewlineOrDelimiter & ~maskDelimiter;
 
                 if (Bithacks.AllBitsBefore(maskDelimiter, maskNewline))
                 {
-                    currentMeta = ref ParseDelimiters(maskDelimiter, runningIndex, ref currentMeta);
+                    // don't try to goto and branch in HandleDelimiters here, slows the loop by a few %
+                    ParseDelimiters(maskDelimiter, runningIndex, ref fieldIndex, ref dstField);
                     maskNewlineOrDelimiter = maskNewline;
                     // Fall through to parse line ends
                 }
                 else if (Bithacks.AllBitsBefore(maskNewline, maskDelimiter))
                 {
-                    currentMeta = ref ParseLineEnds(
-                        maskNewline,
-                        ref first,
-                        ref runningIndex,
-                        ref currentMeta,
-                        ref nextVector
-                    );
+                    ParseLineEnds(maskNewline, ref first, runningIndex, ref fieldIndex, ref dstField, ref vector);
 
                     goto HandleDelimiters;
                 }
@@ -136,24 +152,20 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
                 {
                     // bits are interleaved, handle the mixed case
                     Debug.Assert(quotesConsumed == 0);
-                    currentMeta = ref ParseDelimitersAndLineEnds(
+                    ParseDelimitersAndLineEnds(
                         maskNewlineOrDelimiter,
                         ref first,
-                        ref runningIndex,
-                        ref currentMeta,
-                        ref nextVector
+                        delimiter,
+                        runningIndex,
+                        ref fieldIndex,
+                        ref dstField,
+                        ref vector
                     );
                     goto ContinueRead;
                 }
             }
 
-            currentMeta = ref ParseLineEnds(
-                maskNewlineOrDelimiter,
-                ref first,
-                ref runningIndex,
-                ref currentMeta,
-                ref nextVector
-            );
+            ParseLineEnds(maskNewlineOrDelimiter, ref first, runningIndex, ref fieldIndex, ref dstField, ref vector);
             goto ContinueRead;
 
             TrySkipQuoted:
@@ -161,7 +173,7 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
 
             // if there are dangling quotes but the current vector has none, we must be in a string.
             // check if we can skip it
-            if (hasQuote == TVector.Zero && quotesConsumed % 2 == 1)
+            if (quotesConsumed % 2 == 1 && hasQuote == Vector256<byte>.Zero)
             {
                 //              -- current --
                 // [1, "John ""][The Amazing]["" Doe", 00]
@@ -175,201 +187,195 @@ internal sealed class SimdTokenizer<T, TNewline, TVector>(CsvOptions<T> options)
             // [John, "Doe"][, 123, 4567]
             // any combination of delimiters, quotes, and newlines
             HandleAny:
-            currentMeta = ref ParseAny(
+            ParseAny(
                 maskAny,
                 ref first,
-                ref runningIndex,
-                ref currentMeta,
-                quote,
+                runningIndex,
+                ref fieldIndex,
+                ref dstField,
+                ref dstQuote,
+                delimiter: delimiter,
+                quote: quote,
                 ref quotesConsumed,
-                ref nextVector
+                ref vector
             );
 
             ContinueRead:
-            runningIndex += (nuint)TVector.Count;
+            runningIndex += (nuint)Vector256<byte>.Count;
+            hasNewline = TNewline.IsCRLF
+                ? Vector256.Equals(vector, lfVec) | Vector256.Equals(vector, crVec)
+                : Vector256.Equals(vector, lfVec);
+            hasDelimiter = Vector256.Equals(vector, delimiterVec);
+            hasQuote = Vector256.Equals(vector, quoteVec);
+            hasAny = hasNewline | hasDelimiter | hasQuote;
         }
 
-        nint byteOffset = Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta);
-        return (int)byteOffset / Unsafe.SizeOf<Meta>();
+        recordBuffer.SetFieldsRead((int)fieldIndex);
+        return fieldIndex > 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseDelimiters(nuint mask, nuint runningIndex, ref Meta currentMeta)
+    private static void ParseDelimiters(uint mask, nuint runningIndex, ref nuint fieldIndex, ref uint fieldRef)
     {
         uint count = (uint)BitOperations.PopCount(mask);
 
+        // on 128bit vectors 3 is optimal; revisit if we change width
+        const uint unrollCount = 5;
+
+        uint increment = (uint)runningIndex;
+        ref uint dst = ref Unsafe.Add(ref fieldRef, fieldIndex);
+
         // we might write more values than we have bits in the mask, but the meta buffer always has space,
         // and we return the correct reference at the end. this way we can avoid branching 99%+ of the time here
-        Unsafe.Add(ref currentMeta, 0u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+        Unsafe.Add(ref dst, 0u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        Unsafe.Add(ref currentMeta, 1u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+        Unsafe.Add(ref dst, 1u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        Unsafe.Add(ref currentMeta, 2u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
+        Unsafe.Add(ref dst, 2u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
+        Unsafe.Add(ref dst, 3u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
+        mask &= (mask - 1);
+        Unsafe.Add(ref dst, 4u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
 
-        // unrolling to 5 is faster for 256 bit vectors, while 3 is optimal for 128 bit vectors
-        // 512 bit vectors aren't used currently as 256 bit vectors are faster even on Avx512BW
-        if (TVector.Count > 16)
+        if (count > unrollCount)
         {
-            Unsafe.Add(ref currentMeta, 3u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
             mask &= (mask - 1);
-            Unsafe.Add(ref currentMeta, 4u) = Meta.Plain((int)runningIndex + BitOperations.TrailingZeroCount(mask));
-            mask &= (mask - 1);
-        }
 
-        // don't store this into a local, it doesn't need to live in a register
-        if (count > (TVector.Count > 16 ? 5u : 3u))
-        {
             // for some reason this is faster than incrementing a pointer
-            uint index = TVector.Count > 16 ? 5u : 3u;
+            dst = ref Unsafe.Add(ref fieldRef, unrollCount);
 
             do
             {
-                int offset = BitOperations.TrailingZeroCount(mask);
+                uint offset = (uint)BitOperations.TrailingZeroCount(mask);
                 mask &= (mask - 1);
-                Unsafe.Add(ref currentMeta, index++) = Meta.Plain((int)runningIndex + offset);
+                dst = increment + offset;
+                dst = ref Unsafe.Add(ref dst, 1u);
             } while (mask != 0);
         }
 
-        return ref Unsafe.Add(ref currentMeta, count);
+        fieldIndex += count;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseLineEnds(
-        nuint mask,
+    private static void ParseLineEnds(
+        uint mask,
         scoped ref T first,
-        scoped ref nuint runningIndex,
-        ref Meta currentMeta,
-        ref TVector nextVector
+        nuint runningIndex,
+        ref nuint fieldIndex,
+        ref uint fieldRef,
+        ref Vector256<byte> nextVector
     )
     {
-        int offset;
-        bool isMultitoken;
+        uint offset;
+        FieldFlag flag;
+
+        // if (BitOperations.PopCount(mask) == 1)
+        // {
+        //     offset = (uint)BitOperations.TrailingZeroCount(mask);
+        //     flag = TNewline.GetFlag(ref Unsafe.Add(ref first, runningIndex + offset));
+        //     Unsafe.Add(ref fieldRef, fieldIndex++) = ((uint)runningIndex + offset) | (uint)flag;
+        // }
+        // else
+        {
+            do
+            {
+                offset = (uint)BitOperations.TrailingZeroCount(mask);
+                mask &= (mask - 1); // clear lowest bit
+                flag = TNewline.GetKnownNewlineFlag(ref Unsafe.Add(ref first, runningIndex + offset), ref mask);
+                Unsafe.Add(ref fieldRef, fieldIndex++) = ((uint)runningIndex + offset) | (uint)flag;
+            } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+        }
+
+        // put the offset check first as it should be more predictable; kind may be CRLF 5-10% of the time
+        if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && flag == FieldFlag.CRLF)
+        {
+            nextVector &= ZeroFirst;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ParseDelimitersAndLineEnds(
+        uint mask,
+        scoped ref T first,
+        T delimiter,
+        nuint runningIndex,
+        ref nuint fieldIndex,
+        ref uint fieldRef,
+        ref Vector256<byte> nextVector
+    )
+    {
+        uint offset;
+        FieldFlag isEOL;
 
         do
         {
-            offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1); // clear lowest bit
-
-            // no need to call IsNewline(), the mask contains only newlines
-            // this whole method should be exceedingly rare anyways
-            isMultitoken = TNewline.IsMultitoken(ref Unsafe.Add(ref first, runningIndex + (nuint)offset));
-
-            currentMeta = Meta.Plain((int)runningIndex + offset, isEOL: true, TNewline.GetLength(isMultitoken));
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-
-            if (TNewline.IsCRLF && isMultitoken) // runtime constant
-            {
-                // clear the next bit, or adjust the index if we crossed a vector boundary
-                mask &= (mask - 1);
-            }
+            offset = (uint)BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1);
+            uint value = (uint)runningIndex + offset;
+            isEOL = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, value), ref mask);
+            Unsafe.Add(ref fieldRef, fieldIndex++) = value | (uint)isEOL;
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
-        // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
-        // offset will be 31 only if the final bit was a CR; a block ending in CRLF will have offset of 30
-        if (TNewline.IsCRLF && isMultitoken && offset == TVector.Count - 1)
+        // put the offset check first as it should be more predictable; kind may be CRLF 5-10% of the time
+        if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && isEOL == FieldFlag.CRLF)
         {
-            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count + 1);
-            runningIndex += 1;
+            nextVector &= ZeroFirst;
         }
-
-        return ref currentMeta;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseDelimitersAndLineEnds(
-        nuint mask,
+    private static void ParseAny(
+        uint mask,
         scoped ref T first,
-        scoped ref nuint runningIndex,
-        ref Meta currentMeta,
-        ref TVector nextVector
-    )
-    {
-        int offset;
-        bool isEOL;
-        bool isMultitoken;
-
-        do
-        {
-            offset = BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1); // clear lowest bit
-
-            isEOL = TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + (nuint)offset), out isMultitoken);
-
-            currentMeta = Meta.Plain((int)runningIndex + offset, isEOL, TNewline.GetLength(isMultitoken));
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-
-            // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.IsCRLF && isEOL && isMultitoken)
-            {
-                mask &= (mask - 1);
-            }
-        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
-
-        // Vector boundary crossing is very rare (e.g. 1/16 or 1/32 or 1/64)
-        // offset will be e.g. 31 only if the final bit was a delimiter; a block ending in CRLF
-        // will have offset of 30 instead
-        if (TNewline.IsCRLF && isEOL && isMultitoken && offset == TVector.Count - 1)
-        {
-            nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count + 1);
-            runningIndex += 1;
-        }
-
-        return ref currentMeta;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ref Meta ParseAny(
-        nuint mask,
-        ref T first,
-        scoped ref nuint runningIndex,
-        ref Meta currentMeta,
+        nuint runningIndex,
+        ref nuint fieldIndex,
+        ref uint fieldRef,
+        ref byte quoteRef,
+        T delimiter,
         T quote,
         scoped ref uint quotesConsumed,
-        ref TVector nextVector
+        ref Vector256<byte> nextVector
     )
     {
+        // this method benefits from preloading the offset as we need it in multiple places
+        ref T data = ref Unsafe.Add(ref first, runningIndex);
+
+        uint offset;
+        FieldFlag flag = default;
+
         do
         {
-            int offset = BitOperations.TrailingZeroCount(mask);
+            offset = (uint)BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
 
-            if (Unsafe.Add(ref first, runningIndex + (nuint)offset) == quote)
+            byte isQuote = Unsafe.BitCast<bool, byte>(Unsafe.Add(ref data, offset) == quote);
+            quotesConsumed += isQuote;
+
+            if (((isQuote | quotesConsumed) & 1) != 0)
             {
-                ++quotesConsumed;
-                continue;
-            }
-
-            if (quotesConsumed % 2 == 1)
-            {
-                continue;
-            }
-
-            bool isEOL = TNewline.IsNewline(
-                ref Unsafe.Add(ref first, runningIndex + (nuint)offset),
-                out bool isMultitoken
-            );
-
-            currentMeta = Meta.RFC((int)runningIndex + offset, quotesConsumed, isEOL, TNewline.GetLength(isMultitoken));
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-            quotesConsumed = 0;
-
-            // assume EOL is rarer than delimiters. OffsetFromEnd is a runtime constant
-            if (TNewline.IsCRLF && isEOL && isMultitoken)
-            {
-                // clear the next bit, or adjust the index if we crossed a vector boundary
-                mask &= (mask - 1);
-
-                if (offset == TVector.Count - 1)
+                if (TNewline.IsCRLF)
                 {
-                    nextVector = TVector.LoadUnaligned(ref first, runningIndex + (nuint)TVector.Count + 1);
-                    runningIndex += 1;
+                    flag = 0;
                 }
+
+                continue;
             }
+
+            if (quotesConsumed > 127)
+            {
+                quotesConsumed = 127;
+            }
+
+            flag = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref data, offset), ref mask);
+            Unsafe.Add(ref fieldRef, fieldIndex) = ((uint)runningIndex + offset) | (uint)flag;
+            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
+            quotesConsumed = 0;
+            fieldIndex++;
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
-        // can't lift out the EOL check to here, as we might have a quote after the last EOL leaving it in the wrong state
-
-        return ref currentMeta;
+        if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && flag == FieldFlag.CRLF)
+        {
+            nextVector &= ZeroFirst;
+        }
     }
 }

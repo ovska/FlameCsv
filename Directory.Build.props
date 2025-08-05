@@ -1,6 +1,7 @@
 <Project>
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
+        <!-- <SuppressPreviewSDKWarning>true</SuppressPreviewSDKWarning> -->
         <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

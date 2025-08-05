@@ -44,7 +44,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     private bool IsDisposed => _state == State.Disposed;
 
-    private readonly MetaBuffer _metaBuffer;
+    private readonly RecordBuffer _recordBuffer;
 
     private readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
@@ -80,7 +80,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         options.MakeReadOnly();
 
         Options = options;
-        _metaBuffer = new MetaBuffer();
+        _recordBuffer = new RecordBuffer();
         _reader = reader;
         _skipBOM = typeof(T) == typeof(byte);
         _state = State.Initialized;
@@ -105,13 +105,14 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal bool TryGetBuffered(out CsvSlice<T> slice)
     {
-        if (_metaBuffer.TryPop(out ArraySegment<Meta> meta))
+        if (_recordBuffer.TryPop(out RecordView record))
         {
-            slice = new()
+            // we have a record in the buffer, return it
+            slice = new CsvSlice<T>
             {
                 Reader = this,
                 Data = _buffer,
-                Fields = meta,
+                Record = record,
             };
             return true;
         }
@@ -140,15 +141,15 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         if (_state is State.Reading or State.ReaderCompleted && !_buffer.IsEmpty)
         {
             if (
-                TryFillCore(out ArraySegment<Meta> meta)
-                || (_state == State.ReaderCompleted && TryFillCore(out meta, readToEnd: true))
+                TryFillCore(out RecordView record)
+                || (_state == State.ReaderCompleted && TryFillCore(out record, readToEnd: true))
             )
             {
                 slice = new()
                 {
                     Reader = this,
                     Data = _buffer,
-                    Fields = meta,
+                    Record = record,
                 };
                 return true;
             }
@@ -169,37 +170,37 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         return false;
     }
 
-    private bool TryFillCore(out ArraySegment<Meta> meta, bool readToEnd = false)
+    private bool TryFillCore(out RecordView record, bool readToEnd = false)
     {
-        Span<Meta> metaBuffer = _metaBuffer.GetUnreadBuffer(out int startIndex);
         ReadOnlySpan<T> data = _buffer.Span;
 
-        int read =
+        bool readAnyFields =
             readToEnd || _simdTokenizer is null
-                ? _scalarTokenizer.Tokenize(metaBuffer, data, startIndex, readToEnd)
-                : _simdTokenizer.Tokenize(metaBuffer, data, startIndex);
+                ? _scalarTokenizer.Tokenize(_recordBuffer, data, readToEnd)
+                : _simdTokenizer.Tokenize(_recordBuffer, data);
 
-        if (read > 0)
+        if (readAnyFields)
         {
-            int charactersConsumed = _metaBuffer.SetFieldsRead(read);
-
             // request more data if the next tokenizing would not be large enough to be productive
-            if (_state == State.Reading && (data.Length - charactersConsumed) < _simdTokenizer?.PreferredLength)
+            if (
+                _state == State.Reading
+                && (data.Length - _recordBuffer.BufferedDataLength) < _simdTokenizer?.PreferredLength
+            )
             {
                 _state = State.DataExhausted;
             }
 
-            if (_metaBuffer.TryPop(out meta))
+            if (_recordBuffer.TryPop(out record))
             {
                 return true;
             }
 
             // read something, but no fully formed record.
             // ensure we aren't dealing with a huge record that can't fit in our buffer (thousands of fields)
-            _metaBuffer.EnsureCapacity();
+            _recordBuffer.EnsureCapacity();
         }
 
-        Unsafe.SkipInit(out meta);
+        Unsafe.SkipInit(out record);
         return false;
     }
 
@@ -217,7 +218,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         if (_reader.TryReset())
         {
             SetReadResult(in CsvReadResult<T>.Empty);
-            _metaBuffer.Initialize();
+            _recordBuffer.Initialize();
             _state = State.Initialized;
             return true;
         }
@@ -283,7 +284,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     private void ResetBufferAndAdvanceReader()
     {
-        int consumed = _metaBuffer.Reset();
+        int consumed = _recordBuffer.Reset();
 
         if (consumed > 0)
         {
@@ -350,7 +351,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         {
             // don't hold on to data after disposing
             _buffer = ReadOnlyMemory<T>.Empty;
-            _metaBuffer.Dispose();
+            _recordBuffer.Dispose();
         }
     }
 

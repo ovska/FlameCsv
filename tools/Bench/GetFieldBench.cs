@@ -1,3 +1,4 @@
+#if false
 // ReSharper disable all
 
 using FlameCsv.Intrinsics;
@@ -27,7 +28,7 @@ public class GetFieldBench
         _dataUnquoted = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
         _dataQuoted = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
 
-        var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);
+        var tokenizer = new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default);
 
         _countQuoted = tokenizer.Tokenize(_metaUnquoted.AsSpan(1), _dataUnquoted, 0) + 1;
         _countUnquoted = tokenizer.Tokenize(_metaQuoted.AsSpan(1), _dataQuoted, 0) + 1;
@@ -58,3 +59,4 @@ public class GetFieldBench
         }
     }
 }
+#endif

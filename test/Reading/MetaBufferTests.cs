@@ -7,47 +7,47 @@ public class MetaBufferTests
     [Fact]
     public void Should_Read_Fields()
     {
-        MetaBuffer buffer = new();
-        Meta[] array =
+        // Assert.Skip("Should not re-parse leftover fields");
+
+        // this will leak some arrays from pool but that's fine for a test
+        RecordBuffer buffer = new();
+        uint[] array =
         [
-            Meta.StartOfData,
-            Meta.Plain(1),
-            Meta.Plain(3),
-            Meta.Plain(5),
-            Meta.Plain(7, isEOL: true, 2),
-            Meta.Plain(10),
-            Meta.Plain(20),
-            Meta.Plain(30),
-            Meta.Plain(40),
+            Field.StartOrEnd,
+            1u,
+            3u,
+            5u,
+            7u | (uint)FieldFlag.CRLF,
+            10u,
+            20u,
+            30u,
+            40u,
             default,
             default,
             default,
         ];
-        buffer.UnsafeGetArrayRef() = array;
 
-        int consumed = buffer.SetFieldsRead(8);
-        Assert.Equal(41, consumed);
+        buffer.GetFieldArrayRef() = array;
 
-        Assert.True(buffer.TryPop(out var fields));
-        Assert.Equal(array[..5].AsSpan(), fields.AsSpan());
+        buffer.SetFieldsRead(8);
+
+        Assert.True(buffer.TryPop(out var view));
+        Assert.Equal(array[..5].AsSpan(), view.Fields);
 
         // first 8 (+ startofdata) were read
-        Assert.Equal(3, buffer.GetUnreadBuffer(out int startIndex).Length);
+        // TODO! don't re-parse
+        Assert.Equal(3, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
         Assert.Equal(41, startIndex);
 
         Assert.False(buffer.TryPop(out _));
 
         // we read 8 fields, but only the first 4 had a record (EOL at 7+2)
         Assert.Equal(9, buffer.Reset());
-        Assert.Equal(
-            [Meta.StartOfData, Meta.Plain(1), Meta.Plain(11), Meta.Plain(21), Meta.Plain(31)],
-            buffer.UnsafeGetArrayRef().AsSpan(0, 5)
-        );
+        Assert.Equal([Field.StartOrEnd, 1u, 11u, 21u, 31u], buffer.GetFieldArrayRef().AsSpan(0, 5));
 
-        buffer.GetUnreadBuffer(out startIndex)[0] = Meta.Plain(41, isEOL: true, 2);
-        consumed = buffer.SetFieldsRead(1);
-        Assert.Equal(43, consumed); // 41+2
-        Assert.True(buffer.TryPop(out fields));
-        Assert.Equal(array[..6].AsSpan(), fields.AsSpan());
+        buffer.GetUnreadBuffer(0, out startIndex).Fields[0] = 41u | (uint)FieldFlag.CRLF;
+        buffer.SetFieldsRead(1);
+        Assert.True(buffer.TryPop(out view));
+        Assert.Equal(array[..6].AsSpan(), view.Fields);
     }
 }

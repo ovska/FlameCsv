@@ -18,30 +18,40 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref T _data;
-    private readonly ReadOnlySpan<Meta> _meta;
+    private readonly ReadOnlySpan<uint> _fields;
+    private readonly ref byte _quotes;
     internal readonly CsvReader<T> _reader;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(scoped ref readonly CsvSlice<T> slice)
-    {
-        _reader = slice.Reader;
-        _data = ref MemoryMarshal.GetReference(slice.Data.Span);
-        _meta = slice.Fields.AsSpanUnsafe(1); // skip the first which points to the start of the record
-    }
+        : this(slice.Reader, ref MemoryMarshal.GetReference(slice.Data.Span), slice.Record) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecordRef(CsvReader<T> reader, ref T data, ReadOnlySpan<Meta> meta)
+    internal CsvRecordRef(CsvReader<T> reader, ref T data, RecordView view)
     {
         _reader = reader;
         _data = ref data;
-        _meta = meta.Slice(1); // skip the first which points to the start of the record
+
+        uint[] fields = view._fields;
+        byte[] quotes = view._quotes;
+        int start = view.Start + 1;
+        int length = view.Count - 1;
+
+        // skip the first which points to the start of the record
+
+        _fields = MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(fields), start),
+            length
+        );
+
+        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(quotes), start);
     }
 
     /// <inheritdoc/>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _meta.Length;
+        get => _fields.Length;
     }
 
     /// <inheritdoc/>
@@ -51,17 +61,18 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         get
         {
             // always access this first to ensure index is within bounds
-            ref readonly Meta current = ref _meta[index];
+            ref readonly uint current = ref _fields[index];
+            byte quote = Unsafe.Add(ref _quotes, index);
 
             // very important to access the previous field in this manner for the CPU to optimize it with offset access
-            int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
+            int start = Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in current), -1));
 
-            if ((((int)_reader._dialect.Trimming) | (current._specialCountAndOffset & Meta.SpecialCountMask)) != 0)
+            if ((((int)_reader._dialect.Trimming) | quote) != 0)
             {
-                return current.GetFieldSlow(start, ref _data, _reader);
+                return Field.GetValue(start, current, quote, ref _data, _reader);
             }
 
-            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), current.End - start);
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), Field.End(current) - start);
         }
     }
 
@@ -76,10 +87,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
         // always access this first to ensure index is within bounds
-        ref readonly Meta current = ref _meta[index];
-
-        int start = Unsafe.Add(ref Unsafe.AsRef(in current), -1).NextStart;
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), current.End - start);
+        ref readonly uint current = ref _fields[index];
+        int start = Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in current), -1));
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), Field.End(current) - start);
     }
 
     /// <summary>
@@ -89,9 +99,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     {
         get
         {
-            ReadOnlySpan<Meta> meta = _meta;
-            int end = meta[^1].End; // ensures the span is not empty
-            int start = Unsafe.Add(ref MemoryMarshal.GetReference(meta), -1).NextStart;
+            ReadOnlySpan<uint> fields = _fields;
+            int end = Field.End(fields[^1]); // ensures the span is not empty
+            int start = Field.NextStart(Unsafe.Add(ref MemoryMarshal.GetReference(fields), -1));
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
         }
     }
@@ -102,16 +112,16 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// <param name="includeTrailingNewline">Whether to include the length of the possible trailing newline</param>
     public int GetRecordLength(bool includeTrailingNewline = false)
     {
-        ReadOnlySpan<Meta> meta = _meta;
+        ReadOnlySpan<uint> fields = _fields;
 
         // ensure default(CsvRecordRef<T>) is handled correctly
-        if (meta.IsEmpty)
+        if (fields.IsEmpty)
         {
             return 0;
         }
 
         return MemoryMarshal
-            .CreateReadOnlySpan(ref Unsafe.Add(ref MemoryMarshal.GetReference(meta), -1), meta.Length + 1)
+            .CreateReadOnlySpan(ref Unsafe.Add(ref MemoryMarshal.GetReference(fields), -1), fields.Length + 1)
             .GetRecordLength(includeTrailingNewline);
     }
 

@@ -57,16 +57,14 @@ internal static class IndexOfUnescaper
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> Invalid<T>(scoped ref readonly Meta meta, scoped ref T data, int start, int length)
+    public static ReadOnlySpan<T> Invalid<T>(ReadOnlySpan<T> value, uint field, byte quote)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ReadOnlySpan<T> field = MemoryMarshal.CreateReadOnlySpan(ref data, length);
-
         string str;
 
         try
         {
-            str = Transcode.ToString(field);
+            str = Transcode.ToString(value);
         }
         catch (Exception e)
         {
@@ -74,6 +72,6 @@ internal static class IndexOfUnescaper
         }
 
         // TODO: LENIENCY
-        throw new CsvFormatException($"Cannot unescape invalid field {meta}: {str}");
+        throw new CsvFormatException($"Cannot unescape invalid field {field}: {str}");
     }
 }

@@ -5,123 +5,117 @@ using System.Runtime.InteropServices;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
+internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : INewline
 {
-    private readonly T _quote = T.CreateTruncating(options.Quote);
-    private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
+    private readonly T _quote;
+    private readonly T _delimiter;
+    private EnumeratorStack _lut;
+
+    public ScalarTokenizer(CsvOptions<T> options)
+    {
+        _quote = T.CreateTruncating(options.Quote);
+        _delimiter = T.CreateTruncating(options.Delimiter);
+
+        Span<byte> lut = _lut;
+        lut.Clear();
+
+        if (typeof(T) == typeof(byte))
+        {
+            Debug.Assert(lut.Length == 256, "LUT must be 256 bytes long");
+
+            // for bytes, store a value directly.
+            lut[options.Quote] = 1;
+            lut[options.Delimiter] = 1;
+            lut['\n'] = 1;
+
+            if (TNewline.IsCRLF)
+            {
+                lut['\r'] = 1;
+            }
+        }
+        else
+        {
+            if (typeof(T) != typeof(char))
+            {
+                throw Token<T>.NotSupported;
+            }
+
+            Span<char> span = MemoryMarshal.Cast<byte, char>((Span<byte>)_lut);
+            Debug.Assert(span.Length == 128, "LUT must be 128 chars long");
+
+            // for chars we need to ensure that high bits are zeroed out, so compare the value with itself
+            span[0] = char.MaxValue; // in case the data contains zeroes
+            span[options.Quote] = options.Quote;
+            span[options.Delimiter] = options.Delimiter;
+            span['\n'] = '\n';
+
+            if (TNewline.IsCRLF)
+            {
+                span['\r'] = '\r';
+            }
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(Span<Meta> metaBuffer, ReadOnlySpan<T> data, int startIndex, bool readToEnd)
+    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
     {
+        FieldBuffer destination = recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
+
         if (data.IsEmpty || data.Length <= startIndex)
         {
-            return 0;
+            return false;
         }
 
         T quote = _quote;
         T delimiter = _delimiter;
 
         ref T first = ref MemoryMarshal.GetReference(data);
-        nuint runningIndex = (uint)startIndex;
+        nuint runningIndex = (nuint)startIndex;
         uint quotesConsumed = 0;
-        bool isMultitoken = false;
+
+        scoped ref uint dstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        nuint fieldIndex = 0;
 
         // offset ends -2 so we can check for \r\n and "" without bounds checks
-        // ensure no underflow
         nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 2);
-        nuint unrolledEnd = (nuint)Math.Max(0, (nint)searchSpaceEnd - 8);
+        nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 4);
 
-        ref Meta currentMeta = ref MemoryMarshal.GetReference(metaBuffer);
-        ref readonly Meta metaEnd = ref Unsafe.Add(ref MemoryMarshal.GetReference(metaBuffer), metaBuffer.Length);
-
-        while (Unsafe.IsAddressLessThan(in currentMeta, in metaEnd))
+        while (fieldIndex < (nuint)destination.Fields.Length)
         {
             while (runningIndex < unrolledEnd)
             {
-                if (
-                    Unsafe.Add(ref first, runningIndex + 0) == quote
-                    || Unsafe.Add(ref first, runningIndex + 0) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 0), out isMultitoken)
-                )
+                if (IsAny(Unsafe.Add(ref first, runningIndex)))
                 {
                     goto Found;
                 }
 
-                if (
-                    Unsafe.Add(ref first, runningIndex + 1) == quote
-                    || Unsafe.Add(ref first, runningIndex + 1) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 1), out isMultitoken)
-                )
+                if (IsAny(Unsafe.Add(ref first, runningIndex + 1)))
                 {
-                    goto Found1;
+                    runningIndex += 1;
+                    goto Found;
                 }
 
-                if (
-                    Unsafe.Add(ref first, runningIndex + 2) == quote
-                    || Unsafe.Add(ref first, runningIndex + 2) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 2), out isMultitoken)
-                )
+                if (IsAny(Unsafe.Add(ref first, runningIndex + 2)))
                 {
-                    goto Found2;
+                    runningIndex += 2;
+                    goto Found;
                 }
 
-                if (
-                    Unsafe.Add(ref first, runningIndex + 3) == quote
-                    || Unsafe.Add(ref first, runningIndex + 3) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 3), out isMultitoken)
-                )
+                if (IsAny(Unsafe.Add(ref first, runningIndex + 3)))
                 {
-                    goto Found3;
+                    runningIndex += 3;
+                    goto Found;
                 }
 
-                if (
-                    Unsafe.Add(ref first, runningIndex + 4) == quote
-                    || Unsafe.Add(ref first, runningIndex + 4) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 4), out isMultitoken)
-                )
-                {
-                    goto Found4;
-                }
-
-                if (
-                    Unsafe.Add(ref first, runningIndex + 5) == quote
-                    || Unsafe.Add(ref first, runningIndex + 5) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 5), out isMultitoken)
-                )
-                {
-                    goto Found5;
-                }
-
-                if (
-                    Unsafe.Add(ref first, runningIndex + 6) == quote
-                    || Unsafe.Add(ref first, runningIndex + 6) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 6), out isMultitoken)
-                )
-                {
-                    goto Found6;
-                }
-
-                if (
-                    Unsafe.Add(ref first, runningIndex + 7) == quote
-                    || Unsafe.Add(ref first, runningIndex + 7) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex + 7), out isMultitoken)
-                )
-                {
-                    goto Found7;
-                }
-
-                runningIndex += 8;
+                runningIndex += 4;
             }
 
             while (runningIndex <= searchSpaceEnd)
             {
-                if (
-                    Unsafe.Add(ref first, runningIndex) == quote
-                    || Unsafe.Add(ref first, runningIndex) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex), out isMultitoken)
-                )
+                if (IsAny(Unsafe.Add(ref first, runningIndex)))
                 {
                     goto Found;
                 }
@@ -132,36 +126,7 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
             // ran out of data
             goto EndOfData;
 
-            Found7:
-            runningIndex += 7;
-            goto Found;
-            Found6:
-            runningIndex += 6;
-            goto Found;
-            Found5:
-            runningIndex += 5;
-            goto Found;
-            Found4:
-            runningIndex += 4;
-            goto Found;
-            Found3:
-            runningIndex += 3;
-            goto Found;
-            Found2:
-            runningIndex += 2;
-            goto Found;
-            Found1:
-            runningIndex += 1;
             Found:
-            if (Unsafe.Add(ref first, runningIndex) == delimiter)
-            {
-                currentMeta = Meta.RFC((int)runningIndex, quotesConsumed);
-                currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-                runningIndex++;
-                quotesConsumed = 0;
-                continue;
-            }
-
             if (Unsafe.Add(ref first, runningIndex) == quote)
             {
                 quotesConsumed++;
@@ -169,34 +134,21 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 goto ReadString;
             }
 
-            Debug.Assert(TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex), out _));
-            int newlineLength = TNewline.GetLength(isMultitoken);
-            currentMeta = Meta.EOL((int)runningIndex, quotesConsumed, newlineLength);
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
-            runningIndex += (uint)newlineLength;
+            FoundNonQuote:
+
+            Field.SaturateQuotes(ref quotesConsumed);
+
+            // TODO FIXME
+            Unsafe.SkipInit(out uint tmp);
+            FieldFlag flag = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, runningIndex), ref tmp);
+
+            Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | (uint)flag;
+            Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+            fieldIndex++;
             quotesConsumed = 0;
+            runningIndex += (flag == FieldFlag.CRLF) ? 2u : 1u;
             continue;
 
-            FoundQuote7:
-            runningIndex += 7;
-            goto FoundQuote;
-            FoundQuote6:
-            runningIndex += 6;
-            goto FoundQuote;
-            FoundQuote5:
-            runningIndex += 5;
-            goto FoundQuote;
-            FoundQuote4:
-            runningIndex += 4;
-            goto FoundQuote;
-            FoundQuote3:
-            runningIndex += 3;
-            goto FoundQuote;
-            FoundQuote2:
-            runningIndex += 2;
-            goto FoundQuote;
-            FoundQuote1:
-            runningIndex += 1;
             FoundQuote:
             // found just a single quote in a string?
             if (Unsafe.Add(ref first, runningIndex + 1) != quote)
@@ -207,10 +159,10 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 // quotes should be followed by delimiters or newlines
                 if (
                     Unsafe.Add(ref first, runningIndex) == delimiter
-                    || TNewline.IsNewline(ref Unsafe.Add(ref first, runningIndex), out isMultitoken)
+                    || TNewline.IsNewline(Unsafe.Add(ref first, runningIndex))
                 )
                 {
-                    goto Found;
+                    goto FoundNonQuote;
                 }
 
                 continue;
@@ -223,25 +175,33 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
 
             ReadString:
             Debug.Assert(quotesConsumed % 2 != 0);
+
             while (runningIndex < unrolledEnd)
             {
-                if (Unsafe.Add(ref first, runningIndex + 0) == quote)
+                if (quote == Unsafe.Add(ref first, runningIndex))
+                {
                     goto FoundQuote;
-                if (Unsafe.Add(ref first, runningIndex + 1) == quote)
-                    goto FoundQuote1;
-                if (Unsafe.Add(ref first, runningIndex + 2) == quote)
-                    goto FoundQuote2;
-                if (Unsafe.Add(ref first, runningIndex + 3) == quote)
-                    goto FoundQuote3;
-                if (Unsafe.Add(ref first, runningIndex + 4) == quote)
-                    goto FoundQuote4;
-                if (Unsafe.Add(ref first, runningIndex + 5) == quote)
-                    goto FoundQuote5;
-                if (Unsafe.Add(ref first, runningIndex + 6) == quote)
-                    goto FoundQuote6;
-                if (Unsafe.Add(ref first, runningIndex + 7) == quote)
-                    goto FoundQuote7;
-                runningIndex += 8;
+                }
+
+                if (quote == Unsafe.Add(ref first, runningIndex + 1))
+                {
+                    runningIndex += 1;
+                    goto FoundQuote;
+                }
+
+                if (quote == Unsafe.Add(ref first, runningIndex + 2))
+                {
+                    runningIndex += 2;
+                    goto FoundQuote;
+                }
+
+                if (quote == Unsafe.Add(ref first, runningIndex + 3))
+                {
+                    runningIndex += 3;
+                    goto FoundQuote;
+                }
+
+                runningIndex += 4;
             }
 
             while (runningIndex <= searchSpaceEnd)
@@ -258,34 +218,37 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 break;
             }
 
-            // data ended in a trailing newline
+            // data ended in a trailing newline?
             if (
-                !Unsafe.AreSame(in MemoryMarshal.GetReference(metaBuffer), in currentMeta)
-                && Unsafe.Add(ref currentMeta, -1).IsEOL
-                && Unsafe.Add(ref currentMeta, -1).NextStart == data.Length
+                fieldIndex > 0
+                && (Field.IsEOL & Unsafe.Add(ref dstField, fieldIndex - 1)) != 0
+                && Field.NextStart(Unsafe.Add(ref dstField, fieldIndex - 1)) == data.Length
             )
             {
                 break;
             }
 
             // need to process the final token (unless it was skipped with CRLF)
-            if (((nint)runningIndex == (data.Length - 1)))
+            if ((nint)runningIndex == (data.Length - 1))
             {
                 T final = Unsafe.Add(ref first, runningIndex);
+                Field.SaturateQuotes(ref quotesConsumed);
 
                 if (TNewline.IsNewline(final))
                 {
-                    // this can only be a 1-token newline
-                    currentMeta = Meta.EOL((int)runningIndex, quotesConsumed, newlineLength: 1);
-                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                    // this can only be a 1-token newline, omit the newline kind as the offset is always 1
+                    Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | Field.IsEOL;
+                    Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+                    fieldIndex++;
                     break;
                 }
 
                 if (final == delimiter)
                 {
-                    currentMeta = Meta.RFC((int)runningIndex, quotesConsumed);
-                    currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+                    Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex;
+                    Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
                     quotesConsumed = 0;
+                    fieldIndex++;
                 }
                 else if (final == quote)
                 {
@@ -293,12 +256,28 @@ internal sealed class ScalarTokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 }
             }
 
-            currentMeta = Meta.EOL((int)runningIndex + 1, quotesConsumed, newlineLength: 0);
-            currentMeta = ref Unsafe.Add(ref currentMeta, 1);
+            Field.SaturateQuotes(ref quotesConsumed);
+            Unsafe.Add(ref dstField, fieldIndex) = (uint)++runningIndex | Field.StartOrEnd;
+            Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+            fieldIndex++;
             break;
         }
 
-        return (int)Unsafe.ByteOffset(in MemoryMarshal.GetReference(metaBuffer), in currentMeta)
-            / Unsafe.SizeOf<Meta>();
+        recordBuffer.SetFieldsRead((int)fieldIndex);
+        return fieldIndex > 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsAny(T value)
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            // valid controls have have a nonzero value
+            return Unsafe.BitCast<byte, bool>(_lut[Unsafe.BitCast<T, byte>(value)]);
+        }
+
+        Debug.Assert(typeof(T) == typeof(char), "T must be either byte or char");
+        uint c = Unsafe.BitCast<T, char>(value);
+        return Unsafe.Add(ref Unsafe.As<byte, char>(ref _lut.elem0), c & 127u) == c;
     }
 }

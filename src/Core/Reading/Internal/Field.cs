@@ -1,0 +1,170 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
+using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
+using FlameCsv.Reading.Unescaping;
+
+namespace FlameCsv.Reading.Internal;
+
+internal static class Field
+{
+    /*
+        00  - Delimiter
+        10  - First field, or last field without a trailing delimiter
+        01  - LF
+        11  - CRLF
+    */
+
+    /// <summary>
+    /// Flag for the start of the first record, or the end of the last record without a trailing newline.
+    /// </summary>
+    public const uint StartOrEnd = 1u << 31;
+
+    /// <summary>
+    /// Flag for EOL.
+    /// </summary>
+    public const uint IsEOL = 1u << 30;
+
+    /// <summary>
+    /// Flag for CRLF (two-character EOL)
+    /// </summary>
+    public const uint IsCRLF = 1u << 30 | 1u << 31;
+
+    /// <summary>
+    /// Mask for the end index of the field.
+    /// </summary>
+    public const uint EndMask = 0x3FFFFFFF;
+
+    /// <summary>
+    /// Mask for the EOL bits.
+    /// </summary>
+    public const uint FlagMask = ~EndMask;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int NextStart(uint field)
+    {
+        // store the offsets in a small LUT; LF and delimiter have offset of 1, CRLF 2, and start/end 0
+        uint end = field & EndMask;
+        uint offset;
+
+        // TODO: perf profile against a ReadOnlySpan LUT
+        if (Bmi2.IsSupported)
+        {
+            offset = (uint)(0b_10_00_01_01 >> (int)((field >> 30) << 1)) & 3;
+        }
+        else
+        {
+            uint b = field >> 30;
+            offset = ((b & (b >> 1)) << 1) | (1 ^ (b >> 1));
+        }
+
+        return (int)(end + offset);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int End(uint field) => (int)(field & EndMask);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        int end = (int)(field & EndMask);
+
+        // trim before unquoting to preserve spaces in strings
+        if (reader._dialect.Trimming != CsvFieldTrimming.None)
+        {
+            reader._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
+        }
+
+        int length = end - start;
+
+        ref T first = ref Unsafe.Add(ref data, (uint)start);
+        ReadOnlySpan<T> retVal;
+
+        if ((quote & 0x80) != 0)
+        {
+            goto Invalid;
+        }
+
+        if ((byte)(quote - 1) < 127)
+        {
+            T q = reader._dialect.Quote;
+
+            Debug.Assert(quote % 2 == 0, "Special count should be even here");
+
+            if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1u) != q)
+            {
+                goto Invalid;
+            }
+
+            retVal = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
+
+            if (quote != 2) // already trimmed the quotes
+            {
+                Span<T> buffer = reader.GetUnescapeBuffer(length - 2);
+
+                // Vector<char> is not supported
+                if (Unsafe.SizeOf<T>() is sizeof(char))
+                {
+                    RFC4180Mode<ushort>.Unescape(
+                        ushort.CreateTruncating(q),
+                        buffer.Cast<T, ushort>(),
+                        retVal.Cast<T, ushort>(),
+                        (uint)quote - 2
+                    );
+                }
+                else
+                {
+                    RFC4180Mode<T>.Unescape(q, buffer, retVal, (uint)quote - 2);
+                }
+
+                int unescapedLength = retVal.Length - unchecked((int)((quote - 2) / 2));
+                retVal = buffer.Slice(0, unescapedLength);
+            }
+        }
+        else
+        {
+            retVal = MemoryMarshal.CreateReadOnlySpan(ref first, length);
+        }
+
+        return retVal;
+
+        Invalid:
+        return GetFieldNonStandard(start, field, quote, ref data, reader);
+    }
+
+    private static ReadOnlySpan<T> GetFieldNonStandard<T>(
+        int start,
+        uint field,
+        byte quote,
+        ref T data,
+        CsvReader<T> reader
+    )
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        int length = End(field) - start;
+
+        ReadOnlySpan<T> retVal = MemoryMarshal
+            .CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), length)
+            .Trim(reader._dialect.Trimming);
+
+        if (retVal.Length < 2 || retVal[^1] != reader._dialect.Quote || retVal[0] != reader._dialect.Quote)
+        {
+            return IndexOfUnescaper.Invalid(retVal, field, quote);
+        }
+
+        Debug.Assert((quote & 0x80) != 0, $"Should be escape: {retVal.AsPrintableString()}");
+        return IndexOfUnescaper.Unix(retVal[1..^1], reader, (uint)(quote & 0x7F));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void SaturateQuotes(ref uint quotesConsumed)
+    {
+        if (quotesConsumed > 127)
+        {
+            quotesConsumed = 127;
+        }
+    }
+}

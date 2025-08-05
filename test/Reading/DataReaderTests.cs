@@ -69,7 +69,7 @@ public class DataReaderTests
     [Fact]
     public void Should_Parse_Complex_Values()
     {
-        // data with datetimes and base64
+        // data with datetimes
         const string complexData =
             "id,created,updated,data\n"
             + "1,2023-10-01T12:00:00Z,2023-10-02T12:00:00Z,\"Hello, World!\"\n"
@@ -203,7 +203,8 @@ public class DataReaderTests
                 Assert.Equal(typeof(string).FullName, obj.GetDataTypeName(0));
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => obj.GetBytes(5, fieldOffset: -1, new byte[32], 0, 16));
-                Assert.Throws<ArgumentOutOfRangeException>(() => obj.GetBytes(5, fieldOffset: 255, new byte[32], 0, 16)
+                Assert.Throws<ArgumentOutOfRangeException>(() =>
+                    obj.GetBytes(5, fieldOffset: 255, new byte[32], 0, 16)
                 );
 
                 Assert.Throws<NotSupportedException>(() => obj.GetData(0));

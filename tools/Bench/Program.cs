@@ -15,10 +15,13 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-BenchmarkRunner.Run<FindNewlineBench>(new Config(), args);
+// BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
+return 0;
 
 file class Config : ManualConfig
 {
+    const int Iters = 16;
+
     public Config()
     {
         AddExporter(HtmlExporter.Default);
@@ -46,10 +49,10 @@ file class Config : ManualConfig
         AddColumnProvider(BenchmarkDotNet.Columns.DefaultColumnProviders.Instance);
 
         AddJob(
-            Job.Default.WithMinWarmupCount(24)
-                .WithMaxWarmupCount(64)
-                .WithMinIterationCount(24)
-                .WithMaxIterationCount(128)
+            Job.Default.WithMinWarmupCount(Iters)
+                .WithMaxWarmupCount(Iters * 2)
+                .WithMinIterationCount(Iters)
+                .WithMaxIterationCount(Iters * 3)
                 .WithMinIterationTime(TimeInterval.FromSeconds(1))
                 .WithGcServer(true)
         );

@@ -10,13 +10,16 @@ namespace FlameCsv.Extensions;
 internal static class ReadExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetRecordLength(this ReadOnlySpan<Meta> meta, bool includeTrailingNewline = false)
+    public static int GetRecordLength(this ReadOnlySpan<uint> fields, bool includeTrailingNewline = false)
     {
-        Meta lastMeta = meta[^1];
-        int end = lastMeta.End;
-        return end
-            - meta[0].NextStart
-            + (includeTrailingNewline ? (lastMeta._specialCountAndOffset & Meta.EndOffsetMask) : 0);
+        // TODO OPTIMIZE?
+        uint lastField = fields[^1];
+        uint firstField = fields[0];
+
+        int end = includeTrailingNewline ? Field.NextStart(lastField) : Field.End(lastField);
+        int start = Field.NextStart(firstField);
+
+        return end - start;
     }
 
     public static bool TryParseFromUtf8<TValue>(
