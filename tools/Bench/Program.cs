@@ -15,8 +15,7 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-// BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
-return 0;
+BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
 
 file class Config : ManualConfig
 {

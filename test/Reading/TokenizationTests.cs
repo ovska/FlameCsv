@@ -26,6 +26,21 @@ public class TokenizationTests
         Assert.Equal(str.Length, buffer.BufferedDataLength);
     }
 
+    [Fact]
+    public void Nakki2()
+    {
+        var tokeniser = new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default);
+        using var buffer = new RecordBuffer();
+
+        const string str = "aaa,bbb,ccc,ddd,eee\nfff,ggg,hhh,iii\njjj,123,456,789\n";
+        var data = new char[1024];
+        str.CopyTo(data);
+
+        Assert.True(tokeniser.Tokenize(buffer, data));
+
+        Assert.Equal(str.Length, buffer.BufferedDataLength);
+    }
+
     // [Fact]
     // public void Should_Tokenize()
     // {

@@ -52,18 +52,17 @@ internal readonly struct ByteSsse3Unescaper : ISimdUnescaper<byte, ushort, Vecto
         byte mask2 = (byte)(mask >> 8);
 
         // Load the 64-bit values thintable_epi8[mask1] and thintable_epi8[mask2] into a 128-bit register
-        Vector128<byte> shufmask = Vector128
-            .Create(CompressionTables.ThinEpi8[mask1], CompressionTables.ThinEpi8[mask2] + 0x0808080808080808L)
-            .AsByte();
+        ReadOnlySpan<ulong> table = CompressionTables.ThinEpi8;
+        Vector128<byte> shufmask = Vector128.Create(table[mask1], table[mask2] + 0x0808080808080808L).AsByte();
 
         // Shuffle the source data
         Vector128<byte> pruned = Ssse3.Shuffle(data, shufmask);
 
         // Compute the popcount of the first word
-        int pop1 = CompressionTables.PopCountMult2[mask1];
+        byte pop = CompressionTables.PopCountMult2[mask1];
 
         // Load the corresponding mask
-        Vector128<byte> compactmask = Vector128.LoadUnsafe(in CompressionTables.ShuffleCombine[0], (nuint)pop1 * 8);
+        Vector128<byte> compactmask = Vector128.LoadUnsafe(in CompressionTables.ShuffleCombine[0], (nuint)pop * 8);
 
         // Shuffle the pruned vector with the combined mask
         Vector128<byte> result = Ssse3.Shuffle(pruned, compactmask);

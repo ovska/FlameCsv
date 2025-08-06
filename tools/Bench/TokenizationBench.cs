@@ -1,4 +1,3 @@
-#if false
 // ReSharper disable all
 using System.Text;
 using CommunityToolkit.HighPerformance;
@@ -20,14 +19,14 @@ public class TokenizationBench
     public bool Chars { get; set; }
 
     // [Params(true, false)]
-    public bool Quoted { get; set; } = true;
+    public bool Quoted { get; set; }
 
     [Params(
         [
             /**/
             ParserNewline.LF,
             // ParserNewline.LF_With_CRLF,
-            ParserNewline.CRLF,
+            // ParserNewline.CRLF,
         ]
     )]
     public ParserNewline Newline { get; set; }
@@ -35,9 +34,8 @@ public class TokenizationBench
     public bool DataIsCRLF => Newline == ParserNewline.CRLF;
     public bool TokenizerIsLF => Newline == ParserNewline.LF;
 
-    private static readonly int[] _eolBuffer = new int[24 * 65535];
-    private static readonly uint[] _flagBuffer = new uint[24 * 65535];
-    private static readonly Meta[] _metaBuffer = new Meta[24 * 65535];
+    private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
+    private static readonly byte[] _quoteBuffer = new byte[24 * 65535];
     private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
     private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
     private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
@@ -84,12 +82,13 @@ public class TokenizationBench
     private readonly SimdTokenizer<byte, NewlineCRLF> _t128bCRLF = new(_dByteCRLF);
     private readonly SimdTokenizer<char, NewlineCRLF> _t128CRLF = new(_dCharCRLF);
 
-    // [Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true)]
     public void V128()
     {
         var rb = new RecordBuffer();
-        rb.GetFieldArrayRef() = _metaBuffer;
-        rb.UnsafeGetEOLArrayRef() = _eolBuffer;
+        rb.GetFieldArrayRef() = _fieldBuffer;
+        rb.GetQuoteArrayRef() = _quoteBuffer;
+        _fieldBuffer[0] = Field.StartOrEnd;
 
         if (Chars)
         {
@@ -106,6 +105,7 @@ public class TokenizationBench
         }
     }
 
+#if NET10_0_OR_GREATER
     private readonly Avx512Tokenizer<byte, NewlineLF> _avxByte = new(_dByteLF);
     private readonly Avx512Tokenizer<char, NewlineLF> _avxChar = new(_dCharLF);
     private readonly Avx512Tokenizer<byte, NewlineCRLF> _avxByteCRLF = new(_dByteCRLF);
@@ -137,6 +137,44 @@ public class TokenizationBench
             }
         }
     }
+#endif
+
+    private readonly Avx2Tokenizer<byte, NewlineLF> _avx2Byte = new(_dByteLF);
+    private readonly Avx2Tokenizer<char, NewlineLF> _avx2Char = new(_dCharLF);
+    private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
+    private readonly Avx2Tokenizer<char, NewlineCRLF> _avx2CharCRLF = new(_dCharCRLF);
+
+    [Benchmark]
+    public void Avx2()
+    {
+        var rb = new RecordBuffer();
+        rb.GetFieldArrayRef() = _fieldBuffer;
+        rb.GetQuoteArrayRef() = _quoteBuffer;
+        _fieldBuffer[0] = Field.StartOrEnd;
+
+        if (Chars)
+        {
+            if (!TokenizerIsLF)
+            {
+                _avx2CharCRLF.Tokenize(rb, CharData);
+            }
+            else
+            {
+                _avx2Char.Tokenize(rb, CharData);
+            }
+        }
+        else
+        {
+            if (!TokenizerIsLF)
+            {
+                _avx2ByteCRLF.Tokenize(rb, ByteData);
+            }
+            else
+            {
+                _avx2Byte.Tokenize(rb, ByteData);
+            }
+        }
+    }
 
     // [Benchmark]
     // public void V512()
@@ -157,4 +195,3 @@ public class TokenizationBench
     //     }
     // }
 }
-#endif

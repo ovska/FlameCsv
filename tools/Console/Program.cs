@@ -27,11 +27,18 @@ namespace FlameCsv.Console
         {
             FileInfo file = new(
                 @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\65K_Records_Data.csv"
-                // @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
+            // @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
             );
 
             byte[] byteArray = File.ReadAllBytes(file.FullName);
             // var metas = new Reading.Internal.Meta[65536];
+
+            using (var rb = new RecordBuffer())
+            {
+                rb.GetFieldArrayRef() = new uint[24 * 65535];
+                rb.GetQuoteArrayRef() = new byte[24 * 65535];
+                new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(rb, byteArray);
+            }
 
             // var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);
             // _ = tokenizer.Tokenize(metas, byteArray, 0);

@@ -10,7 +10,7 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Avx512Tokenizer
 {
-    public static bool IsSupported => Avx512Vbmi2.IsSupported;
+    public static bool IsSupported => Bmi1.X64.IsSupported && Avx512Vbmi2.IsSupported;
 }
 
 [SkipLocalsInit]
@@ -88,7 +88,8 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
         unsafe
         {
             // ensure data is aligned to 64 bytes
-            nuint remainder = (nuint)Unsafe.AsPointer(ref first) % (nuint)Vector512<byte>.Count;
+            nuint remainder =
+                (nuint)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex)) % (nuint)Vector512<byte>.Count;
 
             if (remainder != 0)
             {

@@ -54,12 +54,14 @@ internal readonly struct ByteAvx2Unescaper : ISimdUnescaper<byte, uint, Vector25
         byte mask4 = (byte)(mask >> 24);
 
         // Build the 256-bit shuffle mask.
+        ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
+
         Vector256<byte> shufmask = Vector256
             .Create(
-                CompressionTables.ThinEpi8[mask1],
-                CompressionTables.ThinEpi8[mask2],
-                CompressionTables.ThinEpi8[mask3],
-                CompressionTables.ThinEpi8[mask4]
+                Unsafe.Add(ref table, mask1),
+                Unsafe.Add(ref table, mask2),
+                Unsafe.Add(ref table, mask3),
+                Unsafe.Add(ref table, mask4)
             )
             .AsByte();
 
@@ -78,12 +80,14 @@ internal readonly struct ByteAvx2Unescaper : ISimdUnescaper<byte, uint, Vector25
         Vector256<byte> pruned = Avx2.Shuffle(value, shufmaskBytes);
 
         // Use precomputed popcounts from the table.
-        int pop1 = CompressionTables.PopCountMult2[mask1];
-        int pop3 = CompressionTables.PopCountMult2[mask3];
+        ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
+        byte pop1 = Unsafe.Add(ref popCounts, mask1);
+        byte pop3 = Unsafe.Add(ref popCounts, mask3);
 
         // Load the 128-bit masks from pshufb_combine_table.
-        Vector128<byte> combine0 = Vector128.LoadUnsafe(in CompressionTables.ShuffleCombine[0], (nuint)pop1 * 8);
-        Vector128<byte> combine1 = Vector128.LoadUnsafe(in CompressionTables.ShuffleCombine[0], (nuint)pop3 * 8);
+        ref readonly byte shuffleCombine = ref CompressionTables.ShuffleCombine[0];
+        Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
+        Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop3 * 8);
 
         // Combine the two 128-bit lanes into a 256-bit mask.
         Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
