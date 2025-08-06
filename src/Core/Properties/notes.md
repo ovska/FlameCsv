@@ -432,6 +432,58 @@ After: 821.4 and 909.0
 | V128   | CRLF    | 1.352 ms | 0.0050 ms |  1.00 |
 | Avx2   | CRLF    | 1.247 ms | 0.0050 ms |  0.92 |
 
+## After adjustments
+
+| Method | Chars | Quoted | Newline      |       Mean |   StdDev | Ratio |
+| ------ | ----- | ------ | ------------ | ---------: | -------: | ----: |
+| V128   | False | False  | LF           | 1,280.2 us |  4.99 us |  1.00 |
+| Avx2   | False | False  | LF           |   987.1 us |  4.37 us |  0.77 |
+|        |       |        |              |            |          |       |
+| V128   | False | False  | LF_With_CRLF | 1,328.6 us |  3.05 us |  1.00 |
+| Avx2   | False | False  | LF_With_CRLF | 1,217.6 us |  3.55 us |  0.92 |
+|        |       |        |              |            |          |       |
+| V128   | False | False  | CRLF         | 1,340.1 us |  2.75 us |  1.00 |
+| Avx2   | False | False  | CRLF         | 1,221.1 us |  3.90 us |  0.91 |
+|        |       |        |              |            |          |       |
+| V128   | False | True   | LF           |   537.2 us |  1.92 us |  1.00 |
+| Avx2   | False | True   | LF           |   329.2 us |  0.80 us |  0.61 |
+|        |       |        |              |            |          |       |
+| V128   | False | True   | LF_With_CRLF |   570.0 us |  2.00 us |  1.00 |
+| Avx2   | False | True   | LF_With_CRLF |   381.5 us |  1.30 us |  0.67 |
+|        |       |        |              |            |          |       |
+| V128   | False | True   | CRLF         |   608.7 us | 12.46 us |  1.00 |
+| Avx2   | False | True   | CRLF         |   416.2 us |  1.82 us |  0.68 |
+|        |       |        |              |            |          |       |
+| V128   | True  | False  | LF           | 1,387.3 us |  7.46 us |  1.00 |
+| Avx2   | True  | False  | LF           | 1,078.4 us |  5.21 us |  0.78 |
+|        |       |        |              |            |          |       |
+| V128   | True  | False  | LF_With_CRLF | 1,485.3 us |  4.27 us |  1.00 |
+| Avx2   | True  | False  | LF_With_CRLF | 1,329.8 us |  3.03 us |  0.90 |
+|        |       |        |              |            |          |       |
+| V128   | True  | False  | CRLF         | 1,514.4 us |  2.54 us |  1.00 |
+| Avx2   | True  | False  | CRLF         | 1,337.7 us |  5.06 us |  0.88 |
+|        |       |        |              |            |          |       |
+| V128   | True  | True   | LF           |   540.5 us |  1.37 us |  1.00 |
+| Avx2   | True  | True   | LF           |   354.7 us |  1.07 us |  0.66 |
+|        |       |        |              |            |          |       |
+| V128   | True  | True   | LF_With_CRLF |   596.0 us |  2.32 us |  1.00 |
+| Avx2   | True  | True   | LF_With_CRLF |   410.5 us |  0.58 us |  0.69 |
+|        |       |        |              |            |          |       |
+| V128   | True  | True   | CRLF         |   599.4 us |  2.92 us |  1.00 |
+| Avx2   | True  | True   | CRLF         |   433.4 us |  1.73 us |  0.72 |
+
+## Getting field end index
+
+| Method      |     Mean |    StdDev | Ratio |     Diff |
+| ----------- | -------: | --------: | ----: | -------: |
+| No-Op       | 1.790 us | 0.0016 us |  1.00 | 0.000 us |
+| No Sentinel | 3.128 us | 0.0017 us |  1.75 | 1.338 us |
+| Sentinel    | 5.605 us | 0.0175 us |  3.13 | 3.815 us |
+
+8000 fields.
+
+Consider moving away from "StartOrEnd" sentinel bits for every single field, and use a branch instead.
+
 ## Frequencies
 
 ```

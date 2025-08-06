@@ -20,12 +20,12 @@ internal static class Field
     /// <summary>
     /// Flag for the start of the first record, or the end of the last record without a trailing newline.
     /// </summary>
-    public const uint StartOrEnd = 1u << 31;
+    public const uint StartOrEnd = 1u << 30;
 
     /// <summary>
     /// Flag for EOL.
     /// </summary>
-    public const uint IsEOL = 1u << 30;
+    public const uint IsEOL = 1u << 31;
 
     /// <summary>
     /// Flag for CRLF (two-character EOL)
@@ -45,20 +45,17 @@ internal static class Field
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int NextStart(uint field)
     {
-        // store the offsets in a small LUT; LF and delimiter have offset of 1, CRLF 2, and start/end 0
-        uint end = field & EndMask;
-        uint offset;
+        // end offset result table:
+        // 00 → 1 delimiter
+        // 01 → 0 start/end
+        // 10 → 1 lf
+        // 11 → 2 crlf
 
-        // TODO: perf profile against a ReadOnlySpan LUT
-        if (Bmi2.IsSupported)
-        {
-            offset = (uint)(0b_10_00_01_01 >> (int)((field >> 30) << 1)) & 3;
-        }
-        else
-        {
-            uint b = field >> 30;
-            offset = ((b & (b >> 1)) << 1) | (1 ^ (b >> 1));
-        }
+        uint b = field >> 30;
+        uint end = field & EndMask;
+        uint offset =
+            (~b & 1) // result lsb should be empty unless input lsb is set
+            | ((b & (b >> 1)) << 1); // result msb should only be set if both input bits are set;
 
         return (int)(end + offset);
     }
