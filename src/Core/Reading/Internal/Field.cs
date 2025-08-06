@@ -85,7 +85,7 @@ internal static class Field
 
         if (IsEscape(quote))
         {
-            goto Invalid;
+            goto EscapeOrInvalid;
         }
 
         if ((byte)(quote - 1) < 127)
@@ -94,7 +94,7 @@ internal static class Field
 
             if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1) != q)
             {
-                goto Invalid;
+                goto EscapeOrInvalid;
             }
 
             retVal = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
@@ -107,7 +107,7 @@ internal static class Field
 
                 if (quoteCount % 2 != 0)
                 {
-                    goto Invalid;
+                    goto EscapeOrInvalid;
                 }
 
                 Span<T> buffer = reader.GetUnescapeBuffer(retVal.Length);
@@ -138,7 +138,7 @@ internal static class Field
 
         return retVal;
 
-        Invalid:
+        EscapeOrInvalid:
         return GetFieldNonStandard(start, field, quote, ref data, reader);
     }
 
@@ -161,7 +161,7 @@ internal static class Field
             retVal.Length < 2
             || retVal[^1] != reader._dialect.Quote
             || retVal[0] != reader._dialect.Quote
-            || quote % 2 != 0
+            || (!IsEscape(quote) && quote % 2 != 0)
         )
         {
             return IndexOfUnescaper.Invalid(retVal, field, quote);
@@ -169,7 +169,7 @@ internal static class Field
 
         uint specialCount = IsSaturated(quote)
             ? (uint)System.MemoryExtensions.Count(retVal, reader._dialect.Escape)
-            : (uint)(quote - 2); // TODO: make a quote agnostic unescaper?
+            : quote & 0x7Fu;
 
         Debug.Assert((quote & 0x80) != 0, $"Should be escape: {retVal.AsPrintableString()}");
         return IndexOfUnescaper.Unix(retVal[1..^1], reader, specialCount);
@@ -184,7 +184,7 @@ internal static class Field
             quotesConsumed = 127;
         }
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEscape(byte quote) => (quote & 0x80) != 0;
 
