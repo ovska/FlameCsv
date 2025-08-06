@@ -120,7 +120,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 maskCR = Vector256.Equals(vector, vecCR).ExtractMostSignificantBits();
                 maskLF = hasLF.ExtractMostSignificantBits(); // queue the movemask
                 shiftedCR = ((maskCR << 1) | crCarry);
-                crCarry = maskCR >> 63;
+                crCarry = maskCR >> 31;
             }
 
             // prefetch 2 vectors ahead
