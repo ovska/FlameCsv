@@ -156,7 +156,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
             Vector512<int> taggedIndexVector = Avx512F.ConvertToVector512Int32(lowestLane);
 
             Vector512<int> fixup = TNewline.IsCRLF
-                ? (msbAndBitsUpTo7 | Vector512.Create(shiftedCR == 0 ? 0 : 0x4000_0000))
+                ? (msbAndBitsUpTo7 | Vector512.Create((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
                 : msbAndBitsUpTo7;
 
             Vector512<int> fixedTaggedVector = taggedIndexVector & fixup;

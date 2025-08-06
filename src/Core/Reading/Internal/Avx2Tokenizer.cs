@@ -204,8 +204,8 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 ref byte zeroUpperTable = ref Unsafe.AsRef(in CompressionTables.ZeroUpper[0]);
                 ref byte compactShuffle = ref Unsafe.AsRef(in CompressionTables.CompactShuffle[0]);
 
-                Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in zeroUpperTable, lowerCountOffset);
-                Vector128<byte> indices = Vector128.LoadUnsafe(in compactShuffle, lowerCountOffset);
+                Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in zeroUpperTable, lowerCountOffset );
+                Vector128<byte> indices = Vector128.LoadUnsafe(in compactShuffle, lowerCountOffset );
 
                 Vector128<byte> lowerZeroed = lower & zeroUpper;
                 Vector128<byte> upperShuffled = Ssse3.Shuffle(upper, indices);
@@ -216,7 +216,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             }
 
             Vector256<int> fixup = TNewline.IsCRLF
-                ? (msbAndBitsUpTo7 | Vector256.Create(shiftedCR == 0 ? 0 : 0x4000_0000))
+                ? (msbAndBitsUpTo7 | Vector256.Create((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
                 : msbAndBitsUpTo7;
 
             Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;

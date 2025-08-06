@@ -416,6 +416,22 @@ After: 821.4 and 909.0
 | V128   | True  | True   | CRLF    |   597.9 us | 2.99 us |  1.00 |
 | Avx2   | True  | True   | CRLF    |   458.9 us | 1.69 us |  0.77 |
 
+## Elide LUT bounds checks on AVX2
+
+| Method | Newline |       Mean |    StdDev | Ratio |
+| ------ | ------- | ---------: | --------: | ----: |
+| V128   | LF      | 1,284.4 us |   2.95 us |  1.00 |
+| Avx2   | LF      |   998.0 us |   3.04 us |  0.78 |
+| V128   | CRLF    |   1.373 ms | 0.0183 ms |  1.00 |
+| Avx2   | CRLF    |   1.322 ms | 0.0035 ms |  0.96 |
+
+## Eliminate branch in CRLF fixup vector on AVX2
+
+| Method | Newline |     Mean |    StdDev | Ratio |
+| ------ | ------- | -------: | --------: | ----: |
+| V128   | CRLF    | 1.352 ms | 0.0050 ms |  1.00 |
+| Avx2   | CRLF    | 1.247 ms | 0.0050 ms |  0.92 |
+
 ## Frequencies
 
 ```
