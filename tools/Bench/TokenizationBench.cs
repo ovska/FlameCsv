@@ -97,9 +97,6 @@ public class TokenizationBench
         }
         else
         {
-            if (!TokenizerIsLF)
-                throw new Exception();
-
             CsvPartialTokenizer<byte> tokenizer = TokenizerIsLF ? _t128bLF : _t128bCRLF;
             _ = tokenizer.Tokenize(rb, ByteData);
         }

@@ -116,8 +116,8 @@ After optimizing the newline storing
 Note: don't store EOL in meta if going this route, should give a ~1% perf boost when tokenizing.
 
 No eol storage 👎
-| Method | Quoted |       Mean | Mean       |
-| ------ | ------ | ---------: |-----------:|
+| Method | Quoted |       Mean |       Mean |
+| ------ | ------ | ---------: | ---------: |
 | V256   | False  | 1,475.5 us | 1,471.1 us |
 | V256   | True   |   618.6 us |   619.9 us |
 
@@ -252,7 +252,7 @@ ms.array = _array;
 
 ### Calculating offset from first in start of method
 | CRLF  | Quoted |       Mean |  StdDev |
-|------ |------- |-----------:|--------:|
+| ----- | ------ | ---------: | ------: |
 | False | False  | 1,492.3 us | 6.78 us |
 | False | True   |   375.5 us | 1.49 us |
 | True  | False  | 1,573.0 us | 6.79 us |
@@ -261,7 +261,7 @@ ms.array = _array;
 
 ### Using bitwise tricks for quoteCount and isQuote
 | CRLF  | Quoted |     Mean |  StdDev | Ratio |
-| ----- |------- | -------: | ------: | ----: |
+| ----- | ------ | -------: | ------: | ----: |
 | False | True   | 371.0 us | 1.25 us |  1.00 |
 | True  | True   | 384.3 us | 1.79 us |  1.00 |
 
@@ -387,6 +387,34 @@ After: 821.4 and 909.0
 |               256 |           1.333 ms |           1.445 ms |
 |               384 |           1.338 ms |           1.433 ms |
 |               512 |           1.328 ms |           1.444 ms |
+
+## Refactored to bit-packed end indexes + separate quotes
+
+| Method | Chars | Quoted | Newline |       Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | ---------: | ------: | ----: |
+| V128   | False | False  | LF      | 1,291.1 us | 4.85 us |  1.00 |
+| Avx2   | False | False  | LF      | 1,031.1 us | 4.21 us |  0.80 |
+|        |       |        |         |            |         |       |
+| V128   | False | False  | CRLF    | 1,370.9 us | 5.90 us |  1.00 |
+| Avx2   | False | False  | CRLF    | 1,365.4 us | 4.03 us |  0.99 |
+|        |       |        |         |            |         |       |
+| V128   | False | True   | LF      |   540.7 us | 3.62 us |  1.00 |
+| Avx2   | False | True   | LF      |   328.5 us | 1.00 us |  0.61 |
+|        |       |        |         |            |         |       |
+| V128   | False | True   | CRLF    |   602.2 us | 2.27 us |  1.00 |
+| Avx2   | False | True   | CRLF    |   437.2 us | 2.05 us |  0.73 |
+|        |       |        |         |            |         |       |
+| V128   | True  | False  | LF      | 1,398.1 us | 5.30 us |  1.00 |
+| Avx2   | True  | False  | LF      | 1,147.2 us | 4.25 us |  0.82 |
+|        |       |        |         |            |         |       |
+| V128   | True  | False  | CRLF    | 1,526.0 us | 5.82 us |  1.00 |
+| Avx2   | True  | False  | CRLF    | 1,468.0 us | 4.52 us |  0.96 |
+|        |       |        |         |            |         |       |
+| V128   | True  | True   | LF      |   555.1 us | 2.50 us |  1.00 |
+| Avx2   | True  | True   | LF      |   358.8 us | 1.41 us |  0.65 |
+|        |       |        |         |            |         |       |
+| V128   | True  | True   | CRLF    |   597.9 us | 2.99 us |  1.00 |
+| Avx2   | True  | True   | CRLF    |   458.9 us | 1.69 us |  0.77 |
 
 ## Frequencies
 

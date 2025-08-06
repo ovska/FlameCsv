@@ -199,12 +199,13 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 Vector128<byte> upper = almostthere.GetUpper();
 
                 // Calculate the offset for the upper half.
-                int lowerCount = BitOperations.PopCount(maskControl & 0xFFFF);
+                uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF) * 16;
 
-                Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in CompressionTables.ZeroUpper[lowerCount * 16]);
-                Vector128<byte> indices = Vector128.LoadUnsafe(
-                    in CompressionTables.CompactShuffle[(byte)(lowerCount * 16)]
-                );
+                ref byte zeroUpperTable = ref Unsafe.AsRef(in CompressionTables.ZeroUpper[0]);
+                ref byte compactShuffle = ref Unsafe.AsRef(in CompressionTables.CompactShuffle[0]);
+
+                Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in zeroUpperTable, lowerCountOffset);
+                Vector128<byte> indices = Vector128.LoadUnsafe(in compactShuffle, lowerCountOffset);
 
                 Vector128<byte> lowerZeroed = lower & zeroUpper;
                 Vector128<byte> upperShuffled = Ssse3.Shuffle(upper, indices);
