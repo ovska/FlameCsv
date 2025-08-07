@@ -12,6 +12,13 @@ internal static class Avx2Tokenizer
     public static bool IsSupported => Bmi1.IsSupported && Avx2.IsSupported;
 }
 
+[InlineArray(32)]
+file struct Inline32<T>
+    where T : unmanaged
+{
+    public T elem0;
+}
+
 [SkipLocalsInit]
 internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
@@ -21,10 +28,10 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     // vector count to avoid reading past the buffer
     // vector count for prefetching
     // and 1 for reading past the current vector to check two token sequences
-    private static int EndOffset
+    private static nuint EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (Vector256<byte>.Count * 3) + (TNewline.IsCRLF ? 1 : 0);
+        get => (nuint)Vector256<byte>.Count * 3;
     }
 
     public override int PreferredLength => Vector256<byte>.Count * 4;
@@ -32,7 +39,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
-    private const int MaxIndex = int.MaxValue / 2;
+    private const uint MaxIndex = int.MaxValue / 2;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
@@ -42,18 +49,18 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             out int startIndex
         );
 
-        if ((data.Length - startIndex) < EndOffset || (((nint)MaxIndex - EndOffset) <= startIndex))
+        if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
         {
             return false;
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
-        nint runningIndex = startIndex;
-        nint searchSpaceEnd = Math.Min(MaxIndex, data.Length) - EndOffset;
-        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)EndOffset;
+        nuint runningIndex = (nuint)startIndex;
+        nuint searchSpaceEnd = (nuint)Math.Min(MaxIndex, data.Length) - EndOffset;
+        nuint fieldEnd = (nuint)destination.Fields.Length - EndOffset;
         nuint fieldIndex = 0;
 
-        Debug.Assert(searchSpaceEnd < data.Length);
+        Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
         scoped ref byte firstFlags = ref MemoryMarshal.GetReference(destination.Quotes);
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
@@ -81,36 +88,43 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         uint crCarry = 0;
 
         Vector256<byte> vector;
+        Vector256<uint> runningIndexVector;
 
         unsafe
         {
             // ensure data is aligned to 32 bytes
-            nint remainder = (nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex)) % Vector256<byte>.Count;
+            // for simplicity, always use element count
+            nint remainder =
+                ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex)) % Vector256<byte>.Count) / sizeof(T);
 
             if (remainder != 0)
             {
-                remainder /= sizeof(T); // convert to element count
-                int skip = Vector256<byte>.Count - (int)remainder; // 28
+                int skip = Vector256<byte>.Count - (int)remainder;
 
-                Span<T> buffer = stackalloc T[Vector256<byte>.Count];
-                buffer.Clear();
+                Inline32<T> buffer = default; // default zero-inits
 
                 // Copy the elements to the correct position in the buffer
-                data.Slice(startIndex, skip).CopyTo(buffer[^skip..]);
+                Unsafe.CopyBlockUnaligned(
+                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref buffer.elem0, (nuint)remainder)),
+                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref first, (nuint)startIndex)),
+                    byteCount: (uint)(skip * sizeof(T))
+                );
                 vector = AsciiVector.Load(ref buffer[0], 0);
 
-                runningIndex -= remainder; // Adjust by element count, not bytes
+                // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
+                runningIndexVector = Vector256.Create((uint)runningIndex - (uint)remainder);
+                runningIndex -= (nuint)remainder;
             }
             else
             {
-                vector = AsciiVector.Load(ref first, (nuint)runningIndex);
+                vector = AsciiVector.Load(ref first, runningIndex);
+                runningIndexVector = Vector256.Create((uint)runningIndex);
             }
         }
 
-        Vector256<uint> runningIndexVector = Vector256.Create((uint)runningIndex);
-        Vector256<byte> nextVector = AsciiVector.Load(ref first, (nuint)(runningIndex + Vector256<byte>.Count));
+        Vector256<byte> nextVector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
 
-        while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
+        do
         {
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
@@ -134,7 +148,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             // prefetch 2 vectors ahead
             vector = nextVector;
-            nextVector = AsciiVector.LoadAligned256(ref first, (nuint)(runningIndex + (2 * Vector256<byte>.Count)));
+            nextVector = AsciiVector.LoadAligned256(ref first, runningIndex + (nuint)(2 * Vector256<byte>.Count));
 
             if ((TNewline.IsCRLF ? (maskControl | shiftedCR) : maskControl) == 0)
             {
@@ -235,12 +249,13 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             fieldIndex += matchCount;
 
             ContinueRead:
-            runningIndex += Vector256<byte>.Count;
+            runningIndex += (nuint)Vector256<byte>.Count;
             runningIndexVector += iterationLength;
 
             unsafe
             {
-                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, (nuint)(runningIndex + (512 / sizeof(T))))));
+                nuint prefetch = runningIndex + (nuint)(512u / sizeof(T));
+                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, prefetch)));
             }
 
             continue;
@@ -249,21 +264,14 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
-            byte isCR;
-            FieldFlag flag;
+            Unsafe.SkipInit(out byte isCR);
+            uint eolFlag = Field.IsEOL;
 
             if (TNewline.IsCRLF)
             {
                 isCR = Unsafe.BitCast<bool, byte>(shiftedCR != 0);
-                flag = shiftedCR != 0 ? FieldFlag.CRLF : FieldFlag.EOL;
+                eolFlag |= (uint)(isCR << 30);
             }
-            else
-            {
-                isCR = 0;
-                flag = FieldFlag.EOL;
-            }
-
-            if (runningIndex > 450) { }
 
             // quoteXOR might have zeroed out the mask so do..while won't work
             while (maskControl != 0)
@@ -294,9 +302,9 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                     offset -= (uint)(Unsafe.BitCast<bool, byte>(isLF) & isCR);
                 }
 
-                uint eolFlag = isLF ? (uint)flag : 0;
+                uint isFieldEOL = isLF ? eolFlag : 0;
 
-                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
+                Unsafe.Add(ref firstField, fieldIndex) = offset | isFieldEOL;
                 Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
 
                 quotesConsumed = 0;
@@ -329,11 +337,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                     Field.SaturateTo7Bits(ref quotesConsumed);
 
                     uint newlineFlag2 = (uint)
-                        TNewline.IsNewline(
-                            delimiter,
-                            ref Unsafe.Add(ref first, pos + (nuint)runningIndex),
-                            ref maskControl
-                        );
+                        TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, pos + runningIndex), ref maskControl);
 
                     Unsafe.Add(ref firstField, fieldIndex) = (uint)(runningIndex + pos) | newlineFlag2;
                     Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
@@ -346,7 +350,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             }
 
             goto ContinueRead;
-        }
+        } while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd);
 
         recordBuffer.SetFieldsRead((int)fieldIndex);
         return fieldIndex > 0;
