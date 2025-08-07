@@ -32,7 +32,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
-    private const nuint MaxIndex = int.MaxValue / 2;
+    private const int MaxIndex = int.MaxValue / 2;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
@@ -48,16 +48,15 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
-        nuint runningIndex = (uint)startIndex;
-        nuint searchSpaceEnd = Math.Min(MaxIndex, (nuint)data.Length) - (nuint)EndOffset;
+        nint runningIndex = startIndex;
+        nint searchSpaceEnd = Math.Min(MaxIndex, data.Length) - EndOffset;
         nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)EndOffset;
+        nuint fieldIndex = 0;
 
-        Debug.Assert(searchSpaceEnd < (nuint)data.Length);
+        Debug.Assert(searchSpaceEnd < data.Length);
 
         scoped ref byte firstFlags = ref MemoryMarshal.GetReference(destination.Quotes);
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
-
-        nuint fieldIndex = 0;
 
         // load the constants into registers
         T delimiter = _delimiter;
@@ -75,31 +74,41 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Vector256<byte> bit7 = Vector256.Create((byte)0x80);
         Vector256<int> msbAndBitsUpTo7 = Vector256.Create(unchecked((int)0x8000007F));
         Vector256<uint> iterationLength = Vector256.Create((uint)Vector256<byte>.Count);
-        Vector256<byte> addConst = Vector256
-            .Create(0, 0, 0x08080808, 0x08080808, 0x10101010, 0x10101010, 0x18181818, 0x18181818)
-            .AsByte();
+        Vector256<byte> add = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818).AsByte();
 
         uint quotesConsumed = 0;
         uint quoteCarry = 0;
         uint crCarry = 0;
 
+        Vector256<byte> vector;
+
         unsafe
         {
             // ensure data is aligned to 32 bytes
-            nuint remainder =
-                (nuint)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex)) % (nuint)Vector256<byte>.Count;
+            nint remainder = (nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex)) % Vector256<byte>.Count;
 
             if (remainder != 0)
             {
-                nuint bytesToSkip = (nuint)Vector256<byte>.Count - remainder;
-                nuint elementsToSkip = bytesToSkip / (nuint)sizeof(T);
-                runningIndex += elementsToSkip;
+                remainder /= sizeof(T); // convert to element count
+                int skip = Vector256<byte>.Count - (int)remainder; // 28
+
+                Span<T> buffer = stackalloc T[Vector256<byte>.Count];
+                buffer.Clear();
+
+                // Copy the elements to the correct position in the buffer
+                data.Slice(startIndex, skip).CopyTo(buffer[^skip..]);
+                vector = AsciiVector.Load(ref buffer[0], 0);
+
+                runningIndex -= remainder; // Adjust by element count, not bytes
+            }
+            else
+            {
+                vector = AsciiVector.Load(ref first, (nuint)runningIndex);
             }
         }
 
         Vector256<uint> runningIndexVector = Vector256.Create((uint)runningIndex);
-        Vector256<byte> vector = AsciiVector.Load(ref first, runningIndex);
-        Vector256<byte> nextVector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.Load(ref first, (nuint)(runningIndex + Vector256<byte>.Count));
 
         while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
         {
@@ -125,7 +134,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             // prefetch 2 vectors ahead
             vector = nextVector;
-            nextVector = AsciiVector.LoadAligned256(ref first, runningIndex + (nuint)(2 * Vector256<byte>.Count));
+            nextVector = AsciiVector.LoadAligned256(ref first, (nuint)(runningIndex + (2 * Vector256<byte>.Count)));
 
             if ((TNewline.IsCRLF ? (maskControl | shiftedCR) : maskControl) == 0)
             {
@@ -173,7 +182,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                     .AsByte();
 
                 // Add the constant to the shuffle mask.
-                Vector256<byte> shufmaskBytes = shufmask + addConst;
+                Vector256<byte> shufmaskBytes = shufmask + add;
 
                 // Shuffle the source data.
                 Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
@@ -226,12 +235,12 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             fieldIndex += matchCount;
 
             ContinueRead:
-            runningIndex += (nuint)Vector256<byte>.Count;
+            runningIndex += Vector256<byte>.Count;
             runningIndexVector += iterationLength;
 
             unsafe
             {
-                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex + (nuint)(512 / sizeof(T)))));
+                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, (nuint)(runningIndex + (512 / sizeof(T))))));
             }
 
             continue;
@@ -302,7 +311,11 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                     Field.SaturateTo7Bits(ref quotesConsumed);
 
                     uint newlineFlag2 = (uint)
-                        TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, pos + runningIndex), ref maskControl);
+                        TNewline.IsNewline(
+                            delimiter,
+                            ref Unsafe.Add(ref first, pos + (nuint)runningIndex),
+                            ref maskControl
+                        );
 
                     Unsafe.Add(ref firstField, fieldIndex) = (uint)(runningIndex + pos) | newlineFlag2;
                     Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
@@ -317,77 +330,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             goto ContinueRead;
         }
 
-        return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<int> Compress(Vector256<byte> value, uint mask)
-    {
-        mask = ~mask;
-
-        // Split the mask into four bytes
-        byte mask1 = (byte)mask;
-        byte mask2 = (byte)(mask >> 8);
-        byte mask3 = (byte)(mask >> 16);
-        byte mask4 = (byte)(mask >> 24);
-
-        // Build the 256-bit shuffle mask.
-        ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
-
-        Vector256<byte> shufmask = Vector256
-            .Create(
-                Unsafe.Add(ref table, mask1),
-                Unsafe.Add(ref table, mask2),
-                Unsafe.Add(ref table, mask3),
-                Unsafe.Add(ref table, mask4)
-            )
-            .AsByte();
-
-        // Create a constant to add to the shuffle mask.
-        // When interpreted as 32 bytes in little-endian order, this constant is:
-        // [ 0,0,0,0,... 8,8,8,8,... 16,16,16,16,...  24,24,24,24,... ]
-        // We build it here using 8 ints (element 0 is the lowest).
-        Vector256<byte> addConst = Vector256
-            .Create(0, 0, 0x08080808, 0x08080808, 0x10101010, 0x10101010, 0x18181818, 0x18181818)
-            .AsByte();
-
-        // Add the constant to the shuffle mask.
-        Vector256<byte> shufmaskBytes = shufmask + addConst;
-
-        // Shuffle the source data.
-        Vector256<byte> pruned = Avx2.Shuffle(value, shufmaskBytes);
-
-        // Use precomputed popcounts from the table.
-        ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
-        byte pop1 = Unsafe.Add(ref popCounts, mask1);
-        byte pop3 = Unsafe.Add(ref popCounts, mask3);
-
-        // Load the 128-bit masks from pshufb_combine_table.
-        ref readonly byte shuffleCombine = ref CompressionTables.ShuffleCombine[0];
-        Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
-        Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop3 * 8);
-
-        // Combine the two 128-bit lanes into a 256-bit mask.
-        Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
-
-        // Shuffle the pruned vector with the combined mask.
-        Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
-
-        // Extract the lower and upper 128-bit lanes.
-        Vector128<byte> lower = almostthere.GetLower();
-        Vector128<byte> upper = almostthere.GetUpper();
-
-        // Calculate the offset for the upper half.
-        int lowerCount = BitOperations.PopCount(~mask & 0xFFFF);
-
-        Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in CompressionTables.ZeroUpper[lowerCount * 16]);
-        Vector128<byte> indices = Vector128.LoadUnsafe(in CompressionTables.CompactShuffle[(byte)(lowerCount * 16)]);
-
-        Vector128<byte> lowerZeroed = lower & zeroUpper;
-        Vector128<byte> upperShuffled = Avx2.Shuffle(upper, indices);
-
-        Vector128<byte> result = lowerZeroed | upperShuffled;
-
-        return Avx2.ConvertToVector256Int32(result.AsSByte());
+        recordBuffer.SetFieldsRead((int)fieldIndex);
+        return fieldIndex > 0;
     }
 }
