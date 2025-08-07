@@ -249,8 +249,21 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
-            // JIT eliminates on LF parsers
-            FieldFlag flag = (TNewline.IsCRLF && maskCR != 0) ? FieldFlag.CRLF : FieldFlag.EOL;
+            byte isCR;
+            FieldFlag flag;
+
+            if (TNewline.IsCRLF)
+            {
+                isCR = Unsafe.BitCast<bool, byte>(shiftedCR != 0);
+                flag = shiftedCR != 0 ? FieldFlag.CRLF : FieldFlag.EOL;
+            }
+            else
+            {
+                isCR = 0;
+                flag = FieldFlag.EOL;
+            }
+
+            if (runningIndex > 450) { }
 
             // quoteXOR might have zeroed out the mask so do..while won't work
             while (maskControl != 0)
@@ -269,16 +282,21 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
-                FieldFlag isLF = Unsafe.SizeOf<T>() switch
+                bool isLF = Unsafe.SizeOf<T>() switch
                 {
-                    sizeof(byte) => value is (byte)'\n',
-                    sizeof(char) => value is '\n',
+                    sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
+                    sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
                     _ => throw Token<T>.NotSupported,
-                }
-                    ? flag
-                    : 0u;
+                };
 
-                Unsafe.Add(ref firstField, fieldIndex) = offset | (uint)isLF;
+                if (TNewline.IsCRLF)
+                {
+                    offset -= (uint)(Unsafe.BitCast<bool, byte>(isLF) & isCR);
+                }
+
+                uint eolFlag = isLF ? (uint)flag : 0;
+
+                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
                 Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
 
                 quotesConsumed = 0;

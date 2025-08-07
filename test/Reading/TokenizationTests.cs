@@ -20,7 +20,7 @@ public class TokenizationTests
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
 
         TokenizeCore<char>(
-            CsvNewline.LF,
+            newline,
             newline == CsvNewline.LF
                 ? new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default)
                 : new Avx2Tokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
@@ -33,7 +33,7 @@ public class TokenizationTests
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
 
         TokenizeCore<byte>(
-            CsvNewline.LF,
+            newline,
             newline == CsvNewline.LF
                 ? new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
                 : new Avx2Tokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
@@ -68,6 +68,8 @@ public class TokenizationTests
         // Assert.Equal(600, rb.BufferedFields);
 
         RecordView expected = GetExpected(newline);
+        var a = expected._fields[10..13];
+        var b = rb.GetFieldArrayRef().AsSpan(1, 600)[10..13];
         Assert.Equal(expected._fields.AsSpan(0, 600), rb.GetFieldArrayRef().AsSpan(1, 600));
         Assert.Equal(expected._quotes.AsSpan(0, 600), rb.GetQuoteArrayRef().AsSpan(1, 600));
     }
@@ -117,6 +119,7 @@ public class TokenizationTests
             {
                 CsvNewline.LF => Field.IsEOL,
                 CsvNewline.CRLF => Field.IsCRLF,
+                // _ when i % 17 == 0 => Field.IsEOL,
                 _ => i % 2 == 0 ? Field.IsEOL : Field.IsCRLF,
             };
         }
@@ -169,6 +172,7 @@ public class TokenizationTests
             {
                 CsvNewline.LF => "\n",
                 CsvNewline.CRLF => "\r\n",
+                // _ when i % 17 == 0 => "\r",
                 _ => i % 2 == 0 ? "\n" : "\r\n",
             };
         }
