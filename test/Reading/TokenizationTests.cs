@@ -1,7 +1,10 @@
 // #if false // TODO: tokenizer_refactor
 using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
@@ -11,34 +14,138 @@ namespace FlameCsv.Tests.Reading;
 
 public class TokenizationTests
 {
-    [Fact]
-    public void Nakki()
+    [Theory, InlineData(CsvNewline.LF), InlineData(CsvNewline.CRLF), InlineData(CsvNewline.Platform)]
+    public void Generic_Char(CsvNewline newline) =>
+        TokenizeCore<char>(
+            newline,
+            newline == CsvNewline.LF
+                ? new SimdTokenizer<char, NewlineLF>(CsvOptions<char>.Default)
+                : new SimdTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
+        );
+
+    [Theory, InlineData(CsvNewline.LF), InlineData(CsvNewline.CRLF), InlineData(CsvNewline.Platform)]
+    public void Generic_Byte(CsvNewline newline) =>
+        TokenizeCore<byte>(
+            newline,
+            newline == CsvNewline.LF
+                ? new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
+                : new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+        );
+
+    private static void TokenizeCore<T>(CsvNewline newline, CsvPartialTokenizer<T> tokenizer)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        var tokeniser = new SimdTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default);
-        using var buffer = new RecordBuffer();
+        using var rb = new RecordBuffer();
 
-        const string str = "aaa,bbb,ccc,ddd,eee,fff,ggg,hhh,iii,jjj,123,456,789\n";
-        var data = new char[1024];
-        str.CopyTo(data);
+        ReadOnlySpan<T> dataset = GetDataset<T>(newline);
+        Assert.True(tokenizer.Tokenize(rb, dataset));
+        Assert.Equal(600, rb.BufferedFields);
 
-        Assert.True(tokeniser.Tokenize(buffer, data));
-
-        Assert.Equal(str.Length, buffer.BufferedDataLength);
+        RecordView expected = GetExpected(newline);
+        Assert.Equal(expected._fields.AsSpan(0, 600), rb.GetFieldArrayRef().AsSpan(1, 600));
+        Assert.Equal(expected._quotes.AsSpan(0, 600), rb.GetQuoteArrayRef().AsSpan(1, 600));
     }
 
-    [Fact]
-    public void Nakki2()
+    private static RecordView GetExpected(CsvNewline newline)
     {
-        var tokeniser = new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default);
-        using var buffer = new RecordBuffer();
+        ArrayBufferWriter<uint> fields = new();
+        ArrayBufferWriter<byte> quotes = new();
 
-        const string str = "aaa,bbb,ccc,ddd,eee\nfff,ggg,hhh,iii\njjj,123,456,789\n";
-        var data = new char[1024];
-        str.CopyTo(data);
+        int i;
+        uint idx = 0;
 
-        Assert.True(tokeniser.Tokenize(buffer, data));
+        for (i = 0; i < 100; i++)
+        {
+            Span<uint> f = fields.GetSpan(6);
 
-        Assert.Equal(str.Length, buffer.BufferedDataLength);
+            f[0] = (idx += 2) - 1;
+            f[1] = (idx += 6);
+            f[2] = (idx += 20);
+            f[3] = (idx += 15);
+            f[4] = (idx += 20);
+
+            uint flag = GetEOLFlag();
+            f[5] = (idx += 15) | flag;
+            idx += flag == Field.IsCRLF ? 2u : 1u;
+
+            fields.Advance(6);
+
+            Span<byte> q = quotes.GetSpan(6);
+            q[0] = 0;
+            q[1] = 0;
+            q[2] = 0;
+            q[3] = 2; // quoted
+            q[4] = 0;
+            q[5] = 2; // quoted
+            quotes.Advance(6);
+        }
+
+        Assert.True(MemoryMarshal.TryGetArray(fields.WrittenMemory, out ArraySegment<uint> fieldSegment));
+        Assert.True(MemoryMarshal.TryGetArray(quotes.WrittenMemory, out ArraySegment<byte> quoteSegment));
+
+        return new RecordView(fieldSegment.Array!, quoteSegment.Array!, 0, fields.WrittenCount);
+
+        uint GetEOLFlag()
+        {
+            return newline switch
+            {
+                CsvNewline.LF => Field.IsEOL,
+                CsvNewline.CRLF => Field.IsCRLF,
+                _ => i % 2 == 0 ? Field.IsEOL : Field.IsCRLF,
+            };
+        }
+    }
+
+    private static ReadOnlySpan<T> GetDataset<T>(CsvNewline newline)
+        where T : unmanaged
+    {
+        int i;
+
+        using ValueStringBuilder vsb = new();
+
+        for (i = 0; i < 100; i++)
+        {
+            vsb.Append('0');
+            vsb.Append(',');
+            vsb.Append($"Test-{i % 10}");
+            vsb.Append(',');
+            vsb.Append('x', 19);
+            vsb.Append(',');
+            vsb.Append("\"quoted field\"");
+            vsb.Append(',');
+            vsb.Append('x', 19);
+            vsb.Append(',');
+            vsb.Append("\"quoted field\"");
+            vsb.Append(GetNewline());
+        }
+
+        // pad with zeroes
+        const int padding = 192;
+
+        if (typeof(T) == typeof(char))
+        {
+            char[] buffer = new char[vsb.Length + padding];
+            vsb.AsSpan().CopyTo(buffer);
+            return buffer.AsSpan().Cast<char, T>();
+        }
+        else
+        {
+            Assert.True(typeof(T) == typeof(byte));
+            int size = Encoding.UTF8.GetByteCount(vsb.AsSpan());
+            byte[] buffer = new byte[size + padding];
+            Encoding.UTF8.GetBytes(vsb.AsSpan(), buffer);
+            return buffer.AsSpan().Cast<byte, T>();
+        }
+
+        string GetNewline()
+        {
+            return newline switch
+            {
+                CsvNewline.LF => "\n",
+                CsvNewline.CRLF => "\r\n",
+                _ => i % 2 == 0 ? "\n" : "\r\n",
+            };
+        }
     }
 
     // [Fact]

@@ -204,8 +204,8 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 ref byte zeroUpperTable = ref Unsafe.AsRef(in CompressionTables.ZeroUpper[0]);
                 ref byte compactShuffle = ref Unsafe.AsRef(in CompressionTables.CompactShuffle[0]);
 
-                Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in zeroUpperTable, lowerCountOffset );
-                Vector128<byte> indices = Vector128.LoadUnsafe(in compactShuffle, lowerCountOffset );
+                Vector128<byte> zeroUpper = Vector128.LoadUnsafe(in zeroUpperTable, lowerCountOffset);
+                Vector128<byte> indices = Vector128.LoadUnsafe(in compactShuffle, lowerCountOffset);
 
                 Vector128<byte> lowerZeroed = lower & zeroUpper;
                 Vector128<byte> upperShuffled = Ssse3.Shuffle(upper, indices);
@@ -231,7 +231,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             unsafe
             {
-                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, (runningIndex + (nuint)(512 / sizeof(T))))));
+                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex + (nuint)(512 / sizeof(T)))));
             }
 
             continue;

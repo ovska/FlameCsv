@@ -71,6 +71,15 @@ internal sealed class RecordBuffer : IDisposable
             Quotes = _quotes.AsSpan(start),
         };
     }
+    
+    public int BufferedFields
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
+            return _count - _index;
+        }
+    }
 
     public int BufferedDataLength
     {
