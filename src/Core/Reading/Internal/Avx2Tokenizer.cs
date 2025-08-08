@@ -25,10 +25,6 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline
 {
-    // leave space for 2 vectors;
-    // vector count to avoid reading past the buffer
-    // vector count for prefetching
-    // and 1 for reading past the current vector to check two token sequences
     private static nuint EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -129,40 +125,58 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
         do
         {
+            // Prefetch the vector that will be needed 2 iterations ahead
+            Vector256<byte> prefetchVector = AsciiVector.LoadAligned256(
+                ref first,
+                runningIndex + (nuint)(2 * Vector256<byte>.Count)
+            );
+
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
+            Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
             Vector256<byte> hasAny = hasLF | hasDelimiter;
 
             uint maskControl = hasAny.ExtractMostSignificantBits();
-            uint maskQuote = Vector256.Equals(vector, vecQuote).ExtractMostSignificantBits();
+            uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
-            Unsafe.SkipInit(out uint maskCR);
-            Unsafe.SkipInit(out uint maskLF);
             Unsafe.SkipInit(out uint shiftedCR);
 
             if (TNewline.IsCRLF)
             {
-                maskCR = Vector256.Equals(vector, vecCR).ExtractMostSignificantBits();
-                maskLF = hasLF.ExtractMostSignificantBits(); // queue the movemask
+                Vector256<byte> hasCR = Vector256.Equals(vector, vecCR);
+                uint maskCR = hasCR.ExtractMostSignificantBits();
+                uint maskLF = hasLF.ExtractMostSignificantBits();
+
                 shiftedCR = ((maskCR << 1) | crCarry);
                 crCarry = maskCR >> 31;
+
+                // Load next vector while waiting for the movemasks
+                vector = nextVector;
+                nextVector = prefetchVector;
+
+                if ((maskControl | shiftedCR) == 0)
+                {
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                    goto ContinueRead;
+                }
+
+                if ((shiftedCR & (shiftedCR ^ maskLF)) != 0)
+                {
+                    // maskControl doesn't contain CR by default, add it so we can find lone CR's
+                    maskControl |= maskCR;
+                    goto PathologicalPath;
+                }
             }
-
-            // prefetch 2 vectors ahead
-            vector = nextVector;
-            nextVector = AsciiVector.LoadAligned256(ref first, runningIndex + (nuint)(2 * Vector256<byte>.Count));
-
-            if ((TNewline.IsCRLF ? (maskControl | shiftedCR) : maskControl) == 0)
+            else
             {
-                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                goto ContinueRead;
-            }
+                vector = nextVector;
+                nextVector = prefetchVector;
 
-            if (TNewline.IsCRLF && (shiftedCR & (shiftedCR ^ maskLF)) != 0)
-            {
-                // maskControl doesn't contain CR by default, add it so we can find lone CR's
-                maskControl |= maskCR;
-                goto PathologicalPath;
+                if (maskControl == 0)
+                {
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                    goto ContinueRead;
+                }
             }
 
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
