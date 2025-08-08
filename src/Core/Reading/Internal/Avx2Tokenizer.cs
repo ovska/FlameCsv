@@ -79,8 +79,10 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             vecCR = AsciiVector.Create((byte)'\r');
         }
 
+        const int fixupScalar = unchecked((int)0x8000007F);
+
         Vector256<byte> bit7 = Vector256.Create((byte)0x80);
-        Vector256<int> msbAndBitsUpTo7 = Vector256.Create(unchecked((int)0x8000007F));
+        Vector256<int> msbAndBitsUpTo7 = Vector256.Create(fixupScalar);
         Vector256<uint> iterationLength = Vector256.Create((uint)Vector256<byte>.Count);
         Vector256<byte> add = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818).AsByte();
 
@@ -131,9 +133,8 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
             Vector256<byte> hasAny = hasLF | hasDelimiter;
 
-            // getting the mask instantly saves a bit so quote isn't bounced between registers
-            uint maskQuote = Vector256.Equals(vector, vecQuote).ExtractMostSignificantBits();
             uint maskControl = hasAny.ExtractMostSignificantBits();
+            uint maskQuote = Vector256.Equals(vector, vecQuote).ExtractMostSignificantBits();
 
             Unsafe.SkipInit(out uint maskCR);
             Unsafe.SkipInit(out uint maskLF);
@@ -173,6 +174,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             }
 
             Vector256<int> taggedIndexVector;
+            Vector256<int> fixup;
 
             unsafe
             {
@@ -235,12 +237,12 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 Vector128<byte> combined = lowerZeroed | upperShuffled;
 
+                fixup = TNewline.IsCRLF
+                    ? Vector256.Create(fixupScalar | ((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
+                    : msbAndBitsUpTo7;
+
                 taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
             }
-
-            Vector256<int> fixup = TNewline.IsCRLF
-                ? (msbAndBitsUpTo7 | Vector256.Create((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
-                : msbAndBitsUpTo7;
 
             Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;
 
@@ -252,11 +254,12 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             runningIndex += (nuint)Vector256<byte>.Count;
             runningIndexVector += iterationLength;
 
-            unsafe
-            {
-                nuint prefetch = runningIndex + (nuint)(512u / sizeof(T));
-                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, prefetch)));
-            }
+            // TODO: profile
+            // unsafe
+            // {
+            //     nuint prefetch = runningIndex + (nuint)(512u / sizeof(T));
+            //     Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, prefetch)));
+            // }
 
             continue;
 
@@ -265,12 +268,12 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
             Unsafe.SkipInit(out byte isCR);
-            uint eolFlag = Field.IsEOL;
+            uint eolType = Field.IsEOL;
 
             if (TNewline.IsCRLF)
             {
                 isCR = Unsafe.BitCast<bool, byte>(shiftedCR != 0);
-                eolFlag |= (uint)(isCR << 30);
+                eolType |= (uint)(isCR << 30);
             }
 
             // quoteXOR might have zeroed out the mask so do..while won't work
@@ -290,21 +293,20 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
-                bool isLF = Unsafe.SizeOf<T>() switch
-                {
-                    sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
-                    sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
-                    _ => throw Token<T>.NotSupported,
-                };
+                uint eolFlag;
 
                 if (TNewline.IsCRLF)
                 {
+                    bool isLF = IsLF(value);
                     offset -= (uint)(Unsafe.BitCast<bool, byte>(isLF) & isCR);
+                    eolFlag = isLF ? eolType : 0;
+                }
+                else
+                {
+                    eolFlag = IsLF(value) ? eolType : 0;
                 }
 
-                uint isFieldEOL = isLF ? eolFlag : 0;
-
-                Unsafe.Add(ref firstField, fieldIndex) = offset | isFieldEOL;
+                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
                 Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
 
                 quotesConsumed = 0;
@@ -355,4 +357,13 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         recordBuffer.SetFieldsRead((int)fieldIndex);
         return fieldIndex > 0;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsLF(T value) =>
+        Unsafe.SizeOf<T>() switch
+        {
+            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
+            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
+            _ => throw Token<T>.NotSupported,
+        };
 }

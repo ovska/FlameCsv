@@ -155,7 +155,7 @@ internal static unsafe class CompressionTables
         const int alignment = 16;
         
         nint ptr = RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(CompressionTables), size + alignment - 1);
-        ptr += (alignment - 1) & ~(alignment - 1);
+         ptr = (ptr + alignment - 1) & ~(nint)(alignment - 1);
 
         nint zeroUpper = ptr;
         nint compactShuffle = ptr + 256;
