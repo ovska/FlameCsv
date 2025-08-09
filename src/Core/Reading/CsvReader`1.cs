@@ -174,13 +174,15 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     {
         ReadOnlySpan<T> data = _buffer.Span;
 
-        bool readAnyFields =
+        int fieldsRead =
             readToEnd || _simdTokenizer is null
                 ? _scalarTokenizer.Tokenize(_recordBuffer, data, readToEnd)
                 : _simdTokenizer.Tokenize(_recordBuffer, data);
 
-        if (readAnyFields)
+        if (fieldsRead != 0)
         {
+            _recordBuffer.SetFieldsRead(fieldsRead);
+
             // request more data if the next tokenizing would not be large enough to be productive
             if (
                 _state == State.Reading

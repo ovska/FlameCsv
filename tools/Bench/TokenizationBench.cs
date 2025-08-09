@@ -110,40 +110,6 @@ public class TokenizationBench
         }
     }
 
-#if NET10_0_OR_GREATER
-    private readonly Avx512Tokenizer<byte, NewlineLF> _avxByte = new(_dByteLF);
-    private readonly Avx512Tokenizer<char, NewlineLF> _avxChar = new(_dCharLF);
-    private readonly Avx512Tokenizer<byte, NewlineCRLF> _avxByteCRLF = new(_dByteCRLF);
-    private readonly Avx512Tokenizer<char, NewlineCRLF> _avxCharCRLF = new(_dCharCRLF);
-
-    [Benchmark]
-    public void Avx512()
-    {
-        if (Chars)
-        {
-            if (!TokenizerIsLF)
-            {
-                _avxCharCRLF.Tokenize(_eolBuffer, _flagBuffer.AsSpan(), CharData);
-            }
-            else
-            {
-                _avxChar.Tokenize(_eolBuffer, _flagBuffer.AsSpan(), CharData);
-            }
-        }
-        else
-        {
-            if (!TokenizerIsLF)
-            {
-                _avxByteCRLF.Tokenize(_eolBuffer, _flagBuffer.AsSpan(), ByteData);
-            }
-            else
-            {
-                _avxByte.Tokenize(_eolBuffer, _flagBuffer.AsSpan(), ByteData);
-            }
-        }
-    }
-#endif
-
     private readonly Avx2Tokenizer<byte, NewlineLF> _avx2Byte = new(_dByteLF);
     private readonly Avx2Tokenizer<char, NewlineLF> _avx2Char = new(_dCharLF);
     private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
@@ -181,22 +147,42 @@ public class TokenizationBench
         }
     }
 
-    // [Benchmark]
-    // public void V512()
-    // {
-    //     var rb = new RecordBuffer();
-    //     rb.UnsafeGetArrayRef() = _metaBuffer;
-    //     rb.UnsafeGetEOLArrayRef() = _eolBuffer;
+#if NET10_0_OR_GREATER
+    private readonly Avx512Tokenizer<byte, NewlineLF> _avxByte = new(_dByteLF);
+    private readonly Avx512Tokenizer<char, NewlineLF> _avxChar = new(_dCharLF);
+    private readonly Avx512Tokenizer<byte, NewlineCRLF> _avxByteCRLF = new(_dByteCRLF);
+    private readonly Avx512Tokenizer<char, NewlineCRLF> _avxCharCRLF = new(_dCharCRLF);
 
-    //     if (Chars)
-    //     {
-    //         AltTokenizerBase<char> tokenizer = TokenizerIsLF ? _t512LF : _t512CRLF;
-    //         _ = tokenizer.Tokenize(rb, CharData);
-    //     }
-    //     else
-    //     {
-    //         AltTokenizerBase<byte> tokenizer = TokenizerIsLF ? _t512bLF : _t512bCRLF;
-    //         _ = tokenizer.Tokenize(rb, ByteData);
-    //     }
-    // }
+    [Benchmark]
+    public void Avx512()
+    {
+        var rb = new RecordBuffer();
+        rb.GetFieldArrayRef() = _fieldBuffer;
+        rb.GetQuoteArrayRef() = _quoteBuffer;
+        _fieldBuffer[0] = Field.StartOrEnd;
+        
+        if (Chars)
+        {
+            if (!TokenizerIsLF)
+            {
+                _avxCharCRLF.Tokenize(rb, CharData);
+            }
+            else
+            {
+                _avxChar.Tokenize(rb, CharData);
+            }
+        }
+        else
+        {
+            if (!TokenizerIsLF)
+            {
+                _avxByteCRLF.Tokenize(rb, ByteData);
+            }
+            else
+            {
+                _avxByte.Tokenize(rb, ByteData);
+            }
+        }
+    }
+#endif
 }

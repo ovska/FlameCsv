@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 using System.Text.Unicode;
 using FlameCsv.Reading.Internal;
@@ -9,6 +10,18 @@ namespace FlameCsv.Extensions;
 
 internal static class ReadExtensions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static nuint MoveMask<T>(this Vector<T> vector)
+    {
+        return (Vector<byte>.Count * 8) switch
+        {
+            128 => vector.AsVector128().ExtractMostSignificantBits(),
+            256 => vector.AsVector256().ExtractMostSignificantBits(),
+            512 when nuint.Size is 8 => (nuint)vector.AsVector512().ExtractMostSignificantBits(),
+            int s => throw new NotSupportedException($"Unsupported vector size {s}."),
+        };
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetRecordLength(this ReadOnlySpan<uint> fields, bool includeTrailingNewline = false)
     {

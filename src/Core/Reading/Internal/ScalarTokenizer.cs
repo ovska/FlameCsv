@@ -59,13 +59,13 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
+    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
     {
         FieldBuffer destination = recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
 
         if (data.IsEmpty || data.Length <= startIndex)
         {
-            return false;
+            return 0;
         }
 
         T quote = _quote;
@@ -263,8 +263,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             break;
         }
 
-        recordBuffer.SetFieldsRead((int)fieldIndex);
-        return fieldIndex > 0;
+        return (int)fieldIndex;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

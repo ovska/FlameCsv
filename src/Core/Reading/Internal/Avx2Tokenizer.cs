@@ -46,7 +46,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override unsafe bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
+    public override unsafe int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
     {
         FieldBuffer destination = recordBuffer.GetUnreadBuffer(
             minimumLength: Vector256<byte>.Count,
@@ -55,7 +55,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
         {
-            return false;
+            return 0;
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
@@ -373,7 +373,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             goto ContinueRead;
         } while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd);
 
-        recordBuffer.SetFieldsRead((int)fieldIndex);
-        return fieldIndex > 0;
+        return (int)fieldIndex;
     }
 }

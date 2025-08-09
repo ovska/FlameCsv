@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
@@ -138,6 +139,17 @@ internal static class UtilityExtensions
                 ),
                 innerException: e
             );
+        }
+    }
+
+    public static void ReturnAndEmpty<T>(this ArrayPool<T> pool, ref T[] array)
+    {
+        T[] local = array;
+        array = [];
+
+        if (local.Length != 0)
+        {
+            pool.Return(local);
         }
     }
 }

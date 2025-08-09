@@ -17,8 +17,8 @@ internal abstract class CsvPartialTokenizer<T>
     /// </summary>
     /// <param name="recordBuffer">Buffer to parse the records to</param>
     /// <param name="data">Data to read from</param>
-    /// <returns>Whether any fields were read</returns>
-    public abstract bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data);
+    /// <returns>Number of fields read</returns>
+    public abstract int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data);
 }
 
 internal abstract class CsvTokenizer<T>
@@ -30,8 +30,8 @@ internal abstract class CsvTokenizer<T>
     /// <param name="recordBuffer">Buffer to parse the records to</param>
     /// <param name="data">Data to read from</param>
     /// <param name="readToEnd">Whether to read to end even if data has no trailing newline</param>
-    /// <returns>Whether any fields were read</returns>
-    public abstract bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd);
+    /// <returns>Number of fields read</returns>
+    public abstract int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd);
 }
 
 internal static class CsvTokenizer
@@ -48,7 +48,9 @@ internal static class CsvTokenizer
 #if NET10_0_OR_GREATER
         if (Avx512Tokenizer.IsSupported)
         {
-            return new Avx512Tokenizer<T>(options);
+            return options.Newline.IsCRLF()
+                ? new Avx512Tokenizer<T, NewlineCRLF>(options)
+                : new Avx512Tokenizer<T, NewlineLF>(options);
         }
 #endif
 

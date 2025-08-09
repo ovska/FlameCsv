@@ -34,7 +34,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private static Vector256<byte> ZeroFirst => Vector256.Create(-256L, ~0L, ~0L, ~0L).AsByte();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
+    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
     {
         FieldBuffer destination = recordBuffer.GetUnreadBuffer(
             minimumLength: Vector256<byte>.Count,
@@ -43,7 +43,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
         if ((data.Length - startIndex) < EndOffset)
         {
-            return false;
+            return 0;
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
@@ -210,8 +210,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             hasAny = hasNewline | hasDelimiter | hasQuote;
         }
 
-        recordBuffer.SetFieldsRead((int)fieldIndex);
-        return fieldIndex > 0;
+        return (int)fieldIndex;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

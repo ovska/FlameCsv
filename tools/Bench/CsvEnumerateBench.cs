@@ -6,38 +6,42 @@ using nietras.SeparatedValues;
 
 namespace FlameCsv.Benchmark;
 
-[MemoryDiagnoser(displayGenColumns: false)]
+// [MemoryDiagnoser(displayGenColumns: false)]
 [HideColumns("Error", "RatioSD")]
-// [BenchmarkDotNet.Diagnostics.Windows.Configs.EtwProfiler]
 public class CsvEnumerateBench
 {
-    [Params(true, false)]
-    public bool AltData { get; set; }
+    [Params(
+        [ /**/
+            // true,
+            false,
+        ]
+    )]
+    public bool Quoted { get; set; }
 
-    [Params(true)]
+    [Params(
+        [ /**/
+            // true,
+            false,
+        ]
+    )]
     public bool CRLF { get; set; }
 
     [GlobalSetup]
     public void Setup()
     {
-        string path = AltData ? @"Comparisons/Data/65K_Records_Data.csv" : @"Comparisons/Data/SampleCSVFile_556kb.csv";
+        string path = Quoted ? @"Comparisons/Data/SampleCSVFile_556kb.csv" : @"Comparisons/Data/65K_Records_Data.csv";
 
         _string = File.ReadAllText(path, Encoding.UTF8).ReplaceLineEndings(CRLF ? "\r\n" : "\n");
         _byteArray = Encoding.UTF8.GetBytes(_string); // can't read the bytes directly as we need to replace line endings
-
-        _optionsByteLF = new() { Newline = CsvNewline.LF };
-        _optionsCharLF = new() { Newline = CsvNewline.LF };
-        _optionsByteCRLF = new() { Newline = CsvNewline.CRLF };
-        _optionsCharCRLF = new() { Newline = CsvNewline.CRLF };
     }
 
     private byte[] _byteArray = [];
     private string _string = "";
 
-    private CsvOptions<byte> _optionsByteLF = null!;
-    private CsvOptions<char> _optionsCharLF = null!;
-    private CsvOptions<byte> _optionsByteCRLF = null!;
-    private CsvOptions<char> _optionsCharCRLF = null!;
+    private static CsvOptions<byte> _optionsByteLF = new() { Newline = CsvNewline.LF };
+    private static CsvOptions<char> _optionsCharLF = new() { Newline = CsvNewline.LF };
+    private static CsvOptions<byte> _optionsByteCRLF = new() { Newline = CsvNewline.CRLF };
+    private static CsvOptions<char> _optionsCharCRLF = new() { Newline = CsvNewline.CRLF };
 
     private CsvOptions<byte> OptionsByte => CRLF ? _optionsByteCRLF : _optionsByteLF;
     private CsvOptions<char> OptionsChar => CRLF ? _optionsCharCRLF : _optionsCharLF;
@@ -45,16 +49,16 @@ public class CsvEnumerateBench
     [Benchmark(Baseline = true)]
     public void Flame_byte()
     {
-        foreach (var record in new CsvReader<byte>(OptionsByte, _byteArray).ParseRecords())
+        foreach (var _ in new CsvReader<byte>(OptionsByte, _byteArray).ParseRecords())
         {
-            for (int i = 0; i < record.FieldCount; i++)
-            {
-                _ = record[i];
-            }
+            // for (int i = 0; i < record.FieldCount; i++)
+            // {
+            //     _ = record[i];
+            // }
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Flame_char()
     {
         foreach (var record in new CsvReader<char>(OptionsChar, _string.AsMemory()).ParseRecords())
@@ -67,29 +71,29 @@ public class CsvEnumerateBench
     }
 
     // [Benchmark]
-    // public void Sep_byte()
-    // {
-    //     using var reader = Sep.Reader(o =>
-    //             o with
-    //             {
-    //                 Sep = new Sep(','),
-    //                 CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
-    //                 HasHeader = false,
-    //                 Unescape = true,
-    //             }
-    //         )
-    //         .From(_byteArray);
+    public void Sep_byte()
+    {
+        using var reader = Sep.Reader(o =>
+                o with
+                {
+                    Sep = new Sep(','),
+                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    HasHeader = false,
+                    Unescape = true,
+                }
+            )
+            .From(_byteArray);
 
-    //     foreach (var row in reader)
-    //     {
-    //         for (int i = 0; i < row.ColCount; i++)
-    //         {
-    //             _ = row[i].Span;
-    //         }
-    //     }
-    // }
+        foreach (var row in reader)
+        {
+            for (int i = 0; i < row.ColCount; i++)
+            {
+                _ = row[i].Span;
+            }
+        }
+    }
 
-    [Benchmark]
+    // [Benchmark]
     public void Sep_char()
     {
         using var reader = Sep.Reader(o =>

@@ -21,13 +21,13 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
         _newlineLength = options.Newline.GetTokens(out _newlineFirst, out _newlineSecond);
     }
 
-    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
+    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
     {
         FieldBuffer destination = recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
 
         if (data.IsEmpty || data.Length < startIndex)
         {
-            return false;
+            return 0;
         }
 
         Span<uint> fields = destination.Fields;
@@ -113,8 +113,7 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
             fieldIndex++;
         }
 
-        recordBuffer.SetFieldsRead(fieldIndex);
-        return fieldIndex > 0;
+        return fieldIndex;
     }
 
     private static byte GetQuoteFlag(uint quotesConsumed, uint escapesConsumed)

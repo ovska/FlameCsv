@@ -6,6 +6,7 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
@@ -33,10 +34,14 @@ namespace FlameCsv.Console
             byte[] byteArray = File.ReadAllBytes(file.FullName);
             // var metas = new Reading.Internal.Meta[65536];
 
-            using (var rb = new RecordBuffer())
             {
+                var rb = new RecordBuffer();
                 rb.GetFieldArrayRef() = new uint[24 * 65535];
+                rb.GetFieldArrayRef()[0] = Field.StartOrEnd;
                 rb.GetQuoteArrayRef() = new byte[24 * 65535];
+                
+                // new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+                //     .Tokenize(rb, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n")));
                 new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(rb, byteArray);
             }
 

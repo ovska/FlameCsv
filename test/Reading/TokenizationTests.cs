@@ -1,4 +1,3 @@
-// #if false // TODO: tokenizer_refactor
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -14,58 +13,70 @@ namespace FlameCsv.Tests.Reading;
 
 public class TokenizationTests
 {
-    [Theory, InlineData(CsvNewline.LF), InlineData(CsvNewline.CRLF), InlineData(CsvNewline.Platform)]
-    public void Avx2_Char(CsvNewline newline)
+    public enum RecSep
+    {
+        LF,
+        CRLF,
+        Alternating,
+        CR,
+    }
+
+    public const int RecordCount = 1_000;
+
+    // platform uses CRLF parser, but alternates between CRLF and LF, and inserts a lone CR every now and then
+    public static TheoryData<RecSep> NewlineData => new() { RecSep.LF, RecSep.CRLF, RecSep.Alternating, RecSep.CR };
+
+    [Theory, MemberData(nameof(NewlineData))]
+    public void Avx2_Char(RecSep newline)
     {
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
 
         TokenizeCore<char>(
             newline,
-            newline == CsvNewline.LF
+            newline == RecSep.LF
                 ? new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default)
                 : new Avx2Tokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
         );
     }
 
-    [Theory, InlineData(CsvNewline.LF), InlineData(CsvNewline.CRLF), InlineData(CsvNewline.Platform)]
-    public void Avx2_Byte(CsvNewline newline)
+    [Theory, MemberData(nameof(NewlineData))]
+    public void Avx2_Byte(RecSep newline)
     {
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
 
         TokenizeCore<byte>(
             newline,
-            newline == CsvNewline.LF
+            newline == RecSep.LF
                 ? new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
                 : new Avx2Tokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
         );
     }
 
-    [Theory, InlineData(CsvNewline.LF), InlineData(CsvNewline.CRLF), InlineData(CsvNewline.Platform)]
-    public void Generic_Char(CsvNewline newline) =>
+    [Theory, MemberData(nameof(NewlineData))]
+    public void Generic_Char(RecSep newline) =>
         TokenizeCore<char>(
             newline,
-            newline == CsvNewline.LF
+            newline == RecSep.LF
                 ? new SimdTokenizer<char, NewlineLF>(CsvOptions<char>.Default)
                 : new SimdTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
         );
 
-    [Theory, InlineData(CsvNewline.LF), InlineData(CsvNewline.CRLF), InlineData(CsvNewline.Platform)]
-    public void Generic_Byte(CsvNewline newline) =>
+    [Theory, MemberData(nameof(NewlineData))]
+    public void Generic_Byte(RecSep newline) =>
         TokenizeCore<byte>(
             newline,
-            newline == CsvNewline.LF
+            newline == RecSep.LF
                 ? new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
                 : new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
         );
 
-    private static void TokenizeCore<T>(CsvNewline newline, CsvPartialTokenizer<T> tokenizer)
+    private static void TokenizeCore<T>(RecSep newline, CsvPartialTokenizer<T> tokenizer)
         where T : unmanaged, IBinaryInteger<T>
     {
         using var rb = new RecordBuffer();
 
         ReadOnlySpan<T> dataset = GetDataset<T>(newline);
-        Assert.True(tokenizer.Tokenize(rb, dataset));
-        // Assert.Equal(600, rb.BufferedFields);
+        Assert.NotEqual(0, tokenizer.Tokenize(rb, dataset));
 
         RecordView expected = GetExpected(newline);
         var a = expected._fields[10..13];
@@ -74,7 +85,7 @@ public class TokenizationTests
         Assert.Equal(expected._quotes.AsSpan(0, 600), rb.GetQuoteArrayRef().AsSpan(1, 600));
     }
 
-    private static RecordView GetExpected(CsvNewline newline)
+    private static RecordView GetExpected(RecSep newline)
     {
         ArrayBufferWriter<uint> fields = new();
         ArrayBufferWriter<byte> quotes = new();
@@ -82,7 +93,7 @@ public class TokenizationTests
         int i;
         uint idx = 0;
 
-        for (i = 0; i < 100; i++)
+        for (i = 0; i < RecordCount; i++)
         {
             Span<uint> f = fields.GetSpan(6);
 
@@ -117,22 +128,21 @@ public class TokenizationTests
         {
             return newline switch
             {
-                CsvNewline.LF => Field.IsEOL,
-                CsvNewline.CRLF => Field.IsCRLF,
-                // _ when i % 17 == 0 => Field.IsEOL,
-                _ => i % 2 == 0 ? Field.IsEOL : Field.IsCRLF,
+                RecSep.CRLF => Field.IsCRLF,
+                RecSep.Alternating => i % 2 == 0 ? Field.IsEOL : Field.IsCRLF,
+                _ => Field.IsEOL,
             };
         }
     }
 
-    private static ReadOnlySpan<T> GetDataset<T>(CsvNewline newline)
+    private static ReadOnlySpan<T> GetDataset<T>(RecSep newline)
         where T : unmanaged
     {
         int i;
 
         using ValueStringBuilder vsb = new();
 
-        for (i = 0; i < 100; i++)
+        for (i = 0; i < RecordCount; i++)
         {
             vsb.Append('0');
             vsb.Append(',');
@@ -170,10 +180,10 @@ public class TokenizationTests
         {
             return newline switch
             {
-                CsvNewline.LF => "\n",
-                CsvNewline.CRLF => "\r\n",
-                // _ when i % 17 == 0 => "\r",
-                _ => i % 2 == 0 ? "\n" : "\r\n",
+                RecSep.LF => "\n",
+                RecSep.CRLF => "\r\n",
+                RecSep.Alternating => i % 2 == 0 ? "\n" : "\r\n",
+                _ => "\r",
             };
         }
     }
@@ -368,4 +378,3 @@ public class TokenizationTests
     //     Assert.False(rb.TryPop(out _), "Expected no more records to be available.");
     // }
 }
-// #endif
