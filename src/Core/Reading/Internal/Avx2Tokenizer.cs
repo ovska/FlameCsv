@@ -21,7 +21,7 @@ file struct Inline32<T>
 }
 
 [SkipLocalsInit]
-internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPartialTokenizer<T>
+internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline
 {
@@ -33,10 +33,17 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
     public override int PreferredLength => Vector256<byte>.Count * 4;
 
-    private readonly T _quote = T.CreateTruncating(options.Quote);
-    private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
+    private readonly T _quote;
+    private readonly T _delimiter;
 
     private const uint MaxIndex = int.MaxValue / 2;
+
+    public Avx2Tokenizer(CsvOptions<T> options)
+    {
+        _quote = T.CreateTruncating(options.Quote);
+        _delimiter = T.CreateTruncating(options.Delimiter);
+        RuntimeHelpers.RunClassConstructor(typeof(CompressionTables).TypeHandle);
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override unsafe bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
@@ -138,13 +145,14 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             uint maskControl = hasAny.ExtractMostSignificantBits();
             uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
+            Unsafe.SkipInit(out uint maskLF);
             Unsafe.SkipInit(out uint shiftedCR);
 
             if (TNewline.IsCRLF)
             {
                 Vector256<byte> hasCR = Vector256.Equals(vector, vecCR);
                 uint maskCR = hasCR.ExtractMostSignificantBits();
-                uint maskLF = hasLF.ExtractMostSignificantBits();
+                maskLF = hasLF.ExtractMostSignificantBits();
 
                 shiftedCR = ((maskCR << 1) | crCarry);
                 crCarry = maskCR >> 31;
@@ -276,6 +284,11 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             continue;
 
             SlowPath:
+            if (!TNewline.IsCRLF)
+            {
+                maskLF = hasLF.ExtractMostSignificantBits();
+            }
+
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
@@ -291,31 +304,26 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // quoteXOR might have zeroed out the mask so do..while won't work
             while (maskControl != 0)
             {
-                uint pos = (uint)BitOperations.TrailingZeroCount(maskControl);
                 uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskControl);
+                uint pos = (uint)BitOperations.TrailingZeroCount(maskControl);
 
-                uint offset = (uint)runningIndex + pos;
                 quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-
-                T value = Unsafe.Add(ref first, offset); // queue the load
+                uint posBit = (maskUpToPos ^ (maskUpToPos >> 1)); // extract the lowest set bit
+                uint offset = (uint)runningIndex + pos;
 
                 // consume masks
                 maskControl &= ~maskUpToPos;
                 maskQuote &= ~maskUpToPos;
 
+                bool isLF = (maskLF & posBit) != 0;
+
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
-                uint eolFlag;
+                uint eolFlag = isLF ? eolType : 0;
 
                 if (TNewline.IsCRLF)
                 {
-                    bool isLF = IsLF(value);
                     offset -= (uint)(Unsafe.BitCast<bool, byte>(isLF) & isCR);
-                    eolFlag = isLF ? eolType : 0;
-                }
-                else
-                {
-                    eolFlag = IsLF(value) ? eolType : 0;
                 }
 
                 Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
@@ -331,8 +339,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             // TODO check cr carry
             PathologicalPath:
-            // this branch here is just to eliminate the branch in LF parser where it's uneachable
-            if (TNewline.IsCRLF)
+            if (TNewline.IsCRLF) // eliminate this whole block in LF parser
             {
                 quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
                 maskControl &= ~quoteXOR; // clear the bits that are inside quotes
@@ -369,13 +376,4 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         recordBuffer.SetFieldsRead((int)fieldIndex);
         return fieldIndex > 0;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsLF(T value) =>
-        Unsafe.SizeOf<T>() switch
-        {
-            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
-            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
-            _ => throw Token<T>.NotSupported,
-        };
 }

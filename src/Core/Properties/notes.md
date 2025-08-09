@@ -472,6 +472,35 @@ After: 821.4 and 909.0
 | V128   | True  | True   | CRLF         |   599.4 us |  2.92 us |  1.00 |
 | Avx2   | True  | True   | CRLF         |   433.4 us |  1.73 us |  0.72 |
 
+## More adjustments
+
+| Method | Chars | Quoted | Newline      |       Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------------ | ---------: | ------: | ----: |
+| V128   | False | False  | LF           | 1,294.8 us | 7.22 us |  1.00 |
+| Avx2   | False | False  | LF           |   948.5 us | 3.55 us |  0.73 |
+| V128   | False | False  | LF_With_CRLF | 1,336.9 us | 5.30 us |  1.00 |
+| Avx2   | False | False  | LF_With_CRLF | 1,238.0 us | 5.36 us |  0.93 |
+| V128   | False | False  | CRLF         | 1,362.7 us | 5.59 us |  1.00 |
+| Avx2   | False | False  | CRLF         | 1,245.9 us | 4.11 us |  0.91 |
+| V128   | False | True   | LF           |   535.0 us | 2.03 us |  1.00 |
+| Avx2   | False | True   | LF           |   372.4 us | 1.16 us |  0.70 |
+| V128   | False | True   | LF_With_CRLF |   578.3 us | 2.57 us |  1.00 |
+| Avx2   | False | True   | LF_With_CRLF |   439.1 us | 1.54 us |  0.76 |
+| V128   | False | True   | CRLF         |   603.0 us | 2.55 us |  1.00 |
+| Avx2   | False | True   | CRLF         |   432.4 us | 2.11 us |  0.72 |
+| V128   | True  | False  | LF           | 1,396.3 us | 6.94 us |  1.00 |
+| Avx2   | True  | False  | LF           | 1,121.1 us | 2.12 us |  0.80 |
+| V128   | True  | False  | LF_With_CRLF | 1,489.6 us | 5.39 us |  1.00 |
+| Avx2   | True  | False  | LF_With_CRLF | 1,423.2 us | 7.25 us |  0.96 |
+| V128   | True  | False  | CRLF         | 1,523.0 us | 2.65 us |  1.00 |
+| Avx2   | True  | False  | CRLF         | 1,432.7 us | 7.13 us |  0.94 |
+| V128   | True  | True   | LF           |   554.9 us | 1.81 us |  1.00 |
+| Avx2   | True  | True   | LF           |   379.8 us | 1.35 us |  0.68 |
+| V128   | True  | True   | LF_With_CRLF |   612.5 us | 3.43 us |  1.00 |
+| Avx2   | True  | True   | LF_With_CRLF |   458.4 us | 1.60 us |  0.75 |
+| V128   | True  | True   | CRLF         |   610.5 us | 3.12 us |  1.00 |
+| Avx2   | True  | True   | CRLF         |   454.9 us | 1.19 us |  0.75 |
+
 ## Getting field end index
 
 | Method      |     Mean |    StdDev | Ratio |     Diff |

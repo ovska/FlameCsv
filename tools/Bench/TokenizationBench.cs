@@ -1,6 +1,5 @@
 // ReSharper disable all
 using System.Text;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
@@ -15,18 +14,27 @@ public class TokenizationBench
         CRLF,
     }
 
-    // [Params(false, true)]
+    [Params(
+        [ /**/
+            false,
+            true,
+        ]
+    )]
     public bool Chars { get; set; }
 
-    // [Params(true, false)]
+    [Params(
+        [ /**/
+            true,
+            false,
+        ]
+    )]
     public bool Quoted { get; set; }
 
     [Params(
-        [
-            /**/
+        [ /**/
             ParserNewline.LF,
-            // ParserNewline.LF_With_CRLF,
-            // ParserNewline.CRLF,
+            ParserNewline.LF_With_CRLF,
+            ParserNewline.CRLF,
         ]
     )]
     public ParserNewline Newline { get; set; }
