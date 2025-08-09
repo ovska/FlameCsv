@@ -39,7 +39,7 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private const uint MaxIndex = int.MaxValue / 2;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
+    public override unsafe bool Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
     {
         FieldBuffer destination = recordBuffer.GetUnreadBuffer(
             minimumLength: Vector256<byte>.Count,
@@ -89,7 +89,6 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Vector256<byte> vector;
         Vector256<uint> runningIndexVector;
 
-        unsafe
         {
             // ensure data is aligned to 32 bytes
             // for simplicity, always use element count
@@ -187,76 +186,75 @@ internal sealed class Avx2Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 goto SlowPath;
             }
 
-            Vector256<int> taggedIndexVector;
-            Vector256<int> fixup;
+            // build a mask to remove extra bits caused by sign-extension
+            Vector256<int> fixup = TNewline.IsCRLF
+                ? Vector256.Create(fixupScalar | ((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
+                : msbAndBitsUpTo7;
 
-            unsafe
-            {
-                uint mask = ~maskControl;
+            // Build the 256-bit shuffle mask.
+            ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
 
-                // Split the mask into four bytes
-                byte mask1 = (byte)mask;
-                byte mask2 = (byte)(mask >> 8);
-                byte mask3 = (byte)(mask >> 16);
-                byte mask4 = (byte)(mask >> 24);
+            uint mask = ~maskControl;
 
-                // Build the 256-bit shuffle mask.
-                ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
+            // Split the mask into four bytes
+            byte mask1 = (byte)mask;
+            byte mask2 = (byte)(mask >> 8);
+            byte mask3 = (byte)(mask >> 16);
+            byte mask4 = (byte)(mask >> 24);
 
-                Vector256<ulong> shufmask = Vector256.Create(
-                    Unsafe.Add(ref table, mask1),
-                    Unsafe.Add(ref table, mask2),
-                    Unsafe.Add(ref table, mask3),
-                    Unsafe.Add(ref table, mask4)
-                );
+            Vector256<ulong> shufmask = Vector256.Create(
+                Unsafe.Add(ref table, mask1),
+                Unsafe.Add(ref table, mask2),
+                Unsafe.Add(ref table, mask3),
+                Unsafe.Add(ref table, mask4)
+            );
 
-                Vector256<byte> tags = (hasLF & bit7);
+            Vector256<byte> tags = (hasLF & bit7);
 
-                // Add the constant to the shuffle mask.
-                Vector256<byte> shufmaskBytes = shufmask.AsByte() + add;
+            // Use precomputed popcounts from the table.
+            ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
 
-                // Use precomputed popcounts from the table.
-                ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
-                byte pop1 = Unsafe.Add(ref popCounts, mask1);
-                byte pop3 = Unsafe.Add(ref popCounts, mask3);
+            // Add the constant to the shuffle mask.
+            Vector256<byte> shufmaskBytes = shufmask.AsByte() + add;
 
-                Vector256<byte> taggedIndices = tags | Vector256<byte>.Indices;
+            byte pop1 = Unsafe.Add(ref popCounts, mask1);
+            byte pop3 = Unsafe.Add(ref popCounts, mask3);
 
-                // Load the 128-bit masks from pshufb_combine_table.
-                ref readonly byte shuffleCombine = ref CompressionTables.ShuffleCombine[0];
-                Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
-                Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop3 * 8);
+            // Load the 128-bit masks from pshufb_combine_table.
+            ref readonly byte shuffleCombine = ref CompressionTables.ShuffleCombine[0];
 
-                // Shuffle the source data.
-                Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
+            Vector256<byte> taggedIndices = tags | Vector256<byte>.Indices;
 
-                // Combine the two 128-bit lanes into a 256-bit mask.
-                Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
+            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
+            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop3 * 8);
 
-                // Calculate the offset for the upper half.
-                uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF) * 16;
+            // Shuffle the source data.
+            Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
 
-                // Shuffle the pruned vector with the combined mask.
-                Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
+            // Combine the two 128-bit lanes into a 256-bit mask.
+            Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
 
-                Vector128<byte> indices = Vector128.LoadAligned(CompressionTables.CompactShuffle + lowerCountOffset);
-                Vector128<byte> zeroUpper = Vector128.LoadAligned(CompressionTables.ZeroUpper + lowerCountOffset);
+            // Calculate the offset for the upper half.
+            uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF) * 16;
 
-                // Extract the lower and upper 128-bit lanes.
-                Vector128<byte> upper = almostthere.GetUpper();
-                Vector128<byte> lower = almostthere.GetLower();
+            // Shuffle the pruned vector with the combined mask.
+            Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
 
-                Vector128<byte> upperShuffled = Ssse3.Shuffle(upper, indices);
-                Vector128<byte> lowerZeroed = lower & zeroUpper;
+            Vector128<byte> compact = Vector128.LoadAligned(CompressionTables.CompactShuffle + lowerCountOffset);
+            Vector128<byte> zeroUpper = Vector128.LoadAligned(CompressionTables.ZeroUpper + lowerCountOffset);
 
-                Vector128<byte> combined = lowerZeroed | upperShuffled;
+            // Extract the lower and upper 128-bit lanes.
+            Vector128<byte> upper = almostthere.GetUpper();
+            Vector128<byte> lower = almostthere.GetLower();
 
-                fixup = TNewline.IsCRLF
-                    ? Vector256.Create(fixupScalar | ((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
-                    : msbAndBitsUpTo7;
+            // move upper lane items to their final positions, and zero out the same positions in lower lane
+            Vector128<byte> upperCompacted = Ssse3.Shuffle(upper, compact);
+            Vector128<byte> lowerZeroed = lower & zeroUpper;
 
-                taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
-            }
+            Vector128<byte> combined = lowerZeroed | upperCompacted;
+
+            // use a sign-extended conversion to int32 to keep the CR/LF tags
+            Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
 
             Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;
 
