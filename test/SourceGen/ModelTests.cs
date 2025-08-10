@@ -25,7 +25,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -66,7 +66,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -152,7 +152,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -240,7 +240,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -382,7 +382,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -481,7 +481,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -541,7 +541,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -622,7 +622,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -676,7 +676,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -727,7 +727,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 

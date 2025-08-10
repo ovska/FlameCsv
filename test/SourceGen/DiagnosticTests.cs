@@ -11,8 +11,8 @@ public class DiagnosticTests(MetadataFixture fixture)
 {
     private readonly MetadataReference[] _metadataReferences =
     [
-        Net90.References.SystemRuntime,
-        Net90.References.SystemRuntimeSerializationPrimitives, // needed for EnumMemberAttribute
+        ReferenceAssemblies.SystemRuntime,
+        ReferenceAssemblies.SystemRuntimeSerializationPrimitives, // needed for EnumMemberAttribute
         fixture.FlameCsvCore,
     ];
 

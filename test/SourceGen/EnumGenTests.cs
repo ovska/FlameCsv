@@ -241,7 +241,7 @@ public class EnumGenTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, .. Net90.References.All],
+            [fixture.FlameCsvCore, .. ReferenceAssemblies.All],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
         Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));
@@ -270,7 +270,7 @@ public class EnumGenTests(MetadataFixture fixture)
         compilation = CSharpCompilation.Create(
             assemblyName,
             [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
-            [fixture.FlameCsvCore, .. Net90.References.All],
+            [fixture.FlameCsvCore, .. ReferenceAssemblies.All],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
         Assert.Empty(compilation.GetDiagnostics(TestContext.Current.CancellationToken));
