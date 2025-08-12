@@ -60,10 +60,9 @@ internal sealed class RecordBuffer : IDisposable
     /// </summary>
     public FieldBuffer GetUnreadBuffer(int minimumLength, out int startIndex)
     {
-        ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
-
         int start = _fieldCount + 1;
 
+        // TODO: this might be a dead path?
         if ((_fields.Length - start) < minimumLength)
         {
             int newLength = Math.Max(_fields.Length * 2, minimumLength + start);

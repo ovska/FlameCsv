@@ -19,7 +19,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private static int EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (Vector256<byte>.Count * 2) + (TNewline.IsCRLF ? 1 : 0);
+        get => Vector256<byte>.Count * 2;
     }
 
     public override int PreferredLength
@@ -31,7 +31,11 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
-    private static Vector256<byte> ZeroFirst => Vector256.Create(-256L, ~0L, ~0L, ~0L).AsByte();
+    private static Vector256<byte> ZeroFirst
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256.Create(-256L, ~0L, ~0L, ~0L).AsByte();
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
@@ -241,7 +245,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             mask &= (mask - 1);
 
             // for some reason this is faster than incrementing a pointer
-            dst = ref Unsafe.Add(ref fieldRef, unrollCount);
+            dst = ref Unsafe.Add(ref dst, unrollCount);
 
             do
             {
