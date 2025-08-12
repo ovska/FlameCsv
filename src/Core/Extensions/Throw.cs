@@ -63,6 +63,14 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void NotSupported_TooLargeRecord(int fieldCount)
+    {
+        throw new NotSupportedException(
+            $"The record has too many fields ({fieldCount}), only up to ~{ushort.MaxValue} are supported."
+        );
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void NotSupported_SyncRead(object reader)
     {
         throw new NotSupportedException($"{reader.GetType().FullName} does not support synchronous reads.");
