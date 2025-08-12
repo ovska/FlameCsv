@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.IO.Compression;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
@@ -305,5 +306,21 @@ public class CsvReaderTests
             Assert.Equal(new string('"', 200), record[1].ToString());
             Assert.Equal("test", record[2].ToString());
         }
+    }
+
+    [Fact]
+    public void Should_Throw_On_Over_65K_Field_Record()
+    {
+        Assert.Skip("WIP: figure out what's wrong");
+
+        using var mo = MemoryOwner<char>.Allocate(ushort.MaxValue * 2);
+        mo.Span.Fill(',');
+        mo.Span[^1] = '\n';
+        var options = new CsvOptions<char> { Newline = CsvNewline.LF };
+
+        using var enumerator = CsvReader.Enumerate(mo.Memory).GetEnumerator();
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal(ushort.MaxValue * 2, enumerator.Current.FieldCount);
+        Assert.False(enumerator.MoveNext());
     }
 }
