@@ -34,7 +34,7 @@ internal sealed class RecordBuffer : IDisposable
     /// </summary>
     private byte[] _quotes;
 
-    private int[] _eols;
+    private ushort[] _eols;
 
     private int _eolIndex;
     private int _eolCount;
@@ -42,12 +42,12 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Number of fields that have been consumed from the buffer.
     /// </summary>
-    private int _index;
+    private int _fieldIndex;
 
     /// <summary>
     /// Number of fields that have been parsed to the buffer.
     /// </summary>
-    private int _count;
+    private int _fieldCount;
 
     public RecordBuffer()
     {
@@ -62,17 +62,17 @@ internal sealed class RecordBuffer : IDisposable
     {
         ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
 
-        int start = _count + 1;
+        int start = _fieldCount + 1;
 
         if ((_fields.Length - start) < minimumLength)
         {
             int newLength = Math.Max(_fields.Length * 2, minimumLength + start);
             ArrayPool<uint>.Shared.Resize(ref _fields, newLength);
             ArrayPool<byte>.Shared.Resize(ref _quotes, newLength);
-            ArrayPool<int>.Shared.Resize(ref _eols, newLength);
+            ArrayPool<ushort>.Shared.Resize(ref _eols, newLength);
         }
 
-        startIndex = _count == 0 ? 0 : NextStart(_fields[_count]);
+        startIndex = _fieldCount == 0 ? 0 : NextStart(_fields[_fieldCount]);
         return new()
         {
             //
@@ -86,7 +86,7 @@ internal sealed class RecordBuffer : IDisposable
         get
         {
             ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
-            return _count - _index;
+            return _fieldCount - _fieldIndex;
         }
     }
 
@@ -95,7 +95,7 @@ internal sealed class RecordBuffer : IDisposable
         get
         {
             ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
-            return NextStart(_fields[_count]);
+            return NextStart(_fields[_fieldCount]);
         }
     }
 
@@ -106,14 +106,14 @@ internal sealed class RecordBuffer : IDisposable
     public void SetFieldsRead(int count)
     {
         Debug.Assert(count >= 0);
-        Debug.Assert((_count + count) < _fields.Length);
+        Debug.Assert((_fieldCount + count) < _fields.Length);
 
-        _count += count;
+        _fieldCount += count;
 
-        ref int eol = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex + 1u);
-        ref uint field = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), (uint)_index + 1u);
+        ref ushort eol = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex + 1u);
+        ref uint field = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), (uint)_fieldIndex + 1u);
 
-        nint end = _count - _index;
+        nint end = _fieldCount - _fieldIndex;
         nint pos = 0;
 
         nuint idx = 0;
@@ -137,7 +137,7 @@ internal sealed class RecordBuffer : IDisposable
                 {
                     int bit = BitOperations.TrailingZeroCount(positions);
                     positions &= (positions - 1); // blsr
-                    Unsafe.Add(ref eol, idx++) = (int)pos + bit + 1;
+                    Unsafe.Add(ref eol, idx++) = (ushort)(pos + bit + 1);
                 }
 
                 pos += Vector<uint>.Count;
@@ -148,7 +148,7 @@ internal sealed class RecordBuffer : IDisposable
         {
             if ((Unsafe.Add(ref field, pos++) & IsEOL) != 0)
             {
-                Unsafe.Add(ref eol, idx++) = (int)pos;
+                Unsafe.Add(ref eol, idx++) = (ushort)pos;
             }
         }
 
@@ -166,11 +166,16 @@ internal sealed class RecordBuffer : IDisposable
         Debug.Assert(_fields.Length == _quotes.Length);
         Debug.Assert(_fields.Length == _eols.Length);
 
-        if (_count >= (_fields.Length * 15 / 16))
+        if (_fieldCount >= (_fields.Length * 15 / 16))
         {
+            if (_fieldCount >= (ushort.MaxValue * 15 / 16))
+            {
+                Throw.NotSupported_TooLargeRecord(_fieldCount);
+            }
+
             ArrayPool<uint>.Shared.Resize(ref _fields, _fields.Length * 2);
             ArrayPool<byte>.Shared.Resize(ref _quotes, _quotes.Length * 2);
-            ArrayPool<int>.Shared.Resize(ref _eols, _eols.Length * 2);
+            ArrayPool<ushort>.Shared.Resize(ref _eols, _eols.Length * 2);
         }
     }
 
@@ -182,7 +187,7 @@ internal sealed class RecordBuffer : IDisposable
     public int Reset()
     {
         // nothing yet
-        if (_index == 0 || _count == 0)
+        if (_fieldIndex == 0 || _fieldCount == 0)
         {
             return 0;
         }
@@ -193,14 +198,14 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private int ResetCore()
     {
-        uint lastRead = _fields[_index];
+        uint lastRead = _fields[_fieldIndex];
         int offset = NextStart(lastRead);
 
         // TODO: ensure this is only called if there are no more rows!
-        if (_count > _index)
+        if (_fieldCount > _fieldIndex)
         {
-            int length = _count - _index;
-            int start = _index + 1;
+            int length = _fieldCount - _fieldIndex;
+            int start = _fieldIndex + 1;
 
             Span<uint> buffer = _fields.AsSpan(start, length);
 
@@ -226,14 +231,14 @@ internal sealed class RecordBuffer : IDisposable
             // the quote buffer must be clean
         }
 
-        _count -= _index;
-        _index = 0;
+        _fieldCount -= _fieldIndex;
+        _fieldIndex = 0;
         _eolCount = 0;
         _eolIndex = 0;
 
         Debug.Assert(_fields[0] == 0);
         Debug.Assert((lastRead & IsEOL) != 0, "Last read record must have EOL flag set");
-        Debug.Assert(_count >= 0, $"Count should be >= 0, was {_count}");
+        Debug.Assert(_fieldCount >= 0, $"Count should be >= 0, was {_fieldCount}");
 
         return offset;
     }
@@ -252,8 +257,8 @@ internal sealed class RecordBuffer : IDisposable
         }
 
         nuint idx = (uint)_eolIndex;
-        ref int previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), idx);
-        int eol = Unsafe.Add(ref previous, 1);
+        ref ushort previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), idx);
+        ushort eol = Unsafe.Add(ref previous, 1);
 
         record = new RecordView(
             _fields,
@@ -261,7 +266,7 @@ internal sealed class RecordBuffer : IDisposable
             (uint)(previous | (Unsafe.BitCast<bool, byte>(_eolIndex == 0) << 31)),
             eol - previous + 1
         );
-        _index = eol;
+        _fieldIndex = eol;
         _eolIndex++;
         return true;
     }
@@ -271,15 +276,15 @@ internal sealed class RecordBuffer : IDisposable
     {
         ArrayPool<uint>.Shared.EnsureCapacity(ref _fields, DefaultFieldBufferSize);
         ArrayPool<byte>.Shared.EnsureCapacity(ref _quotes, DefaultFieldBufferSize);
-        ArrayPool<int>.Shared.EnsureCapacity(ref _eols, DefaultFieldBufferSize);
+        ArrayPool<ushort>.Shared.EnsureCapacity(ref _eols, DefaultFieldBufferSize);
 
         _fields[0] = 0;
         _eols[0] = 0;
 
         _quotes.AsSpan().Clear();
         _eols.AsSpan().Clear();
-        _index = 0;
-        _count = 0;
+        _fieldIndex = 0;
+        _fieldCount = 0;
 
         _eolIndex = 0;
         _eolCount = 0;
@@ -287,14 +292,14 @@ internal sealed class RecordBuffer : IDisposable
 
     public void Dispose()
     {
-        _index = 0;
-        _count = 0;
+        _fieldIndex = 0;
+        _fieldCount = 0;
         _eolIndex = 0;
         _eolCount = 0;
 
         ArrayPool<uint>.Shared.ReturnAndEmpty(ref _fields);
         ArrayPool<byte>.Shared.ReturnAndEmpty(ref _quotes);
-        ArrayPool<int>.Shared.ReturnAndEmpty(ref _eols);
+        ArrayPool<ushort>.Shared.ReturnAndEmpty(ref _eols);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -304,12 +309,12 @@ internal sealed class RecordBuffer : IDisposable
     internal ref byte[] GetQuoteArrayRef() => ref _quotes;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref int[] GetEolArrayRef() => ref _eols;
+    internal ref ushort[] GetEolArrayRef() => ref _eols;
 
     public override string ToString() =>
         _fields.Length == 0
             ? "{ Empty }"
-            : $"{{ {_count} read, {_count - _index} available, range: [{NextStart(_fields[_index])}..{NextStart(_fields[_count])}] }}";
+            : $"{{ {_fieldCount} read, {_fieldCount - _fieldIndex} available, range: [{NextStart(_fields[_fieldIndex])}..{NextStart(_fields[_fieldCount])}] }}";
 
     private class MetaBufferDebugView
     {
@@ -327,15 +332,16 @@ internal sealed class RecordBuffer : IDisposable
                 :
                 [
                     .. _buffer
-                        ._fields.Skip(Math.Max(1, _buffer._index))
-                        .Take(_buffer._index)
+                        ._fields.Skip(Math.Max(1, _buffer._fieldIndex))
+                        .Take(_buffer._fieldIndex)
                         .Select(f => $"End: {f & EndMask}, EOL: {(f & IsEOL) != 0}"),
                 ];
     }
 
 #if DEBUG
     internal IEnumerable<string> DebugFieldsAll => _fields.Select(FormatField);
-    internal string[] DebugFieldsUnread => DebugFieldsAll.Skip(Math.Max(1, _index)).Take(_count - _index).ToArray();
+    internal string[] DebugFieldsUnread =>
+        DebugFieldsAll.Skip(Math.Max(1, _fieldIndex)).Take(_fieldCount - _fieldIndex).ToArray();
 
     private static string FormatField(uint f)
     {
