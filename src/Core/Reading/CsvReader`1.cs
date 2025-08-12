@@ -90,8 +90,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
         _simdTokenizer = CsvTokenizer.CreateSimd(options);
         _scalarTokenizer = CsvTokenizer.Create(options);
-
-        Unsafe.SkipInit(out _stackMemory);
     }
 
     /// <summary>

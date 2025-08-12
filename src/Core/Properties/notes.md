@@ -515,42 +515,16 @@ Consider moving away from "StartOrEnd" sentinel bits for every single field, and
 
 ## Field enumeration
 
-Naive: 1.7ms
+Naive - 1.7ms
+Precalculated EOL - 1.622 ms
+Less vector compares - 1.606 ms
+Aligned Reads - 1.603 ms
+Branch on zero vector - 1.603 ms
+Prefetch next - 1.599 ms
+Separate idx vs _eolIndex - 1.575 ms
+Simplify end index - 1.570 ms
+Final working - 1.573 ms
 
-Precalculated EOL
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.622 ms | 0.0052 ms |  1.00 |
-
-less cmps
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.606 ms | 0.0073 ms |  1.00 |
-
-aligned reads (!)
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.603 ms | 0.0046 ms |  1.00 |
-
-branch on empty vector
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.603 ms | 0.0063 ms |  1.00 |
-
-prefetch
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.599 ms | 0.0069 ms |  1.00 |
-
-use separate idx
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.575 ms | 0.0052 ms |  1.00 |
-
-simplify end index
-| Method     | Quoted | CRLF  |     Mean |    StdDev | Ratio |
-| ---------- | ------ | ----- | -------: | --------: | ----: |
-| Flame_byte | False  | False | 1.570 ms | 0.0066 ms |  1.00 |
 
 ## Frequencies
 
