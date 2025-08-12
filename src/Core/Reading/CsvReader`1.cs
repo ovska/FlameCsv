@@ -172,6 +172,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     {
         ReadOnlySpan<T> data = _buffer.Span;
 
+        Read:
         int fieldsRead =
             readToEnd || _simdTokenizer is null
                 ? _scalarTokenizer.Tokenize(_recordBuffer, data, readToEnd)
@@ -197,7 +198,10 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
             // read something, but no fully formed record.
             // ensure we aren't dealing with a huge record that can't fit in our buffer (thousands of fields)
-            _recordBuffer.EnsureCapacity();
+            if (_recordBuffer.EnsureCapacity())
+            {
+                goto Read;
+            }
         }
 
         Unsafe.SkipInit(out record);

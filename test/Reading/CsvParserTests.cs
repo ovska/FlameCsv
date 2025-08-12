@@ -311,16 +311,11 @@ public class CsvReaderTests
     [Fact]
     public void Should_Throw_On_Over_65K_Field_Record()
     {
-        Assert.Skip("WIP: figure out what's wrong");
-
         using var mo = MemoryOwner<char>.Allocate(ushort.MaxValue * 2);
         mo.Span.Fill(',');
         mo.Span[^1] = '\n';
         var options = new CsvOptions<char> { Newline = CsvNewline.LF };
 
-        using var enumerator = CsvReader.Enumerate(mo.Memory).GetEnumerator();
-        Assert.True(enumerator.MoveNext());
-        Assert.Equal(ushort.MaxValue * 2, enumerator.Current.FieldCount);
-        Assert.False(enumerator.MoveNext());
+        Assert.Throws<NotSupportedException>(() => CsvReader.Enumerate(mo.Memory).ToList());
     }
 }
