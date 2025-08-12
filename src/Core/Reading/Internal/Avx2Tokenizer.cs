@@ -31,7 +31,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         get => (nuint)Vector256<byte>.Count * 3;
     }
 
+    private static int MaxFieldsPerIteration
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256<byte>.Count;
+    }
+
     public override int PreferredLength => Vector256<byte>.Count * 4;
+
+    public override int MinimumFieldBufferSize => MaxFieldsPerIteration;
 
     private readonly T _quote;
     private readonly T _delimiter;
@@ -46,13 +54,8 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override unsafe int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
+    public override unsafe int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
-        FieldBuffer destination = recordBuffer.GetUnreadBuffer(
-            minimumLength: Vector256<byte>.Count,
-            out int startIndex
-        );
-
         if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
         {
             return 0;
@@ -61,13 +64,13 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = (nuint)startIndex;
         nuint searchSpaceEnd = (nuint)Math.Min(MaxIndex, data.Length) - EndOffset;
-        nuint fieldEnd = (nuint)destination.Fields.Length - EndOffset;
+        nuint fieldEnd = (nuint)buffer.Fields.Length - (nuint)MaxFieldsPerIteration;
         nuint fieldIndex = 0;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
-        scoped ref byte firstFlags = ref MemoryMarshal.GetReference(destination.Quotes);
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref byte firstFlags = ref MemoryMarshal.GetReference(buffer.Quotes);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(buffer.Fields);
 
         // load the constants into registers
         T delimiter = _delimiter;
@@ -87,7 +90,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         Vector256<byte> bit7 = Vector256.Create((byte)0x80);
         Vector256<int> msbAndBitsUpTo7 = Vector256.Create(fixupScalar);
         Vector256<uint> iterationLength = Vector256.Create((uint)Vector256<byte>.Count);
-        Vector256<byte> add = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818).AsByte();
+        Vector256<long> addConstant = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
 
         uint quotesConsumed = 0;
         uint quoteCarry = 0;
@@ -106,15 +109,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             {
                 int skip = Vector256<byte>.Count - (int)remainder;
 
-                Inline32<T> buffer = default; // default zero-inits
+                Inline32<T> temp = default; // default zero-inits
 
                 // Copy the elements to the correct position in the buffer
                 Unsafe.CopyBlockUnaligned(
-                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref buffer.elem0, (nuint)remainder)),
+                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref temp.elem0, (nuint)remainder)),
                     ref Unsafe.As<T, byte>(ref Unsafe.Add(ref first, (nuint)startIndex)),
                     byteCount: (uint)(skip * sizeof(T))
                 );
-                vector = AsciiVector.Load(ref buffer[0], 0);
+                vector = AsciiVector.Load(ref temp[0], 0);
 
                 // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
                 runningIndexVector = Vector256.Create((uint)runningIndex - (uint)remainder);
@@ -223,7 +226,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
 
             // Add the constant to the shuffle mask.
-            Vector256<byte> shufmaskBytes = shufmask.AsByte() + add;
+            Vector256<byte> shufmaskBytes = shufmask.AsByte() + addConstant.AsByte();
 
             byte pop1 = Unsafe.Add(ref popCounts, mask1);
             byte pop3 = Unsafe.Add(ref popCounts, mask3);

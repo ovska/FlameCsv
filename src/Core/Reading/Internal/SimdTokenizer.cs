@@ -12,14 +12,16 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline
 {
-    // leave space for 2 vectors;
-    // vector count to avoid reading past the buffer
-    // vector count for prefetching
-    // and 1 for reading past the current vector to check two token sequences
     private static int EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Vector256<byte>.Count * 2;
+    }
+
+    private static int MaxFieldsPerIteration
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256<byte>.Count;
     }
 
     public override int PreferredLength
@@ -27,6 +29,8 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Vector256<byte>.Count * 4;
     }
+
+    public override int MinimumFieldBufferSize => MaxFieldsPerIteration;
 
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
@@ -38,13 +42,8 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
+    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
-        FieldBuffer destination = recordBuffer.GetUnreadBuffer(
-            minimumLength: Vector256<byte>.Count,
-            out int startIndex
-        );
-
         if ((data.Length - startIndex) < EndOffset)
         {
             return 0;
@@ -54,16 +53,16 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         nuint runningIndex = (uint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
-        scoped ref uint dstField = ref MemoryMarshal.GetReference(destination.Fields);
-        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer.Fields);
+        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
         nuint fieldIndex = 0;
-        nuint fieldEnd = Math.Max(0, (nuint)destination.Fields.Length - (nuint)EndOffset);
+        nuint fieldEnd = Math.Max(0, (nuint)buffer.Fields.Length - (nuint)MaxFieldsPerIteration);
 
         // ensure the worst case doesn't read past the end (e.g. data ends in Vector.Count delimiters)
         // we do this so there are no bounds checks in the loops
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
-        Debug.Assert(destination.Fields.Length >= Vector256<byte>.Count);
-        Debug.Assert(destination.Quotes.Length >= Vector256<byte>.Count);
+        Debug.Assert(buffer.Fields.Length >= Vector256<byte>.Count);
+        Debug.Assert(buffer.Quotes.Length >= Vector256<byte>.Count);
 
         // load the constants into registers
         T delimiter = _delimiter;

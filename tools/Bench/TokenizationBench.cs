@@ -98,16 +98,17 @@ public class TokenizationBench
         rb.GetFieldArrayRef() = _fieldBuffer;
         rb.GetQuoteArrayRef() = _quoteBuffer;
         rb.GetEolArrayRef() = _eolBuffer;
+        var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
         if (Chars)
         {
             CsvPartialTokenizer<char> tokenizer = TokenizerIsLF ? _t128LF : _t128CRLF;
-            _ = tokenizer.Tokenize(rb, CharData);
+            _ = tokenizer.Tokenize(dst, startIndex, CharData);
         }
         else
         {
             CsvPartialTokenizer<byte> tokenizer = TokenizerIsLF ? _t128bLF : _t128bCRLF;
-            _ = tokenizer.Tokenize(rb, ByteData);
+            _ = tokenizer.Tokenize(dst, startIndex, ByteData);
         }
     }
 
@@ -123,27 +124,28 @@ public class TokenizationBench
         rb.GetFieldArrayRef() = _fieldBuffer;
         rb.GetQuoteArrayRef() = _quoteBuffer;
         rb.GetEolArrayRef() = _eolBuffer;
+        var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
         if (Chars)
         {
             if (!TokenizerIsLF)
             {
-                _avx2CharCRLF.Tokenize(rb, CharData);
+                _avx2CharCRLF.Tokenize(dst, startIndex, CharData);
             }
             else
             {
-                _avx2Char.Tokenize(rb, CharData);
+                _avx2Char.Tokenize(dst, startIndex, CharData);
             }
         }
         else
         {
             if (!TokenizerIsLF)
             {
-                _avx2ByteCRLF.Tokenize(rb, ByteData);
+                _avx2ByteCRLF.Tokenize(dst, startIndex, ByteData);
             }
             else
             {
-                _avx2Byte.Tokenize(rb, ByteData);
+                _avx2Byte.Tokenize(dst, startIndex, ByteData);
             }
         }
     }
@@ -166,22 +168,22 @@ public class TokenizationBench
         {
             if (!TokenizerIsLF)
             {
-                _avxCharCRLF.Tokenize(rb, CharData);
+                _avxCharCRLF.Tokenize(dst, startIndex, CharData);
             }
             else
             {
-                _avxChar.Tokenize(rb, CharData);
+                _avxChar.Tokenize(dst, startIndex, CharData);
             }
         }
         else
         {
             if (!TokenizerIsLF)
             {
-                _avxByteCRLF.Tokenize(rb, ByteData);
+                _avxByteCRLF.Tokenize(dst, startIndex, ByteData);
             }
             else
             {
-                _avxByte.Tokenize(rb, ByteData);
+                _avxByte.Tokenize(dst, startIndex, ByteData);
             }
         }
     }

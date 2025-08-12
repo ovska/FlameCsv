@@ -39,10 +39,11 @@ namespace FlameCsv.Console
                 rb.GetFieldArrayRef() = new uint[24 * 65535];
                 rb.GetQuoteArrayRef() = new byte[24 * 65535];
                 rb.GetEolArrayRef() = new ushort[65535 + 256];
+                var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
                 // new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
                 //     .Tokenize(rb, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n")));
-                new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(rb, byteArray);
+                new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
             }
 
             // var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);

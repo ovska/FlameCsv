@@ -59,10 +59,8 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
+    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd)
     {
-        FieldBuffer destination = recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
-
         if (data.IsEmpty || data.Length <= startIndex)
         {
             return 0;
@@ -75,15 +73,15 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
         nuint runningIndex = (nuint)startIndex;
         uint quotesConsumed = 0;
 
-        scoped ref uint dstField = ref MemoryMarshal.GetReference(destination.Fields);
-        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer.Fields);
+        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
         nuint fieldIndex = 0;
 
         // offset ends -2 so we can check for \r\n and "" without bounds checks
         nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 2);
         nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 4);
 
-        while (fieldIndex < (nuint)destination.Fields.Length)
+        while (fieldIndex < (nuint)buffer.Fields.Length)
         {
             while (runningIndex < unrolledEnd)
             {
