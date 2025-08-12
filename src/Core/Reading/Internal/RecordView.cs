@@ -1,24 +1,48 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
 internal readonly struct RecordView
 {
-    public RecordView(uint[] fields, byte[] quotes, int index, int count)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public RecordView(uint[] fields, byte[] quotes, uint index, int count)
     {
         _fields = fields;
         _quotes = quotes;
-        Start = index;
+        _index = index;
         Count = count;
     }
 
     internal readonly uint[] _fields;
     internal readonly byte[] _quotes;
-    public int Start { get; }
+
+    private readonly uint _index;
+
+    private const uint Mask = 0x7FFFFFFFu;
+
+    public bool IsFirst
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (_index & ~Mask) != 0;
+    }
+
+    public int Start
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (int)(_index & Mask);
+    }
+
     public int Count { get; }
 
     public int FieldCount => Count - 1;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int GetLength(bool includeTrailingNewline = false)
+    {
+        return Fields.GetRecordLength(IsFirst, includeTrailingNewline);
+    }
 
     public ReadOnlySpan<uint> Fields
     {

@@ -15,6 +15,8 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
     private readonly Action<IDisposable?, int>? _onRead;
     private bool _disposed;
 
+    public long Position { get; private set; }
+
     /// <summary>
     /// Initializes a new instance of <see cref="ConstantBufferReader{T}"/>.
     /// </summary>
@@ -41,6 +43,7 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
 
         // simulate reading; advance the data source to keep this perf optimization transparent to the caller
         _onRead?.Invoke(_state, _data.Length);
+        Position = _data.Length;
 
         return new CsvReadResult<T>(_data, isCompleted: true);
     }
@@ -63,6 +66,7 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         _data = _originalData;
+        Position = 0;
         return true;
     }
 

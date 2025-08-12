@@ -257,7 +257,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             }
 
             Field.SaturateTo7Bits(ref quotesConsumed);
-            Unsafe.Add(ref dstField, fieldIndex) = (uint)++runningIndex | Field.StartOrEnd;
+            Unsafe.Add(ref dstField, fieldIndex) = (uint)++runningIndex | Field.IsEOL; // add shadow EOL
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             break;

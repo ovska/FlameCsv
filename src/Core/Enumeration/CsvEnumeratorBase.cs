@@ -19,14 +19,16 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <summary>
     /// The 1-based line index of the current record.
     /// </summary>
-    public int Line { get; private set; }
+    public int Line { get; protected set; }
 
     /// <summary>
     /// The position of the reader in CSV data.
     /// This is the end position of the current record (including possible trailing newline),
     /// or 0 if the enumeration has not started.
     /// </summary>
-    public long Position { get; private set; }
+    public long Position => Math.Min(_position, _reader._reader.Position);
+
+    private long _position;
 
     [HandlesResourceDisposal]
     private readonly CsvReader<T> _reader;
@@ -80,7 +82,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             result = MoveNextCore(in record);
         }
 
-        Position += record.Record.Fields.GetRecordLength(includeTrailingNewline: true);
+        _position += record.Record.GetLength(includeTrailingNewline: true);
         return result;
     }
 
@@ -201,7 +203,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     {
         _reader.Reset();
         Line = 0;
-        Position = 0;
     }
 
     /// <inheritdoc />

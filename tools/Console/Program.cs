@@ -37,9 +37,9 @@ namespace FlameCsv.Console
             {
                 var rb = new RecordBuffer();
                 rb.GetFieldArrayRef() = new uint[24 * 65535];
-                rb.GetFieldArrayRef()[0] = Field.StartOrEnd;
                 rb.GetQuoteArrayRef() = new byte[24 * 65535];
-                
+                rb.GetEolArrayRef() = new int[65535 + 256];
+
                 // new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
                 //     .Tokenize(rb, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n")));
                 new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(rb, byteArray);

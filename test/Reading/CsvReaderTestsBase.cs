@@ -285,30 +285,33 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             {
                 await foreach (var record in enumerable.WithTestContext())
                 {
-                    items.Add(Core(record));
+                    items.Add(Core(in record));
                 }
             }
             else
             {
                 foreach (var record in enumerable)
                 {
-                    items.Add(Core(record));
-
-                    if (record.GetField(0).ToString() == "818") { }
+                    items.Add(Core(in record));
                 }
             }
         }
 
         return items;
 
-        Obj Core(CsvRecord<T> record)
+        Obj Core(in CsvRecord<T> record)
         {
             if (!parallel)
             {
                 index++;
                 Assert.Equal(hasHeader ? index + 1 : index, record.Line);
                 Assert.Equal(tokenPosition, record.Position);
-                tokenPosition += record._slice.Record.Fields.GetRecordLength(includeTrailingNewline: true);
+
+                int length = record._slice.Record.Fields.GetRecordLength(
+                    record._slice.Record.IsFirst,
+                    includeTrailingNewline: true
+                );
+                tokenPosition += length;
             }
 
             Obj obj = new()
@@ -320,7 +323,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                 Token = record.ParseField<Guid>(4),
             };
 
-            var parsed = sourceGen ? record.ParseRecord(TypeMap) : record.ParseRecord<Obj>();
+            Obj parsed = sourceGen ? record.ParseRecord(TypeMap) : record.ParseRecord<Obj>();
             Assert.Equal(obj, parsed);
 
             Assert.Equal(5, record.FieldCount);

@@ -108,7 +108,7 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
         if (readToEnd && index == data.Length && fieldIndex < fields.Length)
         {
             // 0 length newline
-            fields[fieldIndex] = (uint)index | Field.StartOrEnd;
+            fields[fieldIndex] = (uint)index | Field.IsEOL; // add shadow EOL
             flags[fieldIndex] = GetQuoteFlag(quotesConsumed, escapesConsumed);
             fieldIndex++;
         }

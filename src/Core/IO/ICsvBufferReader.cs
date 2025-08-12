@@ -7,6 +7,14 @@ public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
     where T : unmanaged
 {
     /// <summary>
+    /// Number of <typeparamref name="T"/> that have been read from the underlying data source.
+    /// </summary>
+    /// <remarks>
+    /// The position is updated after each <em>read</em> operation, not advance.
+    /// </remarks>
+    long Position { get; }
+
+    /// <summary>
     /// Reads from the inner data source.
     /// </summary>
     /// <returns>

@@ -8,7 +8,7 @@ using Utf8StringInterpolation;
 
 namespace FlameCsv.Tests.TestData;
 
-public class Obj : IEquatable<Obj>
+public sealed record Obj : IEquatable<Obj>
 {
     [CsvIndex(0)]
     public int Id { get; set; }
@@ -24,16 +24,6 @@ public class Obj : IEquatable<Obj>
 
     [CsvIndex(4)]
     public Guid Token { get; set; }
-
-    public bool Equals(Obj? other)
-    {
-        return other is not null
-            && Id.Equals(other.Id)
-            && StringComparer.Ordinal.Equals(Name, other.Name)
-            && IsEnabled.Equals(other.IsEnabled)
-            && LastLogin.Equals(other.LastLogin)
-            && Token.Equals(other.Token);
-    }
 
     public override string ToString()
     {

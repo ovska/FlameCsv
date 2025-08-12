@@ -72,6 +72,8 @@ internal static class IndexOfUnescaper
         }
 
         // TODO: LENIENCY
-        throw new CsvFormatException($"Cannot unescape invalid field {field}: {str}");
+        string s = $"{Internal.Field.End(field)} (eol: {field >> 30:b} (quotes: {quote})";
+
+        throw new CsvFormatException($"Cannot unescape invalid field {s}: '{str}'");
     }
 }

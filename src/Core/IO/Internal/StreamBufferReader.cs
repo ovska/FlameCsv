@@ -21,6 +21,7 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
         if (_stream.CanSeek)
         {
             _stream.Seek(0, SeekOrigin.Begin);
+            Position = 0;
             return true;
         }
 

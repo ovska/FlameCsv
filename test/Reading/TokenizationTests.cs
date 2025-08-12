@@ -122,7 +122,7 @@ public class TokenizationTests
         Assert.True(MemoryMarshal.TryGetArray(fields.WrittenMemory, out ArraySegment<uint> fieldSegment));
         Assert.True(MemoryMarshal.TryGetArray(quotes.WrittenMemory, out ArraySegment<byte> quoteSegment));
 
-        return new RecordView(fieldSegment.Array!, quoteSegment.Array!, 0, fields.WrittenCount);
+        return new RecordView(fieldSegment.Array!, quoteSegment.Array!, 1u << 31, fields.WrittenCount);
 
         uint GetEOLFlag()
         {

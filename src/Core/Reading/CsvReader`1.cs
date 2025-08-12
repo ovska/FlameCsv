@@ -46,7 +46,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     private readonly RecordBuffer _recordBuffer;
 
-    private readonly ICsvBufferReader<T> _reader;
+    internal readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
 
     private EnumeratorStack _stackMemory; // don't make me readonly
@@ -290,6 +290,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
         if (consumed > 0)
         {
+            Debug.Assert(consumed <= (_buffer.Length + 1), $"Buffer len {_buffer.Length}, but consumed was {consumed}");
+            consumed = Math.Min(consumed, _buffer.Length);
             _reader.Advance(consumed);
             _buffer = _buffer.Slice(consumed);
         }

@@ -72,7 +72,7 @@ internal sealed class RecordBuffer : IDisposable
             ArrayPool<int>.Shared.Resize(ref _eols, newLength);
         }
 
-        startIndex = NextStart(_fields[_count]);
+        startIndex = _count == 0 ? 0 : NextStart(_fields[_count]);
         return new()
         {
             //
@@ -146,7 +146,7 @@ internal sealed class RecordBuffer : IDisposable
 
         while (pos < end)
         {
-            if ((Unsafe.Add(ref field, pos++) & FlagMask) != 0)
+            if ((Unsafe.Add(ref field, pos++) & IsEOL) != 0)
             {
                 Unsafe.Add(ref eol, idx++) = (int)pos;
             }
@@ -208,13 +208,13 @@ internal sealed class RecordBuffer : IDisposable
             // TODO: simd?
             foreach (ref uint value in buffer)
             {
-                uint flags = value & FlagMask;
+                uint flags = value & IsEOL;
                 uint shiftedEnd = (value & EndMask) - (uint)offset;
                 value = shiftedEnd | flags;
             }
 
             buffer.CopyTo(_fields.AsSpan(1));
-            _fields[0] = StartOrEnd; // reset start of data
+            _fields[0] = 0; // reset start of data
 #if DEBUG
             // for debugging
             _fields.AsSpan(buffer.Length + 1).Fill(~0u);
@@ -231,8 +231,8 @@ internal sealed class RecordBuffer : IDisposable
         _eolCount = 0;
         _eolIndex = 0;
 
-        Debug.Assert(_fields[0] == StartOrEnd);
-        Debug.Assert((lastRead & FlagMask) != 0, "Last read record must have EOL flag set");
+        Debug.Assert(_fields[0] == 0);
+        Debug.Assert((lastRead & IsEOL) != 0, "Last read record must have EOL flag set");
         Debug.Assert(_count >= 0, $"Count should be >= 0, was {_count}");
 
         return offset;
@@ -251,11 +251,18 @@ internal sealed class RecordBuffer : IDisposable
             return false;
         }
 
-        ref int previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex++);
+        nuint idx = (uint)_eolIndex;
+        ref int previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), idx);
         int eol = Unsafe.Add(ref previous, 1);
 
+        record = new RecordView(
+            _fields,
+            _quotes,
+            (uint)(previous | (Unsafe.BitCast<bool, byte>(_eolIndex == 0) << 31)),
+            eol - previous + 1
+        );
         _index = eol;
-        record = new RecordView(_fields, _quotes, previous, eol - previous + 1);
+        _eolIndex++;
         return true;
     }
 
@@ -266,7 +273,7 @@ internal sealed class RecordBuffer : IDisposable
         ArrayPool<byte>.Shared.EnsureCapacity(ref _quotes, DefaultFieldBufferSize);
         ArrayPool<int>.Shared.EnsureCapacity(ref _eols, DefaultFieldBufferSize);
 
-        _fields[0] = StartOrEnd;
+        _fields[0] = 0;
         _eols[0] = 0;
 
         _quotes.AsSpan().Clear();
@@ -296,6 +303,9 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal ref byte[] GetQuoteArrayRef() => ref _quotes;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal ref int[] GetEolArrayRef() => ref _eols;
+
     public override string ToString() =>
         _fields.Length == 0
             ? "{ Empty }"
@@ -319,7 +329,7 @@ internal sealed class RecordBuffer : IDisposable
                     .. _buffer
                         ._fields.Skip(Math.Max(1, _buffer._index))
                         .Take(_buffer._index)
-                        .Select(f => $"End: {f & EndMask}, EOL: {(f & StartOrEnd) != 0}"),
+                        .Select(f => $"End: {f & EndMask}, EOL: {(f & IsEOL) != 0}"),
                 ];
     }
 
@@ -334,11 +344,11 @@ internal sealed class RecordBuffer : IDisposable
         vsb.AppendFormatted(f & EndMask);
         vsb.Append(", EOL: ");
         vsb.Append(
-            (f & FlagMask) switch
+            (f & IsEOL) switch
             {
-                StartOrEnd => "Start",
-                IsEOL => "LF",
                 IsCRLF => "CRLF",
+                IsEOL => "LF",
+                (IsEOL >> 1) => "Invalid",
                 _ => "None",
             }
         );

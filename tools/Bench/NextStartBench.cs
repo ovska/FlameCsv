@@ -26,9 +26,6 @@ public class NextStartBench
 
             _fields[i] = value;
         }
-
-        _fields[0] = Field.StartOrEnd;
-        _fields[^1] = Field.StartOrEnd;
     }
 
     private readonly uint[] _fields;
@@ -182,7 +179,9 @@ public class NextStartBench
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static uint ShiftOpt(uint field)
     {
-        return ((field >> 30) ^ 1u) + 1u;
+        uint b = field >> 30;
+        uint offset = 1 + (b & (b >> 1));
+        return offset;
     }
 
     private static ReadOnlySpan<byte> LutValue => [1, 0, 1, 2];

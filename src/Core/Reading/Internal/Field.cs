@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Unescaping;
@@ -12,15 +11,9 @@ internal static class Field
 {
     /*
         00  - Delimiter
-        10  - First field, or last field without a trailing delimiter
-        01  - LF
+        10  - EOL with length of 1
         11  - CRLF
     */
-
-    /// <summary>
-    /// Flag for the start of the first record, or the end of the last record without a trailing newline.
-    /// </summary>
-    public const uint StartOrEnd = 1u << 30;
 
     /// <summary>
     /// Flag for EOL.
@@ -30,33 +23,24 @@ internal static class Field
     /// <summary>
     /// Flag for CRLF (two-character EOL)
     /// </summary>
-    public const uint IsCRLF = 1u << 30 | 1u << 31;
+    public const uint IsCRLF = unchecked((uint)(0b11 << 30));
 
     /// <summary>
     /// Mask for the end index of the field.
     /// </summary>
     public const uint EndMask = 0x3FFFFFFF;
 
-    /// <summary>
-    /// Mask for the EOL bits.
-    /// </summary>
-    public const uint FlagMask = ~EndMask;
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int NextStart(uint field)
     {
         // end offset result table:
         // 00 → 1 delimiter
-        // 01 → 0 start/end
         // 10 → 1 lf
         // 11 → 2 crlf
 
         uint b = field >> 30;
         uint end = field & EndMask;
-        uint offset =
-            (~b & 1) // result lsb should be empty unless input lsb is set
-            | ((b & (b >> 1)) << 1); // result msb should only be set if both input bits are set;
-
+        uint offset = 1 + (b & (b >> 1));
         return (int)(end + offset);
     }
 

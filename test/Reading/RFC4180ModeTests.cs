@@ -84,6 +84,7 @@ public class RFC4180ModeTests
         var pt1 = new string('a', 4096);
         var pt2 = new string('b', 4096);
         var hugefield = $"\"{pt1}\"\"{pt2}\"\r\n";
+        Assert.Equal(8198, hugefield.Length);
 
         var result = hugefield.Read(new CsvOptions<char> { Newline = CsvNewline.CRLF });
         Assert.Single(result);

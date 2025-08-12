@@ -44,6 +44,7 @@ public class TokenizationBench
 
     private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
     private static readonly byte[] _quoteBuffer = new byte[24 * 65535];
+    private static readonly int[] _eolBuffer = new int[65535 + 256];
     private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
     private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
     private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
@@ -96,7 +97,7 @@ public class TokenizationBench
         var rb = new RecordBuffer();
         rb.GetFieldArrayRef() = _fieldBuffer;
         rb.GetQuoteArrayRef() = _quoteBuffer;
-        _fieldBuffer[0] = Field.StartOrEnd;
+        rb.GetEolArrayRef() = _eolBuffer;
 
         if (Chars)
         {
@@ -121,7 +122,7 @@ public class TokenizationBench
         var rb = new RecordBuffer();
         rb.GetFieldArrayRef() = _fieldBuffer;
         rb.GetQuoteArrayRef() = _quoteBuffer;
-        _fieldBuffer[0] = Field.StartOrEnd;
+        rb.GetEolArrayRef() = _eolBuffer;
 
         if (Chars)
         {
@@ -159,8 +160,8 @@ public class TokenizationBench
         var rb = new RecordBuffer();
         rb.GetFieldArrayRef() = _fieldBuffer;
         rb.GetQuoteArrayRef() = _quoteBuffer;
-        _fieldBuffer[0] = Field.StartOrEnd;
-        
+        rb.GetEolArrayRef() = _eolBuffer;
+
         if (Chars)
         {
             if (!TokenizerIsLF)

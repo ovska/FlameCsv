@@ -17,6 +17,8 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     /// </summary>
     protected abstract int ReadCore(Span<T> buffer);
 
+    public long Position { get; protected set; }
+
     /// <inheritdoc cref="ReadCore"/>
     protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);
 
@@ -65,6 +67,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
 
         _completed = read == 0;
         _unread = _buffer.Slice(0, _startOffset + read);
+        Position += read;
         return new CsvReadResult<T>(_unread, _completed);
     }
 
@@ -86,6 +89,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
             int read = readTask.GetAwaiter().GetResult();
             _completed = read == 0;
             _unread = _buffer.Slice(0, _startOffset + read);
+            Position += read;
             return new ValueTask<CsvReadResult<T>>(new CsvReadResult<T>(_unread, _completed));
         }
 
@@ -97,6 +101,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
         int read = await readTask.ConfigureAwait(false);
         _completed = read == 0;
         _unread = _buffer.Slice(0, _startOffset + read);
+        Position += read;
         return new CsvReadResult<T>(_unread, _completed);
     }
 

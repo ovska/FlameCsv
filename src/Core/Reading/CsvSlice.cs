@@ -23,9 +23,14 @@ internal readonly struct CsvSlice<T>
             ReadOnlySpan<uint> fields = Record.Fields;
 
             uint last = fields[^1];
-            uint first = fields[0];
+            int start = Field.NextStart(fields[0]);
 
-            return Data[Field.NextStart(first)..Field.End(last)].Span;
+            if (Record.IsFirst)
+            {
+                start = 0;
+            }
+
+            return Data[start..Field.End(last)].Span;
         }
     }
 
@@ -37,6 +42,11 @@ internal readonly struct CsvSlice<T>
         ReadOnlySpan<uint> fields = Record.Fields;
         int start = Field.NextStart(fields[index]);
         uint field = fields[index + 1];
+
+        if (Record.IsFirst && index == 0)
+        {
+            start = 0;
+        }
 
         if (raw)
         {

@@ -19,6 +19,7 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
         _data = _originalData;
+        Position = 0;
         return true;
     }
 

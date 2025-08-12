@@ -13,7 +13,8 @@ public class MetaBufferTests
         RecordBuffer buffer = new();
         uint[] array =
         [
-            Field.StartOrEnd,
+            /**/
+            0,
             1u,
             3u,
             5u,
@@ -43,7 +44,7 @@ public class MetaBufferTests
 
         // we read 8 fields, but only the first 4 had a record (EOL at 7+2)
         Assert.Equal(9, buffer.Reset());
-        Assert.Equal([Field.StartOrEnd, 1u, 11u, 21u, 31u], buffer.GetFieldArrayRef().AsSpan(0, 5));
+        Assert.Equal([0u, 1u, 11u, 21u, 31u], buffer.GetFieldArrayRef().AsSpan(0, 5));
 
         buffer.GetUnreadBuffer(0, out startIndex).Fields[0] = 41u | (uint)FieldFlag.CRLF;
         buffer.SetFieldsRead(1);

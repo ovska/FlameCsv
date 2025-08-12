@@ -5,6 +5,8 @@ internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T>
 {
     public static EmptyBufferReader<T> Instance { get; } = new();
 
+    public long Position => 0;
+
     private EmptyBufferReader() { }
 
     public void Dispose() { }
