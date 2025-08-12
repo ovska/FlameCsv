@@ -76,9 +76,10 @@ public class TokenizationTests
         where T : unmanaged, IBinaryInteger<T>
     {
         using var rb = new RecordBuffer();
+        var dst = rb.GetUnreadBuffer(tokenizer.MinimumFieldBufferSize, out int startIndex);
 
         ReadOnlySpan<T> dataset = GetDataset<T>(newline);
-        Assert.NotEqual(0, tokenizer.Tokenize(rb, dataset));
+        Assert.NotEqual(0, tokenizer.Tokenize(dst, startIndex, dataset));
 
         RecordView expected = GetExpected(newline);
         var a = expected._fields[10..13];

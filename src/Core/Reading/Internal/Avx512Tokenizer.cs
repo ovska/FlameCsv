@@ -33,10 +33,17 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
     private static int EndOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (Vector512<byte>.Count * 3) + (TNewline.IsCRLF ? 1 : 0);
+        get => Vector512<byte>.Count * 3;
+    }
+
+    private static int MaxFieldsPerIteration
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector512<byte>.Count;
     }
 
     public override int PreferredLength => Vector512<byte>.Count * 4;
+    public override int MinimumFieldBufferSize => MaxFieldsPerIteration;
 
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
@@ -44,13 +51,8 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
     private const nuint MaxIndex = int.MaxValue / 2;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data)
+    public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
     {
-        FieldBuffer destination = recordBuffer.GetUnreadBuffer(
-            minimumLength: Vector256<byte>.Count,
-            out int startIndex
-        );
-
         if ((data.Length - startIndex) < EndOffset || (((nint)MaxIndex - EndOffset) <= startIndex))
         {
             return 0;
@@ -59,7 +61,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint runningIndex = (uint)startIndex;
         nuint searchSpaceEnd = Math.Min(MaxIndex, (nuint)data.Length) - (nuint)EndOffset;
-        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)EndOffset;
+        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 

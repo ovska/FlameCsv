@@ -21,17 +21,15 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
         _newlineLength = options.Newline.GetTokens(out _newlineFirst, out _newlineSecond);
     }
 
-    public override int Tokenize(RecordBuffer recordBuffer, ReadOnlySpan<T> data, bool readToEnd)
+    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd)
     {
-        FieldBuffer destination = recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
-
         if (data.IsEmpty || data.Length < startIndex)
         {
             return 0;
         }
 
-        Span<uint> fields = destination.Fields;
-        Span<byte> flags = destination.Quotes;
+        Span<uint> fields = buffer.Fields;
+        Span<byte> flags = buffer.Quotes;
         int fieldIndex = 0;
 
         int index = startIndex;
