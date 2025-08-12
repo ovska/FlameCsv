@@ -158,7 +158,7 @@ internal sealed class RecordBuffer : IDisposable
     /// This should be called to ensure massive records without a newline can fit in the buffer.
     /// </summary>
     /// <returns></returns>
-    public void EnsureCapacity()
+    public bool EnsureCapacity()
     {
         ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
 
@@ -175,7 +175,10 @@ internal sealed class RecordBuffer : IDisposable
             ArrayPool<uint>.Shared.Resize(ref _fields, _fields.Length * 2);
             ArrayPool<byte>.Shared.Resize(ref _quotes, _quotes.Length * 2);
             ArrayPool<ushort>.Shared.Resize(ref _eols, _eols.Length * 2);
+            return true;
         }
+
+        return false;
     }
 
     /// <summary>
