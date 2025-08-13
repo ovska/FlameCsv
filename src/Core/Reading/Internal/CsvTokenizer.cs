@@ -13,7 +13,8 @@ internal abstract class CsvPartialTokenizer<T>
     public abstract int PreferredLength { get; }
 
     /// <summary>
-    /// Minimum length of the field buffer to safely read into.
+    /// Minimum length of the field buffer to safely read into,
+    /// e.g. the number of fields that can be read per iteration without bounds checks.
     /// </summary>
     public abstract int MinimumFieldBufferSize { get; }
 
