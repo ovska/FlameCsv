@@ -71,6 +71,10 @@ public static class INewlineTests
             {
                 Assert.True(((uint)result & Field.IsEOL) != 0, $"'{input.AsPrintableString()}' should be a newline");
                 Assert.Equal(isCRLF, result == FieldFlag.CRLF);
+            }
+
+            if (isCRLF)
+            {
                 Assert.Equal(0b111u, mask);
             }
             else

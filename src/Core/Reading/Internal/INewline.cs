@@ -38,6 +38,15 @@ internal readonly struct LeftShiftMaskClear : IMaskClear
     }
 }
 
+internal readonly struct IncrementMaskClear : IMaskClear
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Clear(ref uint mask)
+    {
+        mask++;
+    }
+}
+
 /// <summary>
 /// Interface to provide high-performance generic handling for variable length newlines.
 /// </summary>
