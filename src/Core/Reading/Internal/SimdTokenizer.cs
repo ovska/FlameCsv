@@ -35,12 +35,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
-    private static Vector256<byte> ZeroFirst
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256.Create(-256L, ~0L, ~0L, ~0L).AsByte();
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
@@ -105,7 +99,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // we have read quotes, must use ParseAny to handle them (or possibly we can skip the whole vector)
             if ((quoteCarry | quotesConsumed | maskQuote) != 0)
             {
-                goto TrySkipQuoted;
+                goto HandleAny;
             }
 
             // nothing of note in this slice
@@ -173,19 +167,12 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             ParseLineEnds(maskNewlineOrDelimiter, ref first, runningIndex, ref fieldIndex, ref dstField, ref vector);
             goto ContinueRead;
 
-            TrySkipQuoted:
-            // the current vector has no quotes, but a string might have just ended
-            // as the other paths don't use quotesConsumed and this case is exceedlingly rare (0,028%)
-            // just use the ParseAny path
-            //              -- current --
-            // [John, "Doe"][, 123, 4567]
-            // any combination of delimiters, quotes, and newlines
             HandleAny:
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
             ParseAny(
-                maskAny: maskControl,
+                maskControl: maskControl,
                 maskQuote: maskQuote,
                 first: ref first,
                 runningIndex: runningIndex,
@@ -221,8 +208,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         uint increment = (uint)runningIndex;
         ref uint dst = ref Unsafe.Add(ref fieldRef, fieldIndex);
 
-        // we might write more values than we have bits in the mask, but the meta buffer always has space,
-        // and we return the correct reference at the end. this way we can avoid branching 99%+ of the time here
         Unsafe.Add(ref dst, 0u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
         Unsafe.Add(ref dst, 1u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
@@ -279,7 +264,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         // put the offset check first as it should be more predictable; kind may be CRLF 5-10% of the time
         if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && flag == FieldFlag.CRLF)
         {
-            nextVector &= ZeroFirst;
+            nextVector &= Vector256<byte>.ZeroFirst;
         }
     }
 
@@ -309,13 +294,13 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         // put the offset check first as it should be more predictable; kind may be CRLF 5-10% of the time
         if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && isEOL == FieldFlag.CRLF)
         {
-            nextVector &= ZeroFirst;
+            nextVector &= Vector256<byte>.ZeroFirst;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ParseAny(
-        uint maskAny,
+        uint maskControl,
         uint maskQuote,
         scoped ref T first,
         nuint runningIndex,
@@ -330,10 +315,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         uint offset = 0;
         FieldFlag flag = default;
 
-        while (maskAny != 0) // do..while won't work as the quote XOR might have cleared the mask
+        while (maskControl != 0) // do..while won't work as the quote XOR might have cleared the mask
         {
-            offset = (uint)BitOperations.TrailingZeroCount(maskAny);
-            uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskAny);
+            offset = (uint)BitOperations.TrailingZeroCount(maskControl);
+            uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskControl);
 
             uint value = (uint)runningIndex + offset;
             quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
@@ -345,7 +330,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             );
 
             // consume masks
-            maskAny &= ~maskUpToPos;
+            maskControl &= ~maskUpToPos;
             maskQuote &= ~maskUpToPos;
 
             Field.SaturateTo7Bits(ref quotesConsumed);
@@ -360,7 +345,22 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
         if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && flag == FieldFlag.CRLF)
         {
-            nextVector &= ZeroFirst;
+            nextVector &= Vector256<byte>.ZeroFirst;
+        }
+    }
+}
+
+file static class Extensions
+{
+    extension(Vector256<byte>)
+    {
+        /// <summary>
+        /// Returns a vector with the first byte set to zero and all other bytes set to 0xFF.
+        /// </summary>
+        public static Vector256<byte> ZeroFirst
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Vector256.Create(-256L, ~0L, ~0L, ~0L).AsByte();
         }
     }
 }
