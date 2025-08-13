@@ -95,15 +95,15 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 }
             }
 
+            uint maskQuote = hasQuote.ExtractMostSignificantBits();
             uint maskControl = hasControl.ExtractMostSignificantBits();
             uint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
-            uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
             // prefetch the next vector so we can process the current without waiting for it to load
             vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
 
             // we have read quotes, must use ParseAny to handle them (or possibly we can skip the whole vector)
-            if ((maskQuote | quoteCarry | quotesConsumed) != 0)
+            if ((quoteCarry | quotesConsumed | maskQuote) != 0)
             {
                 goto TrySkipQuoted;
             }
@@ -174,15 +174,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             goto ContinueRead;
 
             TrySkipQuoted:
-            // if there are dangling quotes but the current vector has none, we must be in a string.
-            // check if we can skip it
-            if (quotesConsumed % 2 == 1 && hasQuote == Vector256<byte>.Zero)
-            {
-                //              -- current --
-                // [1, "John ""][The Amazing]["" Doe", 00]
-                goto ContinueRead;
-            }
-
             // the current vector has no quotes, but a string might have just ended
             // as the other paths don't use quotesConsumed and this case is exceedlingly rare (0,028%)
             // just use the ParseAny path
@@ -278,7 +269,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         {
             offset = (uint)BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1); // clear lowest bit
-            flag = TNewline.GetKnownNewlineFlag(ref Unsafe.Add(ref first, runningIndex + offset), ref mask);
+            flag = TNewline.GetKnownNewlineFlag<T, BLSRMaskClear>(
+                ref Unsafe.Add(ref first, runningIndex + offset),
+                ref mask
+            );
             Unsafe.Add(ref fieldRef, fieldIndex++) = ((uint)runningIndex + offset) | (uint)flag;
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
@@ -308,7 +302,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             offset = (uint)BitOperations.TrailingZeroCount(mask);
             mask &= (mask - 1);
             uint value = (uint)runningIndex + offset;
-            isEOL = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, value), ref mask);
+            isEOL = TNewline.IsNewline<T, BLSRMaskClear>(delimiter, ref Unsafe.Add(ref first, value), ref mask);
             Unsafe.Add(ref fieldRef, fieldIndex++) = value | (uint)isEOL;
         } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
@@ -338,19 +332,17 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
         while (maskAny != 0) // do..while won't work as the quote XOR might have cleared the mask
         {
-            uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskAny);
             offset = (uint)BitOperations.TrailingZeroCount(maskAny);
-
-            quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
+            uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskAny);
 
             uint value = (uint)runningIndex + offset;
-            flag = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, value), ref maskAny);
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
 
-            // TODO: optimize this into the IsNewline method
-            if (flag == FieldFlag.CRLF)
-            {
-                maskUpToPos = (maskUpToPos << 1) | 1;
-            }
+            flag = TNewline.IsNewline<T, LeftShiftMaskClear>(
+                delimiter,
+                ref Unsafe.Add(ref first, value),
+                ref maskUpToPos
+            );
 
             // consume masks
             maskAny &= ~maskUpToPos;

@@ -15,6 +15,29 @@ internal enum FieldFlag : uint
 
 #pragma warning restore RCS1154 // Sort enum members
 
+internal interface IMaskClear
+{
+    static abstract void Clear(ref uint mask);
+}
+
+internal readonly struct BLSRMaskClear : IMaskClear
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Clear(ref uint mask)
+    {
+        mask &= mask - 1;
+    }
+}
+
+internal readonly struct LeftShiftMaskClear : IMaskClear
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Clear(ref uint mask)
+    {
+        mask = (mask << 1) | 1;
+    }
+}
+
 /// <summary>
 /// Interface to provide high-performance generic handling for variable length newlines.
 /// </summary>
@@ -25,13 +48,13 @@ internal interface INewline
     /// </summary>
     static abstract bool IsCRLF { get; }
 
-    static abstract FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
+    static abstract FieldFlag IsNewline<T, TClear>(T delimiter, ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
-        where TMask : unmanaged, IBinaryInteger<TMask>;
+        where TClear : struct, IMaskClear;
 
-    static abstract FieldFlag GetKnownNewlineFlag<T, TMask>(ref T value, ref TMask mask)
+    static abstract FieldFlag GetKnownNewlineFlag<T, TClear>(ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
-        where TMask : unmanaged, IBinaryInteger<TMask>;
+        where TClear : struct, IMaskClear;
 }
 
 [SkipLocalsInit]
@@ -48,49 +71,26 @@ internal readonly struct NewlineLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldFlag GetKnownNewlineFlag<T, TMask>(ref T value, ref TMask mask)
+    public static FieldFlag GetKnownNewlineFlag<T, TClear>(ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
-        where TMask : unmanaged, IBinaryInteger<TMask>
+        where TClear : struct, IMaskClear
     {
-        // marginal improvement over ?: return by loading the common case into the register already
-        FieldFlag retVal = FieldFlag.None;
-
-        if (
-            Unsafe.SizeOf<T>() switch
-            {
-                sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
-                sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
-                _ => throw Token<T>.NotSupported,
-            }
-        )
-        {
-            retVal = FieldFlag.EOL;
-        }
-
-        return retVal;
+        return FieldFlag.EOL;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
+    public static FieldFlag IsNewline<T, TClear>(T delimiter, ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
-        where TMask : unmanaged, IBinaryInteger<TMask>
+        where TClear : struct, IMaskClear
     {
-        // TODO: profile if branch wins
-        bool isLF = Unsafe.SizeOf<T>() switch
+        return Unsafe.SizeOf<T>() switch
         {
             sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
             sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
             _ => throw Token<T>.NotSupported,
-        };
-
-        FieldFlag flag = FieldFlag.None;
-
-        if (isLF)
-        {
-            flag = FieldFlag.EOL;
         }
-
-        return flag;
+            ? FieldFlag.EOL
+            : FieldFlag.None;
     }
 }
 
@@ -104,9 +104,43 @@ internal readonly struct NewlineCRLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
+    public static FieldFlag GetKnownNewlineFlag<T, TClear>(ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
-        where TMask : unmanaged, IBinaryInteger<TMask>
+        where TClear : struct, IMaskClear
+    {
+        FieldFlag retVal;
+        bool isCRLF;
+
+        if (Unsafe.SizeOf<T>() is sizeof(byte))
+        {
+            isCRLF = Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
+        }
+        else if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            isCRLF = Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
+        }
+        else
+        {
+            throw Token<T>.NotSupported;
+        }
+
+        if (isCRLF)
+        {
+            retVal = FieldFlag.CRLF;
+            TClear.Clear(ref mask);
+        }
+        else
+        {
+            retVal = FieldFlag.EOL;
+        }
+
+        return retVal;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static FieldFlag IsNewline<T, TClear>(T delimiter, ref T value, ref uint mask)
+        where T : unmanaged, IBinaryInteger<T>
+        where TClear : struct, IMaskClear
     {
         FieldFlag retVal = 0;
 
@@ -131,45 +165,12 @@ internal readonly struct NewlineCRLF : INewline
             if (isCRLF)
             {
                 retVal = FieldFlag.CRLF;
-                mask &= (mask - TMask.One); // lowered to blsr by jit
+                TClear.Clear(ref mask);
             }
             else
             {
                 retVal = FieldFlag.EOL;
             }
-        }
-
-        return retVal;
-    }
-
-    public static FieldFlag GetKnownNewlineFlag<T, TMask>(ref T value, ref TMask mask)
-        where T : unmanaged, IBinaryInteger<T>
-        where TMask : unmanaged, IBinaryInteger<TMask>
-    {
-        FieldFlag retVal;
-        bool isCRLF;
-
-        if (Unsafe.SizeOf<T>() is sizeof(byte))
-        {
-            isCRLF = Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
-        }
-        else if (Unsafe.SizeOf<T>() is sizeof(char))
-        {
-            isCRLF = Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
-        }
-        else
-        {
-            throw Token<T>.NotSupported;
-        }
-
-        if (isCRLF)
-        {
-            retVal = FieldFlag.CRLF;
-            mask &= (mask - TMask.One);
-        }
-        else
-        {
-            retVal = FieldFlag.EOL;
         }
 
         return retVal;

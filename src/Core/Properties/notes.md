@@ -536,11 +536,14 @@ Naive prefix XOR:
 | V128   | False | True   | LF      | 523.1 us | 2.02 us |  1.00 |
 | V128   | False | True   | CRLF    | 591.0 us | 3.38 us |  1.00 |
 
-Optimized prefix xor
+Final
 | Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
 | ------ | ----- | ------ | ------- | -------: | ------: | ----: |
-| V128   | False | True   | LF      | 361.2 us | 1.01 us |  1.00 |
-| V128   | False | True   | CRLF    | 427.3 us | 2.94 us |  1.00 |
+| V128   | False | True   | LF      | 493.5 us | 1.77 us |  1.00 |
+| Avx2   | False | True   | LF      | 340.9 us | 1.23 us |  0.69 |
+|        |       |        |         |          |         |       |
+| V128   | False | True   | CRLF    | 569.8 us | 2.02 us |  1.00 |
+| Avx2   | False | True   | CRLF    | 422.1 us | 1.22 us |  0.74 |
 
 ## Frequencies
 

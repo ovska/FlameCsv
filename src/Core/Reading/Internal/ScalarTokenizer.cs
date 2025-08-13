@@ -138,7 +138,11 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
 
             // TODO FIXME
             Unsafe.SkipInit(out uint tmp);
-            FieldFlag flag = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, runningIndex), ref tmp);
+            FieldFlag flag = TNewline.IsNewline<T, BLSRMaskClear>(
+                delimiter,
+                ref Unsafe.Add(ref first, runningIndex),
+                ref tmp
+            );
 
             Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | (uint)flag;
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
