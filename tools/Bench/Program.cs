@@ -18,7 +18,7 @@ using Perfolizer.Horology;
 // var b = new CsvEnumerateBench();
 // b.Setup();
 // b.Flame_byte();
-BenchmarkRunner.Run<CsvEnumerateBench>(new Config(), args);
+BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
 
 file class Config : ManualConfig
 {

@@ -68,6 +68,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         T delimiter = _delimiter;
         T quote = _quote;
         uint quotesConsumed = 0;
+        uint quoteCarry = 0;
 
         Vector256<byte> delimiterVec = AsciiVector.Create(delimiter);
         Vector256<byte> quoteVec = AsciiVector.Create(quote);
@@ -80,7 +81,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             : Vector256.Equals(vector, lfVec);
         Vector256<byte> hasDelimiter = Vector256.Equals(vector, delimiterVec);
         Vector256<byte> hasQuote = Vector256.Equals(vector, quoteVec);
-        Vector256<byte> hasAny = hasNewline | hasDelimiter | hasQuote;
+        Vector256<byte> hasControl = hasNewline | hasDelimiter;
 
         while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
         {
@@ -94,26 +95,27 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 }
             }
 
-            uint maskAny = hasAny.ExtractMostSignificantBits();
+            uint maskControl = hasControl.ExtractMostSignificantBits();
             uint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
+            uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
             // prefetch the next vector so we can process the current without waiting for it to load
             vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
 
             // nothing of note in this slice
-            if (maskAny == 0)
+            if (maskControl == 0)
             {
                 goto ContinueRead;
             }
 
             // we have read quotes, must use ParseAny to handle them (or possibly we can skip the whole vector)
-            if (quotesConsumed != 0)
+            if ((maskQuote | quoteCarry | quotesConsumed) != 0)
             {
                 goto TrySkipQuoted;
             }
 
             // only delimiters
-            if (maskDelimiter != maskAny)
+            if (maskDelimiter != maskControl)
             {
                 goto HandleNewlines;
             }
@@ -123,10 +125,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             goto ContinueRead;
 
             HandleNewlines:
-            uint maskNewlineOrDelimiter = (hasNewline | hasDelimiter).ExtractMostSignificantBits();
+            uint maskNewlineOrDelimiter = maskControl & ~maskQuote;
 
             // if vector is not only newlines or delimiters, go to quote handling
-            if (maskNewlineOrDelimiter != maskAny)
+            if (maskNewlineOrDelimiter != maskControl)
             {
                 goto HandleAny;
             }
@@ -172,8 +174,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             goto ContinueRead;
 
             TrySkipQuoted:
-            Debug.Assert(quotesConsumed > 0, "quotesConsumed should be greater than 0 here");
-
             // if there are dangling quotes but the current vector has none, we must be in a string.
             // check if we can skip it
             if (quotesConsumed % 2 == 1 && hasQuote == Vector256<byte>.Zero)
@@ -190,17 +190,20 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // [John, "Doe"][, 123, 4567]
             // any combination of delimiters, quotes, and newlines
             HandleAny:
+            uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
+            maskControl &= ~quoteXOR; // clear the bits that are inside quotes
+
             ParseAny(
-                maskAny,
-                ref first,
-                runningIndex,
-                ref fieldIndex,
-                ref dstField,
-                ref dstQuote,
+                maskAny: maskControl,
+                maskQuote: maskQuote,
+                first: ref first,
+                runningIndex: runningIndex,
+                fieldIndex: ref fieldIndex,
+                fieldRef: ref dstField,
+                quoteRef: ref dstQuote,
                 delimiter: delimiter,
-                quote: quote,
-                ref quotesConsumed,
-                ref vector
+                quotesConsumed: ref quotesConsumed,
+                nextVector: ref vector
             );
 
             ContinueRead:
@@ -210,7 +213,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 : Vector256.Equals(vector, lfVec);
             hasDelimiter = Vector256.Equals(vector, delimiterVec);
             hasQuote = Vector256.Equals(vector, quoteVec);
-            hasAny = hasNewline | hasDelimiter | hasQuote;
+            hasControl = hasNewline | hasDelimiter;
         }
 
         return (int)fieldIndex;
@@ -271,22 +274,13 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         uint offset;
         FieldFlag flag;
 
-        // if (BitOperations.PopCount(mask) == 1)
-        // {
-        //     offset = (uint)BitOperations.TrailingZeroCount(mask);
-        //     flag = TNewline.GetFlag(ref Unsafe.Add(ref first, runningIndex + offset));
-        //     Unsafe.Add(ref fieldRef, fieldIndex++) = ((uint)runningIndex + offset) | (uint)flag;
-        // }
-        // else
+        do
         {
-            do
-            {
-                offset = (uint)BitOperations.TrailingZeroCount(mask);
-                mask &= (mask - 1); // clear lowest bit
-                flag = TNewline.GetKnownNewlineFlag(ref Unsafe.Add(ref first, runningIndex + offset), ref mask);
-                Unsafe.Add(ref fieldRef, fieldIndex++) = ((uint)runningIndex + offset) | (uint)flag;
-            } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
-        }
+            offset = (uint)BitOperations.TrailingZeroCount(mask);
+            mask &= (mask - 1); // clear lowest bit
+            flag = TNewline.GetKnownNewlineFlag(ref Unsafe.Add(ref first, runningIndex + offset), ref mask);
+            Unsafe.Add(ref fieldRef, fieldIndex++) = ((uint)runningIndex + offset) | (uint)flag;
+        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
 
         // put the offset check first as it should be more predictable; kind may be CRLF 5-10% of the time
         if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && flag == FieldFlag.CRLF)
@@ -327,53 +321,50 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ParseAny(
-        uint mask,
+        uint maskAny,
+        uint maskQuote,
         scoped ref T first,
         nuint runningIndex,
         ref nuint fieldIndex,
         ref uint fieldRef,
         ref byte quoteRef,
         T delimiter,
-        T quote,
         scoped ref uint quotesConsumed,
         ref Vector256<byte> nextVector
     )
     {
-        // this method benefits from preloading the offset as we need it in multiple places
-        ref T data = ref Unsafe.Add(ref first, runningIndex);
-
-        uint offset;
+        uint offset = 0;
         FieldFlag flag = default;
 
-        do
+        while (maskAny != 0) // do..while won't work as the quote XOR might have cleared the mask
         {
-            offset = (uint)BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1); // clear lowest bit
+            uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskAny);
+            offset = (uint)BitOperations.TrailingZeroCount(maskAny);
 
-            byte isQuote = Unsafe.BitCast<bool, byte>(Unsafe.Add(ref data, offset) == quote);
-            quotesConsumed += isQuote;
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
 
-            if (((isQuote | quotesConsumed) & 1) != 0)
+            uint value = (uint)runningIndex + offset;
+            flag = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, value), ref maskAny);
+
+            // TODO: optimize this into the IsNewline method
+            if (flag == FieldFlag.CRLF)
             {
-                if (TNewline.IsCRLF)
-                {
-                    flag = 0;
-                }
-
-                continue;
+                maskUpToPos = (maskUpToPos << 1) | 1;
             }
 
-            if (quotesConsumed > 127)
-            {
-                quotesConsumed = 127;
-            }
+            // consume masks
+            maskAny &= ~maskUpToPos;
+            maskQuote &= ~maskUpToPos;
 
-            flag = TNewline.IsNewline(delimiter, ref Unsafe.Add(ref data, offset), ref mask);
-            Unsafe.Add(ref fieldRef, fieldIndex) = ((uint)runningIndex + offset) | (uint)flag;
+            Field.SaturateTo7Bits(ref quotesConsumed);
+
+            Unsafe.Add(ref fieldRef, fieldIndex) = value | (uint)flag;
             Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
             quotesConsumed = 0;
             fieldIndex++;
-        } while (mask != 0); // no bounds-check, meta-buffer always has space for a full vector
+        }
+
+        quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
 
         if (TNewline.IsCRLF && offset == Vector256<byte>.Count - 1 && flag == FieldFlag.CRLF)
         {

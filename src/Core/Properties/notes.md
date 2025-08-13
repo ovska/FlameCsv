@@ -517,6 +517,30 @@ Consider moving away from "StartOrEnd" sentinel bits for every single field, and
 | Simplify end index        | 1.570 ms |
 | Final working             | 1.573 ms |
 
+## Generic SIMD prefix XOR for quotes
+
+Before:
+| Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | -------: | ------: | ----: |
+| V128   | False | True   | LF      | 527.0 us | 2.10 us |  1.00 |
+| V128   | False | True   | CRLF    | 564.7 us | 2.02 us |  1.00 |
+
+Naive prefix XOR:
+| Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | -------: | ------: | ----: |
+| V128   | False | True   | LF      | 522.9 us | 1.40 us |  1.00 |
+| V128   | False | True   | CRLF    | 571.3 us | 1.49 us |  1.00 |
+
+| Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
+|------- |------ |------- |-------- |---------:|--------:|------:|
+| V128   | False | True   | LF      | 523.1 us | 2.02 us |  1.00 |
+| V128   | False | True   | CRLF    | 591.0 us | 3.38 us |  1.00 |
+
+Optimized prefix xor
+| Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | -------: | ------: | ----: |
+| V128   | False | True   | LF      | 361.2 us | 1.01 us |  1.00 |
+| V128   | False | True   | CRLF    | 427.3 us | 2.94 us |  1.00 |
 
 ## Frequencies
 
