@@ -355,13 +355,18 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
 
+                    // FIXME: both should be cleared using the mask from leftshiftclear
                     maskControl &= (maskControl - 1);
                     maskQuote &= ~maskUpToPos; // consume
 
                     Field.SaturateTo7Bits(ref quotesConsumed);
 
                     uint newlineFlag2 = (uint)
-                        TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, pos + runningIndex), ref maskControl);
+                        TNewline.IsNewline<T, BLSRMaskClear>(
+                            delimiter,
+                            ref Unsafe.Add(ref first, pos + runningIndex),
+                            ref maskControl
+                        );
 
                     Unsafe.Add(ref firstField, fieldIndex) = (uint)(runningIndex + pos) | newlineFlag2;
                     Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;

@@ -60,13 +60,22 @@ public static class INewlineTests
             input.CopyTo(span);
             span = span[..input.Length];
 
-            ulong mask = 1;
-            FieldFlag result = NewlineCRLF.IsNewline(T.CreateTruncating(','), ref span[0], ref mask);
+            uint mask = 0b11;
+            FieldFlag result = NewlineCRLF.IsNewline<T, LeftShiftMaskClear>(
+                T.CreateTruncating(','),
+                ref span[0],
+                ref mask
+            );
 
             if (expected)
             {
                 Assert.True(((uint)result & Field.IsEOL) != 0, $"'{input.AsPrintableString()}' should be a newline");
                 Assert.Equal(isCRLF, result == FieldFlag.CRLF);
+                Assert.Equal(0b111u, mask);
+            }
+            else
+            {
+                Assert.Equal(0b11u, mask);
             }
         }
     }
