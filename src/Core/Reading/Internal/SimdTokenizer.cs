@@ -102,16 +102,16 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // prefetch the next vector so we can process the current without waiting for it to load
             vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
 
-            // nothing of note in this slice
-            if (maskControl == 0)
-            {
-                goto ContinueRead;
-            }
-
             // we have read quotes, must use ParseAny to handle them (or possibly we can skip the whole vector)
             if ((maskQuote | quoteCarry | quotesConsumed) != 0)
             {
                 goto TrySkipQuoted;
+            }
+
+            // nothing of note in this slice
+            if (maskControl == 0)
+            {
+                goto ContinueRead;
             }
 
             // only delimiters
