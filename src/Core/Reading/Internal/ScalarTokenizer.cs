@@ -154,11 +154,10 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
                 quotesConsumed++;
                 runningIndex++;
 
+                T next = Unsafe.Add(ref first, runningIndex);
+
                 // quotes should be followed by delimiters or newlines
-                if (
-                    Unsafe.Add(ref first, runningIndex) == delimiter
-                    || TNewline.IsNewline(Unsafe.Add(ref first, runningIndex))
-                )
+                if (next == delimiter || IsAnyNewline(next))
                 {
                     goto FoundNonQuote;
                 }
@@ -232,7 +231,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
                 T final = Unsafe.Add(ref first, runningIndex);
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
-                if (TNewline.IsNewline(final))
+                if (IsAnyNewline(final))
                 {
                     // this can only be a 1-token newline, omit the newline kind as the offset is always 1
                     Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | Field.IsEOL;
@@ -276,5 +275,11 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
         Debug.Assert(typeof(T) == typeof(char), "T must be either byte or char");
         uint c = Unsafe.BitCast<T, char>(value);
         return Unsafe.Add(ref Unsafe.As<byte, char>(ref _lut.elem0), c & 127u) == c;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsAnyNewline(T value)
+    {
+        return value == T.CreateTruncating('\n') || (TNewline.IsCRLF && value == T.CreateTruncating('\r'));
     }
 }

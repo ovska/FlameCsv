@@ -25,12 +25,6 @@ internal interface INewline
     /// </summary>
     static abstract bool IsCRLF { get; }
 
-    /// <summary>
-    /// Determines if the specified value represents any newline character.
-    /// </summary>
-    static abstract bool IsNewline<T>(T value)
-        where T : unmanaged, IBinaryInteger<T>;
-
     static abstract FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
         where T : unmanaged, IBinaryInteger<T>
         where TMask : unmanaged, IBinaryInteger<TMask>;
@@ -77,18 +71,6 @@ internal readonly struct NewlineLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsNewline<T>(T value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return Unsafe.SizeOf<T>() switch
-        {
-            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\n',
-            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\n',
-            _ => throw Token<T>.NotSupported,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldFlag IsNewline<T, TMask>(T delimiter, ref T value, ref TMask mask)
         where T : unmanaged, IBinaryInteger<T>
         where TMask : unmanaged, IBinaryInteger<TMask>
@@ -119,17 +101,6 @@ internal readonly struct NewlineCRLF : INewline
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => true;
-    }
-
-    public static bool IsNewline<T>(T value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return Unsafe.SizeOf<T>() switch
-        {
-            sizeof(byte) => Unsafe.BitCast<T, byte>(value) is (byte)'\r' or (byte)'\n',
-            sizeof(char) => Unsafe.BitCast<T, char>(value) is '\r' or '\n',
-            _ => throw Token<T>.NotSupported,
-        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

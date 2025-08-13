@@ -65,13 +65,8 @@ public static class INewlineTests
 
             if (expected)
             {
-                Assert.True(NewlineCRLF.IsNewline(span[0]));
                 Assert.True(((uint)result & Field.IsEOL) != 0, $"'{input.AsPrintableString()}' should be a newline");
                 Assert.Equal(isCRLF, result == FieldFlag.CRLF);
-            }
-            else
-            {
-                Assert.False(NewlineCRLF.IsNewline(span[0]), $"'{input.AsPrintableString()}' should not be a newline");
             }
         }
     }
