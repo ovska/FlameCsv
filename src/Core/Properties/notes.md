@@ -562,43 +562,29 @@ Remove bits before/after checks
 | V128   | False | True   | CRLF    |   437.8 us | 1.69 us |  1.00 |
 
 Refactored Generic:
-| Method | Chars | Quoted | Newline      |       Mean |  StdDev | Ratio |
-| ------ | ----- | ------ | ------------ | ---------: | ------: | ----: |
-| V128   | False | False  | LF           | 1,404.6 us | 5.38 us |  1.00 |
-| Avx2   | False | False  | LF           |   958.0 us | 3.05 us |  0.68 |
-|        |       |        |              |            |         |       |
-| V128   | False | False  | LF_With_CRLF | 1,464.2 us | 3.11 us |  1.00 |
-| Avx2   | False | False  | LF_With_CRLF | 1,260.7 us | 2.86 us |  0.86 |
-|        |       |        |              |            |         |       |
-| V128   | False | False  | CRLF         | 1,464.9 us | 4.12 us |  1.00 |
-| Avx2   | False | False  | CRLF         | 1,269.6 us | 2.96 us |  0.87 |
-|        |       |        |              |            |         |       |
-| V128   | False | True   | LF           |   364.6 us | 1.92 us |  1.00 |
-| Avx2   | False | True   | LF           |   394.9 us | 1.15 us |  1.08 |
-|        |       |        |              |            |         |       |
-| V128   | False | True   | LF_With_CRLF |   392.6 us | 1.37 us |  1.00 |
-| Avx2   | False | True   | LF_With_CRLF |   436.5 us | 1.67 us |  1.11 |
-|        |       |        |              |            |         |       |
-| V128   | False | True   | CRLF         |   414.2 us | 1.74 us |  1.00 |
-| Avx2   | False | True   | CRLF         |   455.3 us | 1.28 us |  1.10 |
-|        |       |        |              |            |         |       |
-| V128   | True  | False  | LF           | 1,531.3 us | 4.17 us |  1.00 |
-| Avx2   | True  | False  | LF           | 1,134.5 us | 2.25 us |  0.74 |
-|        |       |        |              |            |         |       |
-| V128   | True  | False  | LF_With_CRLF | 1,611.3 us | 7.62 us |  1.00 |
-| Avx2   | True  | False  | LF_With_CRLF | 1,442.5 us | 4.62 us |  0.90 |
-|        |       |        |              |            |         |       |
-| V128   | True  | False  | CRLF         | 1,622.9 us | 5.44 us |  1.00 |
-| Avx2   | True  | False  | CRLF         | 1,456.5 us | 4.31 us |  0.90 |
-|        |       |        |              |            |         |       |
-| V128   | True  | True   | LF           |   414.2 us | 0.98 us |  1.00 |
-| Avx2   | True  | True   | LF           |   416.3 us | 0.91 us |  1.01 |
-|        |       |        |              |            |         |       |
-| V128   | True  | True   | LF_With_CRLF |   445.5 us | 1.48 us |  1.00 |
-| Avx2   | True  | True   | LF_With_CRLF |   481.6 us | 1.70 us |  1.08 |
-|        |       |        |              |            |         |       |
-| V128   | True  | True   | CRLF         |   447.6 us | 1.91 us |  1.00 |
-| Avx2   | True  | True   | CRLF         |   451.0 us | 1.50 us |  1.01 |
+| Chars | Quoted | Newline      |    Generic |       Avx2 | Ratio |  Faster |
+| ----- | ------ | ------------ | ---------: | ---------: | ----: | ------: |
+| False | False  | LF           | 1,404.6 us |   958.0 us |  0.68 |    AVX2 |
+| False | False  | LF_With_CRLF | 1,464.2 us | 1,260.7 us |  0.86 |    AVX2 |
+| False | False  | CRLF         | 1,464.9 us | 1,269.6 us |  0.87 |    AVX2 |
+| False | True   | LF           |   364.6 us |   394.9 us |  1.08 | Generic |
+| False | True   | LF_With_CRLF |   392.6 us |   436.5 us |  1.11 | Generic |
+| False | True   | CRLF         |   414.2 us |   455.3 us |  1.10 | Generic |
+| True  | False  | LF           | 1,531.3 us | 1,134.5 us |  0.74 |    AVX2 |
+| True  | False  | LF_With_CRLF | 1,611.3 us | 1,442.5 us |  0.90 |    AVX2 |
+| True  | False  | CRLF         | 1,622.9 us | 1,456.5 us |  0.90 |    AVX2 |
+| True  | True   | LF           |   414.2 us |   416.3 us |  1.01 | Generic |
+| True  | True   | LF_With_CRLF |   445.5 us |   481.6 us |  1.08 | Generic |
+| True  | True   | CRLF         |   447.6 us |   451.0 us |  1.01 | Generic |
+
+Generic is now faster in all quoted paths, which is very odd.
+
+## Unroll delim/LF checks on LF (generic)
+
+| Method | Chars | Quoted | Newline |       Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | ---------: | ------: | ----: |
+| V128   | False | False  | LF      | 1,119.7 us | 2.71 us |  1.00 |
+| V128   | False | True   | LF      |   333.6 us | 2.31 us |  1.00 |
 
 ## Frequencies
 
