@@ -125,7 +125,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             }
             else
             {
-                vector = AsciiVector.Load(ref first, runningIndex);
+                vector = AsciiVector.LoadAligned256(ref first, runningIndex);
                 runningIndexVector = Vector256.Create((uint)runningIndex);
             }
         }
@@ -166,6 +166,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if ((maskControl | shiftedCR) == 0)
                 {
+                    // TODO: flip quote carry
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
@@ -184,6 +185,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if (maskControl == 0)
                 {
+                    // TODO: flip quote carry
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
@@ -192,7 +194,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
             // rare cases: quotes, or too many matches to fit in the compress path
-            if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector256<int>.Count)
+            if ((quoteCarry | quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector256<int>.Count)
             {
                 goto SlowPath;
             }
