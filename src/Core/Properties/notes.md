@@ -545,6 +545,15 @@ Final
 | V128   | False | True   | CRLF    | 569.8 us | 2.02 us |  1.00 |
 | Avx2   | False | True   | CRLF    | 422.1 us | 1.22 us |  0.74 |
 
+Remove bits before/after checks
+| Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | -------: | ------: | ----: |
+| V128   | False | True   | LF      | 369.9 us | 1.66 us |  1.00 |
+| Avx2   | False | True   | LF      | 353.9 us | 2.34 us |  0.96 |
+|        |       |        |         |          |         |       |
+| V128   | False | True   | CRLF    | 404.5 us | 1.16 us |  1.00 |
+| Avx2   | False | True   | CRLF    | 424.8 us | 0.89 us |  1.05 |
+
 ## Frequencies
 
 ```

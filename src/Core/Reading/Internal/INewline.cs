@@ -60,10 +60,6 @@ internal interface INewline
     static abstract FieldFlag IsNewline<T, TClear>(T delimiter, ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
         where TClear : struct, IMaskClear;
-
-    static abstract FieldFlag GetKnownNewlineFlag<T, TClear>(ref T value, ref uint mask)
-        where T : unmanaged, IBinaryInteger<T>
-        where TClear : struct, IMaskClear;
 }
 
 [SkipLocalsInit]
@@ -77,14 +73,6 @@ internal readonly struct NewlineLF : INewline
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldFlag GetKnownNewlineFlag<T, TClear>(ref T value, ref uint mask)
-        where T : unmanaged, IBinaryInteger<T>
-        where TClear : struct, IMaskClear
-    {
-        return FieldFlag.EOL;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -113,40 +101,6 @@ internal readonly struct NewlineCRLF : INewline
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldFlag GetKnownNewlineFlag<T, TClear>(ref T value, ref uint mask)
-        where T : unmanaged, IBinaryInteger<T>
-        where TClear : struct, IMaskClear
-    {
-        FieldFlag retVal;
-        bool isCRLF;
-
-        if (Unsafe.SizeOf<T>() is sizeof(byte))
-        {
-            isCRLF = Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
-        }
-        else if (Unsafe.SizeOf<T>() is sizeof(char))
-        {
-            isCRLF = Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
-        }
-        else
-        {
-            throw Token<T>.NotSupported;
-        }
-
-        if (isCRLF)
-        {
-            retVal = FieldFlag.CRLF;
-            TClear.Clear(ref mask);
-        }
-        else
-        {
-            retVal = FieldFlag.EOL;
-        }
-
-        return retVal;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldFlag IsNewline<T, TClear>(T delimiter, ref T value, ref uint mask)
         where T : unmanaged, IBinaryInteger<T>
         where TClear : struct, IMaskClear
@@ -159,12 +113,13 @@ internal readonly struct NewlineCRLF : INewline
 
             if (Unsafe.SizeOf<T>() is sizeof(byte))
             {
-                isCRLF = Unsafe.As<T, ushort>(ref value) == MemoryMarshal.Read<ushort>("\r\n"u8);
+                ushort crlf = MemoryMarshal.Read<ushort>("\r\n"u8);
+                isCRLF = Unsafe.As<T, ushort>(ref value) == crlf;
             }
             else if (Unsafe.SizeOf<T>() is sizeof(char))
             {
-                isCRLF =
-                    Unsafe.As<T, uint>(ref value) == MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
+                uint crlf = MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
+                isCRLF = Unsafe.As<T, uint>(ref value) == crlf;
             }
             else
             {
