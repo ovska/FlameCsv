@@ -79,16 +79,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
         while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
         {
-            // TODO: profile on multiple machines
-            // if (typeof(T) == typeof(char) && Sse.IsSupported)
-            // {
-            //     uint prefetch = Avx512BW.IsSupported ? 192u : 384u;
-
-            //     unsafe
-            //     {
-            //         Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex + prefetch)));
-            //     }
-            // }
+            // TODO: profile Sse.Prefetch0 on multiple machines
 
             uint maskControl = hasControl.ExtractMostSignificantBits();
             uint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
@@ -246,10 +237,14 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ParseDelimitersAndLineEndsUnrolled(uint mask, uint maskLF, nuint runningIndex, ref uint dst)
     {
         // here we shift the LF mask so the current bit is a MSB (eol flag)
         uint increment = (uint)runningIndex;
+
+        // TODO: use signed shift on CRLF to get the two top bytes
+        // uint flag = (uint)((int)((maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL) >> shift);
 
         uint tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);

@@ -279,13 +279,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             runningIndex += (nuint)Vector256<byte>.Count;
             runningIndexVector += iterationLength;
 
-            // TODO: profile
-            // unsafe
-            // {
-            //     nuint prefetch = runningIndex + (nuint)(512u / sizeof(T));
-            //     Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, prefetch)));
-            // }
-
+            // TODO: profile Sse.Prefetch0 on multiple machines
             continue;
 
             SlowPath:
