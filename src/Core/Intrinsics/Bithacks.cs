@@ -1,13 +1,28 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Intrinsics;
 
 internal static class Bithacks
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetFlag<TNewline>(uint maskLF, uint tz, uint shift)
+        where TNewline : struct, INewline
+    {
+        uint result = (maskLF << (int)(31 - tz)) & Field.IsEOL;
+
+        if (TNewline.IsCRLF)
+        {
+            // mangle the possible MSB into a CR flag (two top bits set) with an arithmetic shift
+            result = (uint)((int)result >> (int)shift);
+        }
+
+        return result;
+    }
+
     /// <summary>
     /// Checks if all bits in the mask are before the first bit set in the other value.
     /// </summary>

@@ -586,6 +586,22 @@ Generic is now faster in all quoted paths, which is very odd.
 | V128   | False | False  | LF      | 1,119.7 us | 2.71 us |  1.00 |
 | V128   | False | True   | LF      |   333.6 us | 2.31 us |  1.00 |
 
+## Supercharged generic
+
+| Method | Chars | Quoted | Newline |       Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | ---------: | ------: | ----: |
+| V128   | False | False  | LF      | 1,117.7 us | 3.31 us |  1.00 |
+| V128   | False | False  | CRLF    | 1,368.2 us | 2.86 us |  1.00 |
+| V128   | False | True   | LF      |   341.0 us | 1.05 us |  1.00 |
+| V128   | False | True   | CRLF    |   407.5 us | 1.37 us |  1.00 |
+
+## MSB shifting maskLF trick (AVX2)
+
+| Method | Chars | Quoted | Newline |     Mean |  StdDev |
+| ------ | ----- | ------ | ------- | -------: | ------: |
+| Avx2   | False | True   | LF      | 389.9 us | 0.63 us |
+| Avx2   | False | True   | CRLF    | 432.6 us | 0.87 us |
+
 ## Frequencies
 
 ```

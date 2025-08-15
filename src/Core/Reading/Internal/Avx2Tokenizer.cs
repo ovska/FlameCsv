@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -201,15 +202,13 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
             // build a mask to remove extra bits caused by sign-extension
             Vector256<int> fixup = TNewline.IsCRLF
-                ? Vector256.Create(fixupScalar | ((Unsafe.BitCast<bool, byte>(shiftedCR != 0)) << 30))
+                ? Vector256.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
                 : msbAndBitsUpTo7;
-
-            // Build the 256-bit shuffle mask.
-            ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
 
             uint mask = ~maskControl;
 
-            // Split the mask into four bytes
+            ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
+
             byte mask1 = (byte)mask;
             byte mask2 = (byte)(mask >> 8);
             byte mask3 = (byte)(mask >> 16);
@@ -224,7 +223,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
             Vector256<byte> tags = (hasLF & bit7);
 
-            // Use precomputed popcounts from the table.
             ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
 
             // Add the constant to the shuffle mask.
@@ -291,42 +289,32 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
-            Unsafe.SkipInit(out byte isCR);
-            uint eolType = Field.IsEOL;
-
-            if (TNewline.IsCRLF)
-            {
-                isCR = Unsafe.BitCast<bool, byte>(shiftedCR != 0);
-                eolType |= (uint)(isCR << 30);
-            }
+            uint shift = TNewline.IsCRLF ? (shiftedCR != 0).ToByte() : 0u;
 
             // quoteXOR might have zeroed out the mask so do..while won't work
             while (maskControl != 0)
             {
                 uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskControl);
-                uint pos = (uint)BitOperations.TrailingZeroCount(maskControl);
+                uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
 
                 quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-                uint posBit = (maskUpToPos ^ (maskUpToPos >> 1)); // extract the lowest set bit
-                uint offset = (uint)runningIndex + pos;
+                uint offset = (uint)runningIndex + tz;
+                uint eolFlag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
 
                 // consume masks
                 maskControl &= ~maskUpToPos;
                 maskQuote &= ~maskUpToPos;
 
-                bool isLF = (maskLF & posBit) != 0;
-
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
-                uint eolFlag = isLF ? eolType : 0;
-
-                if (TNewline.IsCRLF)
+                if (TNewline.IsCRLF && shift != 0) // predictable branch
                 {
-                    offset -= (uint)(Unsafe.BitCast<bool, byte>(isLF) & isCR);
+                    // Adjust the offset for CRLF line endings, as the bits are on LF positions
+                    offset -= (maskLF >> (int)tz);
                 }
 
-                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
                 Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
+                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
 
                 quotesConsumed = 0;
                 fieldIndex++;
