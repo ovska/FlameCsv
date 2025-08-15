@@ -602,6 +602,14 @@ Generic is now faster in all quoted paths, which is very odd.
 | Avx2   | False | True   | LF      | 389.9 us | 0.63 us |
 | Avx2   | False | True   | CRLF    | 432.6 us | 0.87 us |
 
+| Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | -------: | ------: | ----: |
+| V128   | False | True   | LF      | 338.0 us | 1.44 us |  1.00 |
+| Avx2   | False | True   | LF      | 392.3 us | 1.04 us |  1.16 |
+|        |       |        |         |          |         |       |
+| V128   | False | True   | CRLF    | 446.6 us | 1.45 us |  1.00 |
+| Avx2   | False | True   | CRLF    | 475.9 us | 1.59 us |  1.07 |
+
 ## Frequencies
 
 ```

@@ -9,18 +9,26 @@ namespace FlameCsv.Intrinsics;
 internal static class Bithacks
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetFlag<TNewline>(uint maskLF, uint tz, uint shift)
+    public static uint GetMaskUpToLowestSetBit(uint mask, uint tz)
+    {
+        return Bmi1.IsSupported ? Bmi1.GetMaskUpToLowestSetBit(mask) : (~0U >> (int)(31 - tz));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetSubractionFlag<TNewline>(uint carriageReturn)
         where TNewline : struct, INewline
     {
-        uint result = (maskLF << (int)(31 - tz)) & Field.IsEOL;
+        // for CRLF sequences, subtracting the flag shifts offset left by 1 (as the bits are done on LF positions)
+        // and sets the top 2 bits
+        // for LFs, only the MSB (eol bit) is set when subtracting
+        return TNewline.IsCRLF && carriageReturn != 0 ? 0x40000001u : Field.IsEOL;
+    }
 
-        if (TNewline.IsCRLF)
-        {
-            // mangle the possible MSB into a CR flag (two top bits set) with an arithmetic shift
-            result = (uint)((int)result >> (int)shift);
-        }
-
-        return result;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint ProcessFlag(uint maskNewline, uint tz, uint flag)
+    {
+        uint newlineBit = (maskNewline >> (int)tz) & 1;
+        return (uint)(-(int)newlineBit & flag);
     }
 
     /// <summary>

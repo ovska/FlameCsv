@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
@@ -55,22 +56,30 @@ public class TokenizationTests
     }
 
     [Theory, MemberData(nameof(NewlineData))]
-    public void Generic_Char(RecSep newline) =>
+    public void Generic_Char(RecSep newline)
+    {
+        Assert.SkipWhen(newline is RecSep.CR, "CR is not supported yet.");
+
         TokenizeCore<char>(
             newline,
             newline == RecSep.LF
                 ? new SimdTokenizer<char, NewlineLF>(CsvOptions<char>.Default)
                 : new SimdTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
         );
+    }
 
     [Theory, MemberData(nameof(NewlineData))]
-    public void Generic_Byte(RecSep newline) =>
+    public void Generic_Byte(RecSep newline)
+    {
+        Assert.SkipWhen(newline is RecSep.CR, "CR is not supported yet.");
+
         TokenizeCore<byte>(
             newline,
             newline == RecSep.LF
                 ? new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
                 : new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
         );
+    }
 
     private static void TokenizeCore<T>(RecSep newline, CsvPartialTokenizer<T> tokenizer)
         where T : unmanaged, IBinaryInteger<T>

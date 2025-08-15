@@ -70,7 +70,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
-        scoped ref byte firstFlags = ref MemoryMarshal.GetReference(buffer.Quotes);
+        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
         scoped ref uint firstField = ref MemoryMarshal.GetReference(buffer.Fields);
 
         // load the constants into registers
@@ -289,17 +289,16 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
-            uint shift = TNewline.IsCRLF ? (shiftedCR != 0).ToByte() : 0u;
+            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
 
-            // quoteXOR might have zeroed out the mask so do..while won't work
             while (maskControl != 0)
             {
-                uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskControl);
                 uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
+                uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl, tz);
 
+                uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
+                uint pos = (uint)runningIndex + tz;
                 quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-                uint offset = (uint)runningIndex + tz;
-                uint eolFlag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
 
                 // consume masks
                 maskControl &= ~maskUpToPos;
@@ -307,14 +306,8 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
-                if (TNewline.IsCRLF && shift != 0) // predictable branch
-                {
-                    // Adjust the offset for CRLF line endings, as the bits are on LF positions
-                    offset -= (maskLF >> (int)tz);
-                }
-
-                Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
-                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
+                Unsafe.Add(ref firstField, fieldIndex) = pos - eolFlag;
+                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
 
                 quotesConsumed = 0;
                 fieldIndex++;
@@ -353,7 +346,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
                         );
 
                     Unsafe.Add(ref firstField, fieldIndex) = (uint)(runningIndex + pos) | newlineFlag2;
-                    Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
+                    Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
 
                     quotesConsumed = 0;
                     fieldIndex++;
