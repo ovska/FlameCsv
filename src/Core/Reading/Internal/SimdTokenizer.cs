@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -63,19 +64,18 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         T quote = _quote;
         uint quotesConsumed = 0;
         uint quoteCarry = 0;
+        uint crCarry = 0;
 
-        Vector256<byte> delimiterVec = AsciiVector.Create(delimiter);
-        Vector256<byte> quoteVec = AsciiVector.Create(quote);
-        Vector256<byte> lfVec = AsciiVector.Create((byte)'\n');
-        Vector256<byte> crVec = TNewline.IsCRLF ? AsciiVector.Create((byte)'\r') : default;
+        Vector256<byte> vecDelim = AsciiVector.Create(delimiter);
+        Vector256<byte> vecQuote = AsciiVector.Create(quote);
+        Vector256<byte> vecLF = AsciiVector.Create((byte)'\n');
+        Vector256<byte> vecCR = TNewline.IsCRLF ? AsciiVector.Create((byte)'\r') : default;
 
         Vector256<byte> vector = AsciiVector.Load(ref first, runningIndex);
-        Vector256<byte> hasNewline = TNewline.IsCRLF
-            ? Vector256.Equals(vector, lfVec) | Vector256.Equals(vector, crVec)
-            : Vector256.Equals(vector, lfVec);
-        Vector256<byte> hasDelimiter = Vector256.Equals(vector, delimiterVec);
-        Vector256<byte> hasControl = hasNewline | hasDelimiter;
-        Vector256<byte> hasQuote = Vector256.Equals(vector, quoteVec);
+        Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
+        Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
+        Vector256<byte> hasControl = hasLF | hasDelimiter;
+        Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
         while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
         {
@@ -85,62 +85,123 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             uint maskDelimiter = hasDelimiter.ExtractMostSignificantBits();
             uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
-            // prefetch the next vector so we can process the current without waiting for it to load
-            vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
+            Unsafe.SkipInit(out uint shiftedCR);
+            uint maskLF = maskControl & ~maskDelimiter;
 
-            if (maskControl == 0)
+            if (TNewline.IsCRLF)
             {
-                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                goto ContinueRead;
+                Vector256<byte> hasCR = Vector256.Equals(vector, vecCR);
+                uint maskCR = hasCR.ExtractMostSignificantBits();
+
+                vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
+
+                shiftedCR = ((maskCR << 1) | crCarry);
+                crCarry = maskCR >> 31;
+
+                if ((maskControl | shiftedCR) == 0)
+                {
+                    // TODO: flip quote carry
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                    goto ContinueRead;
+                }
+
+                if ((shiftedCR & (shiftedCR ^ maskLF)) != 0)
+                {
+                    // maskControl doesn't contain CR by default, add it so we can find lone CR's
+                    maskControl |= maskCR;
+                    goto PathologicalPath;
+                }
+            }
+            else
+            {
+                vector = AsciiVector.Load(ref first, runningIndex + (nuint)Vector256<byte>.Count);
+
+                if (maskControl == 0)
+                {
+                    // TODO: flip quote carry
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                    goto ContinueRead;
+                }
             }
 
             if ((quoteCarry | quotesConsumed | maskQuote) != 0)
             {
-                goto HandleAny;
+                goto SlowPath;
             }
 
-            uint controlCount = TNewline.IsCRLF ? 0 : (uint)BitOperations.PopCount(maskControl);
+            uint controlCount = (uint)BitOperations.PopCount(maskControl);
 
             // check if only delimiters
-            if (maskDelimiter != maskControl)
+            if (maskDelimiter == maskControl)
             {
-                goto HandleMixed;
+                ParseDelimiters(maskDelimiter, runningIndex, ref fieldIndex, ref dstField);
+                goto ContinueRead;
             }
 
-            ParseDelimiters(maskDelimiter, runningIndex, ref fieldIndex, ref dstField);
+            if (controlCount > 5)
+            {
+                goto SlowPath;
+            }
+
+            ParseDelimitersAndLineEndsUnrolled(
+                maskControl,
+                maskLF,
+                shiftedCR,
+                runningIndex,
+                ref Unsafe.Add(ref dstField, fieldIndex)
+            );
+
+            fieldIndex += controlCount;
             goto ContinueRead;
 
-            HandleMixed:
-            if (!TNewline.IsCRLF && controlCount <= 5)
+            SlowPath:
+            if (!TNewline.IsCRLF)
             {
-                ParseDelimitersAndLineEndsUnrolled(
-                    maskControl,
-                    maskControl & ~maskDelimiter,
-                    runningIndex,
-                    ref Unsafe.Add(ref dstField, fieldIndex)
-                );
-
-                fieldIndex += controlCount;
+                maskLF = hasLF.ExtractMostSignificantBits();
             }
-            else
-            {
-                ParseDelimitersAndLineEnds(
-                    maskControl,
-                    ref first,
-                    delimiter,
-                    runningIndex,
-                    ref fieldIndex,
-                    ref dstField,
-                    ref vector
-                );
-            }
-            goto ContinueRead;
 
-            HandleAny:
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
-            ParseAny(
+            uint shift = TNewline.IsCRLF ? (shiftedCR != 0).ToByte() : 0u;
+
+            while (maskControl != 0)
+            {
+                uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskControl);
+                uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
+
+                quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
+                uint offset = (uint)runningIndex + tz;
+                uint eolFlag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
+
+                Field.SaturateTo7Bits(ref quotesConsumed);
+
+                // consume masks
+                maskControl &= ~maskUpToPos;
+                maskQuote &= ~maskUpToPos;
+
+                if (TNewline.IsCRLF && shift != 0) // predictable branch
+                {
+                    // Adjust the offset for CRLF line endings, as the bits are on LF positions
+                    offset -= (maskLF >> (int)tz);
+                }
+
+                Unsafe.Add(ref dstField, fieldIndex) = offset | eolFlag;
+                Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+
+                quotesConsumed = 0;
+                fieldIndex++;
+            }
+
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+
+            goto ContinueRead;
+
+            PathologicalPath:
+            quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
+            maskControl &= ~quoteXOR; // clear the bits that are inside quotes
+
+            ParsePathological(
                 maskControl: maskControl,
                 maskQuote: maskQuote,
                 first: ref first,
@@ -155,12 +216,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             ContinueRead:
             runningIndex += (nuint)Vector256<byte>.Count;
-            hasNewline = TNewline.IsCRLF
-                ? Vector256.Equals(vector, lfVec) | Vector256.Equals(vector, crVec)
-                : Vector256.Equals(vector, lfVec);
-            hasDelimiter = Vector256.Equals(vector, delimiterVec);
-            hasControl = hasNewline | hasDelimiter;
-            hasQuote = Vector256.Equals(vector, quoteVec);
+            hasLF = Vector256.Equals(vector, vecLF);
+            hasDelimiter = Vector256.Equals(vector, vecDelim);
+            hasControl = hasLF | hasDelimiter;
+            hasQuote = Vector256.Equals(vector, vecQuote);
         }
 
         return (int)fieldIndex;
@@ -238,46 +297,50 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ParseDelimitersAndLineEndsUnrolled(uint mask, uint maskLF, nuint runningIndex, ref uint dst)
+    private static void ParseDelimitersAndLineEndsUnrolled(
+        uint mask,
+        uint maskLF,
+        uint shiftedCR,
+        nuint runningIndex,
+        ref uint dst
+    )
     {
-        // here we shift the LF mask so the current bit is a MSB (eol flag)
         uint increment = (uint)runningIndex;
 
-        // TODO: use signed shift on CRLF to get the two top bytes
-        // uint flag = (uint)((int)((maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL) >> shift);
+        uint shift = TNewline.IsCRLF ? Unsafe.BitCast<bool, byte>(shiftedCR != 0) : 0u;
 
         uint tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        uint value = increment + tz;
-        uint flag = (maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL;
+        uint value = increment + tz - shift;
+        uint flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
         Unsafe.Add(ref dst, 0u) = value | flag;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        value = increment + tz;
-        flag = (maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL;
+        value = increment + tz - shift;
+        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
         Unsafe.Add(ref dst, 1u) = value | flag;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        value = increment + tz;
-        flag = (maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL;
+        value = increment + tz - shift;
+        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
         Unsafe.Add(ref dst, 2u) = value | flag;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        value = increment + tz;
-        flag = (maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL;
+        value = increment + tz - shift;
+        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
         Unsafe.Add(ref dst, 3u) = value | flag;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
-        value = increment + tz;
-        flag = (maskLF << (int)(31 - tz)) & (uint)FieldFlag.EOL;
+        value = increment + tz - shift;
+        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
         Unsafe.Add(ref dst, 4u) = value | flag;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ParseAny(
+    private static void ParsePathological(
         uint maskControl,
         uint maskQuote,
         scoped ref T first,
