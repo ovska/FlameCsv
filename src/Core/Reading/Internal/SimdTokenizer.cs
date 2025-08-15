@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -48,8 +47,8 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         nuint runningIndex = (uint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
-        scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer.Fields);
-        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(buffer.Fields);
+        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
         nuint fieldIndex = 0;
         nuint fieldEnd = Math.Max(0, (nuint)buffer.Fields.Length - (nuint)MaxFieldsPerIteration);
 
@@ -134,7 +133,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // check if only delimiters
             if (maskDelimiter == maskControl)
             {
-                ParseDelimiters(maskDelimiter, runningIndex, ref fieldIndex, ref dstField);
+                ParseDelimiters(maskDelimiter, runningIndex, ref fieldIndex, ref firstField);
                 goto ContinueRead;
             }
 
@@ -148,7 +147,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 maskLF,
                 shiftedCR,
                 runningIndex,
-                ref Unsafe.Add(ref dstField, fieldIndex)
+                ref Unsafe.Add(ref firstField, fieldIndex)
             );
 
             fieldIndex += controlCount;
@@ -163,31 +162,25 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
-            uint shift = TNewline.IsCRLF ? (shiftedCR != 0).ToByte() : 0u;
+            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
 
             while (maskControl != 0)
             {
-                uint maskUpToPos = Bmi1.GetMaskUpToLowestSetBit(maskControl);
                 uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
+                uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl, tz);
 
+                uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
+                uint pos = (uint)runningIndex + tz;
                 quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-                uint offset = (uint)runningIndex + tz;
-                uint eolFlag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
-
-                Field.SaturateTo7Bits(ref quotesConsumed);
 
                 // consume masks
                 maskControl &= ~maskUpToPos;
                 maskQuote &= ~maskUpToPos;
 
-                if (TNewline.IsCRLF && shift != 0) // predictable branch
-                {
-                    // Adjust the offset for CRLF line endings, as the bits are on LF positions
-                    offset -= (maskLF >> (int)tz);
-                }
+                Field.SaturateTo7Bits(ref quotesConsumed);
 
-                Unsafe.Add(ref dstField, fieldIndex) = offset | eolFlag;
-                Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+                Unsafe.Add(ref firstField, fieldIndex) = pos - eolFlag;
+                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
 
                 quotesConsumed = 0;
                 fieldIndex++;
@@ -207,8 +200,8 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 first: ref first,
                 runningIndex: runningIndex,
                 fieldIndex: ref fieldIndex,
-                fieldRef: ref dstField,
-                quoteRef: ref dstQuote,
+                fieldRef: ref firstField,
+                quoteRef: ref firstQuote,
                 delimiter: delimiter,
                 quotesConsumed: ref quotesConsumed,
                 nextVector: ref vector
@@ -266,37 +259,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ParseDelimitersAndLineEnds(
-        uint mask,
-        scoped ref T first,
-        T delimiter,
-        nuint runningIndex,
-        ref nuint fieldIndex,
-        ref uint fieldRef,
-        ref Vector256<byte> nextVector
-    )
-    {
-        uint offset;
-        FieldFlag isEOL;
-
-        do
-        {
-            offset = (uint)BitOperations.TrailingZeroCount(mask);
-            mask &= (mask - 1);
-
-            uint value = (uint)runningIndex + offset;
-            isEOL = TNewline.IsNewline<T, BLSRMaskClear>(delimiter, ref Unsafe.Add(ref first, value), ref mask);
-
-            Unsafe.Add(ref fieldRef, fieldIndex++) = value | (uint)isEOL;
-        } while (mask != 0);
-
-        if (offset == Vector256<byte>.Count - 1 && isEOL == FieldFlag.CRLF)
-        {
-            nextVector &= Vector256<byte>.ZeroFirst;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ParseDelimitersAndLineEndsUnrolled(
         uint mask,
         uint maskLF,
@@ -307,36 +269,36 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     {
         uint increment = (uint)runningIndex;
 
-        uint shift = TNewline.IsCRLF ? Unsafe.BitCast<bool, byte>(shiftedCR != 0) : 0u;
+        uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
 
         uint tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        uint value = increment + tz - shift;
-        uint flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
-        Unsafe.Add(ref dst, 0u) = value | flag;
+        uint pos = increment + tz;
+        uint magic = Bithacks.ProcessFlag(maskLF, tz, flag);
+        Unsafe.Add(ref dst, 0u) = pos - magic;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        value = increment + tz - shift;
-        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
-        Unsafe.Add(ref dst, 1u) = value | flag;
+        pos = increment + tz;
+        magic = Bithacks.ProcessFlag(maskLF, tz, flag);
+        Unsafe.Add(ref dst, 0u) = pos - magic;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        value = increment + tz - shift;
-        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
-        Unsafe.Add(ref dst, 2u) = value | flag;
+        pos = increment + tz;
+        magic = Bithacks.ProcessFlag(maskLF, tz, flag);
+        Unsafe.Add(ref dst, 0u) = pos - magic;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
-        value = increment + tz - shift;
-        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
-        Unsafe.Add(ref dst, 3u) = value | flag;
+        pos = increment + tz;
+        magic = Bithacks.ProcessFlag(maskLF, tz, flag);
+        Unsafe.Add(ref dst, 0u) = pos - magic;
 
         tz = (uint)BitOperations.TrailingZeroCount(mask);
-        value = increment + tz - shift;
-        flag = Bithacks.GetFlag<TNewline>(maskLF, tz, shift);
-        Unsafe.Add(ref dst, 4u) = value | flag;
+        pos = increment + tz;
+        magic = Bithacks.ProcessFlag(maskLF, tz, flag);
+        Unsafe.Add(ref dst, 0u) = pos - magic;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
