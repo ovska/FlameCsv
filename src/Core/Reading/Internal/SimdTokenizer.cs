@@ -128,18 +128,19 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // check if only delimiters
             if (maskLF == 0)
             {
-                ParseDelimiters(controlCount, maskControl, runningIndex, ref fieldIndex, ref firstField);
-                goto ContinueRead;
+                ParseDelimiters(controlCount, maskControl, runningIndex, ref Unsafe.Add(ref firstField, fieldIndex));
             }
-
-            ParseDelimitersAndLineEndsUnrolled(
-                controlCount,
-                maskControl,
-                maskLF,
-                shiftedCR,
-                runningIndex,
-                ref Unsafe.Add(ref firstField, fieldIndex)
-            );
+            else
+            {
+                ParseDelimitersAndLineEndsUnrolled(
+                    controlCount,
+                    maskControl,
+                    maskLF,
+                    shiftedCR,
+                    runningIndex,
+                    ref Unsafe.Add(ref firstField, fieldIndex)
+                );
+            }
 
             fieldIndex += controlCount;
             goto ContinueRead;
@@ -211,19 +212,12 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ParseDelimiters(
-        uint count,
-        uint mask,
-        nuint runningIndex,
-        ref nuint fieldIndex,
-        ref uint fieldRef
-    )
+    private static void ParseDelimiters(uint count, uint mask, nuint runningIndex, ref uint dst)
     {
         // on 128bit vectors 3 is optimal; revisit if we change width
         const uint unrollCount = 5;
 
         uint increment = (uint)runningIndex;
-        ref uint dst = ref Unsafe.Add(ref fieldRef, fieldIndex);
 
         Unsafe.Add(ref dst, 0u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
         mask &= (mask - 1);
@@ -250,8 +244,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 dst = ref Unsafe.Add(ref dst, 1u);
             } while (mask != 0);
         }
-
-        fieldIndex += count;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
