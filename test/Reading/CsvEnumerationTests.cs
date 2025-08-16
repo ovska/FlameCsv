@@ -152,7 +152,8 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Verify_Parameters()
     {
-        Assert.Throws<ArgumentNullException>(() => new CsvRecordEnumerable<char>(default(ReadOnlySequence<char>), null!)
+        Assert.Throws<ArgumentNullException>(() =>
+            new CsvRecordEnumerable<char>(default(ReadOnlySequence<char>), null!)
         );
     }
 
