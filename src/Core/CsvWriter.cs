@@ -40,7 +40,7 @@ public static partial class CsvWriter
 
         try
         {
-            if (encoding is null || encoding.Equals(Encoding.UTF8) || encoding.Equals(Encoding.ASCII))
+            if (encoding is null || encoding.Equals(Encoding.UTF8))
             {
                 return new Utf8StreamWriter(stream, memoryPool, in ioOptions);
             }

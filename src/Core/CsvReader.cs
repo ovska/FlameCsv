@@ -47,7 +47,7 @@ public static partial class CsvReader
 
         try
         {
-            if (encoding is null || encoding.Equals(Encoding.UTF8) || encoding.Equals(Encoding.ASCII))
+            if (encoding is null || encoding.Equals(Encoding.UTF8))
             {
                 return new Utf8StreamReader(stream, memoryPool, in ioOptions);
             }
