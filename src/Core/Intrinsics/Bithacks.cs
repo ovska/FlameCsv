@@ -83,6 +83,17 @@ internal static class Bithacks
         return quoteMask;
     }
 
+    /// <summary>
+    /// Flips all bits in <paramref name="value"/> is condition is odd.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ConditionalFlip<T>(ref T value, T condition)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        T mask = T.Zero - (condition & T.One); // Extract LSB and create all-1s or all-0s mask
+        value ^= mask;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T ComputeQuoteMask<T>(T quoteBits)
         where T : unmanaged, IBinaryInteger<T>
