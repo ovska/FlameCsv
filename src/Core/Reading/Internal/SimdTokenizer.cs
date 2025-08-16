@@ -99,9 +99,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 if ((maskControl | shiftedCR) == 0)
                 {
-                    // TODO: flip quote carry
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto Empty;
                 }
 
                 if ((shiftedCR & (shiftedCR ^ maskLF)) != 0)
@@ -117,9 +115,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 if (maskControl == 0)
                 {
-                    // TODO: flip quote carry
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto Empty;
                 }
             }
 
@@ -188,6 +184,12 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
 
+            goto ContinueRead;
+
+            Empty:
+            uint quoteCount = (uint)BitOperations.PopCount(maskQuote);
+            quotesConsumed += quoteCount;
+            Bithacks.ConditionalFlip(ref quoteCarry, quoteCount);
             goto ContinueRead;
 
             PathologicalPath:
