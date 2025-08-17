@@ -158,27 +158,17 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
 
-            while (maskControl != 0)
-            {
-                uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
-                uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl, tz);
-
-                uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
-                uint pos = (uint)runningIndex + tz;
-                quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-
-                // consume masks
-                maskControl &= ~maskUpToPos;
-                maskQuote &= ~maskUpToPos;
-
-                Field.SaturateTo7Bits(ref quotesConsumed);
-
-                Unsafe.Add(ref firstField, fieldIndex) = pos - eolFlag;
-                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
-
-                quotesConsumed = 0;
-                fieldIndex++;
-            }
+            ParseAny(
+                runningIndex,
+                ref firstField,
+                ref firstQuote,
+                ref fieldIndex,
+                ref quotesConsumed,
+                ref maskControl,
+                maskLF,
+                ref maskQuote,
+                flag
+            );
 
             quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
 
@@ -214,6 +204,42 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         }
 
         return (int)fieldIndex;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ParseAny(
+        nuint runningIndex,
+        ref uint firstField,
+        ref byte firstQuote,
+        ref nuint fieldIndex,
+        ref uint quotesConsumed,
+        ref uint maskControl,
+        uint maskLF,
+        ref uint maskQuote,
+        uint flag
+    )
+    {
+        while (maskControl != 0)
+        {
+            uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
+            uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl, tz);
+
+            uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
+            uint pos = (uint)runningIndex + tz;
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
+
+            // consume masks
+            maskControl &= ~maskUpToPos;
+            maskQuote &= ~maskUpToPos;
+
+            Field.SaturateTo7Bits(ref quotesConsumed);
+
+            Unsafe.Add(ref firstField, fieldIndex) = pos - eolFlag;
+            Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
+
+            quotesConsumed = 0;
+            fieldIndex++;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
