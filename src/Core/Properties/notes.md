@@ -610,6 +610,13 @@ Generic is now faster in all quoted paths, which is very odd.
 | V128   | False | True   | CRLF    | 446.6 us | 1.45 us |  1.00 |
 | Avx2   | False | True   | CRLF    | 475.9 us | 1.59 us |  1.07 |
 
+## Merge LF and delim checks for lfcount 0..1
+
+| Method | Chars | Quoted | Newline |       Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------- | ---------: | ------: | ----: |
+| V128   | False | False  | LF      | 1,011.4 us | 1.43 us |  1.00 |
+| V128   | False | True   | LF      |   421.5 us | 1.24 us |  1.00 |
+
 ## Frequencies
 
 ```
