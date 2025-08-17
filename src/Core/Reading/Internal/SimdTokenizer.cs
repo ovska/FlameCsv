@@ -63,7 +63,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         T delimiter = _delimiter;
         T quote = _quote;
         uint quotesConsumed = 0;
-        uint quoteCarry = 0;
         uint crCarry = 0;
 
         Vector256<byte> vecDelim = AsciiVector.Create(delimiter);
@@ -108,7 +107,6 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 {
                     uint quoteCount = (uint)BitOperations.PopCount(maskQuote);
                     quotesConsumed += quoteCount;
-                    Bithacks.ConditionalFlipQuotes(ref quoteCarry, quoteCount);
                     goto ContinueRead;
                 }
 
@@ -128,14 +126,13 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                 {
                     uint quoteCount = (uint)BitOperations.PopCount(maskQuote);
                     quotesConsumed += quoteCount;
-                    Bithacks.ConditionalFlipQuotes(ref quoteCarry, quoteCount);
                     goto ContinueRead;
                 }
             }
 
             uint controlCount = (uint)BitOperations.PopCount(maskControl);
 
-            if ((quoteCarry | quotesConsumed | maskQuote) != 0)
+            if ((quotesConsumed | maskQuote) != 0)
             {
                 goto SlowPath;
             }
@@ -156,7 +153,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             }
 
             SlowPath:
-            uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
+            uint quoteXOR = Bithacks.ComputeQuoteMask(maskQuote) ^ (0u - (quotesConsumed & 1));
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
             uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
@@ -188,21 +185,24 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             goto ContinueRead;
 
             PathologicalPath:
-            quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
-            maskControl &= ~quoteXOR; // clear the bits that are inside quotes
+            if (TNewline.IsCRLF)
+            {
+                uint quoteXOR2 = Bithacks.ComputeQuoteMask(maskQuote) ^ (0u - (quotesConsumed & 1));
+                maskControl &= ~quoteXOR2; // clear the bits that are inside quotes
 
-            ParsePathological(
-                maskControl: maskControl,
-                maskQuote: maskQuote,
-                first: ref first,
-                runningIndex: runningIndex,
-                fieldIndex: ref fieldIndex,
-                fieldRef: ref firstField,
-                quoteRef: ref firstQuote,
-                delimiter: delimiter,
-                quotesConsumed: ref quotesConsumed,
-                nextVector: ref vector
-            );
+                ParsePathological(
+                    maskControl: maskControl,
+                    maskQuote: maskQuote,
+                    first: ref first,
+                    runningIndex: runningIndex,
+                    fieldIndex: ref fieldIndex,
+                    fieldRef: ref firstField,
+                    quoteRef: ref firstQuote,
+                    delimiter: delimiter,
+                    quotesConsumed: ref quotesConsumed,
+                    nextVector: ref vector
+                );
+            }
 
             ContinueRead:
             runningIndex += (nuint)Vector256<byte>.Count;
