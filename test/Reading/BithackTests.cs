@@ -7,6 +7,21 @@ namespace FlameCsv.Tests.Reading;
 public class BithackTests
 {
     [Fact]
+    public static void Should_Check_if_Zero_or_One_Bits_Set()
+    {
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000000u));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000010u));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001ul));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000000ul));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000010ul));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011ul));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(~0u));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(~0ul));
+    }
+ 
+    [Fact]
     public static void Should_Check_If_All_Bits_Before()
     {
         Assert.True(Bithacks.AllBitsBefore(0b0000000000000001, 0b0000000000000010));
