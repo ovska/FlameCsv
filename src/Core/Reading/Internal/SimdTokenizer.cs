@@ -105,8 +105,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 if ((maskControl | shiftedCR) == 0)
                 {
-                    uint quoteCount = (uint)BitOperations.PopCount(maskQuote);
-                    quotesConsumed += quoteCount;
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
 
@@ -124,8 +123,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
                 if (maskControl == 0)
                 {
-                    uint quoteCount = (uint)BitOperations.PopCount(maskQuote);
-                    quotesConsumed += quoteCount;
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
             }

@@ -94,7 +94,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         Vector256<long> addConstant = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
 
         uint quotesConsumed = 0;
-        uint quoteCarry = 0;
         uint crCarry = 0;
 
         Vector256<byte> vector;
@@ -167,7 +166,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if ((maskControl | shiftedCR) == 0)
                 {
-                    // TODO: flip quote carry
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
@@ -195,7 +193,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
             // rare cases: quotes, or too many matches to fit in the compress path
-            if ((quoteCarry | quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector256<int>.Count)
+            if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector256<int>.Count)
             {
                 goto SlowPath;
             }
@@ -286,7 +284,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
                 maskLF = hasLF.ExtractMostSignificantBits();
             }
 
-            uint quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
+            uint quoteXOR = Bithacks.ComputeQuoteMask(maskQuote) ^ (0u - (quotesConsumed & 1));
             maskControl &= ~quoteXOR; // clear the bits that are inside quotes
 
             uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
@@ -321,8 +319,8 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             PathologicalPath:
             if (TNewline.IsCRLF) // eliminate this whole block in LF parser
             {
-                quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
-                maskControl &= ~quoteXOR; // clear the bits that are inside quotes
+                uint quoteXOR2 = Bithacks.ComputeQuoteMask(maskQuote) ^ (0u - (quotesConsumed & 1));
+                maskControl &= ~quoteXOR2; // clear the bits that are inside quotes
 
                 // quoteXOR might have zeroed out the mask so do..while won't work
                 while (maskControl != 0)
