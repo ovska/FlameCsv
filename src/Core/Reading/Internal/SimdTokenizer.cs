@@ -257,33 +257,26 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         uint increment = (uint)runningIndex;
 
         Unsafe.Add(ref dst, 0u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref dst, 1u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref dst, 2u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref dst, 3u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
-        mask &= (mask - 1);
-        Unsafe.Add(ref dst, 4u) = increment + (uint)BitOperations.TrailingZeroCount(mask);
+        Unsafe.Add(ref dst, 1u) = increment + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+        Unsafe.Add(ref dst, 2u) = increment + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+        Unsafe.Add(ref dst, 3u) = increment + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+        Unsafe.Add(ref dst, 4u) = increment + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
 
         if (count > unrollCount)
         {
-            mask &= (mask - 1);
-
             // for some reason this is faster than incrementing a pointer
             ref uint dst2 = ref Unsafe.Add(ref dst, unrollCount);
 
             do
             {
-                uint offset = (uint)BitOperations.TrailingZeroCount(mask);
-                mask &= (mask - 1);
+                uint offset = (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
                 dst2 = increment + offset;
                 dst2 = ref Unsafe.Add(ref dst2, 1u);
             } while (mask != 0);
         }
 
         Unsafe.Add(ref dst, lfPos) =
-            (uint)BitOperations.TrailingZeroCount(maskLF) | Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
+            (uint)BitOperations.TrailingZeroCount(maskLF) - Bithacks.GetSubractionFlag<TNewline>(shiftedCR);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
