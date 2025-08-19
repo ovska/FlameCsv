@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Diagnosers;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Exporters.Csv;
 using BenchmarkDotNet.Exporters.Json;
@@ -18,7 +19,7 @@ using Perfolizer.Horology;
 // var b = new CsvEnumerateBench();
 // b.Setup();
 // b.Flame_byte();
-BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
+BenchmarkRunner.Run<DisasmTest>(new Config(), args);
 
 file class Config : ManualConfig
 {
@@ -58,6 +59,8 @@ file class Config : ManualConfig
                 .WithMinIterationTime(TimeInterval.FromSeconds(1))
                 .WithGcServer(true)
         );
+
+        AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(maxDepth: 2, printSource: true)));
 
         WithOptions(ConfigOptions.DisableLogFile);
     }
