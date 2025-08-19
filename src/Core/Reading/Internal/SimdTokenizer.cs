@@ -219,10 +219,11 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         {
             uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
             uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
+            uint quoteBits = maskQuote & maskUpToPos;
 
             uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
             uint pos = (uint)runningIndex + tz;
-            quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
+            quotesConsumed += (uint)BitOperations.PopCount(quoteBits);
 
             // consume masks
             maskControl &= ~maskUpToPos;

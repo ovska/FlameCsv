@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Intrinsics;
@@ -18,10 +19,15 @@ internal static class Bithacks
     public static uint GetSubractionFlag<TNewline>(uint carriageReturn)
         where TNewline : struct, INewline
     {
-        // for CRLF sequences, subtracting the flag shifts offset left by 1 (as the bits are done on LF positions)
-        // and sets the top 2 bits
-        // for LFs, only the MSB (eol bit) is set when subtracting
-        return TNewline.IsCRLF && carriageReturn != 0 ? 0x40000001u : Field.IsEOL;
+        uint flag = Field.IsEOL;
+
+        if (TNewline.IsCRLF)
+        {
+            int mask = (carriageReturn != 0).ToBitwiseMask32();
+            flag |= (uint)(mask & 0xC000_0001u);
+        }
+
+        return flag;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
