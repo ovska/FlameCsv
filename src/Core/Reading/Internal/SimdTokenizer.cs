@@ -60,15 +60,13 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Debug.Assert(buffer.Quotes.Length >= Vector256<byte>.Count);
 
         // load the constants into registers
-        T delimiter = _delimiter;
-        T quote = _quote;
         uint quotesConsumed = 0;
         uint crCarry = 0;
 
-        Vector256<byte> vecDelim = AsciiVector.Create(delimiter);
-        Vector256<byte> vecQuote = AsciiVector.Create(quote);
-        Vector256<byte> vecLF = AsciiVector.Create((byte)'\n');
-        Vector256<byte> vecCR = TNewline.IsCRLF ? AsciiVector.Create((byte)'\r') : default;
+        Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
+        Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
+        Vector256<byte> vecLF = Vector256.Create((byte)'\n');
+        Vector256<byte> vecCR = TNewline.IsCRLF ? Vector256.Create((byte)'\r') : default;
 
         Vector256<byte> vector = AsciiVector.Load(ref first, runningIndex);
 
@@ -186,7 +184,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
                     quoteRef: ref firstQuote,
-                    delimiter: delimiter,
+                    delimiter: _delimiter,
                     quotesConsumed: ref quotesConsumed,
                     nextVector: ref vector
                 );
@@ -220,7 +218,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         while (maskControl != 0)
         {
             uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
-            uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl, tz);
+            uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
 
             uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
             uint pos = (uint)runningIndex + tz;

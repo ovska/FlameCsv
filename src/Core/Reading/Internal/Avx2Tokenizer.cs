@@ -73,17 +73,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         scoped ref byte firstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
         scoped ref uint firstField = ref MemoryMarshal.GetReference(buffer.Fields);
 
-        // load the constants into registers
-        T delimiter = _delimiter;
-        Vector256<byte> vecDelim = AsciiVector.Create(_delimiter);
-        Vector256<byte> vecQuote = AsciiVector.Create(_quote);
-        Vector256<byte> vecLF = AsciiVector.Create((byte)'\n');
+        Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
+        Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
+        Vector256<byte> vecLF = Vector256.Create((byte)'\n');
 
         Unsafe.SkipInit(out Vector256<byte> vecCR);
 
         if (TNewline.IsCRLF)
         {
-            vecCR = AsciiVector.Create((byte)'\r');
+            vecCR = Vector256.Create((byte)'\r');
         }
 
         const int fixupScalar = unchecked((int)0x8000007F);
@@ -292,7 +290,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             while (maskControl != 0)
             {
                 uint tz = (uint)BitOperations.TrailingZeroCount(maskControl);
-                uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl, tz);
+                uint maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
 
                 uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
                 uint pos = (uint)runningIndex + tz;
@@ -338,7 +336,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                     uint newlineFlag2 = (uint)
                         TNewline.IsNewline<T, BLSRMaskClear>(
-                            delimiter,
+                            _delimiter,
                             ref Unsafe.Add(ref first, pos + runningIndex),
                             ref maskControl
                         );
