@@ -23,8 +23,8 @@ internal static class Bithacks
 
         if (TNewline.IsCRLF)
         {
-            int mask = (carriageReturn != 0).ToBitwiseMask32();
-            flag |= (uint)(mask & 0xC000_0001u);
+            int mask = (carriageReturn == 0).ToByte() - 1;
+            flag ^= (uint)(mask & 0xC0000001u);
         }
 
         return flag;
