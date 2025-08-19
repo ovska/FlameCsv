@@ -9,9 +9,9 @@ namespace FlameCsv.Intrinsics;
 internal static class Bithacks
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetMaskUpToLowestSetBit(uint mask, uint tz)
+    public static uint GetMaskUpToLowestSetBit(uint mask)
     {
-        return Bmi1.IsSupported ? Bmi1.GetMaskUpToLowestSetBit(mask) : (~0U >> (int)(31 - tz));
+        return mask ^ (mask - 1); // lowered to blsmsk on x86
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -16,10 +16,10 @@ internal static class AsciiVector
     public static Vector256<byte> Create<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return Unsafe.SizeOf<T>() switch
+        return value switch
         {
-            sizeof(byte) => Vector256.Create(Unsafe.BitCast<T, byte>(value)),
-            sizeof(char) => Vector256.Create((byte)Unsafe.BitCast<T, ushort>(value)),
+            byte b => Vector256.Create(b),
+            char c => Vector256.Create((byte)c),
             _ => throw Token<T>.NotSupported,
         };
     }
@@ -29,10 +29,10 @@ internal static class AsciiVector
     public static Vector512<byte> Create512<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
     {
-        return Unsafe.SizeOf<T>() switch
+        return value switch
         {
-            sizeof(byte) => Vector512.Create(Unsafe.BitCast<T, byte>(value)),
-            sizeof(char) => Vector512.Create((byte)Unsafe.BitCast<T, ushort>(value)),
+            byte b => Vector512.Create(b),
+            char c => Vector512.Create((byte)c),
             _ => throw Token<T>.NotSupported,
         };
     }
