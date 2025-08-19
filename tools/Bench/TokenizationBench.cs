@@ -44,7 +44,6 @@ public class TokenizationBench
 
     private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
     private static readonly byte[] _quoteBuffer = new byte[24 * 65535];
-    private static readonly ushort[] _eolBuffer = new ushort[65535 + 256];
     private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
     private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
     private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
@@ -94,21 +93,17 @@ public class TokenizationBench
     [Benchmark(Baseline = true)]
     public void V128()
     {
-        var rb = new RecordBuffer();
-        rb.GetFieldArrayRef() = _fieldBuffer;
-        rb.GetQuoteArrayRef() = _quoteBuffer;
-        rb.GetEolArrayRef() = _eolBuffer;
-        var dst = rb.GetUnreadBuffer(0, out int startIndex);
+        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
 
         if (Chars)
         {
             CsvPartialTokenizer<char> tokenizer = TokenizerIsLF ? _t128LF : _t128CRLF;
-            _ = tokenizer.Tokenize(dst, startIndex, CharData);
+            _ = tokenizer.Tokenize(dst, 0, CharData);
         }
         else
         {
             CsvPartialTokenizer<byte> tokenizer = TokenizerIsLF ? _t128bLF : _t128bCRLF;
-            _ = tokenizer.Tokenize(dst, startIndex, ByteData);
+            _ = tokenizer.Tokenize(dst, 0, ByteData);
         }
     }
 
@@ -117,36 +112,20 @@ public class TokenizationBench
     private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
     private readonly Avx2Tokenizer<char, NewlineCRLF> _avx2CharCRLF = new(_dCharCRLF);
 
-    [Benchmark]
+    // [Benchmark]
     public void Avx2()
     {
-        var rb = new RecordBuffer();
-        rb.GetFieldArrayRef() = _fieldBuffer;
-        rb.GetQuoteArrayRef() = _quoteBuffer;
-        rb.GetEolArrayRef() = _eolBuffer;
-        var dst = rb.GetUnreadBuffer(0, out int startIndex);
+        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
 
         if (Chars)
         {
-            if (!TokenizerIsLF)
-            {
-                _avx2CharCRLF.Tokenize(dst, startIndex, CharData);
-            }
-            else
-            {
-                _avx2Char.Tokenize(dst, startIndex, CharData);
-            }
+            CsvPartialTokenizer<char> tokenizer = TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
+            _ = tokenizer.Tokenize(dst, 0, CharData);
         }
         else
         {
-            if (!TokenizerIsLF)
-            {
-                _avx2ByteCRLF.Tokenize(dst, startIndex, ByteData);
-            }
-            else
-            {
-                _avx2Byte.Tokenize(dst, startIndex, ByteData);
-            }
+            CsvPartialTokenizer<byte> tokenizer = TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
+            _ = tokenizer.Tokenize(dst, 0, ByteData);
         }
     }
 
