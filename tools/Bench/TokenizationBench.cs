@@ -25,15 +25,15 @@ public class TokenizationBench
     [Params(
         [ /**/
             true,
-            false,
+            // false,
         ]
     )]
     public bool Quoted { get; set; }
 
     [Params(
         [ /**/
-            ParserNewline.LF,
-            ParserNewline.LF_With_CRLF,
+            // ParserNewline.LF,
+            // ParserNewline.LF_With_CRLF,
             ParserNewline.CRLF,
         ]
     )]

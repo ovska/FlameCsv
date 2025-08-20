@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -26,6 +27,14 @@ internal readonly struct BLSRMaskClear : IMaskClear
     public static void Clear(ref uint mask)
     {
         mask &= mask - 1;
+    }
+}
+
+internal readonly struct NoOpMaskClear : IMaskClear
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Clear(ref uint mask)
+    {
     }
 }
 
@@ -65,10 +74,6 @@ internal interface INewline
 [SkipLocalsInit]
 internal readonly struct NewlineLF : INewline
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static FieldFlag GetFlag<T>(ref T value)
-        where T : unmanaged, IBinaryInteger<T> => FieldFlag.EOL;
-
     public static bool IsCRLF
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,24 +114,7 @@ internal readonly struct NewlineCRLF : INewline
 
         if (delimiter != value)
         {
-            bool isCRLF;
-
-            if (Unsafe.SizeOf<T>() is sizeof(byte))
-            {
-                ushort crlf = MemoryMarshal.Read<ushort>("\r\n"u8);
-                isCRLF = Unsafe.As<T, ushort>(ref value) == crlf;
-            }
-            else if (Unsafe.SizeOf<T>() is sizeof(char))
-            {
-                uint crlf = MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
-                isCRLF = Unsafe.As<T, uint>(ref value) == crlf;
-            }
-            else
-            {
-                throw Token<T>.NotSupported;
-            }
-
-            if (isCRLF)
+            if (Bithacks.IsCRLF(ref value))
             {
                 retVal = FieldFlag.CRLF;
                 TClear.Clear(ref mask);

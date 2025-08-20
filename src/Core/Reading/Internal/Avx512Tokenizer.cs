@@ -59,14 +59,14 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
-        nuint runningIndex = (uint)startIndex;
+        nuint index = (uint)startIndex;
         nuint searchSpaceEnd = Math.Min(MaxIndex, (nuint)data.Length) - (nuint)EndOffset;
         nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
-        scoped ref byte firstFlags = ref MemoryMarshal.GetReference(destination.Quotes);
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
 
         nuint fieldIndex = 0;
 
@@ -94,10 +94,9 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
         Vector512<uint> iterationLength = Vector512.Create((uint)Vector512<byte>.Count);
 
         uint quotesConsumed = 0;
-        ulong quoteCarry = 0;
         ulong crCarry = 0;
 
-        Vector512<uint> runningIndexVector;
+        Vector512<uint> indexVector;
         Vector512<byte> vector;
 
         unsafe
@@ -105,7 +104,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
             // ensure data is aligned to 64 bytes
             // for simplicity, always use element count
             nint remainder =
-                ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, runningIndex)) % Vector512<byte>.Count) / sizeof(T);
+                ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index)) % Vector512<byte>.Count) / sizeof(T);
 
             if (remainder != 0)
             {
@@ -122,19 +121,19 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 vector = AsciiVector.Load512(ref buffer[0], 0);
 
                 // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
-                runningIndexVector = Vector512.Create((uint)runningIndex - (uint)remainder);
-                runningIndex -= (nuint)remainder;
+                indexVector = Vector512.Create((uint)index - (uint)remainder);
+                index -= (nuint)remainder;
             }
             else
             {
-                vector = AsciiVector.Load512(ref first, runningIndex);
-                runningIndexVector = Vector512.Create((uint)runningIndex);
+                vector = AsciiVector.Load512(ref first, index);
+                indexVector = Vector512.Create((uint)index);
             }
         }
 
-        Vector512<byte> nextVector = AsciiVector.LoadAligned512(ref first, runningIndex + (nuint)Vector512<byte>.Count);
+        Vector512<byte> nextVector = AsciiVector.LoadAligned512(ref first, index + (nuint)Vector512<byte>.Count);
 
-        while (fieldIndex <= fieldEnd && runningIndex <= searchSpaceEnd)
+        while (fieldIndex <= fieldEnd && index <= searchSpaceEnd)
         {
             Vector512<byte> hasLF = Vector512.Equals(vector, vecLF);
             Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
@@ -158,7 +157,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
 
             // prefetch 2 vectors ahead
             vector = nextVector;
-            nextVector = AsciiVector.LoadAligned512(ref first, runningIndex + (nuint)(2 * Vector512<byte>.Count));
+            nextVector = AsciiVector.LoadAligned512(ref first, index + (nuint)(2 * Vector512<byte>.Count));
 
             if ((TNewline.IsCRLF ? (maskControl | shiftedCR) : maskControl) == 0)
             {
@@ -166,7 +165,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 goto ContinueRead;
             }
 
-            if (TNewline.IsCRLF && (shiftedCR & (shiftedCR ^ maskLF)) != 0)
+            if (TNewline.IsCRLF && (shiftedCR != 0 & shiftedCR != maskLF))
             {
                 // maskControl doesn't contain CR by default, add it so we can find lone CR's
                 maskControl |= maskCR;
@@ -181,7 +180,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 goto SlowPath;
             }
 
-            Vector512<byte> taggedIndices = Avx512F.TernaryLogic(Vector512<byte>.Indices, hasLF, bit7, 0xF8);
+            Vector512<byte> taggedIndices = (hasLF & bit7) | Vector512<byte>.Indices; // compiles to vpternlogd
             Vector512<byte> packedAny = Avx512Vbmi2.Compress(Vector512<byte>.Zero, hasAny, taggedIndices);
 
             Vector512<int> fixup = TNewline.IsCRLF
@@ -193,19 +192,13 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
 
             Vector512<int> fixedTaggedVector = taggedIndexVector & fixup;
 
-            Vector512<uint> result = fixedTaggedVector.AsUInt32() + runningIndexVector;
+            Vector512<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
             result.StoreUnsafe(ref firstField, fieldIndex);
             fieldIndex += matchCount;
 
             ContinueRead:
-            runningIndex += (nuint)Vector512<byte>.Count;
-            runningIndexVector += iterationLength;
-
-            unsafe
-            {
-                Sse.Prefetch0(Unsafe.AsPointer(ref Unsafe.Add(ref first, (runningIndex + (nuint)(512 / sizeof(T))))));
-            }
-
+            index += (nuint)Vector512<byte>.Count;
+            indexVector += iterationLength;
             continue;
 
             SlowPath:
@@ -214,86 +207,52 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 maskLF = hasLF.ExtractMostSignificantBits();
             }
 
-            ulong quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
-            maskControl &= ~quoteXOR; // clear the bits that are inside quotes
+            // clear the bits that are inside quotes
+            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            Unsafe.SkipInit(out byte isCR);
-            uint eolType = Field.IsEOL;
+            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
 
-            if (TNewline.IsCRLF)
-            {
-                isCR = Unsafe.BitCast<bool, byte>(shiftedCR != 0);
-                eolType |= (uint)(isCR << 30);
-            }
-
-            // quoteXOR might have zeroed out the mask so do..while won't work
-            while (maskControl != 0)
-            {
-                ulong maskUpToPos = Bmi1.X64.GetMaskUpToLowestSetBit(maskControl);
-                uint pos = (uint)BitOperations.TrailingZeroCount(maskControl);
-
-                quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-                ulong posBit = (maskUpToPos ^ (maskUpToPos >> 1)); // extract the lowest set bit
-                uint offset = (uint)runningIndex + pos;
-
-                // consume masks
-                maskControl &= ~maskUpToPos;
-                maskQuote &= ~maskUpToPos;
-
-                bool isLF = (maskLF & posBit) != 0;
-
-                Field.SaturateTo7Bits(ref quotesConsumed);
-
-                uint eolFlag = isLF ? eolType : 0;
-
-                if (TNewline.IsCRLF)
-                {
-                    offset -= (uint)(Unsafe.BitCast<bool, byte>(isLF) & isCR);
-                }
-
-                Unsafe.Add(ref firstField, fieldIndex) = offset | eolFlag;
-                Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
-
-                quotesConsumed = 0;
-                fieldIndex++;
-            }
-
-            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+            ParseAny(
+                index: (uint)index,
+                firstField: ref firstField,
+                firstQuote: ref firstQuote,
+                fieldIndex: ref fieldIndex,
+                quotesConsumed: ref quotesConsumed,
+                maskControl: maskControl,
+                maskLF: maskLF,
+                maskQuote: maskQuote,
+                flag: flag
+            );
 
             goto ContinueRead;
 
-            // TODO check cr carry
             PathologicalPath:
-            // this branch here is just to eliminate the branch in LF parser where it's uneachable
             if (TNewline.IsCRLF)
             {
-                quoteXOR = Bithacks.FindQuoteMask(maskQuote, ref quoteCarry);
-                maskControl &= ~quoteXOR; // clear the bits that are inside quotes
+                // clear the bits that are inside quotes
+                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-                // quoteXOR might have zeroed out the mask so do..while won't work
-                while (maskControl != 0)
-                {
-                    uint pos = (uint)BitOperations.TrailingZeroCount(maskControl);
-                    ulong maskUpToPos = Bmi1.X64.GetMaskUpToLowestSetBit(maskControl);
+                CheckDanglingCR(
+                    maskControl: ref maskControl,
+                    first: ref first,
+                    index: (uint)index,
+                    fieldIndex: ref fieldIndex,
+                    fieldRef: ref firstField,
+                    quoteRef: ref firstQuote,
+                    quotesConsumed: ref quotesConsumed
+                );
 
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote & maskUpToPos);
-
-                    maskControl &= (maskControl - 1);
-                    maskQuote &= ~maskUpToPos; // consume
-
-                    Field.SaturateTo7Bits(ref quotesConsumed);
-
-                    uint newlineFlag2 = (uint)
-                        TNewline.IsNewline(delimiter, ref Unsafe.Add(ref first, pos + runningIndex), ref maskControl);
-
-                    Unsafe.Add(ref firstField, fieldIndex) = (uint)(runningIndex + pos) | newlineFlag2;
-                    Unsafe.Add(ref firstFlags, fieldIndex) = (byte)quotesConsumed;
-
-                    quotesConsumed = 0;
-                    fieldIndex++;
-                }
-
-                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                ParsePathological(
+                    maskControl: maskControl,
+                    maskQuote: maskQuote,
+                    first: ref first,
+                    index: (uint)index,
+                    fieldIndex: ref fieldIndex,
+                    fieldRef: ref firstField,
+                    quoteRef: ref firstQuote,
+                    delimiter: _delimiter,
+                    quotesConsumed: ref quotesConsumed
+                );
             }
 
             goto ContinueRead;

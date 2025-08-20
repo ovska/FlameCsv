@@ -38,10 +38,10 @@ internal static class Field
         // 10 → 1 lf
         // 11 → 2 crlf
 
-        uint b = field >> 30;
+        uint eol = field >> 30;
         uint end = field & EndMask;
-        uint offset = 1 + (b & (b >> 1));
-        return (int)(end + offset);
+        uint offset = (eol & (eol >> 1));
+        return (int)(end + 1 + offset);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

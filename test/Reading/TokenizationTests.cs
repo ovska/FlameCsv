@@ -31,7 +31,6 @@ public class TokenizationTests
     public void Avx2_Char(RecSep newline)
     {
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
-        Assert.SkipWhen(newline is RecSep.CR, "CR is not supported yet.");
 
         TokenizeCore<char>(
             newline,
@@ -45,7 +44,6 @@ public class TokenizationTests
     public void Avx2_Byte(RecSep newline)
     {
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
-        Assert.SkipWhen(newline is RecSep.CR, "CR is not supported yet.");
 
         TokenizeCore<byte>(
             newline,
@@ -58,8 +56,6 @@ public class TokenizationTests
     [Theory, MemberData(nameof(NewlineData))]
     public void Generic_Char(RecSep newline)
     {
-        Assert.SkipWhen(newline is RecSep.CR, "CR is not supported yet.");
-
         TokenizeCore<char>(
             newline,
             newline == RecSep.LF
@@ -71,8 +67,6 @@ public class TokenizationTests
     [Theory, MemberData(nameof(NewlineData))]
     public void Generic_Byte(RecSep newline)
     {
-        Assert.SkipWhen(newline is RecSep.CR, "CR is not supported yet.");
-
         TokenizeCore<byte>(
             newline,
             newline == RecSep.LF
