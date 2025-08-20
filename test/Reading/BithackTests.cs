@@ -9,16 +9,22 @@ public class BithackTests
     [Fact]
     public static void Should_Check_if_Zero_or_One_Bits_Set()
     {
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0ul));
         Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001u));
-        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000000u));
-        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000010u));
-        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000010u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000010ul));
         Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001ul));
         Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000000ul));
-        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000010ul));
+        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011u));
         Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011ul));
         Assert.False(Bithacks.ZeroOrOneBitsSet(~0u));
         Assert.False(Bithacks.ZeroOrOneBitsSet(~0ul));
+
+        for (int i = 0; i < 8096; i++)
+        {
+            Assert.Equal(int.PopCount(i) is 0 or 1, Bithacks.ZeroOrOneBitsSet(i));
+        }
     }
  
     [Fact]
@@ -135,11 +141,12 @@ public class BithackTests
         TMask commaCount = TMask.Zero;
 
         List<int> indexes = [];
+        uint count = 0;
 
         for (int i = 0; i < data.Length; i += (8 * Unsafe.SizeOf<TMask>()))
         {
             TMask quoteBits = LoadBits('\'', i);
-            TMask quoteMask = Bithacks.FindQuoteMask(quoteBits, ref carry);
+            TMask quoteMask = Bithacks.FindQuoteMask(quoteBits, count);
 
             TMask commaBits = LoadBits(',', i);
             commaBits &= ~quoteMask;
@@ -152,6 +159,7 @@ public class BithackTests
                 int offset = int.CreateChecked(TMask.TrailingZeroCount(current));
                 indexes.Add(i + offset);
                 current &= current - TMask.One;
+                count = uint.CreateChecked(TMask.PopCount(quoteMask >> offset));
             }
 
             if (Debugger.IsAttached)

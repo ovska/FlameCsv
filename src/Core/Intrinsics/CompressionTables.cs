@@ -151,14 +151,10 @@ internal static unsafe class CompressionTables
 
     static CompressionTables()
     {
-        const int size = 512;
-        const int alignment = 16;
-        
-        nint ptr = RuntimeHelpers.AllocateTypeAssociatedMemory(typeof(CompressionTables), size + alignment - 1);
-         ptr = (ptr + alignment - 1) & ~(nint)(alignment - 1);
+        byte* ptr = (byte*)NativeMemory.AlignedAlloc(byteCount: 512, alignment: 32);
 
-        nint zeroUpper = ptr;
-        nint compactShuffle = ptr + 256;
+        ZeroUpper = ptr;
+        CompactShuffle = ptr + 256;
 
         // LUT to keep only N values in a 128bit byte vector
         var zeroUpperArray = new byte[]
@@ -181,7 +177,7 @@ internal static unsafe class CompressionTables
             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00,
         };
         Debug.Assert(zeroUpperArray.Length == 256, "ZeroUpper array must be 256 bytes long.");
-        zeroUpperArray.CopyTo(new Span<byte>(zeroUpper.ToPointer(), 256));
+        zeroUpperArray.CopyTo(new Span<byte>(ZeroUpper, 256));
 
         // LUT to move remaining 16-N values to the start
         var compactShuffleArray = new byte[]
@@ -204,9 +200,6 @@ internal static unsafe class CompressionTables
             0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  0,
         };
         Debug.Assert(compactShuffleArray.Length == 256, "CompactShuffle array must be 256 bytes long.");
-        compactShuffleArray.CopyTo(new Span<byte>(compactShuffle.ToPointer(), 256));
-
-        ZeroUpper = (byte*)zeroUpper;
-        CompactShuffle = (byte*)compactShuffle;
+        compactShuffleArray.CopyTo(new Span<byte>(CompactShuffle, 256));
     }
 }

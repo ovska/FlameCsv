@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
@@ -7,33 +8,42 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Intrinsics;
 
+[SkipLocalsInit]
 internal static class Bithacks
 {
+    /// <summary>
+    /// Returns the mask up to the lowest set bit (<c>BLSMSK</c>).
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetMaskUpToLowestSetBit(uint mask)
+    public static T GetMaskUpToLowestSetBit<T>(T mask)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        return mask ^ (mask - 1); // lowered to blsmsk on x86
+        return mask ^ (mask - T.One); // lowered to blsmsk on x86
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetSubractionFlag<TNewline>(uint carriageReturn)
+    public static uint GetSubractionFlag<TNewline>(bool noCR)
         where TNewline : struct, INewline
     {
         uint flag = Field.IsEOL;
 
         if (TNewline.IsCRLF)
         {
-            int mask = (carriageReturn == 0).ToByte() - 1;
+            int mask = noCR.ToByte() - 1;
             flag ^= (uint)(mask & 0xC0000001u);
         }
 
         return flag;
     }
 
+    /// <summary>
+    /// Returns the subraction flag for the given newline mask at bit <paramref name="tz"/>.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint ProcessFlag(uint maskNewline, uint tz, uint flag)
+    public static uint ProcessFlag<T>(T maskNewline, uint tz, uint flag)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        uint newlineBit = (maskNewline >> (int)tz) & 1;
+        uint newlineBit = uint.CreateTruncating(maskNewline >> (int)tz) & 1;
         return (uint)(-(int)newlineBit & flag);
     }
 
@@ -60,33 +70,16 @@ internal static class Bithacks
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
     /// <param name="quoteBits">Bitmask of the quote positions</param>
-    /// <param name="prevIterInsideQuote">
-    /// Whether the previous iteration ended in a quote; all bits 1 if ended in a quote; otherwise, zero
+    /// <param name="quoteCount">
+    /// How many quotes the current field has (if any).
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static T FindQuoteMask<T>(T quoteBits, ref T prevIterInsideQuote)
+    internal static T FindQuoteMask<T>(T quoteBits, uint quoteCount)
         where T : unmanaged, IBinaryInteger<T>
     {
         T quoteMask = ComputeQuoteMask(quoteBits);
-
-        // flip the bits that are inside quotes
-        quoteMask ^= prevIterInsideQuote;
-
-        // save if this iteration ended in a quote
-        prevIterInsideQuote = T.Zero - (quoteMask >> ((Unsafe.SizeOf<T>() * 8) - 1));
-
-        return quoteMask;
-    }
-
-    /// <inheritdoc cref="FindQuoteMask{T}(T, ref T)"/>
-    internal static ulong FindQuoteMask(ulong quoteBits, ref ulong prevIterInsideQuote)
-    {
-        Vector128<ulong> vec = Vector128.CreateScalar(quoteBits);
-        Vector128<ulong> result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
-        ulong quoteMask = result.GetElement(0);
-        quoteMask ^= prevIterInsideQuote;
-        prevIterInsideQuote = 0UL - (quoteMask >> 63);
-        return quoteMask;
+        T mask = T.Zero - (T.CreateTruncating(quoteCount) & T.One);
+        return quoteMask ^ mask;
     }
 
     /// <summary>
@@ -100,6 +93,9 @@ internal static class Bithacks
         value ^= mask;
     }
 
+    /// <summary>
+    /// Returns <c>true</c> if the value has a popcount of 0 or 1.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ZeroOrOneBitsSet<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
@@ -138,5 +134,25 @@ internal static class Bithacks
         if (Unsafe.SizeOf<T>() >= sizeof(ulong))
             mask ^= (mask << 32);
         return mask;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsCRLF<T>(ref T value)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (Unsafe.SizeOf<T>() is sizeof(byte))
+        {
+            ushort crlf = MemoryMarshal.Read<ushort>("\r\n"u8);
+            return Unsafe.As<T, ushort>(ref value) == crlf;
+        }
+        else if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            uint crlf = MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
+            return Unsafe.As<T, uint>(ref value) == crlf;
+        }
+        else
+        {
+            throw Token<T>.NotSupported;
+        }
     }
 }

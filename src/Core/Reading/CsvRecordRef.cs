@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -64,7 +65,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         {
             // always access this first to ensure index is within bounds
             ref readonly uint current = ref _fields[index];
-            byte quote = Unsafe.Add(ref _quotes, index);
+            byte quote = Unsafe.Add(ref _quotes, (uint)index);
 
             // very important to access the previous field in this manner for the CPU to optimize it with offset access
             int start = Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in current), -1));
@@ -75,6 +76,8 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
             {
                 start = 0;
             }
+
+            Debug.Assert(end >= start);
 
             int length = end - start;
 
