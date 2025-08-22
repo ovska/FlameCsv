@@ -51,12 +51,13 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     {
         _quote = T.CreateTruncating(options.Quote);
         _delimiter = T.CreateTruncating(options.Delimiter);
-        RuntimeHelpers.RunClassConstructor(typeof(CompressionTables).TypeHandle);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override unsafe int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
+        _ = CompressionTables.ZeroUpper; // ensure class ctor is run
+
         if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
         {
             return 0;
