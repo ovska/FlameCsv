@@ -165,7 +165,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 goto ContinueRead;
             }
 
-            if (TNewline.IsCRLF && (shiftedCR != 0 & shiftedCR != maskLF))
+            if (TNewline.IsCRLF && Bithacks.IsDisjointCR(maskLF, shiftedCR))
             {
                 // maskControl doesn't contain CR by default, add it so we can find lone CR's
                 maskControl |= maskCR;

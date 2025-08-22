@@ -169,7 +169,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
                     goto ContinueRead;
                 }
 
-                if (shiftedCR != 0 & shiftedCR != maskLF)
+                if (Bithacks.IsDisjointCR(maskLF, shiftedCR))
                 {
                     // maskControl doesn't contain CR by default, add it so we can find lone CR's
                     maskControl |= maskCR;

@@ -11,6 +11,37 @@ namespace FlameCsv.Intrinsics;
 [SkipLocalsInit]
 internal static class Bithacks
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T ResetLowestSetBit<T>(T mask)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        // as of NET9, the pattern is sometimes not lowered to BLSR if inlined in a busy loop with generic math
+
+        if (Unsafe.SizeOf<T>() is sizeof(uint) && Bmi1.IsSupported)
+        {
+            return Unsafe.BitCast<uint, T>(Bmi1.ResetLowestSetBit(Unsafe.BitCast<T, uint>(mask)));
+        }
+
+        if (Unsafe.SizeOf<T>() is sizeof(ulong) && Bmi1.X64.IsSupported)
+        {
+            return Unsafe.BitCast<ulong, T>(Bmi1.X64.ResetLowestSetBit(Unsafe.BitCast<T, ulong>(mask)));
+        }
+
+        return mask & (mask - T.One);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsDisjointCR<T>(T maskLF, T shiftedCR)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        T allBitsIfCrZero = shiftedCR - T.One;
+        T xor = shiftedCR ^ maskLF;
+        T andn = allBitsIfCrZero & ~shiftedCR;
+
+        // check if CR has any bits set not present in LF
+        return andn < xor;
+    }
+
     /// <summary>
     /// Returns the mask up to the lowest set bit (<c>BLSMSK</c>).
     /// </summary>
@@ -18,6 +49,18 @@ internal static class Bithacks
     public static T GetMaskUpToLowestSetBit<T>(T mask)
         where T : unmanaged, IBinaryInteger<T>
     {
+        // as of NET9, the pattern is sometimes not lowered to BLSMSK if inlined in a busy loop with generic math
+
+        if (Unsafe.SizeOf<T>() is sizeof(uint) && Bmi1.IsSupported)
+        {
+            return Unsafe.BitCast<uint, T>(Bmi1.GetMaskUpToLowestSetBit(Unsafe.BitCast<T, uint>(mask)));
+        }
+
+        if (Unsafe.SizeOf<T>() is sizeof(ulong) && Bmi1.X64.IsSupported)
+        {
+            return Unsafe.BitCast<ulong, T>(Bmi1.X64.GetMaskUpToLowestSetBit(Unsafe.BitCast<T, ulong>(mask)));
+        }
+
         return mask ^ (mask - T.One); // lowered to blsmsk on x86
     }
 
