@@ -38,6 +38,13 @@ internal static class CsvTokenizer
         }
 #endif
 
+        if (Avx2Tokenizer.IsSupported)
+        {
+            return options.Newline.IsCRLF()
+                ? new Avx2Tokenizer<T, NewlineCRLF>(options)
+                : new Avx2Tokenizer<T, NewlineLF>(options);
+        }
+
         return options.Newline.IsCRLF()
             ? new SimdTokenizer<T, NewlineCRLF>(options)
             : new SimdTokenizer<T, NewlineLF>(options);
