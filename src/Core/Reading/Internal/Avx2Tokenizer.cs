@@ -87,10 +87,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         const int fixupScalar = unchecked((int)0x8000007F);
 
-        Vector256<byte> bit7 = Vector256.Create((byte)0x80);
-        Vector256<int> msbAndBitsUpTo7 = Vector256.Create(fixupScalar);
         Vector256<uint> iterationLength = Vector256.Create((uint)Vector256<byte>.Count);
-        Vector256<long> addConstant = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
 
         uint quotesConsumed = 0;
         uint crCarry = 0;
@@ -106,15 +103,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
             if (remainder != 0)
             {
-                int skip = Vector256<byte>.Count - (int)remainder;
+                nint skip = (Vector256<byte>.Count - remainder) * sizeof(T);
 
                 Inline32<T> temp = default; // default zero-inits
 
-                // Copy the elements to the correct position in the buffer
-                Unsafe.CopyBlockUnaligned(
-                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref temp.elem0, (nuint)remainder)),
-                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref first, (nuint)startIndex)),
-                    byteCount: (uint)(skip * sizeof(T))
+                Buffer.MemoryCopy(
+                    (byte*)Unsafe.AsPointer(ref Unsafe.Add(ref first, (nuint)startIndex)),
+                    (byte*)Unsafe.AsPointer(ref Unsafe.Add(ref temp.elem0, (nuint)remainder)),
+                    destinationSizeInBytes: skip,
+                    sourceBytesToCopy: skip
                 );
                 vector = AsciiVector.Load(ref temp[0], 0);
 
@@ -200,52 +197,56 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // build a mask to remove extra bits caused by sign-extension
             Vector256<int> fixup = TNewline.IsCRLF
                 ? Vector256.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
-                : msbAndBitsUpTo7;
+                : Vector256.Create(fixupScalar);
 
             uint mask = ~maskControl;
 
-            ref ulong table = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
+            ref ulong thinEpi8 = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
 
             byte mask1 = (byte)mask;
             byte mask2 = (byte)(mask >> 8);
             byte mask3 = (byte)(mask >> 16);
             byte mask4 = (byte)(mask >> 24);
 
+            // load the shuffle mask from the set bits
             Vector256<ulong> shufmask = Vector256.Create(
-                Unsafe.Add(ref table, mask1),
-                Unsafe.Add(ref table, mask2),
-                Unsafe.Add(ref table, mask3),
-                Unsafe.Add(ref table, mask4)
+                Unsafe.Add(ref thinEpi8, mask1),
+                Unsafe.Add(ref thinEpi8, mask2),
+                Unsafe.Add(ref thinEpi8, mask3),
+                Unsafe.Add(ref thinEpi8, mask4)
             );
-
-            Vector256<byte> tags = (hasLF & bit7);
 
             ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
 
-            // Add the constant to the shuffle mask.
-            Vector256<byte> shufmaskBytes = shufmask.AsByte() + addConstant.AsByte();
+            // add the lane offset constant to the shuffle mask
+            Vector256<long> addCnst = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
+            Vector256<byte> shufmaskBytes = shufmask.AsByte() + addCnst.AsByte();
 
-            // Calculate the offset for the upper half.
+            // get the offset for the upper lane
             uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF);
 
             byte pop1 = Unsafe.Add(ref popCounts, mask1);
             byte pop3 = Unsafe.Add(ref popCounts, mask3);
 
-            Vector256<byte> taggedIndices = tags | Vector256<byte>.Indices;
+            // tag the indices with the MSB if they are newlines
+            Vector256<byte> taggedIndices = (hasLF & Vector256.Create((byte)0x80)) | Vector256<byte>.Indices;
 
+            // jit optimizes this add to a constant address
             ref byte shuffleCombine = ref Unsafe.Add(ref Unsafe.AsRef(in CompressionTables.ShuffleCombine[0]), 16);
 
-            // Load the 128-bit masks from pshufb_combine_table.
-            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
+            // Load the 128-bit masks from pshufb_combine_table
+            // note that the upper lane is offset to the correct position already, e.g.
+            // < 1 2 0 0 0 ... 3 4 5 ... > will leave 2 items empty on the upper lane
             Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, ((nuint)pop3 * 8) - lowerCountOffset);
+            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
 
-            // Shuffle the source data.
+            // shuffle the indexes to their correct positions
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
 
-            // Combine the two 128-bit lanes into a 256-bit mask.
+            // create the mask to compact the shuffled data
             Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
 
-            // Shuffle the pruned vector with the combined mask.
+            // shuffle the pruned vector with the combined mask
             Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
 
             Vector128<byte> blend = Vector128.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 16));
@@ -253,14 +254,18 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             Vector128<byte> upper = almostthere.GetUpper();
             Vector128<byte> lower = almostthere.GetLower();
 
+            // blend the higher and lower lanes to their final positions
             Vector128<byte> combined = Sse41.BlendVariable(lower, upper, blend);
 
-            // use a sign-extended conversion to int32 to keep the CR/LF tags
+            // sign-extend to int32 to keep the CR/LF tags
             Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
 
+            // clear extra sign-extended bits between the EOL flags and indices
             Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;
 
+            // add the base offset to the "tzcnts"
             Vector256<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
+
             result.StoreUnsafe(ref firstField, fieldIndex);
             fieldIndex += matchCount;
 
