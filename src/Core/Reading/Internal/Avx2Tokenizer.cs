@@ -100,20 +100,25 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // for simplicity, always use element count
             nint remainder =
                 ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index)) % Vector256<byte>.Count) / sizeof(T);
+            // TODO: align to 32 T to avoid cache spills with chars?
 
             if (remainder != 0)
             {
-                nint skip = (Vector256<byte>.Count - remainder) * sizeof(T);
+                nuint skip = (uint)Vector256<byte>.Count - (uint)remainder;
 
                 Inline32<T> temp = default; // default zero-inits
 
-                Buffer.MemoryCopy(
-                    (byte*)Unsafe.AsPointer(ref Unsafe.Add(ref first, (nuint)startIndex)),
-                    (byte*)Unsafe.AsPointer(ref Unsafe.Add(ref temp.elem0, (nuint)remainder)),
-                    destinationSizeInBytes: skip,
-                    sourceBytesToCopy: skip
-                );
-                vector = AsciiVector.Load(ref temp[0], 0);
+                nuint idx = 0;
+                ref T src = ref Unsafe.Add(ref first, (nuint)startIndex);
+                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainder);
+
+                do
+                {
+                    Unsafe.Add(ref temp.elem0, idx) = Unsafe.Add(ref first, idx);
+                    idx++;
+                } while (idx < skip);
+
+                vector = AsciiVector.Load(ref temp.elem0, 0);
 
                 // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
                 indexVector = Vector256.Create((uint)index - (uint)remainder);
