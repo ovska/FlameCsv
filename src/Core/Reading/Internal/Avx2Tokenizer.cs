@@ -246,19 +246,16 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // create the mask to compact the shuffled data
             Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
 
+            Vector256<byte> blend = Vector256.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 32));
+
             // shuffle the pruned vector with the combined mask
             Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
 
-            Vector128<byte> blend = Vector128.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 16));
-
-            Vector128<byte> upper = almostthere.GetUpper();
-            Vector128<byte> lower = almostthere.GetLower();
-
             // blend the higher and lower lanes to their final positions
-            Vector128<byte> combined = Sse41.BlendVariable(lower, upper, blend);
+            Vector256<byte> combined = Avx2.BlendVariable(almostthere, almostthere, blend);
 
             // sign-extend to int32 to keep the CR/LF tags
-            Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
+            Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.GetLower().AsSByte());
 
             // clear extra sign-extended bits between the EOL flags and indices
             Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;
