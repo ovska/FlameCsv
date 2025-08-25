@@ -188,14 +188,13 @@ internal static class Bithacks
             ushort crlf = MemoryMarshal.Read<ushort>("\r\n"u8);
             return Unsafe.As<T, ushort>(ref value) == crlf;
         }
-        else if (Unsafe.SizeOf<T>() is sizeof(char))
+
+        if (Unsafe.SizeOf<T>() is sizeof(char))
         {
             uint crlf = MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"));
             return Unsafe.As<T, uint>(ref value) == crlf;
         }
-        else
-        {
-            throw Token<T>.NotSupported;
-        }
+
+        throw Token<T>.NotSupported;
     }
 }
