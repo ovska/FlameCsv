@@ -56,12 +56,12 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override unsafe int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
-        _ = CompressionTables.ZeroUpper; // ensure class ctor is run
-
         if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
         {
             return 0;
         }
+
+        _ = CompressionTables.BlendMask; // ensure static ctor is run
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (nuint)startIndex;
@@ -225,16 +225,19 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // Add the constant to the shuffle mask.
             Vector256<byte> shufmaskBytes = shufmask.AsByte() + addConstant.AsByte();
 
+            // Calculate the offset for the upper half.
+            uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF);
+
             byte pop1 = Unsafe.Add(ref popCounts, mask1);
             byte pop3 = Unsafe.Add(ref popCounts, mask3);
 
-            // Load the 128-bit masks from pshufb_combine_table.
-            ref readonly byte shuffleCombine = ref CompressionTables.ShuffleCombine[0];
-
             Vector256<byte> taggedIndices = tags | Vector256<byte>.Indices;
 
+            ref byte shuffleCombine = ref Unsafe.Add(ref Unsafe.AsRef(in CompressionTables.ShuffleCombine[0]), 16);
+
+            // Load the 128-bit masks from pshufb_combine_table.
             Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
-            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop3 * 8);
+            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, ((nuint)pop3 * 8) - lowerCountOffset);
 
             // Shuffle the source data.
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
@@ -242,24 +245,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // Combine the two 128-bit lanes into a 256-bit mask.
             Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
 
-            // Calculate the offset for the upper half.
-            uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF) * 16;
-
             // Shuffle the pruned vector with the combined mask.
             Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
 
-            Vector128<byte> compact = Vector128.LoadAligned(CompressionTables.CompactShuffle + lowerCountOffset);
-            Vector128<byte> zeroUpper = Vector128.LoadAligned(CompressionTables.ZeroUpper + lowerCountOffset);
+            Vector128<byte> blend = Vector128.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 16));
 
-            // Extract the lower and upper 128-bit lanes.
             Vector128<byte> upper = almostthere.GetUpper();
             Vector128<byte> lower = almostthere.GetLower();
 
-            // move upper lane items to their final positions, and zero out the same positions in lower lane
-            Vector128<byte> upperCompacted = Ssse3.Shuffle(upper, compact);
-            Vector128<byte> lowerZeroed = lower & zeroUpper;
-
-            Vector128<byte> combined = lowerZeroed | upperCompacted;
+            Vector128<byte> combined = Sse41.BlendVariable(lower, upper, blend);
 
             // use a sign-extended conversion to int32 to keep the CR/LF tags
             Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());

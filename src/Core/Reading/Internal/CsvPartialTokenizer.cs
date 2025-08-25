@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.Intrinsics;
 
@@ -53,6 +52,8 @@ internal abstract class CsvPartialTokenizer<T>
     )
         where TMask : unmanaged, IBinaryInteger<TMask>
     {
+        nuint fIdx = fieldIndex;
+
         while (maskControl != TMask.Zero)
         {
             uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
@@ -63,18 +64,21 @@ internal abstract class CsvPartialTokenizer<T>
             uint pos = index + tz;
             quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
+            pos -= eolFlag;
+
             // consume masks
             maskControl = Bithacks.ResetLowestSetBit(maskControl);
             maskQuote &= ~maskUpToPos;
 
-            Unsafe.Add(ref firstField, fieldIndex) = pos - eolFlag;
-            Unsafe.Add(ref firstQuote, fieldIndex) = (byte)Math.Max(quotesConsumed, 127);
+            Unsafe.Add(ref firstField, fIdx) = pos;
+            Unsafe.Add(ref firstQuote, fIdx) = (byte)Math.Min(quotesConsumed, 127);
 
             quotesConsumed = 0;
-            fieldIndex++;
+            fIdx++;
         }
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
+        fieldIndex = fIdx;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -109,7 +113,7 @@ internal abstract class CsvPartialTokenizer<T>
             }
 
             Unsafe.Add(ref fieldRef, fieldIndex) = index | (uint)flag;
-            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Max(quotesConsumed, 127);
+            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Min(quotesConsumed, 127);
 
             fieldIndex++;
             quotesConsumed = 0;
@@ -134,13 +138,14 @@ internal abstract class CsvPartialTokenizer<T>
         {
             uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
             TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
-            TMask quoteBits = maskQuote & maskUpToPos;
 
             uint value = index + tz;
-            quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
+            TMask quoteBits = maskQuote & maskUpToPos;
 
             ref T token = ref Unsafe.Add(ref first, value);
             FieldFlag flag = FieldFlag.None;
+
+            quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
             if (delimiter != token)
             {
@@ -159,7 +164,7 @@ internal abstract class CsvPartialTokenizer<T>
             maskQuote &= ~maskUpToPos;
 
             Unsafe.Add(ref fieldRef, fieldIndex) = value | (uint)flag;
-            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Max(quotesConsumed, 127);
+            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Min(quotesConsumed, 127);
             quotesConsumed = 0;
             fieldIndex++;
         }

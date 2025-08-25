@@ -656,7 +656,11 @@ Generic is now faster in all quoted paths, which is very odd.
 | V128   | True  | True   | CRLF         |   524.5 us | 1.40 us |  1.00 |     336 B |
 | Avx2   | True  | True   | CRLF         |   514.5 us | 1.88 us |  0.98 |     336 B |
 
-## Frequencies
+## Avoid a shuffle in AVX2 path for upper lane
+
+915.31 us to 890.4 us. Use blend and offset ShuffleCombine.
+
+# Frequencies
 
 ```
 Delim + Line ends
