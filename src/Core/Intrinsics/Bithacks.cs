@@ -143,6 +143,16 @@ internal static class Bithacks
     public static bool ZeroOrOneBitsSet<T>(T value)
         where T : unmanaged, IBinaryInteger<T>
     {
+        if (Unsafe.SizeOf<T>() is sizeof(uint) && Bmi1.IsSupported)
+        {
+            return Bmi1.ResetLowestSetBit(Unsafe.BitCast<T, uint>(value)) == 0;
+        }
+
+        if (Unsafe.SizeOf<T>() is sizeof(ulong) && Bmi1.X64.IsSupported)
+        {
+            return Bmi1.X64.ResetLowestSetBit(Unsafe.BitCast<T, ulong>(value)) == 0;
+        }
+
         return (value & (value - T.One)) == T.Zero;
     }
 
