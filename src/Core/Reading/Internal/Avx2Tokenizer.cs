@@ -151,8 +151,8 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             uint maskControl = hasAny.ExtractMostSignificantBits();
             uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
-            Unsafe.SkipInit(out uint maskLF);
-            Unsafe.SkipInit(out uint shiftedCR);
+            Unsafe.SkipInit(out uint maskLF); // calculated only on-demand for LF newlines
+            Unsafe.SkipInit(out uint shiftedCR); // never used on LF newlines
 
             if (TNewline.IsCRLF)
             {
@@ -187,7 +187,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if (maskControl == 0)
                 {
-                    // TODO: flip quote carry
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
@@ -206,21 +205,20 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
                 ? Vector256.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
                 : Vector256.Create(fixupScalar);
 
-            uint mask = ~maskControl;
+            uint mask1 = ~maskControl;
 
             ref ulong thinEpi8 = ref Unsafe.AsRef(in CompressionTables.ThinEpi8[0]);
 
-            byte mask1 = (byte)mask;
-            byte mask2 = (byte)(mask >> 8);
-            byte mask3 = (byte)(mask >> 16);
-            byte mask4 = (byte)(mask >> 24);
+            uint mask2 = mask1 >> 8;
+            uint mask3 = mask1 >> 16;
+            uint mask4 = mask1 >> 24;
 
             // load the shuffle mask from the set bits
             Vector256<ulong> shufmask = Vector256.Create(
-                Unsafe.Add(ref thinEpi8, mask1),
-                Unsafe.Add(ref thinEpi8, mask2),
-                Unsafe.Add(ref thinEpi8, mask3),
-                Unsafe.Add(ref thinEpi8, mask4)
+                Unsafe.Add(ref thinEpi8, (byte)mask1),
+                Unsafe.Add(ref thinEpi8, (byte)mask2),
+                Unsafe.Add(ref thinEpi8, (byte)mask3),
+                Unsafe.Add(ref thinEpi8, (byte)mask4)
             );
 
             ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
@@ -231,8 +229,8 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // get the offset for the upper lane
             uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF);
 
-            byte pop1 = Unsafe.Add(ref popCounts, mask1);
-            byte pop3 = Unsafe.Add(ref popCounts, mask3);
+            byte pop1 = Unsafe.Add(ref popCounts, (byte)mask1);
+            byte pop3 = Unsafe.Add(ref popCounts, (byte)mask3);
 
             // tag the indices with the MSB if they are newlines
             Vector256<byte> taggedIndices = (hasLF & msb) | Vector256<byte>.Indices;
@@ -243,16 +241,17 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // Load the 128-bit masks from pshufb_combine_table
             // note that the upper lane is offset to the correct position already, e.g.
             // < 1 2 0 0 0 ... 3 4 5 ... > will leave 2 items empty on the upper lane
-            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, ((nuint)pop3 * 8) - lowerCountOffset);
-            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (nuint)pop1 * 8);
+            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (uint)pop1 * 8);
+            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, ((uint)pop3 * 8) - lowerCountOffset);
 
             // shuffle the indexes to their correct positions
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
 
             Vector128<byte> blend = Vector128.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 16));
 
-            Vector128<byte> upper = Ssse3.Shuffle(pruned.GetUpper(), combine1);
+            // move the bits so they can be blended seamlessly
             Vector128<byte> lower = Ssse3.Shuffle(pruned.GetLower(), combine0);
+            Vector128<byte> upper = Ssse3.Shuffle(pruned.GetUpper(), combine1);
 
             // blend the higher and lower lanes to their final positions
             Vector128<byte> combined = Sse41.BlendVariable(lower, upper, blend);
