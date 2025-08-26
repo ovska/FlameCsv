@@ -77,6 +77,8 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
         Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
+        Vector256<byte> msb = Vector256.Create((byte)0x80);
+        Vector256<long> addCnst = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
 
         Unsafe.SkipInit(out Vector256<byte> vecCR);
 
@@ -131,7 +133,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             }
         }
 
-        Vector256<byte> nextVector = AsciiVector.Load(ref first, index + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.LoadAligned256(ref first, index + (nuint)Vector256<byte>.Count);
 
         do
         {
@@ -224,7 +226,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
 
             // add the lane offset constant to the shuffle mask
-            Vector256<long> addCnst = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
             Vector256<byte> shufmaskBytes = shufmask.AsByte() + addCnst.AsByte();
 
             // get the offset for the upper lane
@@ -234,7 +235,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             byte pop3 = Unsafe.Add(ref popCounts, mask3);
 
             // tag the indices with the MSB if they are newlines
-            Vector256<byte> taggedIndices = (hasLF & Vector256.Create((byte)0x80)) | Vector256<byte>.Indices;
+            Vector256<byte> taggedIndices = (hasLF & msb) | Vector256<byte>.Indices;
 
             // jit optimizes this add to a constant address
             ref byte shuffleCombine = ref Unsafe.Add(ref Unsafe.AsRef(in CompressionTables.ShuffleCombine[0]), 16);
@@ -248,19 +249,16 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // shuffle the indexes to their correct positions
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
 
-            // create the mask to compact the shuffled data
-            Vector256<byte> compactmask = Vector256.Create(combine0, combine1);
+            Vector128<byte> blend = Vector128.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 16));
 
-            Vector256<byte> blend = Vector256.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 32));
-
-            // shuffle the pruned vector with the combined mask
-            Vector256<byte> almostthere = Avx2.Shuffle(pruned, compactmask);
+            Vector128<byte> upper = Ssse3.Shuffle(pruned.GetUpper(), combine1);
+            Vector128<byte> lower = Ssse3.Shuffle(pruned.GetLower(), combine0);
 
             // blend the higher and lower lanes to their final positions
-            Vector256<byte> combined = Avx2.BlendVariable(almostthere, almostthere, blend);
+            Vector128<byte> combined = Sse41.BlendVariable(lower, upper, blend);
 
             // sign-extend to int32 to keep the CR/LF tags
-            Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.GetLower().AsSByte());
+            Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
 
             // clear extra sign-extended bits between the EOL flags and indices
             Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;
