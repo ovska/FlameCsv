@@ -172,7 +172,7 @@ internal static class AsciiVector
     public static unsafe Vector512<byte> LoadAligned512<T>(ref T source, nuint offset)
         where T : unmanaged, IBinaryInteger<T>
     {
-        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, (nint)offset));
+        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, offset));
 
         if (typeof(T) == typeof(byte))
         {
@@ -196,7 +196,7 @@ internal static class AsciiVector
     public static unsafe Vector256<byte> LoadAligned256<T>(ref T source, nuint offset)
         where T : unmanaged, IBinaryInteger<T>
     {
-        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, (nint)offset));
+        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, offset));
 
         if (typeof(T) == typeof(byte))
         {
