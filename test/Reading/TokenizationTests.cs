@@ -194,6 +194,19 @@ public class TokenizationTests
         }
     }
 
+    [Fact]
+    public static void Test_Delimiters()
+    {
+        var tokenizer = new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default);
+        var data = "abcd1,abcd2,abcd3,abcd4,abcd5,abcd6,abcd7,abcd8,abcd9,abcd10,abcd11,abcd11,abcd11,abcd11,abcd11,abcd11";
+        char[] buffer = new char[256];
+        data.CopyTo(buffer);
+
+        var inp = new FieldBuffer { Fields = new uint[256], Quotes = new byte[256] };
+        _ = tokenizer.Tokenize(inp, 0, buffer);
+        Assert.Equal((Span<uint>)[5, 11, 17, 23, 29, 35, 41, 47, 53, 60], inp.Fields.Slice(0, 10));
+    }
+
     // [Fact]
     // public void Should_Tokenize()
     // {

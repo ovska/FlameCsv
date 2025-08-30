@@ -17,24 +17,24 @@ public class TokenizationBench
     [Params(
         [ /**/
             false,
-            true,
+            // true,
         ]
     )]
     public bool Chars { get; set; }
 
     [Params(
         [ /**/
-            true,
-            // false,
+            // true,
+            false,
         ]
     )]
     public bool Quoted { get; set; }
 
     [Params(
         [ /**/
-            // ParserNewline.LF,
+            ParserNewline.LF,
             // ParserNewline.LF_With_CRLF,
-            ParserNewline.CRLF,
+            // ParserNewline.CRLF,
         ]
     )]
     public ParserNewline Newline { get; set; }
@@ -90,20 +90,21 @@ public class TokenizationBench
     private readonly SimdTokenizer<byte, NewlineCRLF> _t128bCRLF = new(_dByteCRLF);
     private readonly SimdTokenizer<char, NewlineCRLF> _t128CRLF = new(_dCharCRLF);
 
-    [Benchmark(Baseline = true)]
-    public void V128()
+    private CsvPartialTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
+    private CsvPartialTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
+
+    // [Benchmark(Baseline = true)]
+    public void Simd()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
 
         if (Chars)
         {
-            CsvPartialTokenizer<char> tokenizer = TokenizerIsLF ? _t128LF : _t128CRLF;
-            _ = tokenizer.Tokenize(dst, 0, CharData);
+            _ = SimdChar.Tokenize(dst, 0, CharData);
         }
         else
         {
-            CsvPartialTokenizer<byte> tokenizer = TokenizerIsLF ? _t128bLF : _t128bCRLF;
-            _ = tokenizer.Tokenize(dst, 0, ByteData);
+            _ = SimdByte.Tokenize(dst, 0, ByteData);
         }
     }
 
@@ -112,58 +113,45 @@ public class TokenizationBench
     private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
     private readonly Avx2Tokenizer<char, NewlineCRLF> _avx2CharCRLF = new(_dCharCRLF);
 
-    // [Benchmark]
+    private CsvPartialTokenizer<char> Avx2Char => TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
+    private CsvPartialTokenizer<byte> Avx2Byte => TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
+
+    [Benchmark]
     public void Avx2()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
 
         if (Chars)
         {
-            CsvPartialTokenizer<char> tokenizer = TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
-            _ = tokenizer.Tokenize(dst, 0, CharData);
+            _ = Avx2Char.Tokenize(dst, 0, CharData);
         }
         else
         {
-            CsvPartialTokenizer<byte> tokenizer = TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
-            _ = tokenizer.Tokenize(dst, 0, ByteData);
+            _ = Avx2Byte.Tokenize(dst, 0, ByteData);
         }
     }
 
 #if NET10_0_OR_GREATER
-    private readonly Avx512Tokenizer<byte, NewlineLF> _avxByte = new(_dByteLF);
-    private readonly Avx512Tokenizer<char, NewlineLF> _avxChar = new(_dCharLF);
-    private readonly Avx512Tokenizer<byte, NewlineCRLF> _avxByteCRLF = new(_dByteCRLF);
-    private readonly Avx512Tokenizer<char, NewlineCRLF> _avxCharCRLF = new(_dCharCRLF);
+    private readonly Avx512Tokenizer<byte, NewlineLF> _avx512Byte = new(_dByteLF);
+    private readonly Avx512Tokenizer<char, NewlineLF> _avx512Char = new(_dCharLF);
+    private readonly Avx512Tokenizer<byte, NewlineCRLF> _avx512ByteCRLF = new(_dByteCRLF);
+    private readonly Avx512Tokenizer<char, NewlineCRLF> _avx512CharCRLF = new(_dCharCRLF);
 
-    [Benchmark]
+    private CsvPartialTokenizer<char> Avx512Char => TokenizerIsLF ? _avx512Char : _avx512CharCRLF;
+    private CsvPartialTokenizer<byte> Avx512Byte => TokenizerIsLF ? _avx512Byte : _avx512ByteCRLF;
+
+    // [Benchmark]
     public void Avx512()
     {
-        var rb = new RecordBuffer();
-        rb.GetFieldArrayRef() = _fieldBuffer;
-        rb.GetQuoteArrayRef() = _quoteBuffer;
-        rb.GetEolArrayRef() = _eolBuffer;
+        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
 
         if (Chars)
         {
-            if (!TokenizerIsLF)
-            {
-                _avxCharCRLF.Tokenize(dst, startIndex, CharData);
-            }
-            else
-            {
-                _avxChar.Tokenize(dst, startIndex, CharData);
-            }
+            _ = Avx512Char.Tokenize(dst, 0, CharData);
         }
         else
         {
-            if (!TokenizerIsLF)
-            {
-                _avxByteCRLF.Tokenize(dst, startIndex, ByteData);
-            }
-            else
-            {
-                _avxByte.Tokenize(dst, startIndex, ByteData);
-            }
+            _ = Avx512Byte.Tokenize(dst, 0, ByteData);
         }
     }
 #endif
