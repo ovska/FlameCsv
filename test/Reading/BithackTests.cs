@@ -6,6 +6,22 @@ namespace FlameCsv.Tests.Reading;
 
 public class BithackTests
 {
+    [Theory]
+    [InlineData("0", "0", false)]
+    [InlineData("0", "1", false)]
+    [InlineData("1", "1", false)]
+    [InlineData("000100", "000100", false)]
+    [InlineData("000000", "000100", false)]
+    [InlineData("000100", "010100", true)]
+    [InlineData("010000", "010100", true)]
+    [InlineData("010100", "010000", true)]
+    [InlineData("010100", "000100", true)]
+    [InlineData("000100", "000000", true)]
+    public static void Should_Check_If_Disjoint_CR(string cr, string lf, bool expected)
+    {
+        Assert.Equal(expected, Bithacks.IsDisjointCR(Convert.ToUInt32(lf, 2), Convert.ToUInt32(cr, 2)));
+    }
+
     [Fact]
     public static void Should_Check_if_Zero_or_One_Bits_Set()
     {
@@ -26,7 +42,7 @@ public class BithackTests
             Assert.Equal(int.PopCount(i) is 0 or 1, Bithacks.ZeroOrOneBitsSet(i));
         }
     }
- 
+
     [Fact]
     public static void Should_Check_If_All_Bits_Before()
     {
