@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace FlameCsv.Intrinsics;
 
@@ -121,6 +122,12 @@ internal static unsafe class CompressionTables
     ];
 
     internal static readonly byte* BlendMask;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<byte> LoadBlendMask(uint lowerLaneOffset)
+    {
+        return Vector128.LoadAligned(BlendMask + (lowerLaneOffset * Vector128<byte>.Count));
+    }
 
     static CompressionTables()
     {

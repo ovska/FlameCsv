@@ -13,14 +13,6 @@ internal static class Avx2Tokenizer
     public static bool IsSupported => Avx2.IsSupported;
 }
 
-// a stackalloc incurs buffer overrun cookie penalty
-[InlineArray(32)]
-file struct Inline32<T>
-    where T : unmanaged
-{
-    public T elem0;
-}
-
 [SkipLocalsInit]
 internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
@@ -54,14 +46,17 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override unsafe int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
+    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
         if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
         {
             return 0;
         }
 
-        _ = CompressionTables.BlendMask; // ensure static ctor is run
+        unsafe
+        {
+            _ = CompressionTables.BlendMask; // ensure static ctor is run
+        }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (nuint)startIndex;
@@ -97,34 +92,35 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
         Vector256<byte> vector;
         Vector256<uint> indexVector;
 
+        unsafe
         {
-            // ensure data is aligned to 32 bytes
-            // for simplicity, always use element count
-            nint remainder =
-                ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index)) % Vector256<byte>.Count) / sizeof(T);
-            // TODO: align to 32 T to avoid cache spills with chars?
+            nint alignmentT = 32;
+            nint alignmentBytes = alignmentT * sizeof(T);
+            nint addressBytes = (nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index));
+            nint remainderBytes = addressBytes & (alignmentBytes - 1);
+            nint remainderT = remainderBytes / sizeof(T); // bytes past last 64B boundary
+            nuint skipT = (nuint)((alignmentT - remainderT) & (alignmentT - 1));
 
-            if (remainder != 0)
+            if (skipT != 0)
             {
-                nuint skip = (uint)Vector256<byte>.Count - (uint)remainder;
-
                 Inline32<T> temp = default; // default zero-inits
 
-                nuint idx = 0;
-                ref T src = ref Unsafe.Add(ref first, (nuint)startIndex);
-                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainder);
+                ref T src = ref Unsafe.Add(ref first, index);
+                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainderT);
+                ref T end = ref Unsafe.Add(ref src, skipT);
 
                 do
                 {
-                    Unsafe.Add(ref temp.elem0, idx) = Unsafe.Add(ref first, idx);
-                    idx++;
-                } while (idx < skip);
+                    dst = src;
+                    src = ref Unsafe.Add(ref src, 1);
+                    dst = ref Unsafe.Add(ref dst, 1);
+                } while (Unsafe.IsAddressLessThan(in src, in end));
 
                 vector = AsciiVector.Load(ref temp.elem0, 0);
 
                 // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
-                indexVector = Vector256.Create((uint)index - (uint)remainder);
-                index -= (nuint)remainder;
+                indexVector = Vector256.Create((uint)index - (uint)remainderT);
+                index -= (nuint)remainderT;
             }
             else
             {
@@ -247,9 +243,10 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // shuffle the indexes to their correct positions
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
 
-            Vector128<byte> blend = Vector128.LoadAligned(CompressionTables.BlendMask + (lowerCountOffset * 16));
+            // get the blend mask to combine lower and upper lanes
+            Vector128<byte> blend = CompressionTables.LoadBlendMask(lowerCountOffset);
 
-            // move the bits so they can be blended seamlessly
+            // arrange the results into two lanes
             Vector128<byte> lower = Ssse3.Shuffle(pruned.GetLower(), combine0);
             Vector128<byte> upper = Ssse3.Shuffle(pruned.GetUpper(), combine1);
 
@@ -260,10 +257,16 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
 
             // clear extra sign-extended bits between the EOL flags and indices
-            Vector256<int> fixedTaggedVector = taggedIndexVector & fixup;
+            Vector256<uint> fixedTaggedVector = (taggedIndexVector & fixup).AsUInt32();
 
             // add the base offset to the "tzcnts"
-            Vector256<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
+            Vector256<uint> result = fixedTaggedVector + indexVector;
+
+            if (TNewline.IsCRLF)
+            {
+                // subtract 1 from CRLF matches
+                result -= ((fixedTaggedVector >> 30) & Vector256<uint>.One);
+            }
 
             result.StoreUnsafe(ref firstField, fieldIndex);
             fieldIndex += matchCount;

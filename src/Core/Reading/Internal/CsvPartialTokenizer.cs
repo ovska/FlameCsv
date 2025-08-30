@@ -66,15 +66,20 @@ internal abstract class CsvPartialTokenizer<T>
 
             pos -= eolFlag;
 
+            Field.SaturateTo7Bits(ref quotesConsumed);
+
             // consume masks
             maskControl = Bithacks.ResetLowestSetBit(maskControl);
             maskQuote &= ~maskUpToPos;
 
-            Unsafe.Add(ref firstField, fIdx) = pos;
-            Unsafe.Add(ref firstQuote, fIdx) = (byte)Math.Min(quotesConsumed, 127);
+            ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
+            ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
 
-            quotesConsumed = 0;
+            dstField = pos;
+            dstQuote = (byte)quotesConsumed;
+
             fIdx++;
+            quotesConsumed = 0;
         }
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
