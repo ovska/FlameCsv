@@ -77,7 +77,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
                 start = 0;
             }
 
-            Debug.Assert(end >= start);
+            Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
 
             int length = end - start;
 

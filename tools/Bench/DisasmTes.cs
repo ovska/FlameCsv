@@ -1,41 +1,62 @@
+#define CRLF
+#define AVX2
+
 using System.Text;
 using FlameCsv.Reading.Internal;
+#if CRLF
+using TNewline = FlameCsv.Reading.Internal.NewlineCRLF;
+#else
+using TNewline = FlameCsv.Reading.Internal.NewlineLF;
+#endif
 
 namespace FlameCsv.Benchmark;
 
 [HideColumns("Error", "RatioSD")]
 public class DisasmTest
 {
+    private const CsvNewline _newline =
+#if CRLF
+    CsvNewline.CRLF;
+#else
+    CsvNewline.LF;
+#endif
+
     private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
     private static readonly byte[] _quoteBuffer = new byte[24 * 65535];
 
-    private static readonly string _chars = File.ReadAllText(
-            // "Comparisons/Data/65K_Records_Data.csv"
-        "Comparisons/Data/SampleCSVFile_556kb_4x.csv"
-        )
+    private static readonly string _dataChars = File.ReadAllText(
+        "Comparisons/Data/65K_Records_Data.csv"
+    // "Comparisons/Data/SampleCSVFile_556kb_4x.csv"
+    )
+#if CRLF
         .ReplaceLineEndings("\r\n")
-        ;
-    private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars);
+#endif
+    ;
+    private static readonly byte[] _dataBytes = Encoding.UTF8.GetBytes(_dataChars);
 
-    private static readonly CsvOptions<byte> _dByteCRLF = new CsvOptions<byte> { Newline = CsvNewline.CRLF };
+    private static readonly CsvOptions<byte> _dByteLF = new CsvOptions<byte> { Newline = _newline };
 
-    private static readonly CsvOptions<char> _dCharCRLF = new CsvOptions<char> { Newline = CsvNewline.CRLF };
+    private static readonly CsvOptions<char> _dCharLF = new CsvOptions<char> { Newline = _newline };
 
-    private readonly SimdTokenizer<byte, NewlineCRLF> _t128bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<char, NewlineCRLF> _t128CRLF = new(_dCharCRLF);
+#if AVX2
+    private readonly Avx2Tokenizer<byte, TNewline> _t128bLF = new(_dByteLF);
+    private readonly Avx2Tokenizer<char, TNewline> _t128LF = new(_dCharLF);
+#else
+    private readonly SimdTokenizer<char, TNewline> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, TNewline> _t128bLF = new(_dByteLF);
+#endif
 
     [Benchmark(Baseline = true)]
     public void Bytes()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
-        _ = _t128bCRLF.Tokenize(dst, 0, _bytes0LF);
+        _ = _t128bLF.Tokenize(dst, 0, _dataBytes);
     }
 
-    // [Benchmark]
+    [Benchmark]
     public void Chars()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
-        _ = _t128CRLF.Tokenize(dst, 0, _chars);
+        _ = _t128LF.Tokenize(dst, 0, _dataChars);
     }
-
 }

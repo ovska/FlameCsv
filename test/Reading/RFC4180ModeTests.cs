@@ -19,7 +19,10 @@ public class RFC4180ModeTests
         }
 
         var result = StringBuilderSegment.Create(sb).Read(CsvOptions<char>.Default);
-        Assert.Equal(Enumerable.Repeat("field1,field2,field3", 500), result.Select(r => string.Join(',', r)));
+        Assert.Equal(
+            Enumerable.Repeat("field1,field2,field3", 500).ToArray(),
+            result.Select(r => string.Join(',', r)).ToArray()
+        );
     }
 
     [Theory]
