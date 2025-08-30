@@ -10,7 +10,8 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Avx2Tokenizer
 {
-    public static bool IsSupported => Avx2.IsSupported;
+    public static bool IsSupported =>
+        Avx2.IsSupported && RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64;
 }
 
 [SkipLocalsInit]
