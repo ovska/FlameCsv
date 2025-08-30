@@ -172,12 +172,12 @@ internal static class AsciiVector
     public static unsafe Vector512<byte> LoadAligned512<T>(ref T source, nuint offset)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ref byte b = ref Unsafe.As<T, byte>(ref Unsafe.Add(ref source, (nint)offset));
+        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, (nint)offset));
 
         if (typeof(T) == typeof(byte))
         {
             // automagically loads two 128bit vectors if 256-bit vectors are not supported
-            return Vector512.LoadAligned((byte*)Unsafe.AsPointer(ref b));
+            return Vector512.LoadAligned((byte*)ptr);
         }
 
         if (typeof(T) != typeof(char))
@@ -185,8 +185,8 @@ internal static class AsciiVector
             throw Token<T>.NotSupported;
         }
 
-        Vector512<short> v0 = Vector512.LoadAligned((short*)Unsafe.AsPointer(ref b));
-        Vector512<short> v1 = Vector512.LoadAligned((short*)Unsafe.AsPointer(ref b) + Vector512<short>.Count);
+        Vector512<short> v0 = Vector512.LoadAligned((short*)ptr);
+        Vector512<short> v1 = Vector512.LoadAligned((short*)ptr + Vector512<short>.Count);
 
         return Avx512BW.PackUnsignedSaturate(v0, v1);
     }
@@ -196,11 +196,11 @@ internal static class AsciiVector
     public static unsafe Vector256<byte> LoadAligned256<T>(ref T source, nuint offset)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ref byte b = ref Unsafe.As<T, byte>(ref Unsafe.Add(ref source, (nint)offset));
+        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, (nint)offset));
 
         if (typeof(T) == typeof(byte))
         {
-            return Vector256.LoadAligned((byte*)Unsafe.AsPointer(ref b));
+            return Vector256.LoadAligned((byte*)ptr);
         }
 
         if (typeof(T) != typeof(char))
@@ -210,23 +210,15 @@ internal static class AsciiVector
 
         if (Avx512BW.IsSupported)
         {
-            Vector512<ushort> v = Vector512.LoadAligned((ushort*)Unsafe.AsPointer(ref b));
+            Vector512<ushort> v = Vector512.LoadAligned((ushort*)ptr);
             return Avx512BW.ConvertToVector256ByteWithSaturation(v);
-        }
-
-        Vector256<short> v0 = Vector256.LoadAligned((short*)Unsafe.AsPointer(ref b));
-        Vector256<short> v1 = Vector256.LoadAligned((short*)Unsafe.AsPointer(ref b) + Vector256<short>.Count);
-
-        if (Avx512BW.VL.IsSupported)
-        {
-            return Vector256.Create(
-                Avx512BW.VL.ConvertToVector128ByteWithSaturation(v0.AsUInt16()),
-                Avx512BW.VL.ConvertToVector128ByteWithSaturation(v1.AsUInt16())
-            );
         }
 
         if (Avx2.IsSupported)
         {
+            Vector256<short> v0 = Vector256.LoadAligned((short*)ptr);
+            Vector256<short> v1 = Vector256.LoadAligned((short*)ptr + Vector256<short>.Count);
+
             // Avx2.PackUnsignedSaturate(Vector256.Create((short)1), Vector256.Create((short)2)) will result in
             // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
             // We want to swap the X and Y bits
@@ -235,6 +227,6 @@ internal static class AsciiVector
             return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
         }
 
-        throw new UnreachableException();
+        throw new UnreachableException("AVX2 or AVX512BW are not supported.");
     }
 }
