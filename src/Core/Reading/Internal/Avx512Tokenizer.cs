@@ -13,14 +13,6 @@ internal static class Avx512Tokenizer
     public static bool IsSupported => Bmi1.X64.IsSupported && Avx512Vbmi2.IsSupported;
 }
 
-// a stackalloc incurs buffer overrun cookie penalty
-[InlineArray(64)]
-file struct Inline64<T>
-    where T : unmanaged
-{
-    public T elem0;
-}
-
 [SkipLocalsInit]
 internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPartialTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
@@ -71,7 +63,6 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
         nuint fieldIndex = 0;
 
         // load the constants into registers
-        T delimiter = _delimiter;
         Vector512<byte> vecDelim = AsciiVector.Create512(_delimiter);
         Vector512<byte> vecQuote = AsciiVector.Create512(_quote);
         Vector512<byte> vecLF = AsciiVector.Create512((byte)'\n');
@@ -101,24 +92,26 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
 
         unsafe
         {
-            // ensure data is aligned to 64 bytes
-            // for simplicity, always use element count
-            nint remainder =
-                ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index)) % Vector512<byte>.Count) / sizeof(T);
+            nint alignment = 64;
+            nint remainder = ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index)) % alignment) / sizeof(T);
 
             if (remainder != 0)
             {
-                int skip = Vector256<byte>.Count - (int)remainder;
+                nuint skip = (uint)alignment - (uint)remainder;
 
-                Inline64<T> buffer = default; // default zero-inits
+                Inline64<T> temp = default; // default zero-inits
 
-                // Copy the elements to the correct position in the buffer
-                Unsafe.CopyBlockUnaligned(
-                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref buffer.elem0, (nuint)remainder)),
-                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref first, (nuint)startIndex)),
-                    byteCount: (uint)(skip * sizeof(T))
-                );
-                vector = AsciiVector.Load512(ref buffer[0], 0);
+                nuint idx = 0;
+                ref T src = ref Unsafe.Add(ref first, (nuint)startIndex);
+                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainder);
+
+                do
+                {
+                    Unsafe.Add(ref temp.elem0, idx) = Unsafe.Add(ref first, idx);
+                    idx++;
+                } while (idx < skip);
+
+                vector = AsciiVector.Load512(ref temp.elem0, 0);
 
                 // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
                 indexVector = Vector512.Create((uint)index - (uint)remainder);
@@ -126,7 +119,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
             }
             else
             {
-                vector = AsciiVector.Load512(ref first, index);
+                vector = AsciiVector.LoadAligned512(ref first, index);
                 indexVector = Vector512.Create((uint)index);
             }
         }
@@ -139,9 +132,10 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
             Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
             Vector512<byte> hasAny = hasLF | hasDelimiter;
 
-            // getting the mask instantly saves a bit so quote isn't bounced between registers
-            ulong maskQuote = Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits();
             ulong maskControl = hasAny.ExtractMostSignificantBits();
+
+            // getting the mask instantly saves a bit so hasQuote isn't bounced between registers
+            ulong maskQuote = Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits();
 
             Unsafe.SkipInit(out ulong maskCR);
             Unsafe.SkipInit(out ulong maskLF);
@@ -175,7 +169,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
             // rare cases: quotes, or too many matches to fit in VPCOMPRESSB path
-            if (quotesConsumed != 0 || maskQuote != 0 || matchCount > (uint)Vector512<int>.Count)
+            if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector512<int>.Count)
             {
                 goto SlowPath;
             }
@@ -188,6 +182,8 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
                 : msbAndBitsUpTo7;
 
             Vector128<sbyte> lowestLane = Avx512F.ExtractVector128(packedAny, 0).AsSByte();
+
+            // sign extend to preserve EOL bits
             Vector512<int> taggedIndexVector = Avx512F.ConvertToVector512Int32(lowestLane);
 
             Vector512<int> fixedTaggedVector = taggedIndexVector & fixup;

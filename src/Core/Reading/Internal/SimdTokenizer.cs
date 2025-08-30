@@ -74,19 +74,19 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Vector256<byte> hasControl = hasLF | hasDelimiter;
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
+        uint maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
+        uint maskControl = hasControl.ExtractMostSignificantBits();
+        uint maskLF = hasLF.ExtractMostSignificantBits();
+        uint maskQuote = hasQuote.ExtractMostSignificantBits();
+
         Vector256<byte> nextVector = AsciiVector.Load(ref first, index + (nuint)Vector256<byte>.Count);
 
-        while (fieldIndex <= fieldEnd && index <= searchSpaceEnd)
+        do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
             Vector256<byte> prefetchVector = AsciiVector.Load(ref first, index + (nuint)(2 * Vector256<byte>.Count));
 
-            uint maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
-            uint maskControl = hasControl.ExtractMostSignificantBits();
-            uint maskLF = hasLF.ExtractMostSignificantBits();
-            uint maskQuote = hasQuote.ExtractMostSignificantBits();
-
-            Unsafe.SkipInit(out uint shiftedCR);
+            Unsafe.SkipInit(out uint shiftedCR); // this can be garbage on LF, it's never used
 
             if (TNewline.IsCRLF)
             {
@@ -194,12 +194,18 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             ContinueRead:
             index += (nuint)Vector256<byte>.Count;
+
             hasLF = Vector256.Equals(vector, vecLF);
             hasCR = TNewline.IsCRLF ? Vector256.Equals(vector, vecCR) : default;
             hasDelimiter = Vector256.Equals(vector, vecDelim);
             hasQuote = Vector256.Equals(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
-        }
+
+            maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
+            maskControl = hasControl.ExtractMostSignificantBits();
+            maskLF = hasLF.ExtractMostSignificantBits();
+            maskQuote = hasQuote.ExtractMostSignificantBits();
+        } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;
     }
