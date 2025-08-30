@@ -1,4 +1,4 @@
-#define CRLF
+// #define CRLF
 #define AVX2
 
 using System.Text;

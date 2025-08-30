@@ -505,17 +505,17 @@ Consider moving away from "StartOrEnd" sentinel bits for every single field, and
 
 ## Field enumeration
 
-| Method                    |     Mean |
-| ------------------------- | -------: |
+| Method                    |      Mean |
+| ------------------------- | --------: |
 | Naive                     | ~1.700 ms |
-| Precalculated EOL         | 1.622 ms |
-| Less vector compares      | 1.606 ms |
-| Aligned Reads             | 1.603 ms |
-| Branch on zero vector     | 1.603 ms |
-| Prefetch next             | 1.599 ms |
-| Separate idx vs _eolIndex | 1.575 ms |
-| Simplify end index        | 1.570 ms |
-| Final working             | 1.573 ms |
+| Precalculated EOL         |  1.622 ms |
+| Less vector compares      |  1.606 ms |
+| Aligned Reads             |  1.603 ms |
+| Branch on zero vector     |  1.603 ms |
+| Prefetch next             |  1.599 ms |
+| Separate idx vs _eolIndex |  1.575 ms |
+| Simplify end index        |  1.570 ms |
+| Final working             |  1.573 ms |
 
 ## Generic SIMD prefix XOR for quotes
 
@@ -532,7 +532,7 @@ Naive prefix XOR:
 | V128   | False | True   | CRLF    | 571.3 us | 1.49 us |  1.00 |
 
 | Method | Chars | Quoted | Newline |     Mean |  StdDev | Ratio |
-|------- |------ |------- |-------- |---------:|--------:|------:|
+| ------ | ----- | ------ | ------- | -------: | ------: | ----: |
 | V128   | False | True   | LF      | 523.1 us | 2.02 us |  1.00 |
 | V128   | False | True   | CRLF    | 591.0 us | 3.38 us |  1.00 |
 
@@ -659,6 +659,20 @@ Generic is now faster in all quoted paths, which is very odd.
 ## Avoid a shuffle in AVX2 path for upper lane
 
 915.31 us to 890.4 us. Use blend and offset ShuffleCombine.
+
+## Alignment in AVX2 Tokenizer
+
+Aligned
+| Method |       Mean |  StdDev | Ratio | Code Size |
+| ------ | ---------: | ------: | ----: | --------: |
+| Bytes  |   870.7 us | 1.14 us |  1.00 |   1,113 B |
+| Chars  | 1,084.0 us | 2.71 us |  1.24 |   1,225 B |
+
+Unaligned
+| Method |       Mean |  StdDev | Ratio | Code Size |
+| ------ | ---------: | ------: | ----: | --------: |
+| Bytes  |   872.3 us | 3.13 us |  1.00 |     995 B |
+| Chars  | 1,087.9 us | 5.56 us |  1.25 |   1,055 B |
 
 # Frequencies
 

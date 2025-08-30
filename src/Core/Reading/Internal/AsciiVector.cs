@@ -190,43 +190,4 @@ internal static class AsciiVector
 
         return Avx512BW.PackUnsignedSaturate(v0, v1);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static unsafe Vector256<byte> LoadAligned256<T>(ref T source, nuint offset)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, offset));
-
-        if (typeof(T) == typeof(byte))
-        {
-            return Vector256.LoadAligned((byte*)ptr);
-        }
-
-        if (typeof(T) != typeof(char))
-        {
-            throw Token<T>.NotSupported;
-        }
-
-        if (Avx512BW.IsSupported)
-        {
-            Vector512<ushort> v = Vector512.LoadAligned((ushort*)ptr);
-            return Avx512BW.ConvertToVector256ByteWithSaturation(v);
-        }
-
-        if (Avx2.IsSupported)
-        {
-            Vector256<short> v0 = Vector256.LoadAligned((short*)ptr);
-            Vector256<short> v1 = Vector256.LoadAligned((short*)ptr + Vector256<short>.Count);
-
-            // Avx2.PackUnsignedSaturate(Vector256.Create((short)1), Vector256.Create((short)2)) will result in
-            // 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2
-            // We want to swap the X and Y bits
-            // 1, 1, 1, 1, 1, 1, 1, 1, X, X, X, X, X, X, X, X, Y, Y, Y, Y, Y, Y, Y, Y, 2, 2, 2, 2, 2, 2, 2, 2
-            Vector256<byte> packed = Avx2.PackUnsignedSaturate(v0, v1);
-            return Avx2.Permute4x64(packed.AsInt64(), 0b_11_01_10_00).AsByte();
-        }
-
-        throw new UnreachableException("AVX2 or AVX512BW are not supported.");
-    }
 }

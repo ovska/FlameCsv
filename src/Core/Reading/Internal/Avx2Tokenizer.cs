@@ -92,53 +92,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         Vector256<byte> vector;
         Vector256<uint> indexVector;
+        vector = AsciiVector.Load(ref first, index);
+        indexVector = Vector256.Create((uint)index);
 
-        unsafe
-        {
-            nint alignmentT = 32;
-            nint alignmentBytes = alignmentT * sizeof(T);
-            nint addressBytes = (nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index));
-            nint remainderBytes = addressBytes & (alignmentBytes - 1);
-            nint remainderT = remainderBytes / sizeof(T); // bytes past last 64B boundary
-            nuint skipT = (nuint)((alignmentT - remainderT) & (alignmentT - 1));
-
-            if (skipT != 0)
-            {
-                Inline32<T> temp = default; // default zero-inits
-
-                ref T src = ref Unsafe.Add(ref first, index);
-                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainderT);
-                ref T end = ref Unsafe.Add(ref src, skipT);
-
-                do
-                {
-                    dst = src;
-                    src = ref Unsafe.Add(ref src, 1);
-                    dst = ref Unsafe.Add(ref dst, 1);
-                } while (Unsafe.IsAddressLessThan(in src, in end));
-
-                vector = AsciiVector.Load(ref temp.elem0, 0);
-
-                // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
-                indexVector = Vector256.Create((uint)index - (uint)remainderT);
-                index -= (nuint)remainderT;
-            }
-            else
-            {
-                vector = AsciiVector.LoadAligned256(ref first, index);
-                indexVector = Vector256.Create((uint)index);
-            }
-        }
-
-        Vector256<byte> nextVector = AsciiVector.LoadAligned256(ref first, index + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.Load(ref first, index + (nuint)Vector256<byte>.Count);
 
         do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetchVector = AsciiVector.LoadAligned256(
-                ref first,
-                index + (nuint)(2 * Vector256<byte>.Count)
-            );
+            Vector256<byte> prefetchVector = AsciiVector.Load(ref first, index + (nuint)(2 * Vector256<byte>.Count));
 
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
