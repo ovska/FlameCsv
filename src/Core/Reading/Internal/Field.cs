@@ -11,7 +11,7 @@ internal static class Field
 {
     /*
         00  - Delimiter
-        10  - EOL with length of 1
+        10  - EOL
         11  - CRLF
     */
 
@@ -38,10 +38,11 @@ internal static class Field
         // 10 → 1 lf
         // 11 → 2 crlf
 
-        uint eol = field >> 30;
-        uint end = field & EndMask;
-        uint offset = (eol & (eol >> 1));
-        return (int)(end + 1 + offset);
+        // end offset is always 1, except in CRLF cases
+        uint isCRLF = (field >> 30);
+        uint end = (field & EndMask);
+        uint bit = isCRLF & 1;
+        return (int)(bit + (end + 1));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
