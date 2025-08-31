@@ -37,7 +37,9 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
-        if ((data.Length - startIndex) < EndOffset)
+        Debug.Assert(data.Length <= Field.MaxFieldEnd);
+
+        if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
         }

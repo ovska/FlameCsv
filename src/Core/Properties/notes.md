@@ -618,43 +618,43 @@ Generic is now faster in all quoted paths, which is very odd.
 | V128   | False | True   | LF      |   421.5 us | 1.24 us |  1.00 |
 
 ## After correctness refactor
-| Method | Chars | Quoted | Newline      |       Mean |  StdDev | Ratio | Code Size |
-| ------ | ----- | ------ | ------------ | ---------: | ------: | ----: | --------: |
-| V128   | False | False  | LF           | 1,031.9 us | 4.00 us |  1.00 |     336 B |
-| Avx2   | False | False  | LF           |   909.7 us | 3.85 us |  0.88 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | False | False  | LF_With_CRLF | 1,347.0 us | 5.65 us |  1.00 |     336 B |
-| Avx2   | False | False  | LF_With_CRLF | 1,266.5 us | 7.42 us |  0.94 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | False | False  | CRLF         | 1,360.0 us | 4.83 us |  1.00 |     336 B |
-| Avx2   | False | False  | CRLF         | 1,276.0 us | 4.58 us |  0.94 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | False | True   | LF           |   425.1 us | 1.46 us |  1.00 |     336 B |
-| Avx2   | False | True   | LF           |   394.7 us | 1.56 us |  0.93 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | False | True   | LF_With_CRLF |   516.7 us | 1.71 us |  1.00 |     336 B |
-| Avx2   | False | True   | LF_With_CRLF |   502.7 us | 1.60 us |  0.97 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | False | True   | CRLF         |   516.8 us | 1.00 us |  1.00 |     336 B |
-| Avx2   | False | True   | CRLF         |   505.5 us | 1.16 us |  0.98 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | True  | False  | LF           | 1,205.8 us | 4.43 us |  1.00 |     336 B |
-| Avx2   | True  | False  | LF           | 1,105.5 us | 3.62 us |  0.92 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | True  | False  | LF_With_CRLF | 1,476.5 us | 5.57 us |  1.00 |     336 B |
-| Avx2   | True  | False  | LF_With_CRLF | 1,415.0 us | 6.55 us |  0.96 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | True  | False  | CRLF         | 1,490.6 us | 4.79 us |  1.00 |     336 B |
-| Avx2   | True  | False  | CRLF         | 1,408.0 us | 1.96 us |  0.94 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | True  | True   | LF           |   442.5 us | 0.38 us |  1.00 |     336 B |
-| Avx2   | True  | True   | LF           |   434.5 us | 1.63 us |  0.98 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | True  | True   | LF_With_CRLF |   529.1 us | 0.60 us |  1.00 |     336 B |
-| Avx2   | True  | True   | LF_With_CRLF |   523.5 us | 1.35 us |  0.99 |     336 B |
-|        |       |        |              |            |         |       |           |
-| V128   | True  | True   | CRLF         |   524.5 us | 1.40 us |  1.00 |     336 B |
-| Avx2   | True  | True   | CRLF         |   514.5 us | 1.88 us |  0.98 |     336 B |
+| Method | Chars | Quoted | Newline      |       Mean |  StdDev | Ratio |
+| ------ | ----- | ------ | ------------ | ---------: | ------: | ----: |
+| V128   | False | False  | LF           | 1,031.9 us | 4.00 us |  1.00 |
+| Avx2   | False | False  | LF           |   909.7 us | 3.85 us |  0.88 |
+|        |       |        |              |            |         |       |
+| V128   | False | False  | LF_With_CRLF | 1,347.0 us | 5.65 us |  1.00 |
+| Avx2   | False | False  | LF_With_CRLF | 1,266.5 us | 7.42 us |  0.94 |
+|        |       |        |              |            |         |       |
+| V128   | False | False  | CRLF         | 1,360.0 us | 4.83 us |  1.00 |
+| Avx2   | False | False  | CRLF         | 1,276.0 us | 4.58 us |  0.94 |
+|        |       |        |              |            |         |       |
+| V128   | False | True   | LF           |   425.1 us | 1.46 us |  1.00 |
+| Avx2   | False | True   | LF           |   394.7 us | 1.56 us |  0.93 |
+|        |       |        |              |            |         |       |
+| V128   | False | True   | LF_With_CRLF |   516.7 us | 1.71 us |  1.00 |
+| Avx2   | False | True   | LF_With_CRLF |   502.7 us | 1.60 us |  0.97 |
+|        |       |        |              |            |         |       |
+| V128   | False | True   | CRLF         |   516.8 us | 1.00 us |  1.00 |
+| Avx2   | False | True   | CRLF         |   505.5 us | 1.16 us |  0.98 |
+|        |       |        |              |            |         |       |
+| V128   | True  | False  | LF           | 1,205.8 us | 4.43 us |  1.00 |
+| Avx2   | True  | False  | LF           | 1,105.5 us | 3.62 us |  0.92 |
+|        |       |        |              |            |         |       |
+| V128   | True  | False  | LF_With_CRLF | 1,476.5 us | 5.57 us |  1.00 |
+| Avx2   | True  | False  | LF_With_CRLF | 1,415.0 us | 6.55 us |  0.96 |
+|        |       |        |              |            |         |       |
+| V128   | True  | False  | CRLF         | 1,490.6 us | 4.79 us |  1.00 |
+| Avx2   | True  | False  | CRLF         | 1,408.0 us | 1.96 us |  0.94 |
+|        |       |        |              |            |         |       |
+| V128   | True  | True   | LF           |   442.5 us | 0.38 us |  1.00 |
+| Avx2   | True  | True   | LF           |   434.5 us | 1.63 us |  0.98 |
+|        |       |        |              |            |         |       |
+| V128   | True  | True   | LF_With_CRLF |   529.1 us | 0.60 us |  1.00 |
+| Avx2   | True  | True   | LF_With_CRLF |   523.5 us | 1.35 us |  0.99 |
+|        |       |        |              |            |         |       |
+| V128   | True  | True   | CRLF         |   524.5 us | 1.40 us |  1.00 |
+| Avx2   | True  | True   | CRLF         |   514.5 us | 1.88 us |  0.98 |
 
 ## Avoid a shuffle in AVX2 path for upper lane
 
