@@ -40,19 +40,19 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
-    private const nuint MaxIndex = int.MaxValue / 2;
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
     {
-        if ((data.Length - startIndex) < EndOffset || (((nint)MaxIndex - EndOffset) <= startIndex))
+        Debug.Assert(data.Length <= Field.MaxFieldEnd);
+
+        if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
         }
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (uint)startIndex;
-        nuint searchSpaceEnd = Math.Min(MaxIndex, (nuint)data.Length) - (nuint)EndOffset;
+        nuint searchSpaceEnd = (nuint)data.Length - EndOffset;
         nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);

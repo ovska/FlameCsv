@@ -38,8 +38,6 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     private readonly T _quote;
     private readonly T _delimiter;
 
-    private const uint MaxIndex = int.MaxValue / 2;
-
     public Avx2Tokenizer(CsvOptions<T> options)
     {
         _quote = T.CreateTruncating(options.Quote);
@@ -49,7 +47,9 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
-        if ((uint)(data.Length - startIndex) < EndOffset || ((nint)(MaxIndex - EndOffset) <= startIndex))
+        Debug.Assert(data.Length <= Field.MaxFieldEnd);
+
+        if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
         }
@@ -61,7 +61,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (nuint)startIndex;
-        nuint searchSpaceEnd = (nuint)Math.Min(MaxIndex, data.Length) - EndOffset;
+        nuint searchSpaceEnd = (nuint)data.Length - EndOffset;
         nuint fieldEnd = (nuint)buffer.Fields.Length - (nuint)MaxFieldsPerIteration;
         nuint fieldIndex = 0;
 

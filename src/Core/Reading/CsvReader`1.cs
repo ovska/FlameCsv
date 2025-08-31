@@ -256,7 +256,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Attempt to read more data from the underlying data.
+    /// Attempt to read more data from the underlying data source.
     /// </summary>
     /// <returns>
     /// <c>true</c> if more data was read; otherwise <c>false</c>.
@@ -280,7 +280,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     }
 
     /// <inheritdoc cref="TryAdvanceReader"/>
-    // TODO: profile pooling task builder
     internal async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
@@ -317,8 +316,19 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SetReadResult(ref readonly CsvReadResult<T> result)
     {
-        _buffer = result.Buffer;
-        _state = result.IsCompleted ? State.ReaderCompleted : State.Reading;
+        (ReadOnlyMemory<T> buffer, bool isCompleted) = result;
+
+        // Check if the buffer length exceeds the maximum allowed length
+        // the field metadata cannot hold more than 30 bits of information, so split huge continous buffers
+        // into smaller chunks
+        if (buffer.Length > Field.MaxFieldEnd)
+        {
+            buffer = buffer.Slice(0, Field.MaxFieldEnd);
+            isCompleted = false;
+        }
+
+        _buffer = buffer;
+        _state = isCompleted ? State.ReaderCompleted : State.Reading;
         if (typeof(T) == typeof(byte) && _skipBOM)
             TrySkipBOM();
     }

@@ -9,6 +9,8 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Field
 {
+    public const int MaxFieldEnd = (int)EndMask;
+
     /*
         00  - Delimiter
         10  - EOL

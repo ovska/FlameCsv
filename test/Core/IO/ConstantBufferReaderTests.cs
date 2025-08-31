@@ -10,6 +10,27 @@ namespace FlameCsv.Tests.IO;
 public static class ConstantBufferReaderTests
 {
     [Fact]
+    public static void Should_Handle_Partials_Advances()
+    {
+        using var reader = new ConstantBufferReader<char>("test".AsMemory());
+        var result = reader.Read();
+        Assert.Equal("test", result.Buffer.ToString());
+        Assert.True(result.IsCompleted);
+
+        reader.Advance(2);
+
+        result = reader.Read();
+        Assert.Equal("st", result.Buffer.ToString());
+        Assert.True(result.IsCompleted);
+
+        reader.Advance(2);
+
+        result = reader.Read();
+        Assert.Empty(result.Buffer.ToArray());
+        Assert.True(result.IsCompleted);
+    }
+
+    [Fact]
     public static void Should_Validate_Arg()
     {
         using var reader = new ConstantBufferReader<char>("test".AsMemory());
