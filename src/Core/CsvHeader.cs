@@ -165,7 +165,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         if (ReferenceEquals(this, other))
             return true;
 
-        if (other.Comparer != Comparer)
+        if (!Equals(other.Comparer, Comparer))
             return false;
 
         return Values.AsSpan().SequenceEqual(other.Values.AsSpan(), Comparer);

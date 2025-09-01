@@ -101,8 +101,8 @@ internal static class UtilityExtensions
                 case '\\':
                     sb.Append(@"\\");
                     break;
-                case char v when v is < (char)32 or (char)127:
-                    sb.Append($@"\u{(uint)v:X4}");
+                case < (char)32 or (char)127:
+                    sb.Append($@"\u{(uint)c:X4}");
                     break;
                 default:
                     sb.Append(c);

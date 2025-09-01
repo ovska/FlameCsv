@@ -1,9 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading.Unescaping;
 

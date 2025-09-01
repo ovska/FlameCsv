@@ -25,7 +25,7 @@ internal static class Field
     /// <summary>
     /// Flag for CRLF (two-character EOL)
     /// </summary>
-    public const uint IsCRLF = unchecked((uint)(0b11 << 30));
+    public const uint IsCRLF = 0b11u << 30;
 
     /// <summary>
     /// Mask for the end index of the field.
@@ -170,7 +170,7 @@ internal static class Field
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsEscape(byte quote) => (quote & 0x80) != 0;
+    private static bool IsEscape(byte quote) => quote > 127; // msb
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsSaturated(byte quote) => (quote & 0x7F) == 0x7F;

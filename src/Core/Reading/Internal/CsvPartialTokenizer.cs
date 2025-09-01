@@ -105,19 +105,19 @@ internal abstract class CsvPartialTokenizer<T>
 
         if (previous == T.CreateTruncating('\r'))
         {
-            FieldFlag flag;
+            uint flag;
 
             if (Unsafe.Add(ref previous, 1) == T.CreateTruncating('\n'))
             {
-                flag = FieldFlag.CRLF;
+                flag = Field.IsCRLF;
                 maskControl &= maskControl - TMask.One;
             }
             else
             {
-                flag = FieldFlag.EOL;
+                flag = Field.IsEOL;
             }
 
-            Unsafe.Add(ref fieldRef, fieldIndex) = index | (uint)flag;
+            Unsafe.Add(ref fieldRef, fieldIndex) = index | flag;
             Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Min(quotesConsumed, 127);
 
             fieldIndex++;
@@ -148,7 +148,7 @@ internal abstract class CsvPartialTokenizer<T>
             TMask quoteBits = maskQuote & maskUpToPos;
 
             ref T token = ref Unsafe.Add(ref first, value);
-            FieldFlag flag = FieldFlag.None;
+            uint flag = 0;
 
             quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
@@ -156,19 +156,19 @@ internal abstract class CsvPartialTokenizer<T>
             {
                 if (Bithacks.IsCRLF(ref token))
                 {
-                    flag = FieldFlag.CRLF;
+                    flag = Field.IsCRLF;
                     maskUpToPos = (maskUpToPos << 1) | TMask.One;
                 }
                 else
                 {
-                    flag = FieldFlag.EOL;
+                    flag = Field.IsEOL;
                 }
             }
 
             maskControl &= ~maskUpToPos;
             maskQuote &= ~maskUpToPos;
 
-            Unsafe.Add(ref fieldRef, fieldIndex) = value | (uint)flag;
+            Unsafe.Add(ref fieldRef, fieldIndex) = value | flag;
             Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Min(quotesConsumed, 127);
             quotesConsumed = 0;
             fieldIndex++;
