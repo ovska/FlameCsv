@@ -258,8 +258,6 @@ partial class EnumConverterGenerator
                         }
                         else
                         {
-                            int groupLength = lengthGroup.Count();
-
                             List<Entry> caseAgnosticValues = PooledList<Entry>.Acquire();
                             List<Entry> complexValues = PooledList<Entry>.Acquire();
 
@@ -269,7 +267,7 @@ partial class EnumConverterGenerator
                                 (entry.Name.IsCaseAgnostic() ? caseAgnosticValues : complexValues).Add(entry);
                             }
 
-                            if (caseAgnosticValues.Count() != 0)
+                            if (caseAgnosticValues.Count != 0)
                             {
                                 bool allHandled = complexValues.Count == 0;
 
@@ -731,7 +729,7 @@ partial class EnumConverterGenerator
     private static void WriteSwitchTwoCharacters(
         EnumModel model,
         IndentedTextWriter writer,
-        IEnumerable<(string name, BigInteger value)> values,
+        IGrouping<int, (string name, BigInteger value)> values,
         CancellationToken cancellationToken
     )
     {
@@ -739,7 +737,7 @@ partial class EnumConverterGenerator
 
         writer.DebugLine(nameof(WriteSwitchTwoCharacters));
 
-        if (values.Select(v => (char?)v.name[0]).Aggregate((a, b) => a == b ? a : null) is char sharedFirstChar)
+        if (values.Select(v => (char?)v.name[0]).Aggregate((a, b) => a == b ? a : null) is { } sharedFirstChar)
         {
             writer.DebugLine("All cases share the same first character");
             writer.WriteLine($"if (first == {sharedFirstChar.ToCharLiteral()})");
@@ -758,20 +756,11 @@ partial class EnumConverterGenerator
             return;
         }
 
-        string type = model.IsByte ? "ushort" : "uint";
-
         writer.Write("switch (__BP.ReadUInt");
         writer.Write(model.IsByte ? "16" : "32");
         writer.Write("LittleEndian(");
 
-        if (model.IsByte)
-        {
-            writer.Write("source");
-        }
-        else
-        {
-            writer.Write("__MemoryMarshal.Cast<char, byte>(source)");
-        }
+        writer.Write(model.IsByte ? "source" : "__MemoryMarshal.Cast<char, byte>(source)");
 
         writer.WriteLine("))");
 
@@ -878,7 +867,7 @@ partial class EnumConverterGenerator
     /// <param name="writer">Writer</param>
     /// <param name="entry">Entry to write</param>
     /// <param name="offset">Offset from the start of the input</param>
-    private static int WriteByteAsciiLowercaseCheckVectorized(IndentedTextWriter writer, in Entry entry, int offset)
+    private static void WriteByteAsciiLowercaseCheckVectorized(IndentedTextWriter writer, in Entry entry, int offset)
     {
         const int width = 128 / 8;
 
@@ -909,8 +898,6 @@ partial class EnumConverterGenerator
         {
             writer.Write(" | __Vector128.Create((byte)0x20))");
         }
-
-        return 128 / 8;
     }
 
     /// <summary>

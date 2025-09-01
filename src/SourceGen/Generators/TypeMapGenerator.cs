@@ -30,7 +30,6 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
                 )
                 .Where(static tuple => tuple.ContainingClass.CanBeReferencedByName)
                 .WithTrackingName("FlameCsv_Target")
-#if SOURCEGEN_USE_COMPILATION
                 .Combine(context.CompilationProvider.WithTrackingName("FlameCsv_Compilation"))
                 .Select(
                     static (tuple, cancellationToken) =>
@@ -46,21 +45,6 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
                         return (typeMap, diagnostics);
                     }
                 )
-#else
-                .Select(
-                    static (value, cancellationToken) =>
-                    {
-                        var typeMap = new TypeMapModel(
-                            containingClass: value.ContainingClass,
-                            attribute: value.Attribute,
-                            cancellationToken,
-                            out EquatableArray<Diagnostic> diagnostics
-                        );
-
-                        return (typeMap, diagnostics);
-                    }
-                )
-#endif
                 .WithTrackingName("FlameCsv_TypeMapAndDiagnostics");
 
         context.RegisterSourceOutput(

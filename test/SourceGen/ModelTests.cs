@@ -795,9 +795,7 @@ public class ModelTests(MetadataFixture fixture)
     private static FlameSymbols GetFlameSymbols(Compilation compilation, ITypeSymbol arg, bool isChar = true)
     {
         return new FlameSymbols(
-#if SOURCEGEN_USE_COMPILATION
             compilation,
-#endif
             tokenType: compilation.GetTypeByMetadataName(isChar ? "System.Char" : "System.Byte")!,
             arg
         );
