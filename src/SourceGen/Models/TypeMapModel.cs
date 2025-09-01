@@ -1,6 +1,5 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
-using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -53,11 +52,6 @@ internal sealed record TypeMapModel
     public EquatableArray<IMemberModel> AllMembers { get; }
 
     /// <summary>
-    /// Whether to scan for assembly attributes.
-    /// </summary>
-    public bool SupportsAssemblyAttributes { get; }
-
-    /// <summary>
     /// Wrapping types if the typemap is nested, empty otherwise.
     /// </summary>
     public EquatableArray<NestedType> WrappingTypes { get; }
@@ -94,9 +88,7 @@ internal sealed record TypeMapModel
     public bool HasRequiredMembers => AllMembers.AsImmutableArray().Any(static m => m.IsRequired);
 
     public TypeMapModel(
-#if SOURCEGEN_USE_COMPILATION
         Compilation compilation,
-#endif
         INamedTypeSymbol containingClass,
         AttributeData attribute,
         CancellationToken cancellationToken,
@@ -109,17 +101,10 @@ internal sealed record TypeMapModel
         ITypeSymbol targetType = attribute.AttributeClass.TypeArguments[1];
 
         AnalysisCollector collector = new(targetType);
-        FlameSymbols symbols = new(
-#if SOURCEGEN_USE_COMPILATION
-            compilation,
-#endif
-            tokenSymbol, targetType);
+        FlameSymbols symbols = new(compilation, tokenSymbol, targetType);
 
         IsByte = tokenSymbol.SpecialType == SpecialType.System_Byte;
         Type = new TypeRef(targetType);
-
-        SupportsAssemblyAttributes =
-            attribute.TryGetNamedArgument("SupportsAssemblyAttributes", out var saa) && saa.Value is true;
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -128,30 +113,25 @@ internal sealed record TypeMapModel
 
         ConstructorModel? typeConstructor = null;
 
-        if (SupportsAssemblyAttributes)
+        foreach (var attr in compilation.Assembly.GetAttributes())
         {
-#if SOURCEGEN_USE_COMPILATION
-            foreach (var attr in compilation.Assembly.GetAttributes())
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var model = AttributeConfiguration.TryCreate(isOnAssembly: true, attr, in symbols, ref collector);
+
+            if (model is not null)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var model = AttributeConfiguration.TryCreate(isOnAssembly: true, attr, in symbols, ref collector);
-
-                if (model is not null)
-                {
-                    collector.TargetAttributes.Add(model.Value);
-                }
-                else
-                {
-                    typeConstructor ??= ConstructorModel.TryParseConstructorAttribute(
-                        isOnAssembly: true,
-                        targetType,
-                        attr,
-                        in symbols
-                    );
-                }
+                collector.TargetAttributes.Add(model.Value);
             }
-#endif
+            else
+            {
+                typeConstructor ??= ConstructorModel.TryParseConstructorAttribute(
+                    isOnAssembly: true,
+                    targetType,
+                    attr,
+                    in symbols
+                );
+            }
         }
 
         foreach (var attr in targetType.GetAttributes())

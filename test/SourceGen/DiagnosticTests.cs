@@ -1,4 +1,3 @@
-using Basic.Reference.Assemblies;
 using FlameCsv.SourceGen;
 using FlameCsv.SourceGen.Generators;
 using Microsoft.CodeAnalysis;
@@ -515,7 +514,7 @@ public class DiagnosticTests(MetadataFixture fixture)
             """
             [assembly: CsvHeader("value", TargetType = typeof(Obj))]
 
-            [CsvTypeMap<char, Obj>(SupportsAssemblyAttributes = true)]
+            [CsvTypeMap<char, Obj>]
             partial class ObjTypeMap;
 
             class Obj
@@ -534,7 +533,7 @@ public class DiagnosticTests(MetadataFixture fixture)
             """
             [assembly: CsvHeader("value")]
 
-            [CsvTypeMap<char, Obj>(SupportsAssemblyAttributes = true)]
+            [CsvTypeMap<char, Obj>]
             partial class ObjTypeMap;
 
             class Obj
@@ -548,19 +547,19 @@ public class DiagnosticTests(MetadataFixture fixture)
 
     private void AssertDiagnostic(string source, DiagnosticDescriptor[] diagnostics, bool enumGen = false)
     {
-        Array.Sort(diagnostics, (x, y) => x.Id.CompareTo(y.Id));
+        Array.Sort(diagnostics, (x, y) => x.Id.CompareTo(y.Id, StringComparison.Ordinal));
 
         CSharpCompilation compilation = CSharpCompilation.Create(
             "TestProject",
             [
                 CSharpSyntaxTree.ParseText(
-                    $$"""
+                    $"""
                     using System;
                     using FlameCsv;
                     using FlameCsv.Attributes;
                     using FlameCsv.Binding;
 
-                    {{source}}
+                    {source}
                     """,
                     cancellationToken: TestContext.Current.CancellationToken
                 ),

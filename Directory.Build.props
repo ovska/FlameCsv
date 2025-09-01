@@ -5,7 +5,6 @@
         <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <DefineConstants>$(DefineConstants);SOURCEGEN_USE_COMPILATION</DefineConstants>
         <IncludeInternalsVisibleTo Condition="'$(IncludeInternalsVisibleTo)' == ''">true</IncludeInternalsVisibleTo>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)FlameCsv.snk</AssemblyOriginatorKeyFile>
