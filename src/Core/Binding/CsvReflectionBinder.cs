@@ -95,7 +95,7 @@ public abstract class CsvReflectionBinder
             bindingCollection = GetWriteHeaders<T, TValue>(options);
         }
         else if (
-            !MaterializerExtensions.TryGetTupleBindings<T, TValue>(options, write: true, out bindingCollection)
+            !MaterializerExtensions.TryGetTupleBindings(options, write: true, out bindingCollection)
             && !IndexAttributeBinder<TValue>.TryGetBindings(write: true, out bindingCollection)
         )
         {

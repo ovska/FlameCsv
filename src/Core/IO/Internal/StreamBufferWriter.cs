@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
-[DebuggerDisplay("[CsvStreamBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
+[DebuggerDisplay("[StreamBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
 internal sealed class StreamBufferWriter : CsvBufferWriter<byte>
 {
     private readonly Stream _stream;

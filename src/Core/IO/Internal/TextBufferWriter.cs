@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.IO.Internal;
 
-[DebuggerDisplay("[CsvCharBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
+[DebuggerDisplay("[TextBufferWriter] Written: {_unflushed} / {_buffer.Length})")]
 internal sealed class TextBufferWriter : CsvBufferWriter<char>
 {
     private readonly TextWriter _writer;

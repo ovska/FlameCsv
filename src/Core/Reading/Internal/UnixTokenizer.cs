@@ -70,7 +70,7 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
             {
                 bool isEOL = current != _delimiter;
                 int newlineLength = _newlineLength;
-                FieldFlag flag = isEOL ? FieldFlag.EOL : FieldFlag.None;
+                uint flag = isEOL ? Field.IsEOL : 0;
 
                 if (
                     isEOL
@@ -80,16 +80,16 @@ internal class UnixTokenizer<T> : CsvTokenizer<T>
                     && data[index + 1] == _newlineSecond
                 )
                 {
-                    flag = FieldFlag.CRLF;
+                    flag = Field.IsCRLF;
                 }
 
-                fields[fieldIndex] = (uint)index | (uint)flag;
+                fields[fieldIndex] = (uint)index | flag;
                 flags[fieldIndex] = GetQuoteFlag(quotesConsumed, escapesConsumed);
 
                 fieldIndex++;
                 quotesConsumed = 0;
                 escapesConsumed = 0;
-                index += (flag == FieldFlag.CRLF) ? 2 : 1;
+                index += (flag == Field.IsCRLF) ? 2 : 1;
 
                 continue;
             }

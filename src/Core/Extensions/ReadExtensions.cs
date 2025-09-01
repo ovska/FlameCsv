@@ -18,7 +18,7 @@ internal static class ReadExtensions
             128 => vector.AsVector128().ExtractMostSignificantBits(),
             256 => vector.AsVector256().ExtractMostSignificantBits(),
             512 when nuint.Size is 8 => (nuint)vector.AsVector512().ExtractMostSignificantBits(),
-            int s => throw new NotSupportedException($"Unsupported vector size {s}."),
+            var s => throw new NotSupportedException($"Unsupported vector size {s}."),
         };
     }
 

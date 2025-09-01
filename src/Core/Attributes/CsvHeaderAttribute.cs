@@ -66,7 +66,7 @@ public sealed class CsvHeaderAttribute : CsvFieldConfigurationAttribute
     /// </summary>
     public CsvHeaderAttribute() { }
 
-    private static void ValidateAliases([NotNull] string[] aliases)
+    private static void ValidateAliases(string[] aliases)
     {
         ArgumentNullException.ThrowIfNull(aliases);
 

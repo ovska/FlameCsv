@@ -134,21 +134,14 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
 
             FoundNonQuote:
 
+            uint flag = TNewline.GetNewlineFlag(delimiter, ref Unsafe.Add(ref first, runningIndex));
             Field.SaturateTo7Bits(ref quotesConsumed);
 
-            // TODO FIXME
-            uint increment = 1u;
-            FieldFlag flag = TNewline.IsNewline<T, IncrementMaskClear>(
-                delimiter,
-                ref Unsafe.Add(ref first, runningIndex),
-                ref increment
-            );
-
-            Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | (uint)flag;
+            Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | flag;
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             quotesConsumed = 0;
-            runningIndex += increment;
+            runningIndex += (1 + ((flag >> 30) & 1));
             continue;
 
             FoundQuote:
