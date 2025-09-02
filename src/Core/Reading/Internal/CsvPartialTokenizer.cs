@@ -110,7 +110,7 @@ internal abstract class CsvPartialTokenizer<T>
             if (Unsafe.Add(ref previous, 1) == T.CreateTruncating('\n'))
             {
                 flag = Field.IsCRLF;
-                maskControl &= maskControl - TMask.One;
+                maskControl = Bithacks.ResetLowestSetBit(maskControl);
             }
             else
             {

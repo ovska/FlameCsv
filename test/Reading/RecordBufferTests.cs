@@ -2,15 +2,12 @@
 
 namespace FlameCsv.Tests.Reading;
 
-public class MetaBufferTests
+public class RecordBufferTests
 {
     [Fact]
     public void Should_Read_Fields()
     {
-        // Assert.Skip("Should not re-parse leftover fields");
-
-        // this will leak some arrays from pool but that's fine for a test
-        RecordBuffer buffer = new();
+        using RecordBuffer buffer = new();
         uint[] array =
         [
             /**/
@@ -28,6 +25,7 @@ public class MetaBufferTests
             default,
         ];
 
+        uint[] poolArray = buffer.GetFieldArrayRef();
         buffer.GetFieldArrayRef() = array;
 
         buffer.SetFieldsRead(8);
@@ -36,7 +34,6 @@ public class MetaBufferTests
         Assert.Equal(array[..5].AsSpan(), view.Fields);
 
         // first 8 (+ startofdata) were read
-        // TODO! don't re-parse
         Assert.Equal(3, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
         Assert.Equal(41, startIndex);
 
@@ -50,5 +47,7 @@ public class MetaBufferTests
         buffer.SetFieldsRead(1);
         Assert.True(buffer.TryPop(out view));
         Assert.Equal(array[..6].AsSpan(), view.Fields);
+
+        buffer.GetFieldArrayRef() = poolArray;
     }
 }

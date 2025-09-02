@@ -3,9 +3,12 @@
 namespace FlameCsv;
 
 /// <summary>
-/// Flags enumeration that determines when CSV fields should be wrapped in quotes when writing.<br/>
-/// Multiple flags can be combined to apply several quoting rules.
+/// Flags enumeration that determines when CSV fields should be wrapped in quotes when writing.
 /// </summary>
+/// <remarks>
+/// Multiple flags can be combined to apply several quoting rules. To quote both empty fields and those
+/// that contain control characters, use <c>CsvFieldQuoting.Empty | CsvFieldQuoting.Auto</c>.
+/// </remarks>
 [Flags]
 [PublicAPI]
 public enum CsvFieldQuoting
@@ -19,7 +22,7 @@ public enum CsvFieldQuoting
     Never = 0,
 
     /// <summary>
-    /// Quote fields that contain special characters (delimiters, quotes, newlines, or escapes).
+    /// Quote fields that contain control characters (delimiters, quotes, newlines, or escapes).
     /// This is the default behavior.
     /// </summary>
     Auto = 1 << 0,

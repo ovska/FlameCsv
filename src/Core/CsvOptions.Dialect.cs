@@ -52,7 +52,7 @@ public partial class CsvOptions<T>
     private CsvFieldTrimming _trimming;
 
     /// <summary>
-    /// The separator character between CSV fields. Default value is <c>,</c>.
+    /// The separator character between CSV fields. Default value: <c>,</c>
     /// </summary>
     public char Delimiter
     {
@@ -65,7 +65,7 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Characted used to quote strings containing special characters. Default value is <c>"</c>.
+    /// Characted used to quote strings containing control characters. Default value: <c>"</c>
     /// </summary>
     public char Quote
     {
@@ -78,7 +78,7 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Optional character used for escaping special characters.
+    /// Optional character used for escaping control characters.
     /// The default value is null, which means RFC4180 escaping (quotes) is used.
     /// </summary>
     public char? Escape

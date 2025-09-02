@@ -9,37 +9,9 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class AsciiVector
 {
-    public const int Count = 32;
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
-    public static Vector256<byte> Create<T>(T value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return value switch
-        {
-            byte b => Vector256.Create(b),
-            char c => Vector256.Create((byte)c),
-            _ => throw Token<T>.NotSupported,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static Vector512<byte> Create512<T>(T value)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return value switch
-        {
-            byte b => Vector512.Create(b),
-            char c => Vector512.Create((byte)c),
-            _ => throw Token<T>.NotSupported,
-        };
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static Vector256<byte> Load<T>(ref T source, nuint offset)
+    public static Vector256<byte> Load256<T>(ref T source, nuint offset)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (typeof(T) == typeof(byte))
@@ -64,14 +36,6 @@ internal static class AsciiVector
             ref Unsafe.As<T, short>(ref source),
             offset + (nuint)Vector256<short>.Count
         );
-
-        if (Avx512BW.VL.IsSupported)
-        {
-            return Vector256.Create(
-                Avx512BW.VL.ConvertToVector128ByteWithSaturation(v0.AsUInt16()),
-                Avx512BW.VL.ConvertToVector128ByteWithSaturation(v1.AsUInt16())
-            );
-        }
 
         if (Avx2.IsSupported)
         {
@@ -124,7 +88,8 @@ internal static class AsciiVector
             Vector256<ushort> upper = Vector256.Min(v1.AsUInt16(), max);
             return Vector256.Narrow(lower, upper);
         }
-        else if (Vector128.IsHardwareAccelerated)
+
+        if (Vector128.IsHardwareAccelerated)
         {
             Vector128<ushort> max = Vector128.Create((ushort)127);
             Vector128<byte> lower = Vector128.Narrow(

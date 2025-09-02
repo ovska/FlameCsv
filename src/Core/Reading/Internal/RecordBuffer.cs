@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Intrinsics;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 using static FlameCsv.Reading.Internal.Field;
@@ -117,7 +118,7 @@ internal sealed class RecordBuffer : IDisposable
 
         nuint idx = 0;
 
-        if (Vector.IsHardwareAccelerated && Vector<byte>.Count <= 64)
+        if (Vector.IsHardwareAccelerated && Vector<byte>.Count is (16 or 32 or 64))
         {
             nint unrolledEnd = end - (2 * Vector<int>.Count);
 
@@ -125,17 +126,15 @@ internal sealed class RecordBuffer : IDisposable
 
             while (pos <= unrolledEnd)
             {
-                Vector<uint> next = Vector.LoadUnsafe(ref field, (nuint)pos + (nuint)Vector<uint>.Count);
-
                 // eol is stored in the MSB so we only need to load and extract
                 nuint positions = vector.MoveMask();
 
-                vector = next;
+                vector = Vector.LoadUnsafe(ref field, (nuint)pos + (nuint)Vector<uint>.Count);
 
                 while (positions != 0)
                 {
                     int bit = BitOperations.TrailingZeroCount(positions);
-                    positions &= (positions - 1); // blsr
+                    positions = Bithacks.ResetLowestSetBit(positions);
                     Unsafe.Add(ref eol, idx++) = (ushort)(pos + bit + 1);
                 }
 
@@ -215,7 +214,7 @@ internal sealed class RecordBuffer : IDisposable
             // TODO: simd?
             foreach (ref uint value in buffer)
             {
-                uint flags = value & IsEOL;
+                uint flags = value & ~EndMask;
                 uint shiftedEnd = (value & EndMask) - (uint)offset;
                 value = shiftedEnd | flags;
             }

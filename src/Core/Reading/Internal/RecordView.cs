@@ -63,22 +63,4 @@ internal readonly struct RecordView
                 Count
             );
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<uint> GetFieldsForRef()
-    {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), Start + 1),
-            Count - 1
-        );
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ReadOnlySpan<byte> GetQuotesForRef()
-    {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_quotes), Start + 1),
-            Count - 1
-        );
-    }
 }

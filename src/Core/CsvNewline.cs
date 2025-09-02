@@ -9,7 +9,7 @@ namespace FlameCsv;
 public enum CsvNewline : byte
 {
     /// <summary>
-    /// Read and write <c>\r\n</c> as the newline character.
+    /// Read any of <c>\r\n</c>, <c>\n</c> and <c>\r</c>; write <c>\r\n</c>.
     /// </summary>
     /// <remarks>
     /// A lone <c>\n</c> or <c>\r</c> will be treated as a newline character when reading for compatibility.
@@ -17,13 +17,15 @@ public enum CsvNewline : byte
     CRLF = 0,
 
     /// <summary>
-    /// Read and write only <c>\n</c> as the newline character.
+    /// Read and write only <c>\n</c>.
     /// </summary>
+    /// <remarks>
+    /// You can get a performance boost by using this when you know that your data only contains <c>\n</c> newlines.
+    /// </remarks>
     LF = 1,
 
     /// <summary>
-    /// Use either <see cref="CRLF"/> or <see cref="LF"/> depending on <see cref="Environment.NewLine"/>.<br/>
-    /// This will be <c>\r\n</c> on Windows and <c>\n</c> on Unix-like systems.
+    /// Use either <see cref="CRLF"/> or <see cref="LF"/> depending on <see cref="Environment.NewLine"/>.
     /// </summary>
     /// <remarks>
     /// Platform detected <c>\r\n</c> has the same semantics as <see cref="CRLF"/>.
