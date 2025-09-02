@@ -68,7 +68,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
         Vector256<byte> vecCR = TNewline.IsCRLF ? Vector256.Create((byte)'\r') : default;
 
-        Vector256<byte> vector = AsciiVector.Load(ref first, index);
+        Vector256<byte> vector = AsciiVector.Load256(ref first, index);
 
         Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
         Vector256<byte> hasCR = TNewline.IsCRLF ? Vector256.Equals(vector, vecCR) : default;
@@ -81,12 +81,12 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         uint maskLF = hasLF.ExtractMostSignificantBits();
         uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
-        Vector256<byte> nextVector = AsciiVector.Load(ref first, index + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
 
         do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetchVector = AsciiVector.Load(ref first, index + (nuint)(2 * Vector256<byte>.Count));
+            Vector256<byte> prefetchVector = AsciiVector.Load256(ref first, index + (nuint)(2 * Vector256<byte>.Count));
 
             Unsafe.SkipInit(out uint shiftedCR); // this can be garbage on LF, it's never used
 

@@ -68,7 +68,15 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
     public override bool TryFormat(Span<T> destination, bool value, out int charsWritten)
     {
         ReadOnlySpan<T> span = value ? GetFromT(_firstTrue) : GetFromT(_firstFalse);
-        return span.TryCopyTo(destination, out charsWritten);
+
+        if (span.TryCopyTo(destination))
+        {
+            charsWritten = span.Length;
+            return true;
+        }
+
+        charsWritten = 0;
+        return false;
     }
 
     public override bool TryParse(ReadOnlySpan<T> source, out bool value)
@@ -144,6 +152,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
         );
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ReadOnlySpan<T> GetFromT(object value)
     {
         if (typeof(T) == typeof(char))

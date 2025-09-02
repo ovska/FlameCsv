@@ -92,15 +92,15 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         Vector256<byte> vector;
         Vector256<uint> indexVector;
-        vector = AsciiVector.Load(ref first, index);
+        vector = AsciiVector.Load256(ref first, index);
         indexVector = Vector256.Create((uint)index);
 
-        Vector256<byte> nextVector = AsciiVector.Load(ref first, index + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
 
         do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetchVector = AsciiVector.Load(ref first, index + (2 * (nuint)Vector256<byte>.Count));
+            Vector256<byte> prefetchVector = AsciiVector.Load256(ref first, index + (2 * (nuint)Vector256<byte>.Count));
 
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);

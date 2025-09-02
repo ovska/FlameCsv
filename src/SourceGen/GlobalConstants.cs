@@ -22,9 +22,6 @@ internal static class GlobalConstants
     public const string NoInliningAttr =
         "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]";
 
-    public const string AggressiveInliningAttr =
-        "[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]";
-
     public const string DoesNotReturnAttr = "[global::System.Diagnostics.CodeAnalysis.DoesNotReturn]";
 
     public const string EditorBrowsableAttr =

@@ -111,14 +111,6 @@ internal static class UtilityExtensions
         }
     }
 
-    public static ReadOnlySpan<T> AsSpanUnsafe<T>(this ArraySegment<T> segment, int offset = 0)
-    {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(segment.Array!), segment.Offset + offset),
-            segment.Count - offset
-        );
-    }
-
     public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters)
         where T : class
     {

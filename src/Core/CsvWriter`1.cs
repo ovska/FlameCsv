@@ -398,7 +398,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             foreach (var segment in record._fields)
             {
                 WriteDelimiterIfNeeded();
-                _inner.WriteRaw(segment.AsSpanUnsafe(), skipEscaping: false);
+                _inner.WriteRaw(segment, skipEscaping: false);
                 FieldIndex++;
             }
         }

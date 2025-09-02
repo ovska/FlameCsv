@@ -15,7 +15,7 @@ internal interface IIndexOfUnescaper<T>
     int FindNext(ReadOnlySpan<T> value);
 
     /// <summary>
-    /// Ensure that all special characters have been consumed.
+    /// Ensure that all control characters have been consumed.
     /// </summary>
     void ValidateState(ReadOnlySpan<T> field);
 }

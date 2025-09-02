@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
-using FlameCsv.Extensions;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Converters.Enums;
@@ -78,15 +77,21 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
     /// <inheritdoc/>
     public override OperationStatus TryFormat(Span<T> destination, TEnum value, out int charsWritten)
     {
+        charsWritten = 0;
+
         // fast path for zero
         if (EqualityComparer<TEnum>.Default.Equals(value, default))
         {
-            return Zero.TryCopyTo(destination, out charsWritten)
-                ? OperationStatus.Done
-                : OperationStatus.DestinationTooSmall;
-        }
+            ReadOnlySpan<T> zero = Zero;
 
-        charsWritten = 0;
+            if (zero.TryCopyTo(destination))
+            {
+                charsWritten = zero.Length;
+                return OperationStatus.Done;
+            }
+
+            return OperationStatus.DestinationTooSmall;
+        }
 
         // refer to number formatting if the value contains any bit not defined in the enum type
         if (!AllFlagsDefined(value))

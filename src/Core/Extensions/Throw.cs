@@ -83,12 +83,6 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unreachable_AlreadyHasHeader()
-    {
-        throw new UnreachableException("The header record has already been read.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Unreachable(string? message)
     {
         throw new UnreachableException(message);

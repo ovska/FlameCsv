@@ -3,7 +3,7 @@
 namespace FlameCsv.Writing.Escaping;
 
 /// <summary>
-/// Provides tokens and methods to escape special characters when quoting fields.
+/// Provides tokens and methods to escape control characters when quoting fields.
 /// </summary>
 internal interface IEscaper<T>
     where T : unmanaged, IBinaryInteger<T>
@@ -27,11 +27,11 @@ internal interface IEscaper<T>
     int LastIndexOfEscapable(scoped ReadOnlySpan<T> value);
 
     /// <summary>
-    /// Counts the number of special characters in the span. Using RFC4180 mode, this counts quotes.
+    /// Counts the number of control characters in the span. Using RFC4180 mode, this counts quotes.
     /// In unix mode, counts both quotes and escapes.
     /// </summary>
-    /// <param name="field">The span to search for special characters.</param>
-    /// <returns>The number of special characters found.</returns>
+    /// <param name="field">The span to search for control characters.</param>
+    /// <returns>The number of control characters found.</returns>
     /// <remarks>Called after <see cref="CsvOptions{T}.NeedsQuoting"/> matches a token.</remarks>
     [Pure]
     int CountEscapable(scoped ReadOnlySpan<T> field);
