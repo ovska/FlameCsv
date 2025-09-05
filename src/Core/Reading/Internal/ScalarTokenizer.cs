@@ -141,7 +141,14 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             quotesConsumed = 0;
-            runningIndex += (1 + ((flag >> 30) & 1));
+            if (TNewline.IsCRLF)
+            {
+                runningIndex += (1 + ((flag >> 30) & 1));
+            }
+            else
+            {
+                runningIndex++;
+            }
             continue;
 
             FoundQuote:
