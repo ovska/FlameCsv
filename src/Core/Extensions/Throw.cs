@@ -71,12 +71,6 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void NotSupported_SyncRead(object reader)
-    {
-        throw new NotSupportedException($"{reader.GetType().FullName} does not support synchronous reads.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ObjectDisposed_Enumeration()
     {
         throw new ObjectDisposedException(null, "The CSV enumeration has already completed.");

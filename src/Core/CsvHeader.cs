@@ -1,5 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
+using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -35,35 +36,19 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         CsvRecordRef<T> record = new(in slice);
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
-        Span<char> charBuffer = stackalloc char[128];
+        EnumeratorStack stack = new();
+        Span<char> buffer = ((Span<byte>)stack).Cast<byte, char>();
 
         for (int field = 0; field < record.FieldCount; field++)
         {
-            list.Append(Get(record[field], charBuffer));
+            ReadOnlySpan<T> value = record[field];
+            string result = Transcode.TryToChars(value, buffer, out int length)
+                ? HeaderPool.GetOrAdd(buffer.Slice(0, length))
+                : Transcode.ToString(value);
+            list.Append(result);
         }
 
         return [.. list.AsSpan()];
-    }
-
-    /// <summary>
-    /// Retrieves a string representation of the given value using the provided options.
-    /// </summary>
-    /// <param name="value">The header field.</param>
-    /// <param name="buffer">A buffer to write the characters to.</param>
-    /// <returns>
-    /// A string representation of the value.
-    /// The value is pooled in <see cref="HeaderPool"/> if the chars fit in the buffer.
-    /// </returns>
-    [EditorBrowsable(EditorBrowsableState.Advanced)]
-    public static string Get<T>(scoped ReadOnlySpan<T> value, scoped Span<char> buffer)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        if (Transcode.TryToChars(value, buffer, out int length))
-        {
-            return HeaderPool.GetOrAdd(buffer.Slice(0, length));
-        }
-
-        return Transcode.ToString(value);
     }
 
     /// <summary>

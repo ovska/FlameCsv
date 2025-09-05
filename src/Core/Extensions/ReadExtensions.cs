@@ -12,13 +12,16 @@ internal static class ReadExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetRecordLength(this ReadOnlySpan<uint> fields, bool isFirst, bool includeTrailingNewline = false)
     {
-        // TODO OPTIMIZE?
         uint lastField = fields[^1];
         uint firstField = fields[0];
+        return GetRecordLength(firstField, lastField, isFirst, includeTrailingNewline);
+    }
 
-        int end = includeTrailingNewline ? Field.NextStart(lastField) : Field.End(lastField);
-        int start = isFirst ? 0 : Field.NextStart(firstField);
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetRecordLength(uint first, uint last, bool isFirst, bool includeTrailingNewline = false)
+    {
+        int end = includeTrailingNewline ? Field.NextStart(last) : Field.End(last);
+        int start = isFirst ? 0 : Field.NextStart(first);
         return end - start;
     }
 

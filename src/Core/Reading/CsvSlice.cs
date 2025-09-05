@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Reading.Internal;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Reading;
 
@@ -82,7 +83,7 @@ internal readonly struct CsvSlice<T>
             }
         }
 
-        // ReSharper disable once CollectionNeverQueried.Local
+        [UsedImplicitly]
         [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
         public string[] Items { get; }
     }

@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Text;
 
@@ -16,7 +17,9 @@ internal static class VectorExtensions
             128 => vector.AsVector128().ExtractMostSignificantBits(),
             256 => vector.AsVector256().ExtractMostSignificantBits(),
             512 when nuint.Size is 8 => (nuint)vector.AsVector512().ExtractMostSignificantBits(),
-            var s => throw new NotSupportedException($"Unsupported vector size {s}."),
+            var s => throw new NotSupportedException(
+                $"Unsupported vector length {s} on arch {RuntimeInformation.ProcessArchitecture}."
+            ),
         };
     }
 

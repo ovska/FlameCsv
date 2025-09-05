@@ -64,9 +64,7 @@ public sealed class CsvBindingException : CsvConfigurationException
     /// Throws an exception for conflicting constructor bindings.
     /// </summary>
     public CsvBindingException(Type target, ConstructorInfo first, ConstructorInfo second)
-        : base($"Multiple constructors {target}: {first} and {second}")
-    {
-    }
+        : base($"Multiple constructors {target}: {first} and {second}") { }
 
     /// <summary>
     /// Throws an exception for a required constructor parameter that didn't have a matching binding.

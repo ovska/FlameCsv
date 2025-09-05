@@ -12,12 +12,6 @@ using static FlameCsv.Reading.Internal.Field;
 
 namespace FlameCsv.Reading.Internal;
 
-internal readonly ref struct FieldBuffer
-{
-    public required Span<uint> Fields { get; init; }
-    public required Span<byte> Quotes { get; init; }
-}
-
 [DebuggerTypeProxy(typeof(MetaBufferDebugView))]
 [DebuggerDisplay("{ToString(),nq}")]
 [SkipLocalsInit]
@@ -156,7 +150,6 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// This should be called to ensure massive records without a newline can fit in the buffer.
     /// </summary>
-    /// <returns></returns>
     public bool EnsureCapacity()
     {
         ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
@@ -202,7 +195,6 @@ internal sealed class RecordBuffer : IDisposable
         uint lastRead = _fields[_fieldIndex];
         int offset = NextStart(lastRead);
 
-        // TODO: ensure this is only called if there are no more rows!
         if (_fieldCount > _fieldIndex)
         {
             int length = _fieldCount - _fieldIndex;
@@ -211,7 +203,6 @@ internal sealed class RecordBuffer : IDisposable
             Span<uint> buffer = _fields.AsSpan(start, length);
 
             // Preserve the EOL flags while shifting only the end position
-            // TODO: simd?
             foreach (ref uint value in buffer)
             {
                 uint flags = value & ~EndMask;
@@ -226,10 +217,10 @@ internal sealed class RecordBuffer : IDisposable
             _fields.AsSpan(buffer.Length + 1).Fill(~0u);
 #endif
 
-            // clear quotes
             _quotes.AsSpan(start, length).CopyTo(_quotes.AsSpan(1));
+
+            // the quote buffer must be cleared
             _quotes.AsSpan(1 + start + length).Clear();
-            // the quote buffer must be clean
         }
 
         _fieldCount -= _fieldIndex;

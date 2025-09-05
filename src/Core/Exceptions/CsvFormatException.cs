@@ -5,7 +5,7 @@ using FlameCsv.Enumeration;
 namespace FlameCsv.Exceptions;
 
 /// <summary>
-/// Represents unrecoverable format errors in the CSV, such as uneven string delimiters.<br/>
+/// Represents unrecoverable format errors in the CSV, such as invalid quotes within a field.<br/>
 /// This exception is <b>not</b> handled by <see cref="CsvValueEnumeratorBase{T,TValue}.ExceptionHandler"/>.
 /// </summary>
 /// <remarks>

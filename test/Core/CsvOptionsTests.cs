@@ -389,6 +389,12 @@ public class CsvOptionsTests
     }
 
     [Fact]
+    public void Should_Throw_If_Wrong_Token_Type()
+    {
+        Assert.Throws<NotSupportedException>(() => new CsvOptions<int>());
+    }
+
+    [Fact]
     public void Should_Skip_Rows()
     {
         const string data = "sep=,\r\n" + "A,B,C\r\n" + "1,2,3\r\n" + "#4,5,6\r\n" + "7,8,9\r\n";
