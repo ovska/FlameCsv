@@ -211,16 +211,6 @@ Code size: 186 🤏
 | TryPop | 53.63 us | 0.069 us | 0.084 us |  1.00 |
 Code size: 175 👍
 
-### TODO:
-
-Attempt and compare with full parsing routine (169 bytes, slightly different instructions, 10% slower in isolation):
-```csharp
-ref MetaSegment ms = ref Unsafe.As<ArraySegment<Meta>, MetaSegment>(ref Unsafe.AsRef(in fields));
-ms.count = (int)pos + 1;
-ms.offset = _index;
-ms.array = _array;
-```
-
 ### Tests on newline bit packing
 
 | CRLF  | Quoted |       Mean |   StdDev |

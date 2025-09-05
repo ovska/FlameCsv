@@ -58,6 +58,11 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public CsvOptions()
     {
+        if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
+        {
+            throw Token<T>.NotSupported;
+        }
+
         HotReloadService.RegisterForHotReload(
             this,
             static state =>

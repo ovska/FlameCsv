@@ -92,5 +92,9 @@ public static class ReadExtensionTests
             { CsvFieldTrimming.Leading, " ", "" },
             { CsvFieldTrimming.Trailing, " ", "" },
             { CsvFieldTrimming.Both, " ", "" },
+            { CsvFieldTrimming.None, " a b ", " a b " },
+            { CsvFieldTrimming.Leading, " a b ", "a b " },
+            { CsvFieldTrimming.Trailing, " a b ", " a b" },
+            { CsvFieldTrimming.Both, " a b ", "a b" },
         };
 }

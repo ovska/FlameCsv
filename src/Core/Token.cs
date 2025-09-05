@@ -32,7 +32,7 @@ internal static class Token<T>
                 "Token<T>.NotSupported should not be called for char or byte tokens."
             );
 
-            return new($"Token type {typeof(T).Name} is not supported.");
+            return new($"Token type {typeof(T).FullName} is not supported.");
         }
     }
 }

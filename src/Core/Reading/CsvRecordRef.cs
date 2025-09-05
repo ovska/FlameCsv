@@ -133,9 +133,14 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
             return 0;
         }
 
-        return MemoryMarshal
-            .CreateReadOnlySpan(ref Unsafe.Add(ref MemoryMarshal.GetReference(fields), -1), fields.Length + 1)
-            .GetRecordLength(_isFirst, includeTrailingNewline: false);
+        ref uint firstField = ref MemoryMarshal.GetReference(fields);
+
+        return ReadExtensions.GetRecordLength(
+            Unsafe.Add(ref firstField, -1),
+            Unsafe.Add(ref firstField, fields.Length - 1),
+            _isFirst,
+            includeTrailingNewline: false
+        );
     }
 
     /// <summary>
