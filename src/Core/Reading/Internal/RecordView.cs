@@ -18,6 +18,7 @@ internal readonly struct RecordView
     internal readonly uint[] _fields;
     internal readonly byte[] _quotes;
 
+    // contains msb for "is first"
     private readonly uint _index;
 
     private const uint Mask = 0x7FFFFFFFu;
@@ -25,7 +26,7 @@ internal readonly struct RecordView
     public bool IsFirst
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (_index & ~Mask) != 0;
+        get => unchecked((int)_index) < 0;
     }
 
     public int Start

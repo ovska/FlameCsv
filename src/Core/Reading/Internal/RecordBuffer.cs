@@ -29,6 +29,9 @@ internal sealed class RecordBuffer : IDisposable
     /// </summary>
     private byte[] _quotes;
 
+    /// <summary>
+    /// Storage for EOL field indices.
+    /// </summary>
     private ushort[] _eols;
 
     private int _eolIndex;
@@ -138,7 +141,8 @@ internal sealed class RecordBuffer : IDisposable
 
         while (pos < end)
         {
-            if ((Unsafe.Add(ref field, pos++) & IsEOL) != 0)
+            // if msb is set, int32 is negative
+            if (unchecked((int)Unsafe.Add(ref field, pos++)) < 0)
             {
                 Unsafe.Add(ref eol, idx++) = (ushort)pos;
             }
@@ -243,21 +247,18 @@ internal sealed class RecordBuffer : IDisposable
     {
         Unsafe.SkipInit(out record);
 
+        ref ushort previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex);
+
         if (_eolIndex >= _eolCount)
         {
             return false;
         }
 
-        nuint idx = (uint)_eolIndex;
-        ref ushort previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), idx);
         ushort eol = Unsafe.Add(ref previous, 1);
+        int flag = Unsafe.BitCast<bool, byte>(_eolIndex == 0) << 31;
+        int count = eol - previous + 1;
 
-        record = new RecordView(
-            _fields,
-            _quotes,
-            (uint)(previous | (Unsafe.BitCast<bool, byte>(_eolIndex == 0) << 31)),
-            eol - previous + 1
-        );
+        record = new RecordView(_fields, _quotes, (uint)(previous | flag), count);
         _fieldIndex = eol;
         _eolIndex++;
         return true;
