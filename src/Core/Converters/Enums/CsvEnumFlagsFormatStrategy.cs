@@ -1,5 +1,6 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using FlameCsv.Reflection;
 
 namespace FlameCsv.Converters.Enums;
@@ -41,7 +42,7 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
     }
 
     private readonly T _separator;
-    private readonly ulong _allFlags;
+    private readonly ulong _undefinedFlags;
     private readonly EnumFormatStrategy<T, TEnum> _inner;
 
     /// <summary>
@@ -58,7 +59,7 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
 
         _separator = T.CreateChecked(options.EnumFlagsSeparator);
         _inner = inner;
-        _allFlags = EnumMemberCache<TEnum>.AllFlags.ToBitmask();
+        _undefinedFlags = ~EnumMemberCache<TEnum>.AllFlags.ToBitmask();
     }
 
     /// <summary>
@@ -71,7 +72,7 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
     /// </summary>
     protected bool AllFlagsDefined(TEnum value)
     {
-        return (value.ToBitmask() & ~_allFlags) == 0;
+        return (value.ToBitmask() & _undefinedFlags) != 0;
     }
 
     /// <inheritdoc/>
@@ -99,7 +100,9 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
             return OperationStatus.InvalidData;
         }
 
-        Span<int> foundValues = stackalloc int[BitOperations.PopCount(value.ToBitmask())];
+        // allocate a buffer for each bit
+        // constant sized stackallocs are treated nicer
+        Span<int> foundValues = stackalloc int[Unsafe.SizeOf<TEnum>() * 8];
         int count = 0;
 
         while (!EqualityComparer<TEnum>.Default.Equals(value, default))

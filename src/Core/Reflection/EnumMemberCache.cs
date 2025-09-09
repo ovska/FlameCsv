@@ -210,10 +210,7 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
         foreach (var member in ValuesAndNames)
         {
-            if (
-                member.Name.Contains(flagsSeparator)
-                || (member.ExplicitName is not null && member.ExplicitName.Contains(flagsSeparator))
-            )
+            if (member.Name.Contains(flagsSeparator) || (member.ExplicitName?.Contains(flagsSeparator) == true))
             {
                 throw new CsvConfigurationException(
                     $"Enum {typeof(TEnum).FullName}.{member.Name} name contains the flags-separator character '{flagsSeparator}'."
