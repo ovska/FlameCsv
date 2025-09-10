@@ -9,9 +9,11 @@ public static class ExtensionTests
     [InlineData(false, "abc")]
     [InlineData(false, "ABC")]
     [InlineData(false, "123abc")]
+    [InlineData(false, "Straße")]
     [InlineData(true, "123")]
     [InlineData(true, " ")]
     [InlineData(true, "🐉")]
+    [InlineData(true, "ß")]
     public static void Test_IsCaseAgnostic(bool expected, string value)
     {
         Assert.Equal(expected, value.IsCaseAgnostic());
@@ -27,6 +29,8 @@ public static class ExtensionTests
     [InlineData("", "\"\"")]
     [InlineData("test\\a", "\"test\\\\a\"")]
     [InlineData(-1, "-1")]
+    [InlineData(0xFF, "255")]
+    [InlineData('\n', @"'\n'")]
     public static void Test_ToLiteral(object? value, string expected)
     {
         Assert.Equal(expected, value.ToLiteral());

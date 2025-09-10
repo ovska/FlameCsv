@@ -281,14 +281,15 @@ public class EnumGenTests(MetadataFixture fixture)
         Assert.NotNull(enumConverter);
         var attribute = enumConverter.GetAttributes().Single();
 
+        var model = EnumModel.TryGet(
+            enumConverter,
+            attribute,
+            TestContext.Current.CancellationToken,
+            out var diagnostics
+        );
+
         Assert.True(
-            EnumModel.TryGet(
-                enumConverter,
-                attribute,
-                TestContext.Current.CancellationToken,
-                out var diagnostics,
-                out var model
-            ),
+            model is not null,
             $"Should have gotten model, but got: {string.Join("\n", diagnostics.Select(d => d.ToString()))}"
         );
         Assert.Empty(diagnostics);

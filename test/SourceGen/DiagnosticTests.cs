@@ -107,6 +107,21 @@ public class DiagnosticTests(MetadataFixture fixture)
         );
     }
 
+    [Fact]
+    public void Should_Ensure_Enum_Has_Values()
+    {
+        AssertDiagnostic(
+            """
+            [CsvEnumConverter<char, MyEnum>]
+            partial class FileScoped;
+
+            enum MyEnum;
+            """,
+            [Descriptors.EnumNoValues],
+            enumGen: true
+        );
+    }
+
     [Theory]
     [InlineData(true, "0value")] // starts with numeric
     [InlineData(true, "-Value2")] // starts with a hyphen

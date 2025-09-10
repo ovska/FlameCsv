@@ -13,6 +13,7 @@ FLAMESG211 | Design  | Error  | Gap in index attributes
 FLAMESG212 | Usage | Error | CsvConverter type mismatch
 FLAMESG504 | Usage | Error | Duplicate explicit enum name
 FLAMESG505 | Usage | Error | Unsupported enum flag value
+FLAMESG506 | Usage | Error | No values defined in enum
 
 ### Removed Rules
 
