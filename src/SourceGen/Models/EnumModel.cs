@@ -1,16 +1,16 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Models;
 
 internal sealed record EnumModel
 {
-    public static bool TryGet(
+    public static EnumModel? TryGet(
         ISymbol converterSymbol,
         AttributeData attributeData,
         CancellationToken cancellationToken,
-        out Diagnostic[] diagnostics,
-        [NotNullWhen(true)] out EnumModel? model
+        out ImmutableArray<Diagnostic> diagnostics
     )
     {
         List<Diagnostic> diagList = PooledList<Diagnostic>.Acquire();
@@ -18,12 +18,13 @@ internal sealed record EnumModel
         if (
             converterSymbol is INamedTypeSymbol converterType
             && attributeData.AttributeClass
-                is {
-                    TypeArguments: [
-                        { } tokenType,
+                is
+            {
+                TypeArguments: [
+                { } tokenType,
                         INamedTypeSymbol { CanBeReferencedByName: true, EnumUnderlyingType: not null } enumType,
                     ]
-                }
+            }
         )
         {
             if (tokenType.SpecialType is not (SpecialType.System_Byte or SpecialType.System_Char))
@@ -35,7 +36,7 @@ internal sealed record EnumModel
             Diagnostics.CheckIfFileScoped(converterType, cancellationToken, diagList);
             Diagnostics.CheckIfFileScoped(enumType, cancellationToken, diagList);
 
-            model = new EnumModel(
+            EnumModel model = new EnumModel(
                 enumType: enumType,
                 isByte: tokenType.SpecialType == SpecialType.System_Byte,
                 converterType: converterType,
@@ -43,18 +44,22 @@ internal sealed record EnumModel
                 diagList
             );
 
+            if (model.Values.Length == 0)
+            {
+                diagList.Add(Diagnostics.EnumNoValues(enumType));
+            }
+
             if (diagList.Count == 0)
             {
                 diagnostics = [];
                 PooledList<Diagnostic>.Release(diagList);
-                return true;
+                return model;
             }
         }
 
-        model = null;
         diagnostics = [.. diagList];
         PooledList<Diagnostic>.Release(diagList);
-        return false;
+        return null;
     }
 
     public bool IsByte { get; }

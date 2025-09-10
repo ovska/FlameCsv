@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using System.Collections.Immutable;
+using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -9,7 +10,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<(EnumModel? model, Diagnostic[] diagnostics, bool result)> modelAndDiagnostics =
+        IncrementalValuesProvider<(EnumModel? model, ImmutableArray<Diagnostic> diagnostics)> modelAndDiagnostics =
             context
                 .SyntaxProvider.ForAttributeWithMetadataName(
                     "FlameCsv.Attributes.CsvEnumConverterAttribute`2",
@@ -22,36 +23,32 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        bool result = EnumModel.TryGet(
+                        EnumModel? model = EnumModel.TryGet(
                             context.TargetSymbol,
                             context.Attributes[0],
                             cancellationToken,
-                            out var diagnostics,
-                            out var model
+                            out var diagnostics
                         );
 
-                        // ensure nothing is generated for enums without values
-                        return (model, diagnostics, result && model is { Values.IsEmpty: false });
+                        return (model, diagnostics);
                     }
                 )
                 .WithTrackingName("FlameCsv_EnumSourceGen");
 
-        // report diagnostics if any
-        var diagnosticsProvider = modelAndDiagnostics
-            .Select(static (tuple, _) => tuple.diagnostics)
-            .WithTrackingName("FlameCsv_EnumSourceGen_Diagnostics");
-
         context.RegisterSourceOutput(
-            diagnosticsProvider,
-            static (context, diagnostics) => context.ReportDiagnostics(diagnostics)
+            modelAndDiagnostics
+                .SelectMany(static (tuple, _) => tuple.diagnostics)
+                .WithTrackingName("FlameCsv_EnumSourceGen_Diagnostics"),
+            static (context, diagnostics) => context.ReportDiagnostic(diagnostics)
         );
 
         // run generator if no error diagnostics
         var modelProvider = modelAndDiagnostics
-            .Where(static tuple => tuple.diagnostics.Length == 0 && tuple.result)
+            .Where(static tuple => tuple.diagnostics.Length == 0 && tuple.model is not null)
+            .Select(static (tuple, _) => tuple.model!)
             .WithTrackingName("FlameCsv_EnumSourceGen_Model");
 
-        context.RegisterSourceOutput(modelProvider, static (context, tuple) => ExecuteGenerator(tuple.model!, context));
+        context.RegisterSourceOutput(modelProvider, static (context, tuple) => ExecuteGenerator(tuple, context));
     }
 
     private static void ExecuteGenerator(EnumModel model, SourceProductionContext context)

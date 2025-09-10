@@ -22,7 +22,7 @@ internal static class StringExtensions
         if (value is null)
             return "null";
 
-        if (value == "")
+        if (value.Length == 0)
             return "\"\"";
 
         return SyntaxFactory
@@ -85,7 +85,7 @@ internal static class StringExtensions
 
         ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
 
-        nint index = 0;
+        nuint index = 0;
         nint remaining = value.Length;
 
         while (remaining >= 4)
@@ -121,6 +121,9 @@ internal static class StringExtensions
     /// <summary>
     /// Returns true if the string contains only ASCII characters (0x00 to 0x7F), or is null or empty.
     /// </summary>
+#if NET8_OR_GREATER
+    [Obsolete("Use Ascii.IsValid", error: true)]
+#endif
     public static bool IsAscii(this string? value)
     {
         ReadOnlySpan<char> span = value.AsSpan();
@@ -132,7 +135,7 @@ internal static class StringExtensions
 
         ref char first = ref MemoryMarshal.GetReference(value.AsSpan());
 
-        nint index = 0;
+        nuint index = 0;
         nint remaining = span.Length;
 
         if (Vector.IsHardwareAccelerated && remaining >= Vector<ushort>.Count)
@@ -150,7 +153,7 @@ internal static class StringExtensions
                     return false;
                 }
 
-                index += Vector<ushort>.Count;
+                index += (uint)Vector<ushort>.Count;
                 remaining -= Vector<ushort>.Count;
             } while (remaining >= Vector<ushort>.Count);
         }

@@ -10,7 +10,7 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> typeMapDiagnostics =
+        IncrementalValuesProvider<(TypeMapModel typeMap, EquatableArray<Diagnostic> diagnostics)> modelAndDiagnostics =
             context
                 .SyntaxProvider.ForAttributeWithMetadataName(
                     "FlameCsv.Attributes.CsvTypeMapAttribute`2",
@@ -48,25 +48,23 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
                 .WithTrackingName("FlameCsv_TypeMapAndDiagnostics");
 
         context.RegisterSourceOutput(
-            typeMapDiagnostics.Select(static (tuple, _) => tuple.diagnostics).WithTrackingName("FlameCsv_Diagnostics"),
-            static (context, diagnostics) =>
-            {
-                foreach (var diagnostic in diagnostics)
-                    context.ReportDiagnostic(diagnostic);
-            }
+            modelAndDiagnostics
+                .SelectMany(static (tuple, _) => tuple.diagnostics.AsImmutableArray())
+                .WithTrackingName("FlameCsv_Diagnostics"),
+            static (context, diagnostic) => context.ReportDiagnostic(diagnostic)
         );
 
         context.RegisterSourceOutput(
-            typeMapDiagnostics.Select(static (tuple, _) => tuple.typeMap).WithTrackingName("FlameCsv_TypeMap"),
-            static (context, source) => Execute(source, context)
+            modelAndDiagnostics
+                .Where(static tuple => tuple.typeMap.CanGenerateCode)
+                .Select(static (tuple, _) => tuple.typeMap)
+                .WithTrackingName("FlameCsv_TypeMap"),
+            ExecuteGenerator
         );
     }
 
-    private static void Execute(TypeMapModel typeMap, SourceProductionContext context)
+    private static void ExecuteGenerator(SourceProductionContext context, TypeMapModel typeMap)
     {
-        if (!typeMap.CanGenerateCode)
-            return;
-
         string sourceName = GlobalConstants.GetFileName(typeMap.TypeMap.Name, typeMap.WrappingTypes);
 
         context.AddSource(sourceName, CreateTypeMap(typeMap, context.CancellationToken));

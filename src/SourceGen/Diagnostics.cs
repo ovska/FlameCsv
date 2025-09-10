@@ -296,6 +296,15 @@ internal static class Diagnostics
         );
     }
 
+    public static Diagnostic EnumNoValues(ISymbol enumSymbol)
+    {
+        return Diagnostic.Create(
+            descriptor: Descriptors.EnumNoValues,
+            location: GetLocation(enumSymbol),
+            messageArgs: [enumSymbol.Name]
+        );
+    }
+
     /// <summary>
     /// Returns the first valid non-empty source location from the given symbols, checked in order.
     /// </summary>

@@ -243,4 +243,14 @@ internal static class Descriptors
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true
     );
+
+    /// <summary>FLAMESG506</summary>
+    public static readonly DiagnosticDescriptor EnumNoValues = new(
+        id: "FLAMESG506",
+        title: "No values defined in enum",
+        messageFormat: "Cannot generate enum converter: Enum {0} has no values defined",
+        category: CategoryUsage,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true
+    );
 }
