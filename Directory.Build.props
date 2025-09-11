@@ -5,6 +5,7 @@
         <LangVersion>preview</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <!-- TODO: better name for this -->
         <IncludeInternalsVisibleTo Condition="'$(IncludeInternalsVisibleTo)' == ''">true</IncludeInternalsVisibleTo>
         <SignAssembly>true</SignAssembly>
         <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)FlameCsv.snk</AssemblyOriginatorKeyFile>
