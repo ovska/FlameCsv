@@ -313,7 +313,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public bool HasHeader
     {
-        get => (_config & Config.HasHeader) != 0;
+        get => _config.GetFlag(Config.HasHeader);
         set
         {
             this.ThrowIfReadOnly();
@@ -325,8 +325,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// Defines the quoting behavior when writing values. Default is <see cref="CsvFieldQuoting.Auto"/>.
     /// </summary>
     /// <remarks>
-    /// You can combine conditions using bitwise OR. For example, to quote both empty fields, and fields with leading spaces:
-    /// <code>CsvFieldQuoting.Empty | CsvFieldQuoting.LeadingSpaces</code>
+    /// You can combine conditions using bitwise OR. For example, to quote both empty fields and fields with leading spaces:
+    /// <c>CsvFieldQuoting.Empty | CsvFieldQuoting.LeadingSpaces</c>
     /// </remarks>
     public CsvFieldQuoting FieldQuoting
     {
@@ -341,7 +341,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public bool ValidateFieldCount
     {
-        get => (_config & Config.ValidateFieldCount) != 0;
+        get => _config.GetFlag(Config.ValidateFieldCount);
         set
         {
             this.ThrowIfReadOnly();
@@ -370,7 +370,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </remarks>
     public bool UseDefaultConverters
     {
-        get => (_config & Config.UseDefaultConverters) != 0;
+        get => _config.GetFlag(Config.UseDefaultConverters);
         set
         {
             this.ThrowIfReadOnly();
@@ -384,7 +384,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public bool IgnoreUnmatchedHeaders
     {
-        get => (_config & Config.IgnoreUnmatchedHeaders) != 0;
+        get => _config.GetFlag(Config.IgnoreUnmatchedHeaders);
         set
         {
             this.ThrowIfReadOnly();
@@ -399,7 +399,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public bool IgnoreDuplicateHeaders
     {
-        get => (_config & Config.IgnoreDuplicateHeaders) != 0;
+        get => _config.GetFlag(Config.IgnoreDuplicateHeaders);
         set
         {
             this.ThrowIfReadOnly();
@@ -447,6 +447,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     [Flags]
     private enum Config : byte
     {
+        Default = 0,
         HasHeader = 1 << 0,
         ValidateFieldCount = 1 << 1,
         UseDefaultConverters = 1 << 2,

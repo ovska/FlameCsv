@@ -20,23 +20,8 @@ internal readonly struct Dialect<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dialect(CsvOptions<T> options)
     {
-        if (typeof(T) == typeof(byte))
-        {
-            unchecked
-            {
-                Quote = Unsafe.BitCast<byte, T>((byte)options.Quote);
-                Escape = Unsafe.BitCast<byte, T>((byte)options.Escape.GetValueOrDefault());
-            }
-        }
-        else if (typeof(T) == typeof(char))
-        {
-            Quote = Unsafe.BitCast<char, T>(options.Quote);
-            Escape = Unsafe.BitCast<char, T>(options.Escape.GetValueOrDefault());
-        }
-        else
-        {
-            throw Token<T>.NotSupported;
-        }
+        Quote = T.CreateTruncating(options.Quote);
+        Escape = T.CreateTruncating(options.Escape.GetValueOrDefault());
 
         // remove undefined bits so we can cmp against zero later
         Trimming = options.Trimming & CsvFieldTrimming.Both;
@@ -49,7 +34,7 @@ public partial class CsvOptions<T>
     private char _quote = '"';
     private CsvNewline _newline = CsvNewline.CRLF;
     private char? _escape;
-    private CsvFieldTrimming _trimming;
+    private CsvFieldTrimming _trimming = CsvFieldTrimming.None;
 
     /// <summary>
     /// The separator character between CSV fields. Default value: <c>,</c>
@@ -173,7 +158,7 @@ public partial class CsvOptions<T>
     /// <summary>
     /// Returns search values that determine if a field needs to be quoted.
     /// </summary>
-    internal SearchValues<T> NeedsQuoting => _needsQuoting ??= InitNeedsQuoting();
+    internal SearchValues<T> NeedsQuoting => field ??= InitNeedsQuoting();
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private SearchValues<T> InitNeedsQuoting()
@@ -202,7 +187,7 @@ public partial class CsvOptions<T>
             return (SearchValues<T>)(object)SearchValues.Create(MemoryMarshal.Cast<T, char>(values));
         }
 
-        throw new NotSupportedException();
+        throw Token<T>.NotSupported;
     }
 
     /// <summary>

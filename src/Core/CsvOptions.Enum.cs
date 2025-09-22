@@ -36,7 +36,7 @@ public partial class CsvOptions<T>
     /// </remarks>
     public bool AllowUndefinedEnumValues
     {
-        get => (_config & Config.AllowUndefinedEnums) != 0;
+        get => _config.GetFlag(Config.AllowUndefinedEnums);
         set
         {
             this.ThrowIfReadOnly();
@@ -49,7 +49,7 @@ public partial class CsvOptions<T>
     /// </summary>
     public bool IgnoreEnumCase
     {
-        get => (_config & Config.IgnoreEnumCase) != 0;
+        get => _config.GetFlag(Config.IgnoreEnumCase);
         set
         {
             this.ThrowIfReadOnly();
