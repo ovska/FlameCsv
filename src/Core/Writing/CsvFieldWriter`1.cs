@@ -275,7 +275,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         // empty writes don't need escaping
         if (tokensWritten == 0)
         {
-            if (((_fieldQuoting & CsvFieldQuoting.Empty)) != 0)
+            if ((_fieldQuoting & CsvFieldQuoting.Empty) != 0)
             {
                 // Ensure the buffer is large enough
                 if (destination.Length < 2)
@@ -315,7 +315,9 @@ public readonly struct CsvFieldWriter<T> : IDisposable
                 bool quoteLeading = (_fieldQuoting & CsvFieldQuoting.LeadingSpaces) != 0;
                 bool quoteTrailing = (_fieldQuoting & CsvFieldQuoting.TrailingSpaces) != 0;
 
-                shouldQuote = (quoteLeading && written[0] == _space) || (quoteTrailing && written[^1] == _space);
+                // in net9, accessing the last item first omits a redundant bounds check
+                // TODO NET10: remove
+                shouldQuote = (quoteTrailing && written[^1] == _space) || (quoteLeading && written[0] == _space);
                 escapableCount = 0;
             }
         }

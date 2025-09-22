@@ -45,8 +45,8 @@ public class CsvOptionsTests
         Run(o => o.Escape = (char)128);
 
         // invalid enum
-        Run(o => o.Newline = (CsvNewline)byte.MaxValue);
-        Run(o => o.Trimming = (CsvFieldTrimming)byte.MaxValue);
+        Run(o => o.Newline = (1 + CsvNewline.Platform));
+        _ = new CsvOptions<char> { Trimming = (CsvFieldTrimming)byte.MaxValue };
 
         // enum sep
         Run(o => o.EnumFlagsSeparator = '\0'); // null
@@ -62,6 +62,7 @@ public class CsvOptionsTests
 
         // bytes need ascii
         Assert.ThrowsAny<ArgumentException>(() => new CsvOptions<byte> { EnumFlagsSeparator = 'ä' });
+        _ = new CsvOptions<char> { EnumFlagsSeparator = 'ä' };
 
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Delimiter = '"' }.Validate());
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Quote = ',' }.Validate());

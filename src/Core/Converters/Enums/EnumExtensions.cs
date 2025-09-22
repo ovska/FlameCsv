@@ -148,6 +148,19 @@ internal static class EnumExtensions
         }
     }
 
+    internal static bool GetFlag<TEnum>(this TEnum value, TEnum flag)
+        where TEnum : struct, Enum
+    {
+        return Unsafe.SizeOf<TEnum>() switch
+        {
+            sizeof(byte) => (Unsafe.BitCast<TEnum, byte>(value) & Unsafe.BitCast<TEnum, byte>(flag)) != 0,
+            sizeof(ushort) => (Unsafe.BitCast<TEnum, short>(value) & Unsafe.BitCast<TEnum, short>(flag)) != 0,
+            sizeof(uint) => (Unsafe.BitCast<TEnum, uint>(value) & Unsafe.BitCast<TEnum, uint>(flag)) != 0,
+            sizeof(ulong) => (Unsafe.BitCast<TEnum, ulong>(value) & Unsafe.BitCast<TEnum, ulong>(flag)) != 0,
+            _ => throw new UnreachableException(typeof(TEnum).FullName),
+        };
+    }
+
     internal static void AddFlag<TEnum>(ref this TEnum value, TEnum flag)
         where TEnum : struct, Enum
     {
