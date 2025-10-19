@@ -120,7 +120,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         try
         {
             CsvRecordRef<T> record = new(in slice);
-            Current = _materializer.Parse(ref record);
+            Current = _materializer.Parse(in record);
             return true;
         }
         catch (CsvFormatException cfe) // unrecoverable

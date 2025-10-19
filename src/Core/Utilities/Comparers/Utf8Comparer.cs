@@ -15,22 +15,19 @@ internal sealed class Utf8Comparer
 
     private readonly bool _ignoreCase;
 
-    private IAlternateEqualityComparer<ReadOnlySpan<char>, string?> Comparer
+    private readonly IAlternateEqualityComparer<ReadOnlySpan<char>, string?> _comparer;
+
+    private Utf8Comparer(bool ignoreCase)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            return (IAlternateEqualityComparer<ReadOnlySpan<char>, string?>)(
-                _ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal
+        _comparer =
+            (IAlternateEqualityComparer<ReadOnlySpan<char>, string?>)(
+                ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal
             );
-        }
     }
 
-    private Utf8Comparer(bool ignoreCase) => _ignoreCase = ignoreCase;
+    public bool Equals(StringLike x, StringLike y) => _comparer.Equals(x, y);
 
-    public bool Equals(StringLike x, StringLike y) => Comparer.Equals(x, y);
-
-    public int GetHashCode(StringLike obj) => Comparer.GetHashCode(obj);
+    public int GetHashCode(StringLike obj) => _comparer.GetHashCode(obj);
 
     public StringLike Create(ReadOnlySpan<byte> alternate) => Encoding.UTF8.GetString(alternate);
 
@@ -39,13 +36,13 @@ internal sealed class Utf8Comparer
         return Utf8Util.WithBytes(
             alternate,
             (other: other.Value, @this: this),
-            static (alternate, state) => state.@this.Comparer.Equals(alternate, state.other)
+            static (alternate, state) => state.@this._comparer.Equals(alternate, state.other)
         );
     }
 
     public int GetHashCode(ReadOnlySpan<byte> alternate)
     {
-        return Utf8Util.WithBytes(alternate, this, static (alternate, @this) => @this.Comparer.GetHashCode(alternate));
+        return Utf8Util.WithBytes(alternate, this, static (alternate, @this) => @this._comparer.GetHashCode(alternate));
     }
 
     bool IAlternateEqualityComparer<ReadOnlySpan<byte>, string>.Equals(ReadOnlySpan<byte> alternate, string other)
