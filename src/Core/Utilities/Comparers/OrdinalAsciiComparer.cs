@@ -37,20 +37,7 @@ internal sealed class OrdinalAsciiComparer
         return Create(alternate);
     }
 
-    bool IEqualityComparer<string>.Equals(string? x, string? y)
-    {
-        if (x is null)
-        {
-            return y is null;
-        }
-
-        if (y is null)
-        {
-            return false;
-        }
-
-        return Equals((StringLike)x, (StringLike)y);
-    }
+    bool IEqualityComparer<string>.Equals(string? x, string? y) => StringComparer.Ordinal.Equals(x, y);
 
     int IEqualityComparer<string>.GetHashCode(string obj)
     {

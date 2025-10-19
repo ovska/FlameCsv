@@ -94,7 +94,7 @@ public class CsvPreservedRecord<T> : ICsvRecord<T>, IReadOnlyDictionary<CsvField
             : Options.TypeBinder.GetMaterializer<TRecord>();
 
         CsvPreservedRecord<T> @this = this;
-        return materializer.Parse(ref @this);
+        return materializer.Parse(in @this);
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public class CsvPreservedRecord<T> : ICsvRecord<T>, IReadOnlyDictionary<CsvField
             : typeMap.GetMaterializer(Options);
 
         CsvPreservedRecord<T> @this = this;
-        return materializer.Parse(ref @this);
+        return materializer.Parse(in @this);
     }
 
     /// <summary>

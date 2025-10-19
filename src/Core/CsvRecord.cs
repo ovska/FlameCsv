@@ -201,7 +201,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
 
         var materializer = (IMaterializer<T, TRecord>)obj;
         CsvRecordRef<T> record = new(in _slice);
-        return materializer.Parse(ref record);
+        return materializer.Parse(in record);
     }
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.ParseRecord{TRecord}(CsvTypeMap{T,TRecord})"/>
@@ -225,7 +225,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
 
         var materializer = (IMaterializer<T, TRecord>)obj;
         CsvRecordRef<T> record = new(in _slice);
-        return materializer.Parse(ref record);
+        return materializer.Parse(in record);
     }
 
     IEnumerator<ReadOnlySpan<T>> IEnumerable<ReadOnlySpan<T>>.GetEnumerator() => GetEnumerator();
