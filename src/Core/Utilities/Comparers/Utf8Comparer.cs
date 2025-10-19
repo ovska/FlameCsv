@@ -13,8 +13,6 @@ internal sealed class Utf8Comparer
     public static Utf8Comparer Ordinal { get; } = new(ignoreCase: false);
     public static Utf8Comparer OrdinalIgnoreCase { get; } = new(ignoreCase: true);
 
-    private readonly bool _ignoreCase;
-
     private readonly IAlternateEqualityComparer<ReadOnlySpan<char>, string?> _comparer;
 
     private Utf8Comparer(bool ignoreCase)

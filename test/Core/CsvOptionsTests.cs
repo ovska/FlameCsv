@@ -46,7 +46,6 @@ public class CsvOptionsTests
 
         // invalid enum
         Run(o => o.Newline = (1 + CsvNewline.Platform));
-        _ = new CsvOptions<char> { Trimming = (CsvFieldTrimming)byte.MaxValue };
 
         // enum sep
         Run(o => o.EnumFlagsSeparator = '\0'); // null

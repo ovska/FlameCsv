@@ -72,7 +72,7 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
     /// </summary>
     protected bool AllFlagsDefined(TEnum value)
     {
-        return (value.ToBitmask() & _undefinedFlags) != 0;
+        return (value.ToBitmask() & _undefinedFlags) == 0;
     }
 
     /// <inheritdoc/>
