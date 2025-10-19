@@ -197,8 +197,11 @@ public class TokenizationTests
     [Fact]
     public static void Test_Delimiters()
     {
+        Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
+
         var tokenizer = new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default);
-        var data = "abcd1,abcd2,abcd3,abcd4,abcd5,abcd6,abcd7,abcd8,abcd9,abcd10,abcd11,abcd11,abcd11,abcd11,abcd11,abcd11";
+        var data =
+            "abcd1,abcd2,abcd3,abcd4,abcd5,abcd6,abcd7,abcd8,abcd9,abcd10,abcd11,abcd11,abcd11,abcd11,abcd11,abcd11";
         char[] buffer = new char[256];
         data.CopyTo(buffer);
 
