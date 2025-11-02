@@ -215,4 +215,25 @@ internal static class AsciiVector
 
         return s0.AsUInt64().ToScalar();
     }
+
+    extension(Vector512)
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<byte> Equals128(Vector512<byte> left, Vector128<byte> right)
+        {
+            Vector256<byte> lower = left.GetLower();
+            Vector256<byte> upper = left.GetUpper();
+            Vector128<byte> a = lower.GetLower();
+            Vector128<byte> b = lower.GetUpper();
+            Vector128<byte> c = upper.GetLower();
+            Vector128<byte> d = upper.GetUpper();
+
+            Vector128<byte> eqA = Vector128.Equals(a, right);
+            Vector128<byte> eqB = Vector128.Equals(b, right);
+            Vector128<byte> eqC = Vector128.Equals(c, right);
+            Vector128<byte> eqD = Vector128.Equals(d, right);
+
+            return Vector512.Create(Vector256.Create(eqA, eqB), Vector256.Create(eqC, eqD));
+        }
+    }
 }

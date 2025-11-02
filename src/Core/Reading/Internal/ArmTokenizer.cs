@@ -71,18 +71,19 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
         uint quotesConsumed = 0;
         ulong crCarry = 0;
 
-        Vector512<byte> vecDelim = Vector512.Create(byte.CreateTruncating(_delimiter));
-        Vector512<byte> vecQuote = Vector512.Create(byte.CreateTruncating(_quote));
-        Vector512<byte> vecLF = Vector512.Create((byte)'\n');
-        Vector512<byte> vecCR = TNewline.IsCRLF ? Vector512.Create((byte)'\r') : default;
+        // use 128 bit vectors for the constants to save on registers
+        Vector128<byte> vecDelim = Vector128.Create(byte.CreateTruncating(_delimiter));
+        Vector128<byte> vecQuote = Vector128.Create(byte.CreateTruncating(_quote));
+        Vector128<byte> vecLF = Vector128.Create((byte)'\n');
+        Vector128<byte> vecCR = TNewline.IsCRLF ? Vector128.Create((byte)'\r') : default;
 
         Vector512<byte> vector = AsciiVector.Load512(ref first, index);
 
-        Vector512<byte> hasLF = Vector512.Equals(vector, vecLF);
-        Vector512<byte> hasCR = TNewline.IsCRLF ? Vector512.Equals(vector, vecCR) : default;
-        Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
+        Vector512<byte> hasLF = Vector512.Equals128(vector, vecLF);
+        Vector512<byte> hasCR = TNewline.IsCRLF ? Vector512.Equals128(vector, vecCR) : default;
+        Vector512<byte> hasDelimiter = Vector512.Equals128(vector, vecDelim);
         Vector512<byte> hasControl = hasLF | hasDelimiter;
-        Vector512<byte> hasQuote = Vector512.Equals(vector, vecQuote);
+        Vector512<byte> hasQuote = Vector512.Equals128(vector, vecQuote);
 
         ulong maskCR = TNewline.IsCRLF ? AsciiVector.MoveMaskARM64(hasCR) : 0;
         ulong maskControl = AsciiVector.MoveMaskARM64(hasControl);
@@ -205,10 +206,10 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
             ContinueRead:
             index += (nuint)Vector512<byte>.Count;
 
-            hasLF = Vector512.Equals(vector, vecLF);
-            hasCR = TNewline.IsCRLF ? Vector512.Equals(vector, vecCR) : default;
-            hasDelimiter = Vector512.Equals(vector, vecDelim);
-            hasQuote = Vector512.Equals(vector, vecQuote);
+            hasLF = Vector512.Equals128(vector, vecLF);
+            hasCR = TNewline.IsCRLF ? Vector512.Equals128(vector, vecCR) : default;
+            hasDelimiter = Vector512.Equals128(vector, vecDelim);
+            hasQuote = Vector512.Equals128(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
             maskCR = TNewline.IsCRLF ? AsciiVector.MoveMaskARM64(hasCR) : 0;

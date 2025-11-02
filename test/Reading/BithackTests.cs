@@ -131,9 +131,6 @@ public class BithackTests
     }
 
     [Fact]
-    public static void FindQuotes16() => FindQuotesImpl<ushort>();
-
-    [Fact]
     public static void FindQuotes32() => FindQuotesImpl<uint>();
 
     [Fact]
@@ -162,7 +159,12 @@ public class BithackTests
         for (int i = 0; i < data.Length; i += (8 * Unsafe.SizeOf<TMask>()))
         {
             TMask quoteBits = LoadBits('\'', i);
-            TMask quoteMask = Bithacks.FindQuoteMask(quoteBits, count);
+            TMask quoteMask = Unsafe.SizeOf<TMask>() switch
+            {
+                4 => (TMask)(object)Bithacks.ComputeQuoteMask((uint)(object)(quoteBits) + count),
+                8 => (TMask)(object)Bithacks.ComputeQuoteMask((ulong)(object)(quoteBits) + count),
+                _ => throw new NotSupportedException(),
+            };
 
             TMask commaBits = LoadBits(',', i);
             commaBits &= ~quoteMask;
