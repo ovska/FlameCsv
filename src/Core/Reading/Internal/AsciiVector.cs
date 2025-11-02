@@ -189,6 +189,7 @@ internal static class AsciiVector
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
     public static ulong MoveMaskARM64(Vector512<byte> vector)
     {
         Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);

@@ -54,6 +54,32 @@ public class TokenizationTests
     }
 
     [Theory, MemberData(nameof(NewlineData))]
+    public void Arm_Char(RecSep newline)
+    {
+        Assert.SkipUnless(ArmTokenizer.IsSupported, "ARM64 is not supported on this platform.");
+
+        TokenizeCore<char>(
+            newline,
+            newline == RecSep.LF
+                ? new ArmTokenizer<char, NewlineLF>(CsvOptions<char>.Default)
+                : new ArmTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
+        );
+    }
+
+    [Theory, MemberData(nameof(NewlineData))]
+    public void Arm_Byte(RecSep newline)
+    {
+        Assert.SkipUnless(ArmTokenizer.IsSupported, "ARM64 is not supported on this platform.");
+
+        TokenizeCore<byte>(
+            newline,
+            newline == RecSep.LF
+                ? new ArmTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
+                : new ArmTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+        );
+    }
+
+    [Theory, MemberData(nameof(NewlineData))]
     public void Generic_Char(RecSep newline)
     {
         TokenizeCore<char>(
