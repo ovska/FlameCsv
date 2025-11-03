@@ -218,6 +218,9 @@ internal static class AsciiVector
 
     extension(Vector512)
     {
+        /// <summary>
+        /// Returns an equality vector by comparing each 128-bit segment of the left vector to the right vector.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Equals128(Vector512<byte> left, Vector128<byte> right)
         {
@@ -234,6 +237,34 @@ internal static class AsciiVector
             Vector128<byte> eqD = Vector128.Equals(d, right);
 
             return Vector512.Create(Vector256.Create(eqA, eqB), Vector256.Create(eqC, eqD));
+        }
+
+        /// <summary>
+        /// Shifts the vector right by one byte, bringing in the carry from the previous block.
+        /// </summary>
+        /// <remarks>
+        /// The carry is intended to only be called by this function again; it does not contain the final byte
+        /// in the correct position.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (Vector512<byte> result, Vector128<byte> carry) ShiftRightARM64(
+            Vector512<byte> value,
+            Vector128<byte> carry
+        )
+        {
+            Vector256<byte> lower = value.GetLower();
+            Vector256<byte> upper = value.GetUpper();
+            Vector128<byte> a = lower.GetLower();
+            Vector128<byte> b = lower.GetUpper();
+            Vector128<byte> c = upper.GetLower();
+            Vector128<byte> d = upper.GetUpper();
+
+            Vector128<byte> shiftedA = AdvSimd.ExtractVector128(carry, a, 15);
+            Vector128<byte> shiftedB = AdvSimd.ExtractVector128(a, b, 15);
+            Vector128<byte> shiftedC = AdvSimd.ExtractVector128(b, c, 15);
+            Vector128<byte> shiftedD = AdvSimd.ExtractVector128(c, d, 15);
+
+            return (Vector512.Create(Vector256.Create(shiftedA, shiftedB), Vector256.Create(shiftedC, shiftedD)), d);
         }
     }
 }
