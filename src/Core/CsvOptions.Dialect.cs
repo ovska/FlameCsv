@@ -147,13 +147,9 @@ public partial class CsvOptions<T>
 
         if (errors.Length != 0)
         {
-            // reset faulty cached value
-            _needsQuoting = null;
             DialectHelper.ThrowException(errors.AsSpan(), _delimiter, _quote, _escape);
         }
     }
-
-    private SearchValues<T>? _needsQuoting;
 
     /// <summary>
     /// Returns search values that determine if a field needs to be quoted.
