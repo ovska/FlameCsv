@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Globalization;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 
@@ -102,7 +103,7 @@ partial class EnumConverterGenerator
         using IndentedTextWriter.Block block2 = writer.WriteBlock();
 
         IEnumerable<IGrouping<int, (string name, BigInteger value)>> entries = model
-            .UniqueValues.Select(m => (name: m.ToString(), value: m))
+            .UniqueValues.Select(m => (name: m.ToString(CultureInfo.InvariantCulture), value: m))
             .GroupBy(m => m.name.Length)
             .ToList();
 
@@ -137,7 +138,7 @@ partial class EnumConverterGenerator
                             writer.Write(name[0].ToCharLiteral());
                             writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
                             writer.WriteIf(value < 0, "(");
-                            writer.Write(value.ToString());
+                            writer.Write(value.ToString(CultureInfo.InvariantCulture));
                             writer.WriteIf(value < 0, ")");
                             writer.WriteLine("; return true;");
                         }
@@ -784,7 +785,7 @@ partial class EnumConverterGenerator
                 writeCase(name);
                 writer.Write($": value = ({model.EnumType.FullyQualifiedName})");
                 writer.WriteIf(value < 0, "(");
-                writer.Write(value.ToString());
+                writer.Write(value.ToString(CultureInfo.InvariantCulture));
                 writer.WriteIf(value < 0, ")");
                 writer.WriteLine("; return true;");
             }

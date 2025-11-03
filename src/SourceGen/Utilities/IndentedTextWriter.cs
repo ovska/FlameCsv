@@ -482,7 +482,11 @@ internal sealed class IndentedTextWriter : IDisposable
         /// <typeparam name="T">The type of the value to write.</typeparam>
         public void AppendFormatted<T>(T value)
         {
-            if (value is not null)
+            if (value is IFormattable)
+            {
+                this.writer.Write(((IFormattable)value).ToString(null, CultureInfo.InvariantCulture));
+            }
+            else if (value is not null)
             {
                 this.writer.Write(value.ToString());
             }
