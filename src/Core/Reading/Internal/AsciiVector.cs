@@ -188,45 +188,15 @@ internal static class AsciiVector
         return Avx512BW.PackUnsignedSaturate(v0, v1);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static ulong MoveMaskARM64(Vector512<byte> vector)
-    {
-        Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
-
-        Vector256<byte> lower = vector.GetLower();
-        Vector256<byte> upper = vector.GetUpper();
-
-        Vector128<byte> a = lower.GetLower();
-        Vector128<byte> b = lower.GetUpper();
-        Vector128<byte> c = upper.GetLower();
-        Vector128<byte> d = upper.GetUpper();
-
-        Vector128<byte> t0 = AdvSimd.And(a, weight);
-        Vector128<byte> t1 = AdvSimd.And(b, weight);
-        Vector128<byte> t2 = AdvSimd.And(c, weight);
-        Vector128<byte> t3 = AdvSimd.And(d, weight);
-
-        Vector128<byte> s0 = AdvSimd.Arm64.AddPairwise(t0.AsSByte(), t1.AsSByte()).AsByte();
-        Vector128<byte> s1 = AdvSimd.Arm64.AddPairwise(t2.AsSByte(), t3.AsSByte()).AsByte();
-
-        s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s1.AsSByte()).AsByte();
-        s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s0.AsSByte()).AsByte();
-
-        return s0.AsUInt64().ToScalar();
-    }
-
     extension(Vector512)
     {
+        /// <summary>
+        /// Returns an equality vector by comparing each 128-bit segment of the left vector to the right vector.
+        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Equals128(Vector512<byte> left, Vector128<byte> right)
         {
-            Vector256<byte> lower = left.GetLower();
-            Vector256<byte> upper = left.GetUpper();
-            Vector128<byte> a = lower.GetLower();
-            Vector128<byte> b = lower.GetUpper();
-            Vector128<byte> c = upper.GetLower();
-            Vector128<byte> d = upper.GetUpper();
+            var (a, b, c, d) = left;
 
             Vector128<byte> eqA = Vector128.Equals(a, right);
             Vector128<byte> eqB = Vector128.Equals(b, right);
@@ -234,6 +204,134 @@ internal static class AsciiVector
             Vector128<byte> eqD = Vector128.Equals(d, right);
 
             return Vector512.Create(Vector256.Create(eqA, eqB), Vector256.Create(eqC, eqD));
+        }
+    }
+
+    extension(Vector512<byte> vec)
+    {
+#pragma warning disable CA1822 // Mark members as static
+        public void Deconstruct(
+#pragma warning restore CA1822 // Mark members as static
+            out Vector128<byte> a,
+            out Vector128<byte> b,
+            out Vector128<byte> c,
+            out Vector128<byte> d
+        )
+        {
+            Vector256<byte> lower = vec.GetLower();
+            Vector256<byte> upper = vec.GetUpper();
+            a = lower.GetLower();
+            b = lower.GetUpper();
+            c = upper.GetLower();
+            d = upper.GetUpper();
+        }
+    }
+
+    public static class Arm
+    {
+        /// <summary>
+        /// Counts the number of matching bytes (0xFF) in the vector.
+        /// </summary>
+        /// <remarks>
+        /// Only works if all elements are either 0 of 0xFF.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static uint CountNonZero(Vector512<byte> value)
+        {
+            var (a, b, c, d) = value;
+
+            Vector64<ushort> t1 = AdvSimd.Arm64.AddAcrossWidening(a);
+            Vector64<ushort> t2 = AdvSimd.Arm64.AddAcrossWidening(b);
+            Vector64<ushort> t3 = AdvSimd.Arm64.AddAcrossWidening(c);
+            Vector64<ushort> t4 = AdvSimd.Arm64.AddAcrossWidening(d);
+
+            Vector64<ushort> sum1 = t1 + t2;
+            Vector64<ushort> sum2 = t3 + t4;
+            Vector64<ushort> total = sum1 + sum2;
+
+            uint count = total.GetElement(0);
+
+            // divide by 255
+            return (count + (count >> 8) + 1) >> 8;
+        }
+
+        /// <summary>
+        /// Shifts the vector right by one byte, bringing in the carry from the previous block.
+        /// </summary>
+        /// <remarks>
+        /// The carry is intended to only be called by this function again; it does not contain the final byte
+        /// in the correct position.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (Vector512<byte> result, Vector128<byte> carry) ShiftAndCarry(
+            Vector512<byte> value,
+            Vector128<byte> carry
+        )
+        {
+            var (a, b, c, d) = value;
+
+            Vector128<byte> shiftedA = AdvSimd.ExtractVector128(carry, a, 15);
+            Vector128<byte> shiftedB = AdvSimd.ExtractVector128(a, b, 15);
+            Vector128<byte> shiftedC = AdvSimd.ExtractVector128(b, c, 15);
+            Vector128<byte> shiftedD = AdvSimd.ExtractVector128(c, d, 15);
+
+            return (Vector512.Create(Vector256.Create(shiftedA, shiftedB), Vector256.Create(shiftedC, shiftedD)), d);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        public static ulong MoveMask(Vector512<byte> vector)
+        {
+            Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+
+            var (a, b, c, d) = vector;
+
+            Vector128<byte> t0 = AdvSimd.And(a, weight);
+            Vector128<byte> t1 = AdvSimd.And(b, weight);
+            Vector128<byte> t2 = AdvSimd.And(c, weight);
+            Vector128<byte> t3 = AdvSimd.And(d, weight);
+
+            Vector128<byte> s0 = AdvSimd.Arm64.AddPairwise(t0.AsSByte(), t1.AsSByte()).AsByte();
+            Vector128<byte> s1 = AdvSimd.Arm64.AddPairwise(t2.AsSByte(), t3.AsSByte()).AsByte();
+
+            s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s1.AsSByte()).AsByte();
+            s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s0.AsSByte()).AsByte();
+
+            return s0.AsUInt64().ToScalar();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsZero(Vector512<byte> vector)
+        {
+            var (a, b, c, d) = vector;
+            return (a | b | c | d) == Vector128<byte>.Zero;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsZero2(Vector512<byte> vector)
+        {
+            var (a, b, c, d) = vector;
+            return AdvSimd.Arm64.MaxAcross(a | b | c | d).ToScalar() == 0;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsDisjointCR(Vector512<byte> hasLF, Vector512<byte> shiftedCR)
+        {
+            /*
+                bool nonZeroCR = shiftedCR != T.Zero;
+                T xor = maskLF ^ shiftedCR;
+                return nonZeroCR & xor != T.Zero;
+            */
+
+            var (cr0, cr1, cr2, cr3) = shiftedCR;
+            var (lf0, lf1, lf2, lf3) = hasLF;
+
+            var x0 = lf0 ^ cr0;
+            var x1 = lf1 ^ cr1;
+            var x2 = lf2 ^ cr2;
+            var x3 = lf3 ^ cr3;
+
+            return (cr0 | cr1 | cr2 | cr3) != Vector128<byte>.Zero & (x0 | x1 | x2 | x3) != Vector128<byte>.Zero;
         }
     }
 }
