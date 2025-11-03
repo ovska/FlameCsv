@@ -27,7 +27,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     public int Line { get; }
 
     /// <inheritdoc cref="CsvPreservedRecord{T}.RawRecord"/>
-    public ReadOnlySpan<T> RawRecord
+    public ReadOnlySpan<T> Raw
     {
         get
         {
@@ -236,7 +236,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        return $"{{ CsvRecord[{_slice.FieldCount}] \"{Transcode.ToString(RawRecord)}\" }}";
+        return $"{{ CsvRecord[{_slice.FieldCount}] \"{Transcode.ToString(Raw)}\" }}";
     }
 
     /// <summary>

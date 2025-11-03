@@ -6,6 +6,23 @@ namespace FlameCsv.Tests.Reading;
 
 public class BithackTests
 {
+    [Fact]
+    public static void Should_Get_Flag()
+    {
+        const uint flag = 123u;
+        Assert.Equal(flag, Bithacks.ProcessFlag(1, pos: 0, flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: 1, flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1 << 31, uint.TrailingZeroCount(1u << 31), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1 << 31, pos: uint.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(0), flag));
+
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: 0, flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: 1, flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 63, (uint)ulong.TrailingZeroCount(1ul << 63), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul << 63, pos: (uint)ulong.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(0), flag));
+    }
+
     [Theory]
     [InlineData("0", "0", false)]
     [InlineData("0", "1", false)]
@@ -41,16 +58,6 @@ public class BithackTests
         {
             Assert.Equal(int.PopCount(i) is 0 or 1, Bithacks.ZeroOrOneBitsSet(i));
         }
-    }
-
-    [Fact]
-    public static void Should_Check_If_All_Bits_Before()
-    {
-        Assert.True(Bithacks.AllBitsBefore(0b0000000000000001, 0b0000000000000010));
-        Assert.True(Bithacks.AllBitsBefore(0b0000000000000010, 0b0000000000000100));
-        Assert.False(Bithacks.AllBitsBefore(0b0000000000000010, 0b0000000100000010));
-        Assert.False(Bithacks.AllBitsBefore(0b10000000, 0b01010101));
-        Assert.True(Bithacks.AllBitsBefore(0b00_01000000, 0b01010101_10000000));
     }
 
     public static TheoryData<ulong, ulong> TestData =>

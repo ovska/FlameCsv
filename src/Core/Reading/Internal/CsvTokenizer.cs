@@ -29,13 +29,6 @@ internal static class CsvTokenizer
             return null;
         }
 
-        if (ArmTokenizer.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new ArmTokenizer<T, NewlineCRLF>(options)
-                : new ArmTokenizer<T, NewlineLF>(options);
-        }
-
 #if NET10_0_OR_GREATER
         if (Avx512Tokenizer.IsSupported)
         {

@@ -20,7 +20,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private static int MaxFieldsPerIteration
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count; // e.g. 1 CR and 31 delimiters
+        get => Vector256<byte>.Count;
     }
 
     public override int PreferredLength
@@ -76,10 +76,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Vector256<byte> hasControl = hasLF | hasDelimiter;
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
-        uint maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
-        uint maskControl = hasControl.ExtractMostSignificantBits();
-        uint maskLF = hasLF.ExtractMostSignificantBits();
-        uint maskQuote = hasQuote.ExtractMostSignificantBits();
+        uint maskCR = TNewline.IsCRLF ? hasCR.MoveMask() : 0;
+        uint maskControl = hasControl.MoveMask();
+        uint maskLF = hasLF.MoveMask();
+        uint maskQuote = hasQuote.MoveMask();
 
         Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
 
@@ -149,7 +149,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // clear the bits that are inside quotes
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+            uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             ParseAny(
                 index: (uint)index,
@@ -203,10 +203,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             hasQuote = Vector256.Equals(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
-            maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
-            maskControl = hasControl.ExtractMostSignificantBits();
-            maskLF = hasLF.ExtractMostSignificantBits();
-            maskQuote = hasQuote.ExtractMostSignificantBits();
+            maskCR = TNewline.IsCRLF ? hasCR.MoveMask() : 0;
+            maskControl = hasControl.MoveMask();
+            maskLF = hasLF.MoveMask();
+            maskQuote = hasQuote.MoveMask();
         } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;
@@ -222,31 +222,43 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         ref uint dst
     )
     {
-        // on 128bit vectors 3 is optimal; revisit if we change width
-        const uint unrollCount = 5;
+        // even on arm64, this pattern is quite a bit faster than using rbit once and clz after
+        // perhaps due to less instructions (bit clearing takes much more on ARM)
+
+        const uint UnrollCount = 5; // optimal for 256bit, 3 for 128bit
 
         uint lfPos = (uint)BitOperations.PopCount(mask & (maskLF - 1));
 
+        // reusing locals here causes regressions on x86
+        uint m2 = mask & mask - 1;
         Unsafe.Add(ref dst, 0u) = index + (uint)BitOperations.TrailingZeroCount(mask);
-        Unsafe.Add(ref dst, 1u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
-        Unsafe.Add(ref dst, 2u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
-        Unsafe.Add(ref dst, 3u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
-        Unsafe.Add(ref dst, 4u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+        uint m3 = m2 & m2 - 1;
+        Unsafe.Add(ref dst, 1u) = index + (uint)BitOperations.TrailingZeroCount(m2);
+        uint m4 = m3 & m3 - 1;
+        Unsafe.Add(ref dst, 2u) = index + (uint)BitOperations.TrailingZeroCount(m3);
+        uint m5 = m4 & m4 - 1;
+        Unsafe.Add(ref dst, 3u) = index + (uint)BitOperations.TrailingZeroCount(m4);
+        Unsafe.Add(ref dst, 4u) = index + (uint)BitOperations.TrailingZeroCount(m5);
 
-        if (count > unrollCount)
+        if (count > UnrollCount)
         {
             // for some reason this is faster than incrementing a pointer
-            ref uint dst2 = ref Unsafe.Add(ref dst, unrollCount);
+            ref uint dst2 = ref Unsafe.Add(ref dst, UnrollCount);
+
+            m5 &= m5 - 1;
 
             do
             {
-                uint offset = (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+                uint offset = (uint)BitOperations.TrailingZeroCount(m5);
                 dst2 = index + offset;
+                m5 &= m5 - 1;
                 dst2 = ref Unsafe.Add(ref dst2, 1u);
-            } while (mask != 0);
+            } while (m5 != 0);
         }
 
+        uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);
-        Unsafe.Add(ref dst, lfPos) = index + lfTz - Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+        uint intermediate = index - flag;
+        Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;
     }
 }

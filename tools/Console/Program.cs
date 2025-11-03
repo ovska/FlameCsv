@@ -4,6 +4,7 @@
 #pragma warning disable CS0162 // Unreachable code detected
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -26,12 +27,28 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
+            var tmp = Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy");
+
             FileInfo file = new(
-                @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\65K_Records_Data.csv"
-            // @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
+                // @"../../../../Bench/Comparisons/Data/65K_Records_Data.csv"
+                @"../../../../Bench/Comparisons/Data/SampleCSVFile_556kb_4x.csv"
             );
 
             byte[] byteArray = File.ReadAllBytes(file.FullName);
+
+            try
+            {
+                new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(
+                    new FieldBuffer() { Fields = new uint[24 * 65536], Quotes = new byte[24 * 65536] },
+                    0,
+                    byteArray
+                );
+            }
+            catch (Exception e)
+            {
+                //
+            }
+
             // var metas = new Reading.Internal.Meta[65536];
 
             {
@@ -41,9 +58,12 @@ namespace FlameCsv.Console
                 rb.GetEolArrayRef() = new ushort[65535 + 256];
                 var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
-                // new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
-                //     .Tokenize(rb, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n")));
-                new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
+                new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default).Tokenize(
+                    dst,
+                    0,
+                    Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n"))
+                );
+                // new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
             }
 
             // var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);

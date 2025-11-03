@@ -249,7 +249,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // clear the bits that are inside quotes
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+            uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             ParseAny(
                 index: (uint)index,

@@ -24,8 +24,8 @@ public class TokenizationBench
 
     [Params(
         [ /**/
-            // true,
-            false,
+            true,
+            // false,
         ]
     )]
     public bool Quoted { get; set; }
@@ -93,7 +93,7 @@ public class TokenizationBench
     private CsvPartialTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
     private CsvPartialTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
 
-    // [Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true)]
     public void Simd()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
@@ -108,6 +108,7 @@ public class TokenizationBench
         }
     }
 
+#if !ARM
     private readonly Avx2Tokenizer<byte, NewlineLF> _avx2Byte = new(_dByteLF);
     private readonly Avx2Tokenizer<char, NewlineLF> _avx2Char = new(_dCharLF);
     private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
@@ -154,5 +155,6 @@ public class TokenizationBench
             _ = Avx512Byte.Tokenize(dst, 0, ByteData);
         }
     }
+#endif
 #endif
 }

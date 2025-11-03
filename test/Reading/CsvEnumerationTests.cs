@@ -28,7 +28,7 @@ public sealed class CsvEnumerationTests : IDisposable
         using var resetable = CsvReader.Enumerate("1,2,3\n", new() { HasHeader = false }).GetEnumerator();
 
         Assert.True(resetable.MoveNext());
-        Assert.Equal("1,2,3", resetable.Current.RawRecord.ToString());
+        Assert.Equal("1,2,3", resetable.Current.Raw.ToString());
         Assert.NotEqual(0, resetable.Position);
         Assert.Equal(1, resetable.Line);
 
@@ -37,7 +37,7 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal(0, resetable.Line);
 
         Assert.True(resetable.MoveNext());
-        Assert.Equal("1,2,3", resetable.Current.RawRecord.ToString());
+        Assert.Equal("1,2,3", resetable.Current.Raw.ToString());
         Assert.NotEqual(0, resetable.Position);
         Assert.Equal(1, resetable.Line);
 
@@ -84,7 +84,7 @@ public sealed class CsvEnumerationTests : IDisposable
         Assert.Equal(currentHeader, enumerator.Header);
 
         Assert.True(enumerator.MoveNext());
-        Assert.True(enumerator.Current.RawRecord.IsEmpty);
+        Assert.True(enumerator.Current.Raw.IsEmpty);
         enumerator.Header = null;
 
         Assert.True(enumerator.MoveNext());
@@ -108,7 +108,7 @@ public sealed class CsvEnumerationTests : IDisposable
 
         Assert.True(enumerator.MoveNext());
         Assert.NotNull(((IEnumerator)enumerator).Current);
-        Assert.Equal("1,\"Test\",true", enumerator.Current.RawRecord.ToString());
+        Assert.Equal("1,\"Test\",true", enumerator.Current.Raw.ToString());
         Assert.Equal(1, enumerator.Current.ParseField<int>(0));
         Assert.Equal("Test", enumerator.Current.ParseField<string>(1));
         Assert.True(enumerator.Current.ParseField<bool>(2));
@@ -125,7 +125,7 @@ public sealed class CsvEnumerationTests : IDisposable
         );
 
         Assert.True(enumerator.MoveNext());
-        Assert.Equal("2,\"Asd\",false", enumerator.Current.RawRecord.ToString());
+        Assert.Equal("2,\"Asd\",false", enumerator.Current.Raw.ToString());
         Assert.Equal(2, enumerator.Current.ParseField<int>(0));
         Assert.Equal("Asd", enumerator.Current.ParseField<string>(1));
         Assert.False(enumerator.Current.ParseField<bool>(2));

@@ -315,7 +315,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         if (Options.DialectEquals(record.Options))
         {
             WriteDelimiterIfNeeded();
-            _inner.WriteRaw(record.RawRecord, skipEscaping: true);
+            _inner.WriteRaw(record.Raw, skipEscaping: true);
             FieldIndex += record.FieldCount;
         }
         else

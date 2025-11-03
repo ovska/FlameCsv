@@ -1,5 +1,5 @@
 // #define CRLF
-#define AVX2
+// #define AVX2
 
 using System.Text;
 using FlameCsv.Reading.Internal;

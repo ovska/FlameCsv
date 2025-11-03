@@ -109,7 +109,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// <summary>
     /// Data of the raw record, not including possible trailing newline.
     /// </summary>
-    public ReadOnlySpan<T> RawValue
+    public ReadOnlySpan<T> Raw
     {
         get
         {
@@ -147,7 +147,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// Returns a diagnostic string representation of the current instance.
     /// </summary>
     /// <remarks>
-    /// See <see cref="RawValue"/> to get the actual record span.
+    /// See <see cref="Raw"/> to get the actual record span.
     /// </remarks>
     public override string ToString()
     {
@@ -158,9 +158,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
 
         if (typeof(T) == typeof(byte))
         {
-            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(RawValue))}\" }}";
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Raw))}\" }}";
         }
 
-        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{RawValue.ToString()}\" }}";
+        return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Raw.ToString()}\" }}";
     }
 }

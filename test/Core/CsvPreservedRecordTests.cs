@@ -29,7 +29,7 @@ public static partial class CsvPreservedRecordTests
             CsvRecord<char> firstRecord = enumerator.Current;
 
             Assert.NotNull(firstRecord.Header);
-            Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
+            Assert.Equal("1,2,3", firstRecord.Raw.ToString());
 
             List<string> fields = [];
             foreach (var field in firstRecord)
@@ -75,7 +75,7 @@ public static partial class CsvPreservedRecordTests
             CsvRecord<char> firstRecord = enumerator.Current;
 
             Assert.NotNull(firstRecord.Header);
-            Assert.Equal("1,2,3", firstRecord.RawRecord.ToString());
+            Assert.Equal("1,2,3", firstRecord.Raw.ToString());
 
             List<string> fields = [];
             foreach (var field in firstRecord)
@@ -117,7 +117,7 @@ public static partial class CsvPreservedRecordTests
         Assert.NotNull(record.Header);
         Assert.Equal(["A", "B", "C"], record.Header?.Values);
 
-        Assert.Equal("1,2,3", record.RawRecord.ToString());
+        Assert.Equal("1,2,3", record.Raw.ToString());
 
         Assert.Equal("1", record[0].ToString());
         Assert.Equal("2", record[1].ToString());

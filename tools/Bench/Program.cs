@@ -19,11 +19,11 @@ using Perfolizer.Horology;
 // var b = new CsvEnumerateBench();
 // b.Setup();
 // b.Flame_byte();
-BenchmarkRunner.Run<DisasmTest>(new Config(), args);
+BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
 
 file class Config : ManualConfig
 {
-    const int Iters = 16;
+    const int Iters = 8;
 
     public Config()
     {
@@ -60,7 +60,9 @@ file class Config : ManualConfig
                 .WithGcServer(true)
         );
 
+#if !ARM
         AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(maxDepth: 2, printSource: true)));
+#endif
 
         WithOptions(ConfigOptions.DisableLogFile);
     }

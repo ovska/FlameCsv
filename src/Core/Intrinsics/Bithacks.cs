@@ -2,10 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
-using Aes = System.Runtime.Intrinsics.Arm.Aes;
+using ArmAes = System.Runtime.Intrinsics.Arm.Aes;
 
 namespace FlameCsv.Intrinsics;
 
@@ -63,48 +64,38 @@ internal static class Bithacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetSubractionFlag<TNewline>(bool noCR)
-        where TNewline : struct, INewline
+    public static uint GetSubractionFlag(bool noCR)
     {
+        int mask = noCR.ToByte() - 1;
         uint flag = Field.IsEOL;
-
-        if (TNewline.IsCRLF)
-        {
-            int mask = noCR.ToByte() - 1;
-            flag ^= (uint)(mask & 0xC0000001u);
-        }
-
+        flag ^= (uint)(mask & 0xC0000001u);
         return flag;
     }
 
     /// <summary>
-    /// Returns the subraction flag for the given newline mask at bit <paramref name="tz"/>.
+    /// Returns the subraction flag for the given newline mask at bit <paramref name="pos"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint ProcessFlag<T>(T maskNewline, uint tz, uint flag)
+    public static uint ProcessFlag<T>(T maskNewline, uint pos, uint flag)
         where T : unmanaged, IBinaryInteger<T>
     {
-        uint newlineBit = uint.CreateTruncating(maskNewline >> (int)tz) & 1;
-        return (uint)(-(int)newlineBit & flag);
-    }
-
-    /// <summary>
-    /// Checks if all bits in the mask are before the first bit set in the other value.
-    /// </summary>
-    /// <param name="mask">A non-zero bitmask</param>
-    /// <param name="other">A non-zero bitmask</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool AllBitsBefore(nuint mask, nuint other)
-    {
-        Debug.Assert(mask > 0 && other > 0, $"Both mask and other must be non-zero, were: {mask:B} and {other:B}");
-
-        // this is a slight optimization over using BitOperations.Log2 directly, as it must ensure that mask is not zero
-        if (nuint.Size == 8)
+        if (Unsafe.SizeOf<T>() is sizeof(uint))
         {
-            return (63 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+            // handle pos=32 with zero extension to uint64 (tzcnt 0 returns)
+            bool set = (((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL) != 0;
+            return set ? flag : 0u;
         }
 
-        return (31 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+        if (Unsafe.SizeOf<T>() is sizeof(ulong))
+        {
+            // handle pos=64 explicitly (tzcnt 0 returns)
+            ulong mask = Unsafe.BitCast<T, ulong>(maskNewline);
+            int validMask = ((int)pos - 64) >> 31;
+            bool set = ((mask >> (int)pos) & 1UL & (uint)validMask) != 0;
+            return set ? flag : 0u;
+        }
+
+        return default;
     }
 
     /// <summary>
@@ -115,19 +106,11 @@ internal static class Bithacks
     /// How many quotes the current field has (if any).
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong FindQuoteMask(ulong quoteBits, uint quoteCount)
+    internal static T FindQuoteMask<T>(T quoteBits, uint quoteCount)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        ulong quoteMask = ComputeQuoteMask(quoteBits);
-        ulong mask = 0 - (quoteCount & 1);
-        return quoteMask ^ mask;
-    }
-
-    /// <inheritdoc cref="FindQuoteMask(ulong, uint)" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint FindQuoteMask(uint quoteBits, uint quoteCount)
-    {
-        uint quoteMask = ComputeQuoteMask(quoteBits);
-        uint mask = 0 - (quoteCount & 1);
+        T quoteMask = ComputeQuoteMask(quoteBits);
+        T mask = T.Zero - (T.CreateTruncating(quoteCount) & T.One);
         return quoteMask ^ mask;
     }
 
@@ -163,65 +146,42 @@ internal static class Bithacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong ComputeQuoteMask(ulong quoteBits)
+    internal static T ComputeQuoteMask<T>(T quoteBits)
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (Pclmulqdq.IsSupported && Sse2.IsSupported)
         {
-            var vec = Vector128.CreateScalar(quoteBits);
+            var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
             var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
-            return result.GetElement(0);
+            return T.CreateTruncating(result.GetElement(0));
         }
 
-        if (Aes.IsSupported)
+        if (ArmAes.IsSupported)
         {
-            Vector64<ulong> quoteBitsVec = Vector64.Create(quoteBits);
-            Vector128<ulong> prod = Aes.PolynomialMultiplyWideningLower(quoteBitsVec, Vector64<ulong>.AllBitsSet);
-            return prod.GetElement(0);
+            var r = ArmAes.PolynomialMultiplyWideningLower(
+                Vector64.Create(ulong.CreateTruncating(quoteBits)),
+                Vector64<ulong>.AllBitsSet
+            );
+
+            return T.CreateTruncating(r.GetElement(0));
         }
 
         return ComputeQuoteMaskSoftwareFallback(quoteBits);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint ComputeQuoteMask(uint quoteBits)
+    internal static T ComputeQuoteMaskSoftwareFallback<T>(T quoteBits)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        if (Pclmulqdq.IsSupported && Sse2.IsSupported)
-        {
-            var vec = Vector128.CreateScalar((ulong)quoteBits);
-            var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
-            return (uint)result.GetElement(0);
-        }
-
-        if (Aes.IsSupported)
-        {
-            Vector64<ulong> quoteBitsVec = Vector64.Create((ulong)quoteBits);
-            Vector128<ulong> prod = Aes.PolynomialMultiplyWideningLower(quoteBitsVec, Vector64<ulong>.AllBitsSet);
-            return (uint)prod.GetElement(0);
-        }
-
-        return ComputeQuoteMaskSoftwareFallback(quoteBits);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint ComputeQuoteMaskSoftwareFallback(uint quoteBits)
-    {
-        uint mask = quoteBits ^ (quoteBits << 1);
+        T mask = quoteBits ^ (quoteBits << 1);
         mask ^= (mask << 2);
         mask ^= (mask << 4);
-        mask ^= (mask << 8);
-        mask ^= (mask << 16);
-        return mask;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong ComputeQuoteMaskSoftwareFallback(ulong quoteBits)
-    {
-        ulong mask = quoteBits ^ (quoteBits << 1);
-        mask ^= (mask << 2);
-        mask ^= (mask << 4);
-        mask ^= (mask << 8);
-        mask ^= (mask << 16);
-        mask ^= (mask << 32);
+        if (Unsafe.SizeOf<T>() >= sizeof(ushort))
+            mask ^= (mask << 8);
+        if (Unsafe.SizeOf<T>() >= sizeof(uint))
+            mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() >= sizeof(ulong))
+            mask ^= (mask << 32);
         return mask;
     }
 
@@ -243,4 +203,69 @@ internal static class Bithacks
 
         throw Token<T>.NotSupported;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static T ReverseBits<T>(T v)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return Unsafe.SizeOf<T>() switch
+        {
+            sizeof(uint) => Unsafe.BitCast<uint, T>(ArmBase.ReverseElementBits(Unsafe.BitCast<T, uint>(v))),
+            sizeof(ulong) => Unsafe.BitCast<ulong, T>(ArmBase.Arm64.ReverseElementBits(Unsafe.BitCast<T, ulong>(v))),
+            _ => throw new NotSupportedException(typeof(T).FullName),
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static T IsolateLowestBits<T>(T value, uint count)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (Unsafe.SizeOf<T>() is sizeof(uint))
+        {
+            ulong result = (ulong)Unsafe.BitCast<T, uint>(value) << (int)(32u - count);
+            return Unsafe.BitCast<uint, T>((uint)result);
+        }
+
+        throw new NotSupportedException(typeof(T).FullName);
+    }
+
+    public static ReadOnlySpan<uint> LowestBits =>
+        [
+            0b0000_0000_0000_0000_0000_0000_0000_0000,
+            0b0000_0000_0000_0000_0000_0000_0000_0001,
+            0b0000_0000_0000_0000_0000_0000_0000_0011,
+            0b0000_0000_0000_0000_0000_0000_0000_0111,
+            0b0000_0000_0000_0000_0000_0000_0000_1111,
+            0b0000_0000_0000_0000_0000_0000_0001_1111,
+            0b0000_0000_0000_0000_0000_0000_0011_1111,
+            0b0000_0000_0000_0000_0000_0000_0111_1111,
+            0b0000_0000_0000_0000_0000_0000_1111_1111,
+            0b0000_0000_0000_0000_0000_0001_1111_1111,
+            0b0000_0000_0000_0000_0000_0011_1111_1111,
+            0b0000_0000_0000_0000_0000_0111_1111_1111,
+            0b0000_0000_0000_0000_0000_1111_1111_1111,
+            0b0000_0000_0000_0000_0001_1111_1111_1111,
+            0b0000_0000_0000_0000_0011_1111_1111_1111,
+            0b0000_0000_0000_0000_0111_1111_1111_1111,
+            0b0000_0000_0000_0000_1111_1111_1111_1111,
+            0b0000_0000_0000_0001_1111_1111_1111_1111,
+            0b0000_0000_0000_0011_1111_1111_1111_1111,
+            0b0000_0000_0000_0111_1111_1111_1111_1111,
+            0b0000_0000_0000_1111_1111_1111_1111_1111,
+            0b0000_0000_0001_1111_1111_1111_1111_1111,
+            0b0000_0000_0011_1111_1111_1111_1111_1111,
+            0b0000_0000_0111_1111_1111_1111_1111_1111,
+            0b0000_0000_1111_1111_1111_1111_1111_1111,
+            0b0000_0001_1111_1111_1111_1111_1111_1111,
+            0b0000_0011_1111_1111_1111_1111_1111_1111,
+            0b0000_0111_1111_1111_1111_1111_1111_1111,
+            0b0000_1111_1111_1111_1111_1111_1111_1111,
+            0b0001_1111_1111_1111_1111_1111_1111_1111,
+            0b0011_1111_1111_1111_1111_1111_1111_1111,
+            0b0111_1111_1111_1111_1111_1111_1111_1111,
+            0b1111_1111_1111_1111_1111_1111_1111_1111,
+            0b1111_1111_1111_1111_1111_1111_1111_1111,
+        ];
 }

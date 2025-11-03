@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.Reading;
 
 namespace FlameCsv.Exceptions;
 
@@ -19,5 +20,19 @@ public sealed class CsvReadException(string? message = null, Exception? innerExc
     public static void ThrowForInvalidFieldCount(int expected, int actual)
     {
         throw new CsvReadException($"Expected {expected} fields, but the record had {actual}");
+    }
+
+    /// <summary>
+    /// Throws an exception for a CSV record having an invalid number of fields.
+    /// </summary>
+    /// <exception cref="CsvReadException"></exception>
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ThrowForInvalidFieldCount<T, TRecord>(int expected, int actual, ref readonly TRecord record)
+        where T : unmanaged, IBinaryInteger<T>
+        where TRecord : ICsvRecord<T>, allows ref struct
+    {
+        throw new CsvReadException(
+            $"Expected {expected} fields, but the record had {actual}: {Transcode.ToString(record.Raw)}"
+        );
     }
 }

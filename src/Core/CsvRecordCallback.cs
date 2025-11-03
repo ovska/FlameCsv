@@ -74,7 +74,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> RawRecord => _record.RawValue;
+    public ReadOnlySpan<T> RawRecord => _record.Raw;
 
     /// <summary>
     /// Options instance.

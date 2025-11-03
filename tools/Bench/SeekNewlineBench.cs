@@ -1,53 +1,34 @@
 // ReSharper disable all
 
-using System.Text;
-using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
 
 [HideColumns("Error", "RatioSD")]
 public class SeekNewlineBench
 {
-    [Params(true)]
-    public bool AltData { get; set; }
-
-    // [Params(true, false)]
-    public bool CRLF { get; set; }
+    // [Params(5, 10, 15)]
+    public int Interval { get; set; } = 10;
 
     [GlobalSetup]
     public void Setup()
     {
-        string path = AltData ? @"Comparisons/Data/65K_Records_Data.csv" : @"Comparisons/Data/SampleCSVFile_556kb.csv";
+        var buffer = rb.GetUnreadBuffer(0, out _);
 
-        _string = File.ReadAllText(path, Encoding.UTF8).ReplaceLineEndings(CRLF ? "\r\n" : "\n");
-        _byteArray = Encoding.UTF8.GetBytes(_string);
-
-        _optionsByteLF = new() { Newline = CsvNewline.LF };
-        _optionsCharLF = new() { Newline = CsvNewline.LF };
-        _optionsByteCRLF = new() { Newline = CsvNewline.CRLF };
-        _optionsCharCRLF = new() { Newline = CsvNewline.CRLF };
+        for (int i = 0; i < buffer.Fields.Length; i++)
+        {
+            buffer.Fields[i] = i % Interval == 0 ? ~0u : 0u;
+        }
     }
 
-    private byte[] _byteArray = [];
-    private string _string = "";
-
-    private CsvOptions<byte> _optionsByteLF = null!;
-    private CsvOptions<char> _optionsCharLF = null!;
-    private CsvOptions<byte> _optionsByteCRLF = null!;
-    private CsvOptions<char> _optionsCharCRLF = null!;
-
-    private CsvOptions<byte> OptionsByte => CRLF ? _optionsByteCRLF : _optionsByteLF;
-    private CsvOptions<char> OptionsChar => CRLF ? _optionsCharCRLF : _optionsCharLF;
+    private readonly RecordBuffer rb = new();
 
     [Benchmark(Baseline = true)]
-    public void Utf8()
+    public void Exec()
     {
-        foreach (var _ in new CsvReader<byte>(OptionsByte, _byteArray).ParseRecords()) { }
-    }
-
-    // [Benchmark]
-    public void Utf16()
-    {
-        foreach (var _ in new CsvReader<char>(OptionsChar, _string.AsMemory()).ParseRecords()) { }
+        rb._fieldCount = 0;
+        rb._eolCount = 0;
+        rb._eolIndex = 0;
+        rb.SetFieldsRead(RecordBuffer.DefaultFieldBufferSize - 64);
     }
 }
