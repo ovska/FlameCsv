@@ -47,8 +47,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
     {
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
-        throw null!;
-#if false
+#if true
         if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
@@ -111,10 +110,8 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
                     goto CountQuotes;
                 }
 
-                if (AsciiVector.Arm.IsDisjointCR(maskLF, shiftedCR))
+                if (AsciiVector.Arm.IsDisjointCR(hasLF, shiftedCR))
                 {
-                    // maskControl doesn't contain CR by default, add it so we can find lone CR's
-                    maskControl |= maskCR;
                     goto PathologicalPath;
                 }
             }
@@ -165,7 +162,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
                 fieldIndex: ref fieldIndex,
                 quotesConsumed: ref quotesConsumed,
                 maskControl: maskControl,
-                maskLF: maskLF,
+                maskLF: AsciiVector.Arm.MoveMask(hasLF), // TODO
                 maskQuote: maskQuote,
                 flag: flag
             );
@@ -175,6 +172,10 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
             PathologicalPath:
             if (TNewline.IsCRLF)
             {
+                // maskControl doesn't contain CR by default, add it so we can find lone CR's
+                maskQuote = AsciiVector.Arm.MoveMask(hasQuote);
+                maskControl |= maskQuote;
+
                 // clear the bits that are inside quotes
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
@@ -204,7 +205,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
             }
 
             CountQuotes:
-            quotesConsumed += AsciiVector.Arm.CountMatches(hasQuote);
+            quotesConsumed += AsciiVector.Arm.CountNonZero(hasQuote);
 
             ContinueRead:
             index += (nuint)Vector512<byte>.Count;

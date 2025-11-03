@@ -209,6 +209,8 @@ internal static class AsciiVector
 
     extension(Vector512<byte> vec)
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
 #pragma warning disable CA1822 // Mark members as static
         public void Deconstruct(
 #pragma warning restore CA1822 // Mark members as static
@@ -252,7 +254,11 @@ internal static class AsciiVector
             uint count = total.GetElement(0);
 
             // divide by 255
-            return (count + (count >> 8) + 1) >> 8;
+            uint result = (count + (count >> 8) + 1) >> 8;
+
+            Debug.Assert(result == BitOperations.PopCount(value.ExtractMostSignificantBits()));
+
+            return result;
         }
 
         /// <summary>
@@ -297,21 +303,18 @@ internal static class AsciiVector
             s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s1.AsSByte()).AsByte();
             s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s0.AsSByte()).AsByte();
 
-            return s0.AsUInt64().ToScalar();
+            ulong result = s0.AsUInt64().ToScalar();
+            Debug.Assert(result == vector.ExtractMostSignificantBits());
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsZero(Vector512<byte> vector)
         {
             var (a, b, c, d) = vector;
-            return (a | b | c | d) == Vector128<byte>.Zero;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsZero2(Vector512<byte> vector)
-        {
-            var (a, b, c, d) = vector;
-            return AdvSimd.Arm64.MaxAcross(a | b | c | d).ToScalar() == 0;
+            bool result = (a | b | c | d) == Vector128<byte>.Zero;
+            Debug.Assert(result == (vector == Vector512<byte>.Zero));
+            return result;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
