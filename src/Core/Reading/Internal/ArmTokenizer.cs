@@ -47,6 +47,8 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
     {
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
+        throw null!;
+#if false
         if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
@@ -69,13 +71,14 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
         // load the constants into registers
         uint quotesConsumed = 0;
-        ulong crCarry = 0;
 
         // use 128 bit vectors for the constants to save on registers
         Vector128<byte> vecDelim = Vector128.Create(byte.CreateTruncating(_delimiter));
         Vector128<byte> vecQuote = Vector128.Create(byte.CreateTruncating(_quote));
         Vector128<byte> vecLF = Vector128.Create((byte)'\n');
         Vector128<byte> vecCR = TNewline.IsCRLF ? Vector128.Create((byte)'\r') : default;
+
+        Vector128<byte> crCarry = Vector128<byte>.Zero;
 
         Vector512<byte> vector = AsciiVector.Load512(ref first, index);
 
@@ -85,10 +88,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
         Vector512<byte> hasControl = hasLF | hasDelimiter;
         Vector512<byte> hasQuote = Vector512.Equals128(vector, vecQuote);
 
-        ulong maskCR = TNewline.IsCRLF ? AsciiVector.MoveMaskARM64(hasCR) : 0;
-        ulong maskControl = AsciiVector.MoveMaskARM64(hasControl);
-        ulong maskLF = AsciiVector.MoveMaskARM64(hasLF);
-        ulong maskQuote = AsciiVector.MoveMaskARM64(hasQuote);
+        ulong maskControl = AsciiVector.Arm.MoveMask(hasControl);
 
         Vector512<byte> nextVector = AsciiVector.Load512(ref first, index + (nuint)Vector512<byte>.Count);
 
@@ -97,23 +97,21 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
             // Prefetch the vector that will be needed 2 iterations ahead
             Vector512<byte> prefetchVector = AsciiVector.Load512(ref first, index + (nuint)(2 * Vector512<byte>.Count));
 
-            Unsafe.SkipInit(out ulong shiftedCR); // this can be garbage on LF, it's never used
+            Unsafe.SkipInit(out Vector512<byte> shiftedCR); // this can be garbage on LF, it's never used
 
             if (TNewline.IsCRLF)
             {
+                (shiftedCR, crCarry) = AsciiVector.Arm.ShiftAndCarry(vector, crCarry);
+
                 vector = nextVector;
                 nextVector = prefetchVector;
 
-                shiftedCR = ((maskCR << 1) | crCarry);
-                crCarry = maskCR >> 63;
-
-                if ((maskControl | shiftedCR) == 0)
+                if (maskControl == 0 & AsciiVector.Arm.IsZero(shiftedCR))
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto CountQuotes;
                 }
 
-                if (Bithacks.IsDisjointCR(maskLF, shiftedCR))
+                if (AsciiVector.Arm.IsDisjointCR(maskLF, shiftedCR))
                 {
                     // maskControl doesn't contain CR by default, add it so we can find lone CR's
                     maskControl |= maskCR;
@@ -127,14 +125,13 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if (maskControl == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto CountQuotes;
                 }
             }
 
             uint controlCount = (uint)BitOperations.PopCount(maskControl);
 
-            if ((quotesConsumed | maskQuote) != 0)
+            if (quotesConsumed != 0 | !AsciiVector.Arm.IsZero(hasQuote))
             {
                 goto SlowPath;
             }
@@ -156,9 +153,10 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
             SlowPath:
             // clear the bits that are inside quotes
+            ulong maskQuote = AsciiVector.Arm.MoveMask(hasQuote);
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+            uint flag = Bithacks.GetSubractionFlag<TNewline>(AsciiVector.Arm.IsZero(shiftedCR));
 
             ParseAny(
                 index: (uint)index,
@@ -201,7 +199,12 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
                     delimiter: _delimiter,
                     quotesConsumed: ref quotesConsumed
                 );
+
+                goto ContinueRead;
             }
+
+            CountQuotes:
+            quotesConsumed += AsciiVector.Arm.CountMatches(hasQuote);
 
             ContinueRead:
             index += (nuint)Vector512<byte>.Count;
@@ -212,24 +215,10 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
             hasQuote = Vector512.Equals128(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
-            maskCR = TNewline.IsCRLF ? AsciiVector.MoveMaskARM64(hasCR) : 0;
-            maskControl = AsciiVector.MoveMaskARM64(hasControl);
-            maskLF = AsciiVector.MoveMaskARM64(hasLF);
-            maskQuote = AsciiVector.MoveMaskARM64(hasQuote);
+            maskControl = AsciiVector.Arm.MoveMask(hasControl);
         } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;
-    }
-
-    private static bool IsZero(Vector512<byte> vector)
-    {
-        Vector256<byte> lower = vector.GetLower();
-        Vector256<byte> upper = vector.GetUpper();
-        Vector128<byte> a = lower.GetLower();
-        Vector128<byte> b = lower.GetUpper();
-        Vector128<byte> c = upper.GetLower();
-        Vector128<byte> d = upper.GetUpper();
-
-        return (a | b | c | d) == Vector128<byte>.Zero;
+#endif
     }
 }
