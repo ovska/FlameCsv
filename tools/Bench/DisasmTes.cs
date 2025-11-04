@@ -1,5 +1,6 @@
 // #define CRLF
-#define AVX2
+// #define AVX2
+// #define ARM
 
 using System.Text;
 using FlameCsv.Reading.Internal;
@@ -41,6 +42,9 @@ public class DisasmTest
 #if AVX2
     private readonly Avx2Tokenizer<byte, TNewline> _t128bLF = new(_dByteLF);
     private readonly Avx2Tokenizer<char, TNewline> _t128LF = new(_dCharLF);
+#elif ARM
+    private readonly ArmTokenizer<byte, TNewline> _t128bLF = new(_dByteLF);
+    private readonly ArmTokenizer<char, TNewline> _t128LF = new(_dCharLF);
 #else
     private readonly SimdTokenizer<char, TNewline> _t128LF = new(_dCharLF);
     private readonly SimdTokenizer<byte, TNewline> _t128bLF = new(_dByteLF);
