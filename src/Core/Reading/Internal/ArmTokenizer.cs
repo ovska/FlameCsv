@@ -9,7 +9,7 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class ArmTokenizer
 {
-    public static bool IsSupported => AdvSimd.Arm64.IsSupported;
+    public static bool IsSupported => AdvSimd.Arm64.IsSupported && ArmBase.Arm64.IsSupported;
 }
 
 [SkipLocalsInit]
@@ -107,8 +107,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if ((maskControl | shiftedCR) == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto CountQuotes;
                 }
 
                 if (Bithacks.IsDisjointCR(maskLF, shiftedCR))
@@ -125,8 +124,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
                 if (maskControl == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto CountQuotes;
                 }
             }
 
@@ -199,7 +197,12 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
                     delimiter: _delimiter,
                     quotesConsumed: ref quotesConsumed
                 );
+
+                goto ContinueRead;
             }
+
+            CountQuotes:
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
 
             ContinueRead:
             index += (nuint)Vector512<byte>.Count;

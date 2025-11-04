@@ -29,7 +29,7 @@ internal static class CsvTokenizer
             return null;
         }
 
-        if (ArmTokenizer.IsSupported)
+        if (false)//ArmTokenizer.IsSupported)
         {
             return options.Newline.IsCRLF()
                 ? new ArmTokenizer<T, NewlineCRLF>(options)

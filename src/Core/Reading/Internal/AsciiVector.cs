@@ -207,6 +207,34 @@ internal static class AsciiVector
         }
     }
 
+    extension(Vector256<byte> vec)
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        public uint MoveMask()
+        {
+            if (!AdvSimd.IsSupported)
+                return vec.ExtractMostSignificantBits();
+
+            // 0x80 in bit7 maps to these weights -> 32-bit mask after folds
+            Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+
+            Vector128<byte> lo = vec.GetLower();
+            Vector128<byte> hi = vec.GetUpper();
+
+            Vector128<byte> t0 = AdvSimd.And(lo, w);
+            Vector128<byte> t1 = AdvSimd.And(hi, w);
+
+            // vpadd across the two halves, then fold twice
+            Vector128<byte> s = AdvSimd.Arm64.AddPairwise(t0.AsSByte(), t1.AsSByte()).AsByte();
+            s = AdvSimd.Arm64.AddPairwise(s.AsSByte(), s.AsSByte()).AsByte();
+            s = AdvSimd.Arm64.AddPairwise(s.AsSByte(), s.AsSByte()).AsByte();
+
+            // low 32 bits now hold the mask
+            return s.AsUInt32().ToScalar();
+        }
+    }
+
     extension(Vector512<byte> vec)
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -304,7 +332,6 @@ internal static class AsciiVector
             s0 = AdvSimd.Arm64.AddPairwise(s0.AsSByte(), s0.AsSByte()).AsByte();
 
             ulong result = s0.AsUInt64().ToScalar();
-            Debug.Assert(result == vector.ExtractMostSignificantBits());
             return result;
         }
 

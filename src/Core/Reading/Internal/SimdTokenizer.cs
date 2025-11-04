@@ -76,10 +76,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Vector256<byte> hasControl = hasLF | hasDelimiter;
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
-        uint maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
-        uint maskControl = hasControl.ExtractMostSignificantBits();
-        uint maskLF = hasLF.ExtractMostSignificantBits();
-        uint maskQuote = hasQuote.ExtractMostSignificantBits();
+        uint maskCR = TNewline.IsCRLF ? hasCR.MoveMask() : 0;
+        uint maskControl = hasControl.MoveMask();
+        uint maskLF = hasLF.MoveMask();
+        uint maskQuote = hasQuote.MoveMask();
 
         Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
 
@@ -203,10 +203,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             hasQuote = Vector256.Equals(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
-            maskCR = TNewline.IsCRLF ? hasCR.ExtractMostSignificantBits() : 0;
-            maskControl = hasControl.ExtractMostSignificantBits();
-            maskLF = hasLF.ExtractMostSignificantBits();
-            maskQuote = hasQuote.ExtractMostSignificantBits();
+            maskCR = TNewline.IsCRLF ? hasCR.MoveMask() : 0;
+            maskControl = hasControl.MoveMask();
+            maskLF = hasLF.MoveMask();
+            maskQuote = hasQuote.MoveMask();
         } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;

@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
@@ -203,5 +204,31 @@ internal static class Bithacks
         }
 
         throw Token<T>.NotSupported;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static T ReverseBits<T>(T v)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return Unsafe.SizeOf<T>() switch
+        {
+            sizeof(uint) => Unsafe.BitCast<uint, T>(ArmBase.ReverseElementBits(Unsafe.BitCast<T, uint>(v))),
+            sizeof(ulong) => Unsafe.BitCast<ulong, T>(ArmBase.Arm64.ReverseElementBits(Unsafe.BitCast<T, ulong>(v))),
+            _ => throw new NotSupportedException(typeof(T).FullName),
+        };
+    }
+
+    public static T IsolateLowestBits<T>(T value, int count)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (Unsafe.SizeOf<T>() is sizeof(uint))
+        {
+            ulong result = (ulong)Unsafe.BitCast<T, uint>(value) << (int)(32u - (uint)count);
+            return Unsafe.BitCast<uint, T>((uint)result);
+        }
+        else if (Unsafe.SizeOf<T>() is sizeof(ulong)) { }
+
+        throw new NotSupportedException(typeof(T).FullName);
     }
 }

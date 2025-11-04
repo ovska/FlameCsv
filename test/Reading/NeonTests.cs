@@ -12,6 +12,16 @@ public static class NeonTests
     private static readonly byte[] dataBytes = System.Text.Encoding.UTF8.GetBytes(data);
 
     [Fact]
+    public static void AAAAA()
+    {
+        var a = Vector128.Create(dataBytes, 0);
+        var eq = Vector128.Equals(a, Vector128.Create((byte)','));
+        var idx = eq & Vector128<byte>.Indices;
+        var lookup = AdvSimd.VectorTableLookup(idx, Vector64<byte>.Indices);
+        var lookup2 = AdvSimd.VectorTableLookup(Vector128<byte>.Indices, idx.GetLower());
+    }
+
+    [Fact]
     public static void Should_Load_Vector()
     {
         Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
@@ -50,6 +60,46 @@ public static class NeonTests
         ulong mask = AsciiVector.Arm.MoveMask(eq);
 
         Assert.Equal(0b10001000100010001000100010001000UL, mask);
+    }
+
+    [Fact]
+    public static void Should_MoveMask_256()
+    {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
+        byte[] bytes = new byte[Vector256<byte>.Count];
+
+        foreach (var _ in Enumerable.Range(0, 1000))
+        {
+            Random.Shared.NextBytes(bytes);
+
+            Vector256<byte> vec = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+
+            string expected = vec.ExtractMostSignificantBits().ToString("b32");
+            string actual = vec.MoveMask().ToString("b32");
+
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    [Fact]
+    public static void Should_MoveMask_512()
+    {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
+        byte[] bytes = new byte[Vector512<byte>.Count];
+
+        foreach (var _ in Enumerable.Range(0, 1000))
+        {
+            Random.Shared.NextBytes(bytes);
+
+            Vector512<byte> vec = Vector512.GreaterThan(Vector512.Create((byte)127), Vector512.Create(bytes, 0));
+
+            string expected = vec.ExtractMostSignificantBits().ToString("b64");
+            string actual = AsciiVector.Arm.MoveMask(vec).ToString("b64");
+
+            Assert.Equal(expected, actual);
+        }
     }
 
     [Fact]

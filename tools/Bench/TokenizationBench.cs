@@ -93,7 +93,7 @@ public class TokenizationBench
     private CsvPartialTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
     private CsvPartialTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
 
-    // [Benchmark(Baseline = true)]
+    [Benchmark(Baseline = true)]
     public void Simd()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
@@ -117,7 +117,7 @@ public class TokenizationBench
     private CsvPartialTokenizer<char> ArmChar => TokenizerIsLF ? _armChar : _armCharCRLF;
     private CsvPartialTokenizer<byte> ArmByte => TokenizerIsLF ? _armByte : _armByteCRLF;
 
-    [Benchmark]
+    // [Benchmark]
     public void ARM64()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };

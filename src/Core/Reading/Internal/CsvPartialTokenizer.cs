@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -54,32 +56,68 @@ internal abstract class CsvPartialTokenizer<T>
     {
         nuint fIdx = fieldIndex;
 
-        while (maskControl != TMask.Zero)
+        if (ArmBase.Arm64.IsSupported)
         {
-            uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
-            TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
-            TMask quoteBits = maskQuote & maskUpToPos;
+            Debug.Assert(typeof(TMask) == typeof(uint));
 
-            uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
-            uint pos = index + tz;
-            quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
+            maskControl = Unsafe.BitCast<uint, TMask>(
+                ArmBase.ReverseElementBits(Unsafe.BitCast<TMask, uint>(maskControl))
+            );
 
-            pos -= eolFlag;
+            while (maskControl != TMask.Zero)
+            {
+                uint tz = uint.CreateTruncating(TMask.LeadingZeroCount(maskControl));
+                uint quoteBits = (uint)(ulong.CreateTruncating(maskQuote) << (int)(32 - tz));
+                int k = (int)(tz + 1);
 
-            Field.SaturateTo7Bits(ref quotesConsumed);
+                uint eolFlag = Bithacks.ProcessFlag(maskLF, index + tz, flag);
+                quotesConsumed += (uint)BitOperations.PopCount(quoteBits);
 
-            // consume masks
-            maskControl = Bithacks.ResetLowestSetBit(maskControl);
-            maskQuote &= ~maskUpToPos;
+                Field.SaturateTo7Bits(ref quotesConsumed);
 
-            ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
-            ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
+                ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
+                ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
 
-            dstField = pos;
-            dstQuote = (byte)quotesConsumed;
+                dstField = index + tz - eolFlag;
+                dstQuote = (byte)quotesConsumed;
 
-            fIdx++;
-            quotesConsumed = 0;
+                maskControl <<= k;
+                maskQuote >>= k;
+
+                index += (uint)k;
+                fIdx++;
+                quotesConsumed = 0;
+            }
+        }
+        else
+        {
+            while (maskControl != TMask.Zero)
+            {
+                uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
+                TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
+                TMask quoteBits = maskQuote & maskUpToPos;
+
+                uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
+                uint pos = index + tz;
+                quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
+
+                pos -= eolFlag;
+
+                Field.SaturateTo7Bits(ref quotesConsumed);
+
+                // consume masks
+                maskControl = Bithacks.ResetLowestSetBit(maskControl);
+                maskQuote &= ~maskUpToPos;
+
+                ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
+                ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
+
+                dstField = pos;
+                dstQuote = (byte)quotesConsumed;
+
+                fIdx++;
+                quotesConsumed = 0;
+            }
         }
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
@@ -176,4 +214,45 @@ internal abstract class CsvPartialTokenizer<T>
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
     }
+}
+
+file static class LUT
+{
+    public static ReadOnlySpan<uint> LowestBits =>
+        [
+            0b0000_0000_0000_0000_0000_0000_0000_0000,
+            0b0000_0000_0000_0000_0000_0000_0000_0001,
+            0b0000_0000_0000_0000_0000_0000_0000_0011,
+            0b0000_0000_0000_0000_0000_0000_0000_0111,
+            0b0000_0000_0000_0000_0000_0000_0000_1111,
+            0b0000_0000_0000_0000_0000_0000_0001_1111,
+            0b0000_0000_0000_0000_0000_0000_0011_1111,
+            0b0000_0000_0000_0000_0000_0000_0111_1111,
+            0b0000_0000_0000_0000_0000_0000_1111_1111,
+            0b0000_0000_0000_0000_0000_0001_1111_1111,
+            0b0000_0000_0000_0000_0000_0011_1111_1111,
+            0b0000_0000_0000_0000_0000_0111_1111_1111,
+            0b0000_0000_0000_0000_0000_1111_1111_1111,
+            0b0000_0000_0000_0000_0001_1111_1111_1111,
+            0b0000_0000_0000_0000_0011_1111_1111_1111,
+            0b0000_0000_0000_0000_0111_1111_1111_1111,
+            0b0000_0000_0000_0000_1111_1111_1111_1111,
+            0b0000_0000_0000_0001_1111_1111_1111_1111,
+            0b0000_0000_0000_0011_1111_1111_1111_1111,
+            0b0000_0000_0000_0111_1111_1111_1111_1111,
+            0b0000_0000_0000_1111_1111_1111_1111_1111,
+            0b0000_0000_0001_1111_1111_1111_1111_1111,
+            0b0000_0000_0011_1111_1111_1111_1111_1111,
+            0b0000_0000_0111_1111_1111_1111_1111_1111,
+            0b0000_0000_1111_1111_1111_1111_1111_1111,
+            0b0000_0001_1111_1111_1111_1111_1111_1111,
+            0b0000_0011_1111_1111_1111_1111_1111_1111,
+            0b0000_0111_1111_1111_1111_1111_1111_1111,
+            0b0000_1111_1111_1111_1111_1111_1111_1111,
+            0b0001_1111_1111_1111_1111_1111_1111_1111,
+            0b0011_1111_1111_1111_1111_1111_1111_1111,
+            0b0111_1111_1111_1111_1111_1111_1111_1111,
+            0b1111_1111_1111_1111_1111_1111_1111_1111,
+            0b1111_1111_1111_1111_1111_1111_1111_1111,
+        ];
 }
