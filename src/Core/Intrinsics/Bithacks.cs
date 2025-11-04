@@ -89,25 +89,6 @@ internal static class Bithacks
     }
 
     /// <summary>
-    /// Checks if all bits in the mask are before the first bit set in the other value.
-    /// </summary>
-    /// <param name="mask">A non-zero bitmask</param>
-    /// <param name="other">A non-zero bitmask</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool AllBitsBefore(nuint mask, nuint other)
-    {
-        Debug.Assert(mask > 0 && other > 0, $"Both mask and other must be non-zero, were: {mask:B} and {other:B}");
-
-        // this is a slight optimization over using BitOperations.Log2 directly, as it must ensure that mask is not zero
-        if (nuint.Size == 8)
-        {
-            return (63 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
-        }
-
-        return (31 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
-    }
-
-    /// <summary>
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
     /// <param name="quoteBits">Bitmask of the quote positions</param>

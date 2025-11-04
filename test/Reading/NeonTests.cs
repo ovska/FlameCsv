@@ -55,6 +55,8 @@ public static class NeonTests
     [Fact]
     public static void Should_Shift_Right()
     {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
         Vector512<byte> vec = Vector512.Create(dataBytes, 0);
         (Vector512<byte> shifted, Vector128<byte> carry) = AsciiVector.Arm.ShiftAndCarry(vec, Vector128<byte>.Zero);
 
@@ -78,6 +80,8 @@ public static class NeonTests
     [Fact]
     public static void Should_Count_Matches()
     {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
         Assert.Equal(0u, AsciiVector.Arm.CountNonZero(Vector512<byte>.Zero));
         Assert.Equal(64u, AsciiVector.Arm.CountNonZero(Vector512<byte>.AllBitsSet));
 
@@ -102,6 +106,8 @@ public static class NeonTests
     [InlineData("000100", "000000", true)]
     public static void Should_Check_If_Disjoint_CR(string cr, string lf, bool expected)
     {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
         var crVec = ToVec(cr);
         var lfVec = ToVec(lf);
         bool result = AsciiVector.Arm.IsDisjointCR(lfVec, crVec);
