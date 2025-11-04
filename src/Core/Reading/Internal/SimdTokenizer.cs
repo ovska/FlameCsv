@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -222,6 +223,11 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         ref uint dst
     )
     {
+        if (ArmBase.IsSupported)
+        {
+            return;
+        }
+
         // on 128bit vectors 3 is optimal; revisit if we change width
         const uint unrollCount = 5;
 

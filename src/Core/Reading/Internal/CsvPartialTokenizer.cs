@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
@@ -60,18 +61,16 @@ internal abstract class CsvPartialTokenizer<T>
         {
             Debug.Assert(typeof(TMask) == typeof(uint));
 
-            maskControl = Unsafe.BitCast<uint, TMask>(
-                ArmBase.ReverseElementBits(Unsafe.BitCast<TMask, uint>(maskControl))
-            );
+            maskControl = Bithacks.ReverseBits(maskControl);
 
             while (maskControl != TMask.Zero)
             {
                 uint tz = uint.CreateTruncating(TMask.LeadingZeroCount(maskControl));
-                uint quoteBits = (uint)(ulong.CreateTruncating(maskQuote) << (int)(32 - tz));
+                TMask quoteBits = Bithacks.IsolateLowestBits(maskQuote, tz);
                 int k = (int)(tz + 1);
 
                 uint eolFlag = Bithacks.ProcessFlag(maskLF, index + tz, flag);
-                quotesConsumed += (uint)BitOperations.PopCount(quoteBits);
+                quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
                 Field.SaturateTo7Bits(ref quotesConsumed);
 
