@@ -100,7 +100,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
 
             if (TNewline.IsCRLF)
             {
-                (shiftedCR, crCarry) = AsciiVector.Arm.ShiftAndCarry(vector, crCarry);
+                (shiftedCR, crCarry) = AsciiVector.Arm.ShiftAndCarry(hasCR, crCarry);
 
                 vector = nextVector;
                 nextVector = prefetchVector;
@@ -174,7 +174,7 @@ internal sealed class ArmTokenizer<T, TNewline> : CsvPartialTokenizer<T>
             {
                 // maskControl doesn't contain CR by default, add it so we can find lone CR's
                 maskQuote = AsciiVector.Arm.MoveMask(hasQuote);
-                maskControl |= maskQuote;
+                maskControl |= AsciiVector.Arm.MoveMask(hasCR);
 
                 // clear the bits that are inside quotes
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);

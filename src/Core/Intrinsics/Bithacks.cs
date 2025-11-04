@@ -5,7 +5,6 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
-using Aes = System.Runtime.Intrinsics.Arm.Aes;
 
 namespace FlameCsv.Intrinsics;
 
@@ -89,6 +88,25 @@ internal static class Bithacks
     }
 
     /// <summary>
+    /// Checks if all bits in the mask are before the first bit set in the other value.
+    /// </summary>
+    /// <param name="mask">A non-zero bitmask</param>
+    /// <param name="other">A non-zero bitmask</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllBitsBefore(nuint mask, nuint other)
+    {
+        Debug.Assert(mask > 0 && other > 0, $"Both mask and other must be non-zero, were: {mask:B} and {other:B}");
+
+        // this is a slight optimization over using BitOperations.Log2 directly, as it must ensure that mask is not zero
+        if (nuint.Size == 8)
+        {
+            return (63 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+        }
+
+        return (31 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+    }
+
+    /// <summary>
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
     /// <param name="quoteBits">Bitmask of the quote positions</param>
@@ -96,19 +114,11 @@ internal static class Bithacks
     /// How many quotes the current field has (if any).
     /// </param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong FindQuoteMask(ulong quoteBits, uint quoteCount)
+    internal static T FindQuoteMask<T>(T quoteBits, uint quoteCount)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        ulong quoteMask = ComputeQuoteMask(quoteBits);
-        ulong mask = 0 - (quoteCount & 1);
-        return quoteMask ^ mask;
-    }
-
-    /// <inheritdoc cref="FindQuoteMask(ulong, uint)" />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint FindQuoteMask(uint quoteBits, uint quoteCount)
-    {
-        uint quoteMask = ComputeQuoteMask(quoteBits);
-        uint mask = 0 - (quoteCount & 1);
+        T quoteMask = ComputeQuoteMask(quoteBits);
+        T mask = T.Zero - (T.CreateTruncating(quoteCount) & T.One);
         return quoteMask ^ mask;
     }
 
@@ -144,65 +154,35 @@ internal static class Bithacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong ComputeQuoteMask(ulong quoteBits)
+    internal static T ComputeQuoteMask<T>(T quoteBits)
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (Pclmulqdq.IsSupported && Sse2.IsSupported)
         {
-            var vec = Vector128.CreateScalar(quoteBits);
+            var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
             var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
-            return result.GetElement(0);
+            return T.CreateTruncating(result.GetElement(0));
         }
 
-        if (Aes.IsSupported)
-        {
-            Vector64<ulong> quoteBitsVec = Vector64.Create(quoteBits);
-            Vector128<ulong> prod = Aes.PolynomialMultiplyWideningLower(quoteBitsVec, Vector64<ulong>.AllBitsSet);
-            return prod.GetElement(0);
-        }
+        // no separate PMULL path, see:
+        // https://github.com/simdjson/simdjson/blob/d84c93476894dc3230e7379cd9322360435dd0f9/include/simdjson/arm64/bitmask.h#L24
 
         return ComputeQuoteMaskSoftwareFallback(quoteBits);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint ComputeQuoteMask(uint quoteBits)
+    internal static T ComputeQuoteMaskSoftwareFallback<T>(T quoteBits)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        if (Pclmulqdq.IsSupported && Sse2.IsSupported)
-        {
-            var vec = Vector128.CreateScalar((ulong)quoteBits);
-            var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
-            return (uint)result.GetElement(0);
-        }
-
-        if (Aes.IsSupported)
-        {
-            Vector64<ulong> quoteBitsVec = Vector64.Create((ulong)quoteBits);
-            Vector128<ulong> prod = Aes.PolynomialMultiplyWideningLower(quoteBitsVec, Vector64<ulong>.AllBitsSet);
-            return (uint)prod.GetElement(0);
-        }
-
-        return ComputeQuoteMaskSoftwareFallback(quoteBits);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static uint ComputeQuoteMaskSoftwareFallback(uint quoteBits)
-    {
-        uint mask = quoteBits ^ (quoteBits << 1);
+        T mask = quoteBits ^ (quoteBits << 1);
         mask ^= (mask << 2);
         mask ^= (mask << 4);
-        mask ^= (mask << 8);
-        mask ^= (mask << 16);
-        return mask;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static ulong ComputeQuoteMaskSoftwareFallback(ulong quoteBits)
-    {
-        ulong mask = quoteBits ^ (quoteBits << 1);
-        mask ^= (mask << 2);
-        mask ^= (mask << 4);
-        mask ^= (mask << 8);
-        mask ^= (mask << 16);
-        mask ^= (mask << 32);
+        if (Unsafe.SizeOf<T>() >= sizeof(ushort))
+            mask ^= (mask << 8);
+        if (Unsafe.SizeOf<T>() >= sizeof(uint))
+            mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() >= sizeof(ulong))
+            mask ^= (mask << 32);
         return mask;
     }
 
