@@ -224,7 +224,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     )
     {
         // on 128bit vectors 3 is optimal; revisit if we change width
-        const uint unrollCount = 5;
+        const uint UnrollCount = 5;
 
         uint lfPos = (uint)BitOperations.PopCount(mask & (maskLF - 1));
 
@@ -238,20 +238,22 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         Unsafe.Add(ref dst, 3u) = index + (uint)BitOperations.TrailingZeroCount(m4);
         Unsafe.Add(ref dst, 4u) = index + (uint)BitOperations.TrailingZeroCount(m5);
 
-        if (count > unrollCount)
+        if (count > UnrollCount)
         {
             // for some reason this is faster than incrementing a pointer
-            ref uint dst2 = ref Unsafe.Add(ref dst, unrollCount);
+            ref uint dst2 = ref Unsafe.Add(ref dst, UnrollCount);
 
             do
             {
-                uint offset = (uint)BitOperations.TrailingZeroCount(m5 &= m5 - 1);
+                uint offset = (uint)BitOperations.TrailingZeroCount(m5);
                 dst2 = index + offset;
+                m5 &= m5 - 1;
                 dst2 = ref Unsafe.Add(ref dst2, 1u);
             } while (m5 != 0);
         }
 
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);
-        Unsafe.Add(ref dst, lfPos) = index + lfTz - Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+        uint intermediate = index - Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+        Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;
     }
 }

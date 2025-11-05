@@ -6,6 +6,7 @@ using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
+using ArmAes = System.Runtime.Intrinsics.Arm.Aes;
 
 namespace FlameCsv.Intrinsics;
 
@@ -165,8 +166,15 @@ internal static class Bithacks
             return T.CreateTruncating(result.GetElement(0));
         }
 
-        // no separate PMULL path, see:
-        // https://github.com/simdjson/simdjson/blob/d84c93476894dc3230e7379cd9322360435dd0f9/include/simdjson/arm64/bitmask.h#L24
+        if (ArmAes.IsSupported)
+        {
+            var r = ArmAes.PolynomialMultiplyWideningLower(
+                Vector64.Create(ulong.CreateTruncating(quoteBits)),
+                Vector64<ulong>.AllBitsSet
+            );
+
+            return T.CreateTruncating(r.GetElement(0));
+        }
 
         return ComputeQuoteMaskSoftwareFallback(quoteBits);
     }

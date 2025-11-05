@@ -65,11 +65,11 @@ internal abstract class CsvPartialTokenizer<T>
 
             while (maskControl != TMask.Zero)
             {
-                uint tz = uint.CreateTruncating(TMask.LeadingZeroCount(maskControl));
-                TMask quoteBits = Bithacks.IsolateLowestBits(maskQuote, tz);
-                int k = (int)(tz + 1);
+                uint lz = uint.CreateTruncating(TMask.LeadingZeroCount(maskControl));
+                TMask quoteBits = Bithacks.IsolateLowestBits(maskQuote, lz);
+                int k = (int)(lz + 1);
 
-                uint eolFlag = Bithacks.ProcessFlag(maskLF, index + tz, flag);
+                uint eolFlag = Bithacks.ProcessFlag(maskLF, index + lz, flag);
                 quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
                 Field.SaturateTo7Bits(ref quotesConsumed);
@@ -77,7 +77,7 @@ internal abstract class CsvPartialTokenizer<T>
                 ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
                 ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
 
-                dstField = index + tz - eolFlag;
+                dstField = index + lz - eolFlag;
                 dstQuote = (byte)quotesConsumed;
 
                 maskControl <<= k;
