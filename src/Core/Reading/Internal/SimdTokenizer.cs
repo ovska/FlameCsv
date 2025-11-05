@@ -223,21 +223,20 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         ref uint dst
     )
     {
-        if (ArmBase.IsSupported)
-        {
-            return;
-        }
-
         // on 128bit vectors 3 is optimal; revisit if we change width
         const uint unrollCount = 5;
 
         uint lfPos = (uint)BitOperations.PopCount(mask & (maskLF - 1));
 
+        uint m2 = mask & mask - 1;
         Unsafe.Add(ref dst, 0u) = index + (uint)BitOperations.TrailingZeroCount(mask);
-        Unsafe.Add(ref dst, 1u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
-        Unsafe.Add(ref dst, 2u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
-        Unsafe.Add(ref dst, 3u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
-        Unsafe.Add(ref dst, 4u) = index + (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+        uint m3 = m2 & m2 - 1;
+        Unsafe.Add(ref dst, 1u) = index + (uint)BitOperations.TrailingZeroCount(m2);
+        uint m4 = m3 & m3 - 1;
+        Unsafe.Add(ref dst, 2u) = index + (uint)BitOperations.TrailingZeroCount(m3);
+        uint m5 = m4 & m4 - 1;
+        Unsafe.Add(ref dst, 3u) = index + (uint)BitOperations.TrailingZeroCount(m4);
+        Unsafe.Add(ref dst, 4u) = index + (uint)BitOperations.TrailingZeroCount(m5);
 
         if (count > unrollCount)
         {
@@ -246,10 +245,10 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
 
             do
             {
-                uint offset = (uint)BitOperations.TrailingZeroCount(mask &= mask - 1);
+                uint offset = (uint)BitOperations.TrailingZeroCount(m5 &= m5 - 1);
                 dst2 = index + offset;
                 dst2 = ref Unsafe.Add(ref dst2, 1u);
-            } while (mask != 0);
+            } while (m5 != 0);
         }
 
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);

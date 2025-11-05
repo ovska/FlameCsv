@@ -27,8 +27,8 @@ namespace FlameCsv.Console
         static void Main([NotNull] string[] args)
         {
             FileInfo file = new(
-                @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\65K_Records_Data.csv"
-            // @"C:\Users\Sipi\source\repos\FlameCsv\tools\Bench\Comparisons\Data\SampleCSVFile_556kb_4x.csv"
+                @"../../../../Bench/Comparisons/Data/65K_Records_Data.csv"
+            // @"C:/Users/Sipi/source/repos/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb_4x.csv"
             );
 
             byte[] byteArray = File.ReadAllBytes(file.FullName);
@@ -41,9 +41,9 @@ namespace FlameCsv.Console
                 rb.GetEolArrayRef() = new ushort[65535 + 256];
                 var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
-                // new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
-                //     .Tokenize(rb, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n")));
-                new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
+                new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+                    .Tokenize(dst, 0, Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n")));
+                // new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
             }
 
             // var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);
