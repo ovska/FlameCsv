@@ -39,6 +39,8 @@ public class CsvPreservedRecord<T> : ICsvRecord<T>, IReadOnlyDictionary<CsvField
     /// </summary>
     public virtual ReadOnlyMemory<T> RawRecord { get; }
 
+    ReadOnlySpan<T> ICsvRecord<T>.Raw => RawRecord.Span;
+
     /// <summary>
     /// Returns <c>true</c> if the record contains the specified field.
     /// </summary>
@@ -70,7 +72,7 @@ public class CsvPreservedRecord<T> : ICsvRecord<T>, IReadOnlyDictionary<CsvField
         Position = record.Position;
         Line = record.Line;
         Options = record.Options;
-        RawRecord = record.RawRecord.ToArray();
+        RawRecord = record.Raw.ToArray();
         Header = record._owner.Header;
 
         using WritableBuffer<T> buffer = new(Options.Allocator);

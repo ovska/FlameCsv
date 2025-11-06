@@ -22,4 +22,12 @@ public interface ICsvRecord<T>
     /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
     /// </exception>
     ReadOnlySpan<T> this[int index] { get; }
+
+    /// <summary>
+    /// Returns the raw value of the record, not including trailing newline.
+    /// </summary>
+    /// <remarks>
+    /// The span is only guaranteed to be valid until the next record is read.
+    /// </remarks>
+    ReadOnlySpan<T> Raw { get; }
 }

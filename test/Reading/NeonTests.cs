@@ -31,12 +31,12 @@ public static class NeonTests
     public static void Should_Narrow_Correctly()
     {
         Span<char> data = stackalloc char[Vector256<byte>.Count];
-        
+
         for (int i = 0; i < 1024; i++)
         {
             data.Fill((char)i);
             Vector256<byte> vec = AsciiVector.Load256(ref data[0], 0);
-            Assert.Equal(Math.Min(i, 128), vec.GetElement(0));
+            Assert.Equal(Math.Min(i, byte.MaxValue), vec.GetElement(0));
         }
     }
 

@@ -116,13 +116,13 @@ public class CsvReaderTests
         using var enumerator = parser.ParseRecords().GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
-        Assert.Equal("1,2,3", enumerator.Current.RawValue.ToString());
+        Assert.Equal("1,2,3", enumerator.Current.Raw.ToString());
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal(0, enumerator.Current.GetRecordLength());
 
         Assert.True(enumerator.MoveNext());
-        Assert.Equal("4,5,6", enumerator.Current.RawValue.ToString());
+        Assert.Equal("4,5,6", enumerator.Current.Raw.ToString());
 
         Assert.False(enumerator.MoveNext());
         Assert.False(enumerator.MoveNext());
@@ -155,14 +155,14 @@ public class CsvReaderTests
             .GetAsyncEnumerator();
 
         Assert.True(await enumerator.MoveNextAsync());
-        Assert.Equal("1,2,3", enumerator.Current.RawValue.ToString());
+        Assert.Equal("1,2,3", enumerator.Current.Raw.ToString());
 
         Assert.True(await enumerator.MoveNextAsync());
-        Assert.Equal("4,5,6", enumerator.Current.RawValue.ToString());
+        Assert.Equal("4,5,6", enumerator.Current.Raw.ToString());
 
         // no trailing newline
         Assert.True(await enumerator.MoveNextAsync());
-        Assert.Equal("7,8,9", enumerator.Current.RawValue.ToString());
+        Assert.Equal("7,8,9", enumerator.Current.Raw.ToString());
 
         Assert.False(await enumerator.MoveNextAsync());
     }
@@ -223,7 +223,7 @@ public class CsvReaderTests
 
         foreach (var line in reader.ParseRecords())
         {
-            results.Add(line.RawValue.ToArray());
+            results.Add(line.Raw.ToArray());
         }
 
         Assert.Equal(["Hello", "World!"], results.Select(Encoding.UTF8.GetString));

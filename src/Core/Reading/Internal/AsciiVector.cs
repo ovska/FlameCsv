@@ -76,29 +76,6 @@ internal static class AsciiVector
             return Vector256.Create(out01, out23);
         }
 
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<ushort> max = Vector256.Create((ushort)127);
-            Vector256<ushort> lower = Vector256.Min(v0.AsUInt16(), max);
-            Vector256<ushort> upper = Vector256.Min(v1.AsUInt16(), max);
-            return Vector256.Narrow(lower, upper);
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            Vector128<ushort> max = Vector128.Create((ushort)127);
-            Vector128<byte> lower = Vector128.Narrow(
-                Vector128.Min(x0.AsUInt16(), max),
-                Vector128.Min(x1.AsUInt16(), max)
-            );
-            Vector128<byte> upper = Vector128.Narrow(
-                Vector128.Min(y0.AsUInt16(), max),
-                Vector128.Min(y1.AsUInt16(), max)
-            );
-
-            return Vector256.Create(lower, upper);
-        }
-
         throw new UnreachableException("AsciiVector requires SIMD hardware support");
     }
 
@@ -128,11 +105,9 @@ internal static class AsciiVector
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
-    public static unsafe Vector512<byte> LoadAligned512<T>(ref T source, nuint offset)
+    public static unsafe Vector512<byte> LoadAligned512<T>(void* ptr)
         where T : unmanaged, IBinaryInteger<T>
     {
-        void* ptr = Unsafe.AsPointer(ref Unsafe.Add(ref source, offset));
-
         if (typeof(T) == typeof(byte))
         {
             return Vector512.LoadAligned((byte*)ptr);
@@ -149,25 +124,6 @@ internal static class AsciiVector
         return Avx512BW.PackUnsignedSaturate(v0, v1);
     }
 
-    extension(Vector512)
-    {
-        /// <summary>
-        /// Returns an equality vector by comparing each 128-bit segment of the left vector to the right vector.
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<byte> Equals128(Vector512<byte> left, Vector128<byte> right)
-        {
-            var (a, b, c, d) = left;
-
-            Vector128<byte> eqA = Vector128.Equals(a, right);
-            Vector128<byte> eqB = Vector128.Equals(b, right);
-            Vector128<byte> eqC = Vector128.Equals(c, right);
-            Vector128<byte> eqD = Vector128.Equals(d, right);
-
-            return Vector512.Create(Vector256.Create(eqA, eqB), Vector256.Create(eqC, eqD));
-        }
-    }
-
     extension(Vector256<byte> vec)
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -177,44 +133,21 @@ internal static class AsciiVector
             if (!AdvSimd.IsSupported)
                 return vec.ExtractMostSignificantBits();
 
-            // 0x80 in bit7 maps to these weights -> 32-bit mask after folds
             Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
 
             Vector128<byte> lo = vec.GetLower();
             Vector128<byte> hi = vec.GetUpper();
 
-            Vector128<byte> t0 = AdvSimd.And(lo, w);
-            Vector128<byte> t1 = AdvSimd.And(hi, w);
+            Vector128<sbyte> t0 = AdvSimd.And(lo, w).AsSByte();
+            Vector128<sbyte> t1 = AdvSimd.And(hi, w).AsSByte();
 
             // vpadd across the two halves, then fold twice
-            Vector128<byte> s = AdvSimd.Arm64.AddPairwise(t0.AsSByte(), t1.AsSByte()).AsByte();
-            s = AdvSimd.Arm64.AddPairwise(s.AsSByte(), s.AsSByte()).AsByte();
-            s = AdvSimd.Arm64.AddPairwise(s.AsSByte(), s.AsSByte()).AsByte();
+            Vector128<sbyte> s = AdvSimd.Arm64.AddPairwise(t0, t1);
+            s = AdvSimd.Arm64.AddPairwise(s, s);
+            s = AdvSimd.Arm64.AddPairwise(s, s);
 
             // low 32 bits now hold the mask
             return s.AsUInt32().ToScalar();
-        }
-    }
-
-    extension(Vector512<byte> vec)
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [DebuggerStepThrough]
-#pragma warning disable CA1822 // Mark members as static
-        public void Deconstruct(
-#pragma warning restore CA1822 // Mark members as static
-            out Vector128<byte> a,
-            out Vector128<byte> b,
-            out Vector128<byte> c,
-            out Vector128<byte> d
-        )
-        {
-            Vector256<byte> lower = vec.GetLower();
-            Vector256<byte> upper = vec.GetUpper();
-            a = lower.GetLower();
-            b = lower.GetUpper();
-            c = upper.GetLower();
-            d = upper.GetUpper();
         }
     }
 }

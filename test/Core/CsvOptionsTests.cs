@@ -416,10 +416,10 @@ public class CsvOptionsTests
         using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
-        Assert.Equal("1,2,3", enumerator.Current.RawRecord.ToString());
+        Assert.Equal("1,2,3", enumerator.Current.Raw.ToString());
 
         Assert.True(enumerator.MoveNext());
-        Assert.Equal("7,8,9", enumerator.Current.RawRecord.ToString());
+        Assert.Equal("7,8,9", enumerator.Current.Raw.ToString());
 
         // values
         var values = CsvReader.Read<Skippable>(data, options).ToList();

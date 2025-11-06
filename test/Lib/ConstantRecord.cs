@@ -14,4 +14,5 @@ public readonly ref struct ConstantRecord : ICsvRecord<char>
 
     public ReadOnlySpan<char> this[int index] => _values[index];
     public int FieldCount => _values.Length;
+    public ReadOnlySpan<char> Raw => string.Join("", _values);
 }

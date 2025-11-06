@@ -84,7 +84,7 @@ public readonly struct CsvExceptionHandlerArgs<T>
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> RawRecord => _useSlice ? _slice.RawValue : _record.RawRecord;
+    public ReadOnlySpan<T> RawRecord => _useSlice ? _slice.RawValue : _record.Raw;
 
     /// <summary>
     /// Options instance.
