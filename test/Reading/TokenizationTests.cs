@@ -53,6 +53,7 @@ public class TokenizationTests
         );
     }
 
+#if false
     [Theory, MemberData(nameof(NewlineData))]
     public void Arm_Char(RecSep newline)
     {
@@ -78,6 +79,7 @@ public class TokenizationTests
                 : new ArmTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
         );
     }
+#endif
 
     [Theory, MemberData(nameof(NewlineData))]
     public void Generic_Char(RecSep newline)

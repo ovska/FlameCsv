@@ -124,30 +124,27 @@ internal static class AsciiVector
         return Avx512BW.PackUnsignedSaturate(v0, v1);
     }
 
-    extension(Vector256<byte> vec)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static uint MoveMask(this Vector256<byte> vec)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        [DebuggerStepThrough]
-        public uint MoveMask()
-        {
-            if (!AdvSimd.IsSupported)
-                return vec.ExtractMostSignificantBits();
+        if (!AdvSimd.IsSupported)
+            return vec.ExtractMostSignificantBits();
 
-            Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
 
-            Vector128<byte> lo = vec.GetLower();
-            Vector128<byte> hi = vec.GetUpper();
+        Vector128<byte> lo = vec.GetLower();
+        Vector128<byte> hi = vec.GetUpper();
 
-            Vector128<sbyte> t0 = AdvSimd.And(lo, w).AsSByte();
-            Vector128<sbyte> t1 = AdvSimd.And(hi, w).AsSByte();
+        Vector128<sbyte> t0 = AdvSimd.And(lo, w).AsSByte();
+        Vector128<sbyte> t1 = AdvSimd.And(hi, w).AsSByte();
 
-            // vpadd across the two halves, then fold twice
-            Vector128<sbyte> s = AdvSimd.Arm64.AddPairwise(t0, t1);
-            s = AdvSimd.Arm64.AddPairwise(s, s);
-            s = AdvSimd.Arm64.AddPairwise(s, s);
+        // vpadd across the two halves, then fold twice
+        Vector128<sbyte> s = AdvSimd.Arm64.AddPairwise(t0, t1);
+        s = AdvSimd.Arm64.AddPairwise(s, s);
+        s = AdvSimd.Arm64.AddPairwise(s, s);
 
-            // low 32 bits now hold the mask
-            return s.AsUInt32().ToScalar();
-        }
+        // low 32 bits now hold the mask
+        return s.AsUInt32().ToScalar();
     }
 }

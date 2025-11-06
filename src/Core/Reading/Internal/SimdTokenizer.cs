@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -242,6 +241,8 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         {
             // for some reason this is faster than incrementing a pointer
             ref uint dst2 = ref Unsafe.Add(ref dst, UnrollCount);
+
+            m5 &= m5 - 1;
 
             do
             {

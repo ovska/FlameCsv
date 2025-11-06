@@ -61,6 +61,7 @@ internal abstract class CsvPartialTokenizer<T>
         {
             Debug.Assert(typeof(TMask) == typeof(uint));
 
+            uint consumed = 0;
             maskControl = Bithacks.ReverseBits(maskControl);
 
             while (maskControl != TMask.Zero)
@@ -69,7 +70,7 @@ internal abstract class CsvPartialTokenizer<T>
                 TMask quoteBits = Bithacks.IsolateLowestBits(maskQuote, lz);
                 int k = (int)(lz + 1);
 
-                uint eolFlag = Bithacks.ProcessFlag(maskLF, index + lz, flag);
+                uint eolFlag = Bithacks.ProcessFlag(maskLF, consumed + lz, flag);
                 quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
                 Field.SaturateTo7Bits(ref quotesConsumed);
@@ -77,13 +78,13 @@ internal abstract class CsvPartialTokenizer<T>
                 ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
                 ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
 
-                dstField = index + lz - eolFlag;
+                dstField = index + consumed + lz - eolFlag;
                 dstQuote = (byte)quotesConsumed;
 
-                maskControl <<= k;
-                maskQuote >>= k;
+                maskControl = Unsafe.BitCast<uint, TMask>((uint)((ulong)Unsafe.BitCast<TMask, uint>(maskControl) << k));
+                maskQuote = Unsafe.BitCast<uint, TMask>((uint)((ulong)Unsafe.BitCast<TMask, uint>(maskQuote) >> k));
 
-                index += (uint)k;
+                consumed += (uint)k;
                 fIdx++;
                 quotesConsumed = 0;
             }

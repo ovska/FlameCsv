@@ -85,6 +85,12 @@ internal static class Bithacks
     public static uint ProcessFlag<T>(T maskNewline, uint tz, uint flag)
         where T : unmanaged, IBinaryInteger<T>
     {
+        if (Unsafe.SizeOf<T>() is sizeof(uint))
+        {
+            bool set = ((Unsafe.BitCast<T, uint>(maskNewline) >> (int)tz) & 1u) != 0;
+            return set ? flag : 0u;
+        }
+
         uint newlineBit = uint.CreateTruncating(maskNewline >> (int)tz) & 1;
         return (uint)(-(int)newlineBit & flag);
     }
