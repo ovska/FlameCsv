@@ -79,39 +79,29 @@ internal static class Bithacks
     }
 
     /// <summary>
-    /// Returns the subraction flag for the given newline mask at bit <paramref name="tz"/>.
+    /// Returns the subraction flag for the given newline mask at bit <paramref name="pos"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint ProcessFlag<T>(T maskNewline, uint tz, uint flag)
+    public static uint ProcessFlag<T>(T maskNewline, uint pos, uint flag)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (Unsafe.SizeOf<T>() is sizeof(uint))
         {
-            bool set = ((Unsafe.BitCast<T, uint>(maskNewline) >> (int)tz) & 1u) != 0;
+            // handle pos=32 with zero extension to uint64 (tzcnt 0 returns)
+            bool set = (((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL) != 0;
             return set ? flag : 0u;
         }
 
-        uint newlineBit = uint.CreateTruncating(maskNewline >> (int)tz) & 1;
-        return (uint)(-(int)newlineBit & flag);
-    }
-
-    /// <summary>
-    /// Checks if all bits in the mask are before the first bit set in the other value.
-    /// </summary>
-    /// <param name="mask">A non-zero bitmask</param>
-    /// <param name="other">A non-zero bitmask</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool AllBitsBefore(nuint mask, nuint other)
-    {
-        Debug.Assert(mask > 0 && other > 0, $"Both mask and other must be non-zero, were: {mask:B} and {other:B}");
-
-        // this is a slight optimization over using BitOperations.Log2 directly, as it must ensure that mask is not zero
-        if (nuint.Size == 8)
+        if (Unsafe.SizeOf<T>() is sizeof(ulong))
         {
-            return (63 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+            // handle pos=64 explicitly (tzcnt 0 returns)
+            ulong mask = Unsafe.BitCast<T, ulong>(maskNewline);
+            int validMask = ((int)pos - 64) >> 31;
+            bool set = ((mask >> (int)pos) & 1UL & (uint)validMask) != 0;
+            return set ? flag : 0u;
         }
 
-        return (31 ^ BitOperations.LeadingZeroCount(mask)) < BitOperations.TrailingZeroCount(other);
+        return default;
     }
 
     /// <summary>
@@ -242,10 +232,6 @@ internal static class Bithacks
         {
             ulong result = (ulong)Unsafe.BitCast<T, uint>(value) << (int)(32u - count);
             return Unsafe.BitCast<uint, T>((uint)result);
-        }
-        else if (Unsafe.SizeOf<T>() is sizeof(ulong))
-        {
-            throw new NotImplementedException();
         }
 
         throw new NotSupportedException(typeof(T).FullName);

@@ -6,6 +6,23 @@ namespace FlameCsv.Tests.Reading;
 
 public class BithackTests
 {
+    [Fact]
+    public static void Should_Get_Flag()
+    {
+        const uint flag = 123u;
+        Assert.Equal(flag, Bithacks.ProcessFlag(1, pos: 0, flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: 1, flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1 << 31, uint.TrailingZeroCount(1u << 31), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1 << 31, pos: uint.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(0), flag));
+
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: 0, flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: 1, flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 63, (uint)ulong.TrailingZeroCount(1ul << 63), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul << 63, pos: (uint)ulong.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(0), flag));
+    }
+
     [Theory]
     [InlineData("0", "0", false)]
     [InlineData("0", "1", false)]

@@ -30,6 +30,8 @@ public static class NeonTests
     [Fact]
     public static void Should_Narrow_Correctly()
     {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
         Span<char> data = stackalloc char[Vector256<byte>.Count];
 
         for (int i = 0; i < 1024; i++)

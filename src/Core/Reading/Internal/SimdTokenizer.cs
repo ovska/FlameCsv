@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -20,7 +21,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
     private static int MaxFieldsPerIteration
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count; // e.g. 1 CR and 31 delimiters
+        get => Vector256<byte>.Count;
     }
 
     public override int PreferredLength
@@ -226,6 +227,8 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         const uint UnrollCount = 5;
 
         uint lfPos = (uint)BitOperations.PopCount(mask & (maskLF - 1));
+
+        // reusing locals here causes regressions on x86
 
         uint m2 = mask & mask - 1;
         Unsafe.Add(ref dst, 0u) = index + (uint)BitOperations.TrailingZeroCount(mask);
