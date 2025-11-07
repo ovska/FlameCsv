@@ -64,17 +64,11 @@ internal static class Bithacks
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint GetSubractionFlag<TNewline>(bool noCR)
-        where TNewline : struct, INewline
+    public static uint GetSubractionFlag(bool noCR)
     {
+        int mask = noCR.ToByte() - 1;
         uint flag = Field.IsEOL;
-
-        if (TNewline.IsCRLF)
-        {
-            int mask = noCR.ToByte() - 1;
-            flag ^= (uint)(mask & 0xC0000001u);
-        }
-
+        flag ^= (uint)(mask & 0xC0000001u);
         return flag;
     }
 

@@ -150,7 +150,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             // clear the bits that are inside quotes
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            uint flag = Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+            uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             ParseAny(
                 index: (uint)index,
@@ -223,13 +223,14 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
         ref uint dst
     )
     {
-        // on 128bit vectors 3 is optimal; revisit if we change width
-        const uint UnrollCount = 5;
+        // even on arm64, this pattern is quite a bit faster than using rbit once and clz after
+        // perhaps due to less instructions (bit clearing takes much more on ARM)
+
+        const uint UnrollCount = 5; // optimal for 256bit, 3 for 128bit
 
         uint lfPos = (uint)BitOperations.PopCount(mask & (maskLF - 1));
 
         // reusing locals here causes regressions on x86
-
         uint m2 = mask & mask - 1;
         Unsafe.Add(ref dst, 0u) = index + (uint)BitOperations.TrailingZeroCount(mask);
         uint m3 = m2 & m2 - 1;
@@ -256,8 +257,9 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPar
             } while (m5 != 0);
         }
 
+        uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);
-        uint intermediate = index - Bithacks.GetSubractionFlag<TNewline>(shiftedCR == 0);
+        uint intermediate = index - flag;
         Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;
     }
 }
