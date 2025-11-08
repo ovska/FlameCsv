@@ -426,13 +426,13 @@ internal sealed class RecordBuffer : IDisposable
         Vector128<int> c = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count)).AsInt32();
 
         Vector64<short> n0 = AdvSimd.ExtractNarrowingSaturateLower(a);
-        Vector128<short> n1 = AdvSimd.ExtractNarrowingSaturateUpper(n0, b);
         Vector64<short> n2 = AdvSimd.ExtractNarrowingSaturateLower(c);
+        Vector128<short> n1 = AdvSimd.ExtractNarrowingSaturateUpper(n0, b);
         Vector128<short> n3 = AdvSimd.ExtractNarrowingSaturateUpper(n2, d);
 
         // Narrow int16 to int8, keeping MSBs
         Vector64<sbyte> m0 = AdvSimd.ExtractNarrowingSaturateLower(n1);
         Vector128<sbyte> m1 = AdvSimd.ExtractNarrowingSaturateUpper(m0, n3);
-        return m1.AsByte();
+        return AdvSimd.ShiftRightArithmetic(m1, 7).AsByte(); // convert to 0x00 or 0xFF
     }
 }
