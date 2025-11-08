@@ -4,6 +4,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.Wasm;
 using System.Runtime.Intrinsics.X86;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -145,6 +146,78 @@ internal static class AsciiVector
         s = AdvSimd.Arm64.AddPairwise(s, s);
 
         // low 32 bits now hold the mask
-        return s.AsUInt32().ToScalar();
+        uint result = s.AsUInt32().ToScalar();
+        Debug.Assert(
+            result == vec.ExtractMostSignificantBits(),
+            $"MoveMask mismatch: {result:b32} vs {vec.ExtractMostSignificantBits():b32}"
+        );
+        return result;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static ulong MoveMask(Vector512<byte> vec)
+    {
+        if (!AdvSimd.IsSupported)
+            return vec.ExtractMostSignificantBits();
+
+        Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+
+        Vector256<byte> lo = vec.GetLower();
+        Vector256<byte> hi = vec.GetUpper();
+
+        Vector128<byte> a = lo.GetLower();
+        Vector128<byte> b = lo.GetUpper();
+        Vector128<byte> c = hi.GetLower();
+        Vector128<byte> d = hi.GetUpper();
+
+        Vector128<byte> t0 = AdvSimd.And(a, weight);
+        Vector128<byte> t1 = AdvSimd.And(b, weight);
+        Vector128<byte> t2 = AdvSimd.And(c, weight);
+        Vector128<byte> t3 = AdvSimd.And(d, weight);
+
+        Vector128<byte> s0 = AdvSimd.Arm64.AddPairwise(t0, t1);
+        Vector128<byte> s1 = AdvSimd.Arm64.AddPairwise(t2, t3);
+
+        s0 = AdvSimd.Arm64.AddPairwise(s0, s1);
+        s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
+
+        return s0.AsUInt64().ToScalar();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static uint MoveMask(this Vector512<int> vec)
+    {
+        if (!AdvSimd.IsSupported)
+            return (uint)vec.ExtractMostSignificantBits();
+
+        // Extract 128-bit vectors
+        Vector256<int> lo = vec.GetLower();
+        Vector256<int> hi = vec.GetUpper();
+
+        Vector128<int> a = lo.GetLower();
+        Vector128<int> b = lo.GetUpper();
+        Vector128<int> c = hi.GetLower();
+        Vector128<int> d = hi.GetUpper();
+
+        // Narrow int32 to int16, keeping MSBs
+        Vector64<short> n0 = AdvSimd.ExtractNarrowingSaturateLower(a);
+        Vector128<short> n1 = AdvSimd.ExtractNarrowingSaturateUpper(n0, b);
+        Vector64<short> n2 = AdvSimd.ExtractNarrowingSaturateLower(c);
+        Vector128<short> n3 = AdvSimd.ExtractNarrowingSaturateUpper(n2, d);
+
+        // Narrow int16 to int8, keeping MSBs
+        Vector64<sbyte> m0 = AdvSimd.ExtractNarrowingSaturateLower(n1);
+        Vector128<sbyte> m1 = AdvSimd.ExtractNarrowingSaturateUpper(m0, n3);
+
+        // Apply weight and pairwise add
+        Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<sbyte> t = AdvSimd.And(m1, weight.AsSByte());
+
+        t = AdvSimd.Arm64.AddPairwise(t, t);
+        t = AdvSimd.Arm64.AddPairwise(t, t);
+
+        return t.AsUInt32().ToScalar();
     }
 }

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
@@ -35,8 +36,8 @@ internal sealed class RecordBuffer : IDisposable
     /// </summary>
     private ushort[] _eols;
 
-    private int _eolIndex;
-    private int _eolCount;
+    internal int _eolIndex;
+    internal int _eolCount;
 
     /// <summary>
     /// Number of fields that have been consumed from the buffer.
@@ -46,7 +47,7 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Number of fields that have been parsed to the buffer.
     /// </summary>
-    private int _fieldCount;
+    internal int _fieldCount;
 
     public RecordBuffer()
     {
@@ -116,7 +117,28 @@ internal sealed class RecordBuffer : IDisposable
 
         nuint idx = 0;
 
-        if (Vector.IsHardwareAccelerated && Vector<byte>.Count is (16 or 32 or 64))
+        if (AdvSimd.IsSupported)
+        {
+            nint unrolledEnd = end - Vector256<byte>.Count;
+
+            while (pos <= unrolledEnd)
+            {
+                Vector128<byte> v0 = LoadArm(ref field, (nuint)pos);
+                Vector128<byte> v1 = LoadArm(ref field, (nuint)pos + (nuint)Vector128<byte>.Count);
+
+                uint mask = Vector256.Create(v0, v1).MoveMask();
+
+                while (mask != 0)
+                {
+                    int bit = BitOperations.TrailingZeroCount(mask);
+                    mask = Bithacks.ResetLowestSetBit(mask);
+                    Unsafe.Add(ref eol, idx++) = (ushort)(pos + bit + 1);
+                }
+
+                pos += Vector256<byte>.Count;
+            }
+        }
+        else if (Vector.IsHardwareAccelerated && Vector<byte>.Count is (16 or 32 or 64))
         {
             nint unrolledEnd = end - (2 * Vector<int>.Count);
 
@@ -393,5 +415,24 @@ internal sealed class RecordBuffer : IDisposable
             Debug.Assert(cast.Count == 2);
         }
 #endif
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> LoadArm(ref uint field, nuint pos)
+    {
+        Vector128<int> a = Vector128.LoadUnsafe(ref field, pos).AsInt32();
+        Vector128<int> b = Vector128.LoadUnsafe(ref field, pos + (nuint)Vector128<uint>.Count).AsInt32();
+        Vector128<int> d = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count)).AsInt32();
+        Vector128<int> c = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count)).AsInt32();
+
+        Vector64<short> n0 = AdvSimd.ExtractNarrowingSaturateLower(a);
+        Vector128<short> n1 = AdvSimd.ExtractNarrowingSaturateUpper(n0, b);
+        Vector64<short> n2 = AdvSimd.ExtractNarrowingSaturateLower(c);
+        Vector128<short> n3 = AdvSimd.ExtractNarrowingSaturateUpper(n2, d);
+
+        // Narrow int16 to int8, keeping MSBs
+        Vector64<sbyte> m0 = AdvSimd.ExtractNarrowingSaturateLower(n1);
+        Vector128<sbyte> m1 = AdvSimd.ExtractNarrowingSaturateUpper(m0, n3);
+        return m1.AsByte();
     }
 }
