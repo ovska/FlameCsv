@@ -124,7 +124,7 @@ internal sealed class RecordBuffer : IDisposable
 
             while (pos <= unrolledEnd)
             {
-                uint mask = LoadFieldsAsBytesARM64(ref field, (nuint)pos).MoveMask();
+                uint mask = LoadFieldsAsBytesARM64(ref Unsafe.As<uint, int>(ref field), (nuint)pos).MoveMask();
 
                 while (mask != 0)
                 {
@@ -420,46 +420,48 @@ internal sealed class RecordBuffer : IDisposable
     /// Loads 32 fields, narrowing them to bytes on ARM64. EOL fields are all 0xFF, others are 0x00.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<byte> LoadFieldsAsBytesARM64(ref uint field, nuint pos)
+    private static Vector256<byte> LoadFieldsAsBytesARM64(ref int field, nuint pos)
     {
         if (!AdvSimd.IsSupported)
             throw new UnreachableException();
 
         // jagged order to improve instruction-level parallelism
 
-        Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count)).AsInt32();
+        // load even
+        Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a2 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a4 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a6 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<uint>.Count));
 
-        Vector128<int> d0 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> d1 = Vector128.LoadUnsafe(ref field, pos + (7 * (nuint)Vector128<uint>.Count)).AsInt32();
+        // load odd
+        Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a3 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a5 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a7 = Vector128.LoadUnsafe(ref field, pos + (7 * (nuint)Vector128<uint>.Count));
 
-        Vector128<int> b0 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> b1 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<uint>.Count)).AsInt32();
+        // narrow even
+        Vector64<short> b0 = AdvSimd.ExtractNarrowingSaturateLower(a0);
+        Vector64<short> b2 = AdvSimd.ExtractNarrowingSaturateLower(a2);
+        Vector64<short> b4 = AdvSimd.ExtractNarrowingSaturateLower(a4);
+        Vector64<short> b6 = AdvSimd.ExtractNarrowingSaturateLower(a6);
 
-        Vector128<int> c0 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> c1 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<uint>.Count)).AsInt32();
+        // narrow odd
+        Vector128<short> c0 = AdvSimd.ExtractNarrowingSaturateUpper(b0, a1);
+        Vector128<short> c1 = AdvSimd.ExtractNarrowingSaturateUpper(b2, a3);
+        Vector128<short> c2 = AdvSimd.ExtractNarrowingSaturateUpper(b4, a5);
+        Vector128<short> c3 = AdvSimd.ExtractNarrowingSaturateUpper(b6, a7);
 
-        Vector64<short> w0 = AdvSimd.ExtractNarrowingSaturateLower(a0);
-        Vector64<short> w1 = AdvSimd.ExtractNarrowingSaturateLower(a1);
+        // narrow even
+        Vector64<sbyte> d0 = AdvSimd.ExtractNarrowingSaturateLower(c0);
+        Vector64<sbyte> d1 = AdvSimd.ExtractNarrowingSaturateLower(c2);
 
-        Vector64<short> x0 = AdvSimd.ExtractNarrowingSaturateLower(d0);
-        Vector64<short> x1 = AdvSimd.ExtractNarrowingSaturateLower(d1);
-
-        Vector128<short> y0 = AdvSimd.ExtractNarrowingSaturateUpper(w0, b0);
-        Vector128<short> y1 = AdvSimd.ExtractNarrowingSaturateUpper(w1, b1);
-
-        Vector128<short> z0 = AdvSimd.ExtractNarrowingSaturateUpper(x0, c0);
-        Vector128<short> z1 = AdvSimd.ExtractNarrowingSaturateUpper(x1, c1);
-
-        Vector64<sbyte> m0 = AdvSimd.ExtractNarrowingSaturateLower(y0);
-        Vector64<sbyte> m1 = AdvSimd.ExtractNarrowingSaturateLower(y1);
-
-        Vector128<sbyte> n0 = AdvSimd.ExtractNarrowingSaturateUpper(m0, z0);
-        Vector128<sbyte> n1 = AdvSimd.ExtractNarrowingSaturateUpper(m1, z1);
+        // narrow odd
+        Vector128<sbyte> e0 = AdvSimd.ExtractNarrowingSaturateUpper(d0, c1);
+        Vector128<sbyte> e1 = AdvSimd.ExtractNarrowingSaturateUpper(d1, c3);
 
         // convert to 0xFF or 0x00 (required by movemask emulation)
-        Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(n0, 7).AsByte();
-        Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(n1, 7).AsByte();
+        Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(e0, 7).AsByte();
+        Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(e1, 7).AsByte();
 
         return Vector256.Create(r0, r1);
     }
