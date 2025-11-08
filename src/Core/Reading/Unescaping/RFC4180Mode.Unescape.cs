@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using FlameCsv.Exceptions;
 
@@ -27,13 +28,8 @@ internal static class RFC4180Mode<T>
         nint srcIndex = 0;
         nint dstIndex = 0;
 
-        // use 256 bit vectors always if available
-        // use 128 bit vectors only for bytes, or if 256 bit vectors are not available
         Vector256<T> quote256 = Vector256.IsHardwareAccelerated ? Vector256.Create(quote) : default;
-        Vector128<T> quote128 =
-            (typeof(T) == typeof(byte) || !Vector256.IsHardwareAccelerated) && Vector128.IsHardwareAccelerated
-                ? Vector128.Create(quote)
-                : default;
+        Vector128<T> quote128 = Vector128.IsHardwareAccelerated ? Vector128.Create(quote) : default;
 
         // leave 1 space for the second quote
         nint remaining = field.Length;
@@ -131,12 +127,7 @@ internal static class RFC4180Mode<T>
         }
 
         // it's slightly faster to defer to the unrolled loop on x86 for char
-        // TODO PERF: profile on ARM64 and WASM
-        while (
-            (typeof(T) == typeof(byte) || !Vector256.IsHardwareAccelerated)
-            && Vector128.IsHardwareAccelerated
-            && remaining >= Vector128<T>.Count
-        )
+        while (Vector128.IsHardwareAccelerated && remaining >= Vector128<T>.Count)
         {
             var current = Vector128.LoadUnsafe(ref src, (nuint)srcIndex);
             var equals = Vector128.Equals(current, quote128);
@@ -150,8 +141,7 @@ internal static class RFC4180Mode<T>
                 continue;
             }
 
-            uint mask = equals.ExtractMostSignificantBits();
-            int charpos = BitOperations.TrailingZeroCount(mask) + 1;
+            int charpos = IndexOfFirstNonZero(equals);
             srcIndex += charpos;
             dstIndex += charpos;
             remaining -= charpos;
@@ -235,6 +225,35 @@ internal static class RFC4180Mode<T>
                 source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
                 byteCount: (uint)Unsafe.SizeOf<T>() * length
             );
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static int IndexOfFirstNonZero(Vector128<T> vec)
+        {
+            if (!AdvSimd.IsSupported)
+            {
+                uint mask = vec.ExtractMostSignificantBits();
+                return BitOperations.TrailingZeroCount(mask) + 1;
+            }
+
+            Vector128<ulong> asUInt64 = vec.AsUInt64();
+
+            ulong lo = asUInt64.GetElement(0);
+            ulong hi = asUInt64.GetElement(1);
+
+            uint bitSize = (uint)Unsafe.SizeOf<T>() * 8u; // JIT constant folds
+
+            uint loIdx = (uint)BitOperations.TrailingZeroCount(lo) / bitSize;
+            uint hiIdx = (uint)BitOperations.TrailingZeroCount(hi) / bitSize;
+
+            uint result = lo != 0 ? loIdx : ((64u / bitSize) + hiIdx);
+
+            Debug.Assert(
+                result == BitOperations.TrailingZeroCount(vec.ExtractMostSignificantBits()),
+                $"IndexOfFirstNonZero mismatch: {result} vs {BitOperations.TrailingZeroCount(vec.ExtractMostSignificantBits())}"
+            );
+
+            return (int)(result + 1);
         }
     }
 

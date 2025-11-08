@@ -129,7 +129,7 @@ internal sealed class RecordBuffer : IDisposable
                 while (mask != 0)
                 {
                     int bit = BitOperations.TrailingZeroCount(mask);
-                    mask &= (mask - 1);
+                    mask = Bithacks.ResetLowestSetBit(mask);
                     Unsafe.Add(ref eol, idx++) = (ushort)(pos + bit + 1);
                 }
 
