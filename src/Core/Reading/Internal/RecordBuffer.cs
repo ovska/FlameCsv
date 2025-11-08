@@ -123,12 +123,12 @@ internal sealed class RecordBuffer : IDisposable
 
             while (pos <= unrolledEnd)
             {
-                uint mask = LoadArm(ref field, (nuint)pos).MoveMask();
+                uint mask = LoadFieldsAsBytesARM64(ref field, (nuint)pos).MoveMask();
 
                 while (mask != 0)
                 {
                     int bit = BitOperations.TrailingZeroCount(mask);
-                    mask = Bithacks.ResetLowestSetBit(mask);
+                    mask &= (mask - 1);
                     Unsafe.Add(ref eol, idx++) = (ushort)(pos + bit + 1);
                 }
 
@@ -414,8 +414,11 @@ internal sealed class RecordBuffer : IDisposable
 #endif
     }
 
+    /// <summary>
+    /// Loads 32 fields, narrowing them to bytes on ARM64. EOL fields are all 0xFF, others are 0x00.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<byte> LoadArm(ref uint field, nuint pos)
+    private static Vector256<byte> LoadFieldsAsBytesARM64(ref uint field, nuint pos)
     {
         Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count)).AsInt32();
         Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count)).AsInt32();
@@ -447,6 +450,7 @@ internal sealed class RecordBuffer : IDisposable
         Vector128<sbyte> n0 = AdvSimd.ExtractNarrowingSaturateUpper(m0, z0);
         Vector128<sbyte> n1 = AdvSimd.ExtractNarrowingSaturateUpper(m1, z1);
 
+        // convert to 0xFF or 0x00 (required by movemask emulation)
         Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(n0, 7).AsByte();
         Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(n1, 7).AsByte();
 
