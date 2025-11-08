@@ -447,8 +447,8 @@ internal sealed class RecordBuffer : IDisposable
 
         // narrow odd
         Vector128<short> c0 = AdvSimd.ExtractNarrowingSaturateUpper(b0, a1);
-        Vector128<short> c1 = AdvSimd.ExtractNarrowingSaturateUpper(b2, a3);
         Vector128<short> c2 = AdvSimd.ExtractNarrowingSaturateUpper(b4, a5);
+        Vector128<short> c1 = AdvSimd.ExtractNarrowingSaturateUpper(b2, a3);
         Vector128<short> c3 = AdvSimd.ExtractNarrowingSaturateUpper(b6, a7);
 
         // narrow even
