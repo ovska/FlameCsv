@@ -117,6 +117,7 @@ internal sealed class RecordBuffer : IDisposable
 
         nuint idx = 0;
 
+        // arm64
         if (AdvSimd.IsSupported)
         {
             nint unrolledEnd = end - Vector256<byte>.Count;
@@ -135,6 +136,7 @@ internal sealed class RecordBuffer : IDisposable
                 pos += Vector256<byte>.Count;
             }
         }
+        // x86 and wasm (guard vector length against possible SVE in the future)
         else if (Vector.IsHardwareAccelerated && Vector<byte>.Count is (16 or 32 or 64))
         {
             nint unrolledEnd = end - (2 * Vector<int>.Count);
@@ -420,6 +422,11 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<byte> LoadFieldsAsBytesARM64(ref uint field, nuint pos)
     {
+        if (!AdvSimd.IsSupported)
+            throw new UnreachableException();
+
+        // jagged order to improve instruction-level parallelism
+
         Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count)).AsInt32();
         Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count)).AsInt32();
 
