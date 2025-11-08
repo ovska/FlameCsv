@@ -418,30 +418,36 @@ internal sealed class RecordBuffer : IDisposable
     private static Vector256<byte> LoadArm(ref uint field, nuint pos)
     {
         Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> b0 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> c0 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> d0 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count)).AsInt32();
         Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> b1 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<uint>.Count)).AsInt32();
-        Vector128<int> c1 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<uint>.Count)).AsInt32();
+
+        Vector128<int> d0 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count)).AsInt32();
         Vector128<int> d1 = Vector128.LoadUnsafe(ref field, pos + (7 * (nuint)Vector128<uint>.Count)).AsInt32();
 
-        Vector64<short> w0 = AdvSimd.ExtractNarrowingSaturateLower(a0);
-        Vector64<short> x0 = AdvSimd.ExtractNarrowingSaturateLower(d0);
-        Vector128<short> y0 = AdvSimd.ExtractNarrowingSaturateUpper(w0, b0);
-        Vector128<short> z0 = AdvSimd.ExtractNarrowingSaturateUpper(x0, c0);
+        Vector128<int> b0 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<uint>.Count)).AsInt32();
+        Vector128<int> b1 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<uint>.Count)).AsInt32();
 
+        Vector128<int> c0 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count)).AsInt32();
+        Vector128<int> c1 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<uint>.Count)).AsInt32();
+
+        Vector64<short> w0 = AdvSimd.ExtractNarrowingSaturateLower(a0);
         Vector64<short> w1 = AdvSimd.ExtractNarrowingSaturateLower(a1);
+
+        Vector64<short> x0 = AdvSimd.ExtractNarrowingSaturateLower(d0);
         Vector64<short> x1 = AdvSimd.ExtractNarrowingSaturateLower(d1);
+
+        Vector128<short> y0 = AdvSimd.ExtractNarrowingSaturateUpper(w0, b0);
         Vector128<short> y1 = AdvSimd.ExtractNarrowingSaturateUpper(w1, b1);
+
+        Vector128<short> z0 = AdvSimd.ExtractNarrowingSaturateUpper(x0, c0);
         Vector128<short> z1 = AdvSimd.ExtractNarrowingSaturateUpper(x1, c1);
 
         Vector64<sbyte> m0 = AdvSimd.ExtractNarrowingSaturateLower(y0);
-        Vector128<sbyte> n0 = AdvSimd.ExtractNarrowingSaturateUpper(m0, z0);
-        Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(n0, 7).AsByte();
-
         Vector64<sbyte> m1 = AdvSimd.ExtractNarrowingSaturateLower(y1);
+
+        Vector128<sbyte> n0 = AdvSimd.ExtractNarrowingSaturateUpper(m0, z0);
         Vector128<sbyte> n1 = AdvSimd.ExtractNarrowingSaturateUpper(m1, z1);
+
+        Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(n0, 7).AsByte();
         Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(n1, 7).AsByte();
 
         return Vector256.Create(r0, r1);
