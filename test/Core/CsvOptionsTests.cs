@@ -75,7 +75,7 @@ public class CsvOptionsTests
     }
 
     [Fact]
-    public static void Should_Initialize_EscapeValues()
+    public static void Should_Initialize_NeedsQuoting()
     {
         var def = CsvOptions<char>.Default;
         Assert.True(def.NeedsQuoting.Contains(def.Delimiter));
@@ -86,9 +86,11 @@ public class CsvOptionsTests
         Assert.False(def.NeedsQuoting.Contains('\\'));
 
         var withEscape = new CsvOptions<char> { Escape = '\\' };
+        withEscape.MakeReadOnly();
         Assert.True(withEscape.NeedsQuoting.Contains('\\'));
 
         var withSingleTokenNewline = new CsvOptions<char> { Newline = CsvNewline.LF };
+        withSingleTokenNewline.MakeReadOnly();
         Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\n'));
         Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\r')); // both always added
     }

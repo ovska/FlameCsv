@@ -159,6 +159,8 @@ public partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private SearchValues<T> InitNeedsQuoting()
     {
+        Debug.Assert(IsReadOnly, "Dialect must be read-only to cache NeedsQuoting");
+
         ReadOnlySpan<T> values =
         [
             T.CreateTruncating(_delimiter),
@@ -186,27 +188,18 @@ public partial class CsvOptions<T>
         throw Token<T>.NotSupported;
     }
 
-    /// <summary>
-    /// Returns <c>true</c> if <paramref name="other"/> has the exact same CSV dialect as this instance
-    /// (e.g. both types read and write CSV structure identically).
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public bool DialectEquals([NotNullWhen(true)] CsvOptions<T>? other)
+    internal bool DialectEqualsForWriting([NotNullWhen(true)] CsvOptions<T> other)
     {
-        if (other is null)
-        {
-            return false;
-        }
-
         if (ReferenceEquals(this, other))
         {
             return true;
         }
 
+        // trimming not used by writer
         return Quote == other.Quote
             && Delimiter == other.Delimiter
             && Newline == other.Newline
-            && Trimming == other.Trimming
+            && FieldQuoting == other.FieldQuoting
             && Escape == other.Escape;
     }
 }

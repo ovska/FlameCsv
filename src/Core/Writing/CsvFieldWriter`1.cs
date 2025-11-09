@@ -20,8 +20,6 @@ namespace FlameCsv.Writing;
 public readonly struct CsvFieldWriter<T> : IDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
-    private static readonly T _space = T.CreateTruncating(' ');
-
     /// <summary>
     /// The <see cref="ICsvBufferWriter{T}"/> this instance writes to.
     /// </summary>
@@ -316,8 +314,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable
                 bool quoteTrailing = (_fieldQuoting & CsvFieldQuoting.TrailingSpaces) != 0;
 
                 // in net9, accessing the last item first omits a redundant bounds check
-                // TODO NET10: remove
-                shouldQuote = (quoteTrailing && written[^1] == _space) || (quoteLeading && written[0] == _space);
+                shouldQuote =
+                    (quoteTrailing && written[^1] == Whitespace) || (quoteLeading && written[0] == Whitespace);
                 escapableCount = 0;
             }
         }
@@ -351,6 +349,18 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     public void Dispose()
     {
         _allocator?.Dispose();
+    }
+
+    private static T Whitespace
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get =>
+            Unsafe.SizeOf<T>() switch
+            {
+                sizeof(byte) => Unsafe.BitCast<byte, T>((byte)' '),
+                sizeof(char) => Unsafe.BitCast<char, T>(' '),
+                _ => T.CreateTruncating(' '),
+            };
     }
 }
 
