@@ -4,7 +4,19 @@ namespace FlameCsv.Tests.Writing;
 
 file static class EscapeExt
 {
-    public static readonly CsvOptions<char> Options = new() { Delimiter = ',', Quote = '|' };
+    public static CsvOptions<char> Options
+    {
+        get
+        {
+            if (field is null)
+            {
+                field = new() { Delimiter = ',', Quote = '|' };
+                field.MakeReadOnly();
+            }
+
+            return field;
+        }
+    }
 
     public static bool MustBeQuoted(this RFC4180Escaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
     {
@@ -132,6 +144,7 @@ public static class RFC4180EscapeTests
         var options = new CsvOptions<char> { Quote = '|', Newline = newline };
         input = input.Replace("\r\n", newline.AsString());
 
+        options.MakeReadOnly();
         bool needsQuoting = input.AsSpan().ContainsAny(options.NeedsQuoting);
 
         if (!quotes.HasValue)

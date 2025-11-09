@@ -312,7 +312,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         record.EnsureValid();
 
         // check if the records have the exact same dialect
-        if (Options.DialectEquals(record.Options))
+        if (Options.DialectEqualsForWriting(record.Options))
         {
             WriteDelimiterIfNeeded();
             _inner.WriteRaw(record.Raw, skipEscaping: true);
@@ -352,7 +352,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
 
         CsvRecordRef<T> recordRef = new(in record._slice);
 
-        bool writeRaw = Options.DialectEquals(record.Options);
+        bool writeRaw = Options.DialectEqualsForWriting(record.Options);
 
         foreach (var id in fieldIds)
         {
@@ -387,7 +387,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         ArgumentNullException.ThrowIfNull(record);
 
         // check if the records have the exact same dialect
-        if (Options.DialectEquals(record.Options))
+        if (Options.DialectEqualsForWriting(record.Options))
         {
             WriteDelimiterIfNeeded();
             _inner.WriteRaw(record.RawRecord.Span, skipEscaping: true);
