@@ -24,8 +24,8 @@ public class TokenizationBench
 
     [Params(
         [ /**/
-            // true,
-            false,
+            true,
+            // false,
         ]
     )]
     public bool Quoted { get; set; }
@@ -108,30 +108,6 @@ public class TokenizationBench
         }
     }
 
-#if ARM
-    private readonly ArmTokenizer<byte, NewlineLF> _armByte = new(_dByteLF);
-    private readonly ArmTokenizer<char, NewlineLF> _armChar = new(_dCharLF);
-    private readonly ArmTokenizer<byte, NewlineCRLF> _armByteCRLF = new(_dByteCRLF);
-    private readonly ArmTokenizer<char, NewlineCRLF> _armCharCRLF = new(_dCharCRLF);
-
-    private CsvPartialTokenizer<char> ArmChar => TokenizerIsLF ? _armChar : _armCharCRLF;
-    private CsvPartialTokenizer<byte> ArmByte => TokenizerIsLF ? _armByte : _armByteCRLF;
-
-    // [Benchmark]
-    public void ARM64()
-    {
-        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
-
-        if (Chars)
-        {
-            _ = ArmChar.Tokenize(dst, 0, CharData);
-        }
-        else
-        {
-            _ = ArmByte.Tokenize(dst, 0, ByteData);
-        }
-    }
-#endif
 #if !ARM
     private readonly Avx2Tokenizer<byte, NewlineLF> _avx2Byte = new(_dByteLF);
     private readonly Avx2Tokenizer<char, NewlineLF> _avx2Char = new(_dCharLF);
@@ -155,7 +131,7 @@ public class TokenizationBench
             _ = Avx2Byte.Tokenize(dst, 0, ByteData);
         }
     }
-    
+
 #if NET10_0_OR_GREATER
     private readonly Avx512Tokenizer<byte, NewlineLF> _avx512Byte = new(_dByteLF);
     private readonly Avx512Tokenizer<char, NewlineLF> _avx512Char = new(_dCharLF);
