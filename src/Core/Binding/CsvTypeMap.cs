@@ -19,7 +19,7 @@ public abstract class CsvTypeMap
     protected abstract Type TargetType { get; }
 
     /// <summary>
-    /// Resets an existing ID to ignore it.
+    /// Resets an existing ID to ignore it. Used when a header field is bound to multiple members/parameters (last wins).
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]

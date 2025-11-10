@@ -19,11 +19,17 @@ internal static class UtilityExtensions
         return Unsafe.As<long, ulong>(ref value);
     }
 
+    /// <summary>
+    /// Returns members that can participate in writing CSV.
+    /// </summary>
     public static EquatableArray<IMemberModel>.WhereEnumerable Writable(in this EquatableArray<IMemberModel> members)
     {
         return members.Where(static m => m.IsFormattable);
     }
 
+    /// <summary>
+    /// Returns members that can participate in reading CSV.
+    /// </summary>
     public static EquatableArray<IMemberModel>.WhereEnumerable Readable(in this EquatableArray<IMemberModel> members)
     {
         return members.Where(static m => m.IsParsable);

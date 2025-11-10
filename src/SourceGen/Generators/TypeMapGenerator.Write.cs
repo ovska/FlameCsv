@@ -170,7 +170,7 @@ partial class TypeMapGenerator
             if (typeMap.IndexesForWriting.Length == 0)
             {
                 writer.WriteLine(
-                    "throw new global::System.NotSupportedException(\"No valid index binding configuration.\");"
+                    $"throw new global::System.NotSupportedException(\"No valid index binding configuration for type {typeMap.Type.Name}.\");"
                 );
             }
             else
