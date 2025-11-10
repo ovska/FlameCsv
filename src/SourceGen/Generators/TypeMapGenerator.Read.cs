@@ -85,7 +85,7 @@ partial class TypeMapGenerator
             else
             {
                 writer.WriteLine(
-                    "throw new global::System.NotSupportedException(\"No valid index binding configuration.\");"
+                    $"throw new global::System.NotSupportedException(\"No valid index binding configuration for type {typeMap.Type.Name}.\");"
                 );
             }
         }
@@ -170,7 +170,9 @@ partial class TypeMapGenerator
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine($"scoped global::System.ReadOnlySpan<{typeMap.TokenName}> currentField = record[target];");
+                    writer.WriteLine(
+                        $"scoped global::System.ReadOnlySpan<{typeMap.TokenName}> currentField = record[target];"
+                    );
                     writer.WriteLine("bool result = targets[target] switch");
                     writer.WriteLine("{");
                     writer.IncreaseIndent();
@@ -221,7 +223,6 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine();
-            writer.WriteLine(GlobalConstants.DoesNotReturnAttr);
             writer.WriteLine(GlobalConstants.NoInliningAttr);
             writer.WriteLine("private void ThrowForFailedParse(int target)");
 
@@ -260,7 +261,7 @@ partial class TypeMapGenerator
         if (typeMap.Parameters.IsEmpty)
             return;
 
-        foreach (ref readonly var parameter in typeMap.Parameters)
+        foreach (var parameter in typeMap.Parameters)
         {
             // check if parameter can be omitted at all
             if (!parameter.HasDefaultValue || parameter.IsRequiredByAttribute)
@@ -307,7 +308,7 @@ partial class TypeMapGenerator
 
             for (int index = 0; index < typeMap.Parameters.Length; index++)
             {
-                ref readonly ParameterModel parameter = ref typeMap.Parameters[index];
+                ParameterModel parameter = typeMap.Parameters[index];
                 writer.WriteLine();
                 writer.Write(parameter.HeaderName);
                 writer.Write(": ");
@@ -334,7 +335,7 @@ partial class TypeMapGenerator
             writer.WriteLine("{");
             writer.IncreaseIndent();
 
-            foreach (ref readonly var property in typeMap.Properties)
+            foreach (var property in typeMap.Properties)
             {
                 writer.WriteLineIf(
                     property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null },
@@ -348,7 +349,7 @@ partial class TypeMapGenerator
 
         writer.WriteLine(";");
 
-        foreach (ref readonly var property in typeMap.Properties)
+        foreach (var property in typeMap.Properties)
         {
             // required already written above
             if (!property.IsParsable || property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null })
