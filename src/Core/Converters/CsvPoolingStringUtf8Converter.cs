@@ -55,7 +55,7 @@ public sealed class CsvPoolingStringUtf8Converter : CsvConverter<byte, string>
 
         int length = Encoding.UTF8.GetMaxCharCount(source.Length);
 
-        if (Token<char>.CanStackalloc(length) || Token<char>.CanStackalloc(length = Encoding.UTF8.GetCharCount(source)))
+        if (Token<char>.CanStackalloc(length))
         {
             Span<char> buffer = stackalloc char[length];
             int written = Encoding.UTF8.GetChars(source, buffer);
