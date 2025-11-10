@@ -10,7 +10,7 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     /// <inheritdoc />
     protected internal override bool CanFormatNull => true;
 
-    private readonly CsvConverter<T, TValue> _converter;
+    internal readonly CsvConverter<T, TValue> _converter;
     private readonly ReadOnlyMemory<T> _null;
 
     /// <summary>

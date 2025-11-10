@@ -12,11 +12,6 @@ namespace FlameCsv.Utilities;
 internal static class HotReloadService
 {
     /// <summary>
-    /// Indicates whether the hot reload service is active (metadata updater is supported).
-    /// </summary>
-    public static bool IsActive => MetadataUpdater.IsSupported;
-
-    /// <summary>
     /// Contains registered callbacks for cache clearing. Null if hot reload is not supported.
     /// </summary>
     private static readonly ConditionalWeakTable<object, Action<object>>? _callbacks = MetadataUpdater.IsSupported

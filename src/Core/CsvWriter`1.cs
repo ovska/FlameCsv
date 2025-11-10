@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -120,7 +121,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         EnsureTrailingNewline = true;
 
         // omit the overhead of the concurrent dict if hot reload is not active
-        if (!HotReloadService.IsActive)
+        if (!MetadataUpdater.IsSupported)
         {
             _dematerializerCache = new Dictionary<object, object>(ReferenceEqualityComparer.Instance);
         }

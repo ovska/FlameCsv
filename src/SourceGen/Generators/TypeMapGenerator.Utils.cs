@@ -81,6 +81,13 @@ partial class TypeMapGenerator
         }
         else
         {
+            if (!wrapInNullable)
+            {
+                writer.Write(
+                    $"options.Aot.GetOrCreateOverridden<{member.Type.FullyQualifiedName}, {@override.ConverterType.FullyQualifiedName}>(static options => "
+                );
+            }
+
             // converter override, create manually
             if (@override.IsFactory)
             {
@@ -97,20 +104,27 @@ partial class TypeMapGenerator
                 writer.Write(member.Type.FullyQualifiedName);
                 writer.Write("), options)");
             }
+
+            if (!wrapInNullable)
+            {
+                writer.Write(", identifier: ");
+                member.WriteOverrideId(writer);
+                writer.Write(")");
+            }
         }
 
         if (wrapInNullable || builtinConversion)
         {
-            writer.Write(", canCache: ");
+            writer.Write(", identifier: ");
 
-            // explicit converter override, don't cache this one
+            // explicit converter override
             if (@override is { WrapInNullable: true })
             {
-                writer.Write("false");
+                member.WriteOverrideId(writer);
             }
             else if (member.Type.SpecialType == SpecialType.System_Nullable_T)
             {
-                writer.Write("true");
+                writer.Write("global::System.Guid.Empty");
             }
 
             writer.Write(")");

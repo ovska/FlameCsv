@@ -10,7 +10,8 @@ namespace FlameCsv.Attributes;
 /// or a public constructor with a single <see cref="CsvOptions{T}"/> parameter.
 /// </summary>
 /// <remarks>
-/// Converters created this way are distinct from the cached converters in <see cref="CsvOptions{T}"/>.<br/>
+/// Converters created this way are distinct from the cached converters in <see cref="CsvOptions{T}"/>, and are
+/// cached per member or parameter it is applied to.<br/>
 /// The resulting converter is cast to <see cref="CsvConverter{T,TValue}"/>.
 /// </remarks>
 /// <typeparam name="TConverter">Converter or factory type</typeparam>
