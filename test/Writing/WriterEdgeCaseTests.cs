@@ -5,6 +5,18 @@ namespace FlameCsv.Tests.Writing;
 public static class WriterEdgeCaseTests
 {
     [Fact]
+    public static void Should_Check_Escapes_Correctly()
+    {
+        var sw = new StringWriter();
+        using (var writer = CsvWriter.Create(sw))
+        {
+            writer.WriteField("test\"\",");
+        }
+
+        Assert.Equal("\"test\"\"\"\",\"\r\n", sw.ToString());
+    }
+
+    [Fact]
     public static async Task Should_Not_Flush_On_Exception()
     {
         await using (StringWriter sw = new())
@@ -130,6 +142,7 @@ public static class WriterEdgeCaseTests
         }
     }
 
+    // force enumerator type, enumerable.empty returns a singleton
     private static IEnumerable<Obj> Empty()
     {
         yield break;
