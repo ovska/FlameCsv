@@ -93,7 +93,7 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 
         writer.WriteLine();
 
-        foreach (var nestedType in typeMap.WrappingTypes)
+        foreach (ref readonly NestedType nestedType in typeMap.WrappingTypes)
         {
             nestedType.WriteTo(writer);
         }

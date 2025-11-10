@@ -761,7 +761,7 @@ partial class EnumConverterGenerator
         writer.Write(model.IsByte ? "16" : "32");
         writer.Write("LittleEndian(");
 
-        writer.Write(model.IsByte ? "source" : "__MemoryMarshal.Cast<char, byte>(source)");
+        writer.Write(model.IsByte ? "source" : "__MemoryMarshal.AsBytes(source)");
 
         writer.WriteLine("))");
 
@@ -826,8 +826,14 @@ partial class EnumConverterGenerator
 
         writer.Write($"(__Unsafe.ReadUnaligned<{type}>(ref ");
 
-        writer.WriteIf(offset != 0, $"__Unsafe.Add(ref first, {offset}))");
-        writer.WriteIf(offset == 0, "first)");
+        if (offset != 0)
+        {
+            writer.Write($"__Unsafe.Add(ref first, {offset}))");
+        }
+        else
+        {
+            writer.Write("first)");
+        }
 
         Span<bool> bytes = stackalloc bool[width];
         bool? allSame = GetMaskLittleEndian(bytes, entry.Name, offset);
