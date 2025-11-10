@@ -170,6 +170,7 @@ partial class TypeMapGenerator
                 writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
                 using (writer.WriteBlock())
                 {
+                    writer.WriteLine($"scoped global::System.ReadOnlySpan<{typeMap.TokenName}> currentField = record[target];");
                     writer.WriteLine("bool result = targets[target] switch");
                     writer.WriteLine("{");
                     writer.IncreaseIndent();
@@ -181,7 +182,7 @@ partial class TypeMapGenerator
                         member.WriteId(writer);
                         writer.Write(" => ");
                         member.WriteConverterName(writer);
-                        writer.Write(".TryParse(record[target], out state.");
+                        writer.Write(".TryParse(currentField, out state.");
                         writer.Write(member.Identifier);
                         writer.WriteLine("),");
                     }
