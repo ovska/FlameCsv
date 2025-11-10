@@ -301,7 +301,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         }
         else
         {
-            int index = ((_fieldQuoting & CsvFieldQuoting.Auto) != 0) ? written.LastIndexOfAny(_needsQuoting) : -1;
+            int index = ((_fieldQuoting & CsvFieldQuoting.Auto) != 0) ? written.IndexOfAny(_needsQuoting) : -1;
 
             if (index != -1)
             {
