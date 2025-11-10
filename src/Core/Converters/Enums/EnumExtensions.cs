@@ -12,6 +12,7 @@ internal static class EnumExtensions
         return (uint.CreateTruncating(source[0]) - '0') <= ('9' - '0')
             || (
                 (
+                    // intrinsic
                     typeof(TEnum).GetEnumUnderlyingType() == typeof(sbyte)
                     || typeof(TEnum).GetEnumUnderlyingType() == typeof(short)
                     || typeof(TEnum).GetEnumUnderlyingType() == typeof(int)
@@ -74,7 +75,7 @@ internal static class EnumExtensions
             return true;
         }
 
-        Unsafe.SkipInit(out value);
+        value = default;
         return false;
     }
 
@@ -131,7 +132,7 @@ internal static class EnumExtensions
             return true;
         }
 
-        Unsafe.SkipInit(out value);
+        value = default;
         return false;
     }
 

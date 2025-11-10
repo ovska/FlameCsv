@@ -47,6 +47,12 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvPartialTokenizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
     {
+        if (!Avx2.IsSupported)
+        {
+            // ensure the method is trimmed on NAOT
+            throw new UnreachableException();
+        }
+
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
         if ((uint)(data.Length - startIndex) < EndOffset)

@@ -10,7 +10,7 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Avx512Tokenizer
 {
-    public static bool IsSupported => Bmi1.X64.IsSupported && Avx512Vbmi2.IsSupported;
+    public static bool IsSupported => Avx512Vbmi2.IsSupported;
 }
 
 [SkipLocalsInit]
@@ -43,6 +43,12 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvP
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
     {
+        if (!Avx512Vbmi2.IsSupported)
+        {
+            // ensure the method is trimmed on NAOT
+            throw new UnreachableException();
+        }
+        
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
         if ((uint)(data.Length - startIndex) < EndOffset)

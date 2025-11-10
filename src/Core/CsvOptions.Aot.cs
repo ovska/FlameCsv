@@ -50,19 +50,19 @@ partial class CsvOptions<T>
         [EditorBrowsable(EditorBrowsableState.Never)]
         public CsvConverter<T, TResult> GetConverter<TResult>()
         {
-            if (TryGetExistingOrCustomConverter(out CsvConverter<T, TResult>? converter))
+            if (Extensions.GetCachedOrCustom(_options, out CsvConverter<T, TResult>? converter))
             {
                 return converter;
             }
 
-            if (typeof(T) == typeof(char) && DefaultConverters.GetText(typeof(TResult)) is { } factory1)
+            if (typeof(T) == typeof(char) && DefaultConverters.GetText(typeof(TResult)) is { } utf16func)
             {
-                converter = Unsafe.As<CsvConverter<T, TResult>>(factory1(Unsafe.As<CsvOptions<char>>(this._options)));
+                converter = (CsvConverter<T, TResult>)(object)(utf16func(Unsafe.As<CsvOptions<char>>(_options)));
             }
 
-            if (typeof(T) == typeof(byte) && DefaultConverters.GetUtf8(typeof(TResult)) is { } factory2)
+            if (typeof(T) == typeof(byte) && DefaultConverters.GetUtf8(typeof(TResult)) is { } utf8func)
             {
-                converter = Unsafe.As<CsvConverter<T, TResult>>(factory2(Unsafe.As<CsvOptions<byte>>(this._options)));
+                converter = (CsvConverter<T, TResult>)(object)(utf8func(Unsafe.As<CsvOptions<byte>>(_options)));
             }
 
             if (converter is null)
@@ -77,6 +77,11 @@ partial class CsvOptions<T>
         /// <summary>
         /// Returns a converter for <typeparamref name="TValue"/>, either a configured one or from the factory.
         /// </summary>
+        /// <param name="factory">Factory to create the converter</param>
+        /// <param name="canCache">
+        /// Whether the created converter can be cached. This is <c>false</c> when the converter is created
+        /// for a specific type's member or constructor parameter.
+        /// </param>
         /// <remarks>
         /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
         /// If a non-factory user defined converter is found, it is returned directly.
@@ -89,7 +94,7 @@ partial class CsvOptions<T>
         {
             ArgumentNullException.ThrowIfNull(factory);
 
-            if (TryGetExistingOrCustomConverter(out CsvConverter<T, TValue>? converter))
+            if (Extensions.GetCachedOrCustom(_options, out CsvConverter<T, TValue>? converter))
             {
                 return converter;
             }
@@ -115,6 +120,11 @@ partial class CsvOptions<T>
         /// Returns a nullable converter,
         /// falling back to the built-in one if <see cref="UseDefaultConverters"/> is true.
         /// </summary>
+        /// <param name="factory">Factory to create the inner converter</param>
+        /// <param name="canCache">
+        /// Whether the created converter can be cached. This is <c>false</c> when the converter is created
+        /// for a specific type's member or constructor parameter.
+        /// </param>
         /// <remarks>
         /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
         /// If a non-factory user defined converter is found, it is returned directly.
@@ -126,7 +136,7 @@ partial class CsvOptions<T>
         )
             where TValue : struct
         {
-            if (canCache && TryGetExistingOrCustomConverter(out CsvConverter<T, TValue?>? converter))
+            if (canCache && Extensions.GetCachedOrCustom(_options, out CsvConverter<T, TValue?>? converter))
             {
                 return converter;
             }
@@ -147,7 +157,7 @@ partial class CsvOptions<T>
         }
 
         /// <summary>
-        /// Returns an enum converter, falling back to the built-in one if <see cref="UseDefaultConverters"/> is true.
+        /// Creates a converter for an enum type.
         /// </summary>
         /// <remarks>
         /// This API is meant to be used by the source generator to produce trimming/AOT safe code.<br/>
@@ -159,69 +169,111 @@ partial class CsvOptions<T>
         {
             if (typeof(T) == typeof(char))
             {
-                CsvOptions<char>.AotSafeConverters @this = new(Unsafe.As<CsvOptions<char>>(_options));
-                return (CsvConverter<T, TEnum>)
-                    (object)
-                        @this.GetOrCreate(
-                            static o =>
-                            {
-                                if (!o.UseDefaultConverters)
-                                    CsvConverterMissingException.Throw(typeof(TEnum));
-                                return new EnumTextConverter<TEnum>(o);
-                            },
-                            canCache: true
-                        );
+                CsvOptions<char> options = new(Unsafe.As<CsvOptions<char>>(_options));
+
+                CsvConverter<char, TEnum> converter = Extensions.GetOrCreate(
+                    options,
+                    static o =>
+                    {
+                        if (!o.UseDefaultConverters)
+                            CsvConverterMissingException.Throw(typeof(TEnum));
+                        return new EnumTextConverter<TEnum>(o);
+                    },
+                    canCache: true
+                );
+
+                return (CsvConverter<T, TEnum>)(object)converter;
             }
 
             if (typeof(T) == typeof(byte))
             {
-                CsvOptions<byte>.AotSafeConverters @this = new(Unsafe.As<CsvOptions<byte>>(_options));
-                return (CsvConverter<T, TEnum>)
-                    (object)
-                        @this.GetOrCreate(
-                            static o =>
-                            {
-                                if (!o.UseDefaultConverters)
-                                    CsvConverterMissingException.Throw(typeof(TEnum));
-                                return new EnumUtf8Converter<TEnum>(o);
-                            },
-                            canCache: true
-                        );
+                CsvOptions<byte> options = new(Unsafe.As<CsvOptions<byte>>(_options));
+
+                CsvConverter<byte, TEnum> converter = Extensions.GetOrCreate(
+                    options,
+                    static o =>
+                    {
+                        if (!o.UseDefaultConverters)
+                            CsvConverterMissingException.Throw(typeof(TEnum));
+                        return new EnumUtf8Converter<TEnum>(o);
+                    },
+                    canCache: true
+                );
+
+                return (CsvConverter<T, TEnum>)(object)converter;
             }
 
             throw Token<T>.NotSupported;
         }
+    }
+}
 
-        private bool TryGetExistingOrCustomConverter<TValue>([NotNullWhen(true)] out CsvConverter<T, TValue>? converter)
+file static class Extensions
+{
+    public static CsvConverter<T, TValue> GetOrCreate<T, TValue>(
+        CsvOptions<T> options,
+        [RequireStaticDelegate] Func<CsvOptions<T>, CsvConverter<T, TValue>> factory,
+        bool canCache
+    )
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        if (GetCachedOrCustom(options, out CsvConverter<T, TValue>? converter))
         {
-            _options.MakeReadOnly();
+            return converter;
+        }
 
-            if (_options.ConverterCache.TryGetValue(typeof(TValue), out var cached))
+        converter = factory(options);
+
+        if (converter is null)
+        {
+            throw new CsvConfigurationException(
+                $"The factory delegate passed to GetOrCreate for {typeof(TValue).FullName} returned null."
+            );
+        }
+
+        if (canCache)
+        {
+            options.ConverterCache.TryAdd(typeof(TValue), converter);
+        }
+
+        return converter;
+    }
+
+    public static bool GetCachedOrCustom<T, TValue>(
+        CsvOptions<T> options,
+        [NotNullWhen(true)] out CsvConverter<T, TValue>? converter
+    )
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        options.MakeReadOnly();
+
+        if (options.ConverterCache.TryGetValue(typeof(TValue), out var cached))
+        {
+            converter = (CsvConverter<T, TValue>)cached;
+            return true;
+        }
+
+        var local = options._converters;
+
+        // null if the Converters-property is never accessed (no custom converters)
+        if (local is not null)
+        {
+            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
+
+            // Read converters in reverse order so parser added last has the highest priority
+            for (int i = converters.Length - 1; i >= 0; i--)
             {
-                converter = (CsvConverter<T, TValue>)cached;
-                return true;
-            }
-
-            var local = _options._converters;
-
-            // null if the Converters-property is never accessed (no custom converters)
-            if (local is not null)
-            {
-                ReadOnlySpan<CsvConverter<T>> converters = local.Span;
-
-                // Read converters in reverse order so parser added last has the highest priority
-                for (int i = converters.Length - 1; i >= 0; i--)
+                if (converters[i] is CsvConverter<T, TValue> converterOfT)
                 {
-                    if (converters[i] is CsvConverter<T, TValue> converterOfT)
-                    {
-                        _options.ConverterCache.TryAdd(typeof(TValue), converter = converterOfT);
-                        return true;
-                    }
+                    options.ConverterCache.TryAdd(typeof(TValue), converter = converterOfT);
+                    return true;
                 }
             }
-
-            converter = null;
-            return false;
         }
+
+        converter = null;
+        return false;
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Collections.Frozen;
+using System.Globalization;
 using FlameCsv.Converters.Formattable;
 
 namespace FlameCsv.Converters;
@@ -7,111 +8,80 @@ namespace FlameCsv.Converters;
 internal static class DefaultConverters
 {
     // rare oddities such as sbyte, Half, nuint, nint are not included here on purpose
-    // the span converter factory will create them if needed,
+    // the span converter factory will create them if needed.
+    // common types are included for better performance (avoiding reflection and generic instantiation at runtime)
 
     public static Func<CsvOptions<char>, CsvConverter<char>>? GetText(Type type)
     {
-        // Early exit for non-core library types, and all enums
-        if (type.IsEnum || type.Module != typeof(int).Module)
-            return null;
+        if (TextConverters.TryGetValue(type.MetadataToken, out var converterFactory))
+        {
+            return converterFactory;
+        }
 
-        if (type == typeof(string))
-            return _ => StringTextConverter.Instance;
-        if (type == typeof(int))
-            return o => new NumberTextConverter<int>(o, NumberStyles.Integer);
-        if (type == typeof(double))
-            return o => new NumberTextConverter<double>(o, NumberStyles.Float);
-        if (type == typeof(bool))
-            return o => o.HasBooleanValues ? new CustomBooleanConverter<char>(o) : BooleanTextConverter.Instance;
-        if (type == typeof(DateTime))
-            return o => new SpanTextConverter<DateTime>(o);
-        if (type == typeof(byte))
-            return o => new NumberTextConverter<byte>(o, NumberStyles.Integer);
-        if (type == typeof(short))
-            return o => new NumberTextConverter<short>(o, NumberStyles.Integer);
-        if (type == typeof(ushort))
-            return o => new NumberTextConverter<ushort>(o, NumberStyles.Integer);
-        if (type == typeof(uint))
-            return o => new NumberTextConverter<uint>(o, NumberStyles.Integer);
-        if (type == typeof(long))
-            return o => new NumberTextConverter<long>(o, NumberStyles.Integer);
-        if (type == typeof(ulong))
-            return o => new NumberTextConverter<ulong>(o, NumberStyles.Integer);
-        if (type == typeof(float))
-            return o => new NumberTextConverter<float>(o, NumberStyles.Float);
-        if (type == typeof(decimal))
-            return o => new NumberTextConverter<decimal>(o, NumberStyles.Float);
-        if (type == typeof(DateTimeOffset))
-            return o => new SpanTextConverter<DateTimeOffset>(o);
-        if (type == typeof(TimeSpan))
-            return o => new SpanTextConverter<TimeSpan>(o);
-        if (type == typeof(Guid))
-            return o => new SpanTextConverter<Guid>(o);
-        if (type == typeof(char))
-            return o => new SpanTextConverter<char>(o);
-        if (type == typeof(ArraySegment<byte>))
-            return _ => Base64TextConverter.Instance;
-        if (type == typeof(Memory<byte>))
-            return _ => Base64TextConverter.Memory;
-        if (type == typeof(ReadOnlyMemory<byte>))
-            return _ => Base64TextConverter.ReadOnlyMemory;
-        if (type == typeof(Memory<byte>))
-            return _ => Base64TextConverter.Memory;
-        if (type == typeof(byte[]))
-            return _ => Base64TextConverter.Array;
         return null;
     }
 
     public static Func<CsvOptions<byte>, CsvConverter<byte>>? GetUtf8(Type type)
     {
-        // Early exit for non-core library types, and all enums
-        if (type.IsEnum || type.Module != typeof(int).Module)
-            return null;
+        if (Utf8Converters.TryGetValue(type.MetadataToken, out var converterFactory))
+        {
+            return converterFactory;
+        }
 
-        if (type == typeof(string))
-            return _ => StringUtf8Converter.Instance;
-        if (type == typeof(int))
-            return o => new NumberUtf8Converter<int>(o, NumberStyles.Integer);
-        if (type == typeof(double))
-            return o => new NumberUtf8Converter<double>(o, NumberStyles.Float);
-        if (type == typeof(bool))
-            return o => o.HasBooleanValues ? new CustomBooleanConverter<byte>(o) : BooleanUtf8Converter.Instance;
-        if (type == typeof(DateTime))
-            return o => new SpanUtf8FormattableConverter<DateTime>(o);
-        if (type == typeof(byte))
-            return o => new NumberUtf8Converter<byte>(o, NumberStyles.Integer);
-        if (type == typeof(short))
-            return o => new NumberUtf8Converter<short>(o, NumberStyles.Integer);
-        if (type == typeof(ushort))
-            return o => new NumberUtf8Converter<ushort>(o, NumberStyles.Integer);
-        if (type == typeof(uint))
-            return o => new NumberUtf8Converter<uint>(o, NumberStyles.Integer);
-        if (type == typeof(long))
-            return o => new NumberUtf8Converter<long>(o, NumberStyles.Integer);
-        if (type == typeof(ulong))
-            return o => new NumberUtf8Converter<ulong>(o, NumberStyles.Integer);
-        if (type == typeof(float))
-            return o => new NumberUtf8Converter<float>(o, NumberStyles.Float);
-        if (type == typeof(decimal))
-            return o => new NumberUtf8Converter<decimal>(o, NumberStyles.Float);
-        if (type == typeof(DateTimeOffset))
-            return o => new SpanUtf8FormattableConverter<DateTimeOffset>(o);
-        if (type == typeof(TimeSpan))
-            return o => new SpanUtf8FormattableConverter<TimeSpan>(o);
-        if (type == typeof(Guid))
-            return o => new SpanUtf8FormattableConverter<Guid>(o);
-        if (type == typeof(char))
-            return o => new SpanUtf8Converter<char>(o);
-        if (type == typeof(ArraySegment<byte>))
-            return _ => Base64Utf8Converter.Instance;
-        if (type == typeof(Memory<byte>))
-            return _ => Base64Utf8Converter.Memory;
-        if (type == typeof(ReadOnlyMemory<byte>))
-            return _ => Base64Utf8Converter.ReadOnlyMemory;
-        if (type == typeof(Memory<byte>))
-            return _ => Base64Utf8Converter.Memory;
-        if (type == typeof(byte[]))
-            return _ => Base64Utf8Converter.Array;
         return null;
     }
+
+    private static FrozenDictionary<int, Func<CsvOptions<char>, CsvConverter<char>>> TextConverters { get; } =
+        new Dictionary<int, Func<CsvOptions<char>, CsvConverter<char>>>()
+        {
+            [typeof(string).MetadataToken] = _ => StringTextConverter.Instance,
+            [typeof(bool).MetadataToken] = o =>
+                o.HasBooleanValues ? new CustomBooleanConverter<char>(o) : BooleanTextConverter.Instance,
+            [typeof(char).MetadataToken] = o => new SpanTextConverter<char>(o),
+            [typeof(short).MetadataToken] = o => new NumberTextConverter<short>(o, NumberStyles.Integer),
+            [typeof(int).MetadataToken] = o => new NumberTextConverter<int>(o, NumberStyles.Integer),
+            [typeof(long).MetadataToken] = o => new NumberTextConverter<long>(o, NumberStyles.Integer),
+            [typeof(byte).MetadataToken] = o => new NumberTextConverter<byte>(o, NumberStyles.Integer),
+            [typeof(ushort).MetadataToken] = o => new NumberTextConverter<ushort>(o, NumberStyles.Integer),
+            [typeof(uint).MetadataToken] = o => new NumberTextConverter<uint>(o, NumberStyles.Integer),
+            [typeof(ulong).MetadataToken] = o => new NumberTextConverter<ulong>(o, NumberStyles.Integer),
+            [typeof(float).MetadataToken] = o => new NumberTextConverter<float>(o, NumberStyles.Float),
+            [typeof(double).MetadataToken] = o => new NumberTextConverter<double>(o, NumberStyles.Float),
+            [typeof(decimal).MetadataToken] = o => new NumberTextConverter<decimal>(o, NumberStyles.Float),
+            [typeof(Guid).MetadataToken] = o => new SpanTextConverter<Guid>(o),
+            [typeof(TimeSpan).MetadataToken] = o => new SpanTextConverter<TimeSpan>(o),
+            [typeof(DateTime).MetadataToken] = o => new SpanTextConverter<DateTime>(o),
+            [typeof(DateTimeOffset).MetadataToken] = o => new SpanTextConverter<DateTimeOffset>(o),
+            [typeof(byte[]).MetadataToken] = _ => Base64TextConverter.Array,
+            [typeof(Memory<byte>).MetadataToken] = _ => Base64TextConverter.Memory,
+            [typeof(ArraySegment<byte>).MetadataToken] = _ => Base64TextConverter.Instance,
+            [typeof(ReadOnlyMemory<byte>).MetadataToken] = _ => Base64TextConverter.ReadOnlyMemory,
+        }.ToFrozenDictionary();
+
+    private static FrozenDictionary<int, Func<CsvOptions<byte>, CsvConverter<byte>>> Utf8Converters { get; } =
+        new Dictionary<int, Func<CsvOptions<byte>, CsvConverter<byte>>>()
+        {
+            [typeof(string).MetadataToken] = _ => StringUtf8Converter.Instance,
+            [typeof(bool).MetadataToken] = o =>
+                o.HasBooleanValues ? new CustomBooleanConverter<byte>(o) : BooleanUtf8Converter.Instance,
+            [typeof(char).MetadataToken] = o => new SpanUtf8Converter<char>(o),
+            [typeof(short).MetadataToken] = o => new NumberUtf8Converter<short>(o, NumberStyles.Integer),
+            [typeof(int).MetadataToken] = o => new NumberUtf8Converter<int>(o, NumberStyles.Integer),
+            [typeof(long).MetadataToken] = o => new NumberUtf8Converter<long>(o, NumberStyles.Integer),
+            [typeof(byte).MetadataToken] = o => new NumberUtf8Converter<byte>(o, NumberStyles.Integer),
+            [typeof(ushort).MetadataToken] = o => new NumberUtf8Converter<ushort>(o, NumberStyles.Integer),
+            [typeof(uint).MetadataToken] = o => new NumberUtf8Converter<uint>(o, NumberStyles.Integer),
+            [typeof(ulong).MetadataToken] = o => new NumberUtf8Converter<ulong>(o, NumberStyles.Integer),
+            [typeof(float).MetadataToken] = o => new NumberUtf8Converter<float>(o, NumberStyles.Float),
+            [typeof(double).MetadataToken] = o => new NumberUtf8Converter<double>(o, NumberStyles.Float),
+            [typeof(decimal).MetadataToken] = o => new NumberUtf8Converter<decimal>(o, NumberStyles.Float),
+            [typeof(Guid).MetadataToken] = o => new SpanUtf8FormattableConverter<Guid>(o),
+            [typeof(TimeSpan).MetadataToken] = o => new SpanUtf8FormattableConverter<TimeSpan>(o),
+            [typeof(DateTime).MetadataToken] = o => new SpanUtf8FormattableConverter<DateTime>(o),
+            [typeof(DateTimeOffset).MetadataToken] = o => new SpanUtf8FormattableConverter<DateTimeOffset>(o),
+            [typeof(byte[]).MetadataToken] = _ => Base64Utf8Converter.Array,
+            [typeof(Memory<byte>).MetadataToken] = _ => Base64Utf8Converter.Memory,
+            [typeof(ArraySegment<byte>).MetadataToken] = _ => Base64Utf8Converter.Instance,
+            [typeof(ReadOnlyMemory<byte>).MetadataToken] = _ => Base64Utf8Converter.ReadOnlyMemory,
+        }.ToFrozenDictionary();
 }
