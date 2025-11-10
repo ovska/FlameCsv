@@ -364,9 +364,9 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// - <see cref="DateTime"/><br/>
     /// - <see cref="DateTimeOffset"/><br/>
     /// - <see cref="TimeSpan"/><br/>
-    /// - For token type <see langword="char"/> any type that implements <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/>.<br/>
-    /// - For token type <see langword="byte"/> any type that implements at least one of <see cref="IUtf8SpanFormattable"/> and
-    /// <see cref="IUtf8SpanParsable{TSelf}"/>, with <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/> as fallbacks.<br/>
+    /// - For UTF16 (<see langword="char"/>) any type that implements <see cref="ISpanFormattable"/> and <see cref="ISpanParsable{TSelf}"/>.<br/>
+    /// - For UTF8/ASCII (<see langword="byte"/>) any type that implements <see cref="IUtf8SpanFormattable"/> or <see cref="ISpanFormattable"/>, and
+    /// <see cref="IUtf8SpanParsable{TSelf}"/> or <see cref="ISpanParsable{TSelf}"/><br/>
     /// </remarks>
     public bool UseDefaultConverters
     {
@@ -408,12 +408,13 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
-    /// Pool used to create reusable buffers when reading multisegment data, or unescaping large fields.
+    /// Pool used to create buffers for reading and writing CSV data.
     /// Default value is <see cref="MemoryPool{T}.Shared"/>.
     /// Set to <see langword="null"/> to disable pooling and always heap allocate.
     /// </summary>
     /// <remarks>
     /// Buffers that are larger than <see cref="MemoryPool{T}.MaxBufferSize"/> size are rented from the shared array pool.
+    /// If this is not desired, create a custom pool that has no max size and throws on allocation failures.
     /// </remarks>
     public MemoryPool<T>? MemoryPool
     {

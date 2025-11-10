@@ -40,7 +40,7 @@ partial class CsvOptions<T>
         }
     }
 
-    private SealableList<CsvConverter<T>>? _converters;
+    internal SealableList<CsvConverter<T>>? _converters;
 
     /// <summary>
     /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
