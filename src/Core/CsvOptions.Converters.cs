@@ -45,8 +45,8 @@ partial class CsvOptions<T>
     /// <summary>
     /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
     /// </summary>
-    internal ConcurrentDictionary<Type, CsvConverter<T>> ConverterCache { get; } =
-        new(ReferenceEqualityComparer.Instance);
+    internal ConcurrentDictionary<(Type type, Guid id), CsvConverter<T>> ConverterCache { get; } =
+        new(ConverterCacheComparer.Instance);
 
     /// <summary>
     /// Returns a converter for <typeparamref name="TResult"/>.
@@ -101,7 +101,7 @@ partial class CsvOptions<T>
         if (created)
         {
             // ensure we return the same instance that was cached
-            return ConverterCache.GetOrAdd(resultType, converter);
+            return ConverterCache.GetOrAdd((resultType, Guid.Empty), converter);
         }
 
         return converter;
@@ -117,7 +117,7 @@ partial class CsvOptions<T>
         ArgumentNullException.ThrowIfNull(resultType);
         MakeReadOnly();
 
-        if (ConverterCache.TryGetValue(resultType, out var cached))
+        if (ConverterCache.TryGetValue((resultType, Guid.Empty), out var cached))
         {
             Debug.Assert(cached.CanConvert(resultType));
             converter = cached;
@@ -160,7 +160,7 @@ partial class CsvOptions<T>
                 ? factory(options)
                 : DefaultConverterFactories.TryCreateChar(type, options);
 
-            if (result != null)
+            if (result is not null)
             {
                 converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
@@ -175,7 +175,7 @@ partial class CsvOptions<T>
                 ? factory(options)
                 : DefaultConverterFactories.TryCreateByte(type, options);
 
-            if (result != null)
+            if (result is not null)
             {
                 converter = Unsafe.As<CsvConverter<T>>(result);
                 return true;
@@ -218,5 +218,20 @@ file static class DefaultConverterFactories
         }
 
         return null;
+    }
+}
+
+file class ConverterCacheComparer : IEqualityComparer<(Type type, Guid id)>
+{
+    public static ConverterCacheComparer Instance { get; } = new();
+
+    public bool Equals((Type type, Guid id) x, (Type type, Guid id) y)
+    {
+        return ReferenceEquals(x.type, y.type) && x.id == y.id;
+    }
+
+    public int GetHashCode([DisallowNull] (Type type, Guid id) obj)
+    {
+        return HashCode.Combine(obj.type.GetHashCode(), obj.id.GetHashCode());
     }
 }

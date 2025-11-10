@@ -86,6 +86,12 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         writer.Write(Identifier);
     }
 
+    public void WriteOverrideId(IndentedTextWriter writer)
+    {
+        writer.Write("@s__Override_");
+        writer.Write(Identifier);
+    }
+
     public void WriteConverterName(IndentedTextWriter writer)
     {
         writer.Write("@s__Converter_");

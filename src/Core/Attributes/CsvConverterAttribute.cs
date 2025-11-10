@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
@@ -10,7 +11,7 @@ namespace FlameCsv.Attributes;
 /// <remarks>
 /// The resulting converter is cast to <see cref="CsvConverter{T,TValue}"/>.<br/>
 /// This attribute is not recognized by the source generator,
-/// use <see cref="CsvConverterAttribute{TConverter}"/> instead.
+/// use the generic <see cref="CsvConverterAttribute{TConverter}"/> version instead.
 /// </remarks>
 [AttributeUsage(
     AttributeTargets.Property | AttributeTargets.Field | AttributeTargets.Parameter,
@@ -26,7 +27,7 @@ public abstract class CsvConverterAttribute : Attribute
     /// </summary>
     /// <param name="targetType">Type to convert</param>
     /// <param name="options">Current configuration instance</param>
-    /// <param name="converter"></param>
+    /// <param name="converter">Created converter</param>
     /// <returns>Converter instance</returns>
     /// <exception cref="CsvConfigurationException">Thrown if <paramref name="targetType"/> is not valid for the member,
     /// or is not present in the configuration and has no parameterless constructor.</exception>
@@ -36,6 +37,11 @@ public abstract class CsvConverterAttribute : Attribute
         [NotNullWhen(true)] out CsvConverter<T>? converter
     )
         where T : unmanaged, IBinaryInteger<T>;
+
+    /// <summary>
+    /// Unique identifier for the attribute instance. Used to cache created converters per-member or parameter.
+    /// </summary>
+    public Guid Identifier { get; } = Guid.NewGuid();
 
     /// <summary>
     /// Creates the configured converter.
@@ -50,6 +56,19 @@ public abstract class CsvConverterAttribute : Attribute
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(targetType);
+
+        if (Identifier == Guid.Empty)
+        {
+            throw new UnreachableException("Identifier should never be empty");
+        }
+
+        var cacheKey = (targetType, Identifier);
+
+        if (options.ConverterCache.TryGetValue(cacheKey, out var cachedConverter))
+        {
+            converter = cachedConverter;
+            return true;
+        }
 
         if (!TryCreateConverterOrFactory(targetType, options, out converter))
         {
@@ -77,12 +96,13 @@ public abstract class CsvConverterAttribute : Attribute
 
             throw new CsvConfigurationException(
                 $"Overridden converter {converter.GetType().FullName} "
-                    + $"can not parse the member type: {targetType.FullName} (attribute: {this.GetType().FullName})"
+                    + $"can not parse the member type: {targetType.FullName} (attribute: {GetType().FullName})"
             );
         }
 
         Success:
         converter = converter.GetAsConverter(targetType, options);
+        options.ConverterCache.TryAdd(cacheKey, converter);
         return true;
     }
 }

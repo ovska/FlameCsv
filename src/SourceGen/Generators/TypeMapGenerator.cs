@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Helpers;
+﻿using System.Runtime.InteropServices;
+using FlameCsv.SourceGen.Helpers;
 using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -145,5 +146,41 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
         }
 
         writer.WriteLine();
+
+        bool anyGuid = false;
+
+        foreach (var member in typeMap.AllMembers)
+        {
+            if (member.OverriddenConverter is null)
+                continue;
+
+            Guid guid = Guid.NewGuid();
+            byte[] bytes = guid.ToByteArray();
+
+            writer.Write("private static readonly global::System.Guid ");
+            member.WriteOverrideId(writer);
+            writer.Write(" = new global::System.Guid(");
+            writer.Write($"0x{MemoryMarshal.Read<uint>(bytes):X8}, ");
+            writer.Write($"0x{MemoryMarshal.Read<ushort>(bytes.AsSpan(4)):X4}, ");
+            writer.Write($"0x{MemoryMarshal.Read<ushort>(bytes.AsSpan(6)):X4}, ");
+            for (int i = 8; i < bytes.Length; i++)
+            {
+                writer.Write($"0x{bytes[i]:X2}");
+                if (i < bytes.Length - 1)
+                {
+                    writer.Write(", ");
+                }
+            }
+
+            writer.Write("); // ");
+            writer.WriteLine(guid.ToString());
+
+            anyGuid = true;
+        }
+
+        if (anyGuid)
+        {
+            writer.WriteLine();
+        }
     }
 }

@@ -57,6 +57,11 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     void WriteId(IndentedTextWriter writer);
 
     /// <summary>
+    /// Writes the GUID identifier of the overridden converter writer.
+    /// </summary>
+    void WriteOverrideId(IndentedTextWriter writer);
+
+    /// <summary>
     /// Writes the converter name of the member to the writer.
     /// </summary>
     void WriteConverterName(IndentedTextWriter writer);

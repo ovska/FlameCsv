@@ -186,7 +186,7 @@ partial class TypeMapGenerator
                         writer.WriteLine("),");
                     }
 
-                    writer.WriteLine("0 => ThrowForInvalidTarget(target), // Should never happen");
+                    writer.WriteLine("0 => false, // Should never happen");
                     writer.WriteLine("_ => true, // Ignored fields have target set to -1");
 
                     writer.DecreaseIndent();
@@ -219,12 +219,6 @@ partial class TypeMapGenerator
                 writer.WriteLine("return obj;");
             }
 
-            writer.WriteLine();
-            writer.WriteLine(GlobalConstants.DoesNotReturnAttr);
-            writer.WriteLine(GlobalConstants.NoInliningAttr);
-            writer.WriteLine(
-                "private static bool ThrowForInvalidTarget(int target) => throw new global::System.Diagnostics.UnreachableException($\"Converter {target} was uninitialized\");"
-            );
             writer.WriteLine();
             writer.WriteLine(GlobalConstants.DoesNotReturnAttr);
             writer.WriteLine(GlobalConstants.NoInliningAttr);
