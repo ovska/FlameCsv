@@ -190,7 +190,7 @@ public static partial class CsvWriter
 
             IAsyncEnumerator<TValue> enumerator = values.GetAsyncEnumerator(cancellationToken);
 
-            await using (enumerator)
+            await using (enumerator.ConfigureAwait(false))
             {
                 if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
                 {

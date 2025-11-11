@@ -58,7 +58,9 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentOutOfRangeException.ThrowIfZero(headers.Length);
-        Throw.IfInvalidArgument(!options.HasHeader, "Options is configured to read without a header.");
+
+        if (!options.HasHeader)
+            Throw.Argument(nameof(options), "Options is not configured to read with a header.");
 
         return options.GetMaterializer(
             this,
@@ -76,7 +78,9 @@ public abstract class CsvTypeMap<T, TValue> : CsvTypeMap, IEquatable<CsvTypeMap<
     public IMaterializer<T, TValue> GetMaterializer(CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        Throw.IfInvalidArgument(options.HasHeader, "Options is not configured to read without a header.");
+
+        if (options.HasHeader)
+            Throw.Argument(nameof(options), "Options is not configured to read without a header.");
 
         return options.GetMaterializer(this, [], static (options, typeMap, _) => typeMap.BindForReading(options));
     }

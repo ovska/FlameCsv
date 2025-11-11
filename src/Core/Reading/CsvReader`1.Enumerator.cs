@@ -44,7 +44,11 @@ partial class CsvReader<T>
         /// <inheritdoc cref="CsvReader{T}.ParseRecords"/>
         public Enumerator GetEnumerator()
         {
-            Throw.IfDefaultStruct(_reader is null, typeof(RecordEnumerable));
+            if (_reader is null)
+            {
+                Throw.InvalidOp_DefaultStruct(typeof(RecordEnumerable));
+            }
+
             return new(_reader);
         }
     }
@@ -66,7 +70,11 @@ partial class CsvReader<T>
         /// <inheritdoc cref="CsvReader{T}.ParseRecordsAsync"/>
         public AsyncEnumerator GetAsyncEnumerator()
         {
-            Throw.IfDefaultStruct(_reader is null, typeof(RecordAsyncEnumerable));
+            if (_reader is null)
+            {
+                Throw.InvalidOp_DefaultStruct(typeof(RecordAsyncEnumerable));
+            }
+
             return new(_reader, _cancellationToken);
         }
 

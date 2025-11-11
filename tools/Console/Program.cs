@@ -36,6 +36,7 @@ namespace FlameCsv.Console
 
             byte[] byteArray = File.ReadAllBytes(file.FullName);
 
+#pragma warning disable CS0168 // Variable is declared but never used
             try
             {
                 new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(
@@ -48,6 +49,7 @@ namespace FlameCsv.Console
             {
                 //
             }
+#pragma warning restore CS0168 // Variable is declared but never used
 
             // var metas = new Reading.Internal.Meta[65536];
 
