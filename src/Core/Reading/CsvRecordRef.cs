@@ -35,19 +35,17 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         _reader = reader;
         _data = ref data;
 
-        uint[] fields = view._fields;
-        byte[] quotes = view._quotes;
         int start = view.Start + 1;
         int length = view.Count - 1;
 
         // skip the first which points to the start of the record
 
         _fields = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(fields), start),
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(reader._recordBuffer._fields), start),
             length
         );
 
-        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(quotes), start);
+        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(reader._recordBuffer._quotes), start);
     }
 
     /// <inheritdoc/>

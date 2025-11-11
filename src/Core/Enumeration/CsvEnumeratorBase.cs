@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
@@ -81,7 +82,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             result = MoveNextCore(in record);
         }
 
-        _position += record.Record.GetLength(includeTrailingNewline: true);
+        _position += record
+            .Record.GetFields(Reader._recordBuffer)
+            .GetRecordLength(record.Record.IsFirst, includeTrailingNewline: true);
         return result;
     }
 

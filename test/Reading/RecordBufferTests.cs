@@ -25,13 +25,13 @@ public class RecordBufferTests
             default,
         ];
 
-        uint[] poolArray = buffer.GetFieldArrayRef();
-        buffer.GetFieldArrayRef() = array;
+        uint[] poolArray = buffer._fields;
+        buffer._fields = array;
 
         buffer.SetFieldsRead(8);
 
         Assert.True(buffer.TryPop(out var view));
-        Assert.Equal(array[..5].AsSpan(), view.Fields);
+        Assert.Equal(array[..5].AsSpan(), view.GetFields(buffer));
 
         // first 8 (+ startofdata) were read
         Assert.Equal(3, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
@@ -41,13 +41,13 @@ public class RecordBufferTests
 
         // we read 8 fields, but only the first 4 had a record (EOL at 7+2)
         Assert.Equal(9, buffer.Reset());
-        Assert.Equal([0u, 1u, 11u, 21u, 31u], buffer.GetFieldArrayRef().AsSpan(0, 5));
+        Assert.Equal([0u, 1u, 11u, 21u, 31u], buffer._fields.AsSpan(0, 5));
 
         buffer.GetUnreadBuffer(0, out startIndex).Fields[0] = 41u | Field.IsCRLF;
         buffer.SetFieldsRead(1);
         Assert.True(buffer.TryPop(out view));
-        Assert.Equal(array[..6].AsSpan(), view.Fields);
+        Assert.Equal(array[..6].AsSpan(), view.GetFields(buffer));
 
-        buffer.GetFieldArrayRef() = poolArray;
+        buffer._fields = poolArray;
     }
 }

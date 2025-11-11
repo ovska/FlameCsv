@@ -7,16 +7,11 @@ namespace FlameCsv.Reading.Internal;
 internal readonly struct RecordView
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RecordView(uint[] fields, byte[] quotes, uint index, int count)
+    public RecordView(uint index, int count)
     {
-        _fields = fields;
-        _quotes = quotes;
         _index = index;
         Count = count;
     }
-
-    internal readonly uint[] _fields;
-    internal readonly byte[] _quotes;
 
     // contains msb for "is first"
     private readonly uint _index;
@@ -40,28 +35,26 @@ internal readonly struct RecordView
     public int FieldCount => Count - 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetLength(bool includeTrailingNewline = false)
+    public int GetLength(RecordBuffer buffer, bool includeTrailingNewline = false)
     {
-        return Fields.GetRecordLength(IsFirst, includeTrailingNewline);
+        return GetFields(buffer).GetRecordLength(IsFirst, includeTrailingNewline);
     }
 
-    public ReadOnlySpan<uint> Fields
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly ReadOnlySpan<uint> GetFields(RecordBuffer buffer)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get =>
-            MemoryMarshal.CreateReadOnlySpan(
-                ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), Start),
-                Count
-            );
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._fields), Start),
+            Count
+        );
     }
 
-    public ReadOnlySpan<byte> Quotes
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly ReadOnlySpan<byte> GetQuotes(RecordBuffer buffer)
     {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get =>
-            MemoryMarshal.CreateReadOnlySpan(
-                ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_quotes), Start),
-                Count
-            );
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._quotes), Start),
+            Count
+        );
     }
 }

@@ -44,7 +44,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     private bool IsDisposed => _state == State.Disposed;
 
-    private readonly RecordBuffer _recordBuffer;
+    internal readonly RecordBuffer _recordBuffer;
 
     internal readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
