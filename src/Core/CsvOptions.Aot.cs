@@ -165,15 +165,23 @@ partial class CsvOptions<T>
         )
             where TValue : struct
         {
+            ArgumentNullException.ThrowIfNull(factory);
+
             if (Extensions.GetCachedOrCustom(_options, identifier, out CsvConverter<T, TValue?>? converter))
             {
                 return converter;
             }
 
             if (!_options.UseDefaultConverters)
+            {
                 CsvConverterMissingException.Throw(typeof(TValue?));
+            }
 
-            CsvConverter<T, TValue> inner = GetOrCreateOverridden<TValue, CsvConverter<T, TValue>>(factory, identifier);
+            CsvConverter<T, TValue> inner =
+                factory(_options)
+                ?? throw new CsvConfigurationException(
+                    $"The factory delegate passed to GetOrCreateNullable for {typeof(TValue).FullName} returned null."
+                );
 
             var result = new NullableConverter<T, TValue>(inner, _options.GetNullToken(typeof(TValue)));
             _options.ConverterCache.TryAdd((typeof(TValue?), identifier), result);
