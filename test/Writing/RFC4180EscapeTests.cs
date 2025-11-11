@@ -44,8 +44,7 @@ public static class RFC4180EscapeTests
         Span<char> buffer = stackalloc char[expected.Length];
         input.CopyTo(buffer);
 
-        var escaper = _escaper;
-        Escape.Scalar(ref escaper, buffer[..input.Length], buffer, 0);
+        Escape.Scalar(_escaper, buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
 
@@ -69,8 +68,7 @@ public static class RFC4180EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        var escaper = _escaper;
-        Escape.Scalar(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Scalar(_escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -84,8 +82,7 @@ public static class RFC4180EscapeTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-        var escaper = _escaper;
-        int quoteCount = escaper.CountEscapable(input);
+        int quoteCount = _escaper.CountEscapable(input);
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -94,7 +91,7 @@ public static class RFC4180EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        Escape.Scalar(ref escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Scalar(_escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check

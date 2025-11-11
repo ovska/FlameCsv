@@ -4,6 +4,9 @@ using JetBrains.Annotations;
 
 namespace FlameCsv.Writing;
 
+#pragma warning disable IDE0038 // Use pattern matching
+#pragma warning disable RCS1220 // Use pattern matching instead of combination of 'is' operator and cast operator
+
 /// <summary>
 /// Extensions for formatting values into <see cref="CsvFieldWriter{T}"/>
 /// </summary>
@@ -43,7 +46,7 @@ public static class CsvFieldWritingExtensions
             destination = writer.Writer.GetSpan(destination.Length * 2);
         }
 
-        writer.EscapeAndAdvanceExternal(destination, charsWritten);
+        writer.EscapeAndAdvance(destination, charsWritten);
     }
 
     /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
@@ -65,9 +68,9 @@ public static class CsvFieldWritingExtensions
         int bytesWritten;
 
         // for value types this condition is a runtime constant
-        if (value is IUtf8SpanFormattable formattable)
+        if (value is IUtf8SpanFormattable)
         {
-            while (!formattable.TryFormat(destination, out bytesWritten, format, formatProvider))
+            while (!((IUtf8SpanFormattable)value).TryFormat(destination, out bytesWritten, format, formatProvider))
             {
                 destination = writer.Writer.GetSpan(destination.Length * 2);
             }
@@ -83,7 +86,7 @@ public static class CsvFieldWritingExtensions
             }
         }
 
-        writer.EscapeAndAdvanceExternal(destination, bytesWritten);
+        writer.EscapeAndAdvance(destination, bytesWritten);
     }
 
     /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},IFormatProvider?)"/>

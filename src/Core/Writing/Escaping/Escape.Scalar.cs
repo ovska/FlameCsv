@@ -16,13 +16,13 @@ internal static partial class Escape
     /// <param name="specialCount">Number of quotes/escapes in the source</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Scalar<T, TEscaper>(
-        ref readonly TEscaper escaper,
+        TEscaper escaper,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount
     )
         where T : unmanaged, IBinaryInteger<T>
-        where TEscaper : struct, IEscaper<T>, allows ref struct
+        where TEscaper : struct, IEscaper<T>
     {
         Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");
         Debug.Assert(

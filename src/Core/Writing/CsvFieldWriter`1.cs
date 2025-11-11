@@ -38,9 +38,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     private readonly CsvFieldQuoting _fieldQuoting;
     private readonly Allocator<T> _allocator;
 
-    private readonly RFC4180Escaper<T> _rfc4180Escaper;
-    private readonly UnixEscaper<T> _unixEscaper;
-
     /// <summary>
     /// Creates a new instance.
     /// </summary>
@@ -61,8 +58,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         _needsQuoting = options.NeedsQuoting;
         _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
-        _rfc4180Escaper = new RFC4180Escaper<T>(quote: _quote);
-        _unixEscaper = new UnixEscaper<T>(quote: _quote, escape: _escape ?? _quote);
     }
 
     /// <summary>
@@ -96,13 +91,13 @@ public readonly struct CsvFieldWriter<T> : IDisposable
             InvalidTokensWritten.Throw(converter, tokensWritten, destination.Length);
         }
 
-        if (_escape is null)
+        if (_fieldQuoting == CsvFieldQuoting.Never)
         {
-            EscapeAndAdvance(_rfc4180Escaper, destination, tokensWritten);
+            Writer.Advance(tokensWritten);
         }
         else
         {
-            EscapeAndAdvance(_unixEscaper, destination, tokensWritten);
+            EscapeAndAdvance(destination, tokensWritten);
         }
     }
 
@@ -131,14 +126,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         }
         else
         {
-            if (_escape is null)
-            {
-                EscapeAndAdvance(new RFC4180Escaper<T>(quote: _quote), destination, tokensWritten);
-            }
-            else
-            {
-                EscapeAndAdvance(new UnixEscaper<T>(quote: _quote, escape: _escape.Value), destination, tokensWritten);
-            }
+            EscapeAndAdvance(destination, tokensWritten);
         }
     }
 
@@ -159,14 +147,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         }
         else
         {
-            if (_escape is null)
-            {
-                EscapeAndAdvance(new RFC4180Escaper<T>(quote: _quote), destination, value.Length);
-            }
-            else
-            {
-                EscapeAndAdvance(new UnixEscaper<T>(quote: _quote, escape: _escape.Value), destination, value.Length);
-            }
+            EscapeAndAdvance(destination, value.Length);
         }
     }
 
@@ -242,27 +223,10 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     }
 
     /// <summary>
-    /// See <see cref="CsvFieldWritingExtensions"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void EscapeAndAdvanceExternal(Span<T> destination, int tokensWritten)
-    {
-        if (_escape is null)
-        {
-            EscapeAndAdvance(_rfc4180Escaper, destination, tokensWritten);
-        }
-        else
-        {
-            EscapeAndAdvance(_unixEscaper, destination, tokensWritten);
-        }
-    }
-
-    /// <summary>
     /// Advances the writer, escaping the written value if needed.
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void EscapeAndAdvance<TEscaper>(TEscaper escaper, Span<T> destination, int tokensWritten)
-        where TEscaper : struct, IEscaper<T>, allows ref struct
+    internal void EscapeAndAdvance(Span<T> destination, int tokensWritten)
     {
         if (_fieldQuoting == CsvFieldQuoting.Never)
         {
@@ -294,10 +258,12 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         bool shouldQuote;
         int escapableCount;
 
+        RFC4180Escaper<T> escaper = new(_quote);
+
         if (_fieldQuoting == CsvFieldQuoting.Always)
         {
             shouldQuote = true;
-            escapableCount = escaper.CountEscapable(written);
+            escapableCount = _escape is null ? escaper.CountEscapable(written) : CountRare(written);
         }
         else
         {
@@ -306,16 +272,20 @@ public readonly struct CsvFieldWriter<T> : IDisposable
             if (index != -1)
             {
                 shouldQuote = true;
-                escapableCount = escaper.CountEscapable(written[index..]);
+
+                ReadOnlySpan<T> tail = written[index..];
+                escapableCount = _escape is null ? escaper.CountEscapable(tail) : CountRare(tail);
             }
             else
             {
-                bool quoteLeading = (_fieldQuoting & CsvFieldQuoting.LeadingSpaces) != 0;
-                bool quoteTrailing = (_fieldQuoting & CsvFieldQuoting.TrailingSpaces) != 0;
-
-                // in net9, accessing the last item first omits a redundant bounds check
                 shouldQuote =
-                    (quoteTrailing && written[^1] == Whitespace) || (quoteLeading && written[0] == Whitespace);
+                    // help the branch predictor a bit
+                    (_fieldQuoting & CsvFieldQuoting.LeadingOrTrailingSpaces) != 0
+                    && (
+                        // in net9, accessing the last item first omits a redundant bounds check
+                        ((_fieldQuoting & CsvFieldQuoting.TrailingSpaces) != 0 && written[^1] == Whitespace)
+                        || ((_fieldQuoting & CsvFieldQuoting.LeadingSpaces) != 0 && written[0] == Whitespace)
+                    );
                 escapableCount = 0;
             }
         }
@@ -333,16 +303,40 @@ public readonly struct CsvFieldWriter<T> : IDisposable
         if (destination.Length < escapedLength)
         {
             // we cannot rely on the value being preserved if we get a new buffer from the bufferwriter.
-            // GetSpan might not return the same memory, or it might be cleared before returning
-            // so: copy the value into a temporary buffer, then escape it to a fresh destination buffer
+            // Writer.GetSpan might not return the same memory, or it might be cleared before returning
+            // so: copy the value into a temporary buffer from allocator, then escape it to a fresh destination buffer
             Span<T> temporary = _allocator.GetSpan(length: tokensWritten);
             written.CopyTo(temporary);
             written = temporary[..tokensWritten];
             destination = Writer.GetSpan(escapedLength);
         }
 
-        Escape.Scalar(in escaper, written, destination[..escapedLength], escapableCount);
+        if (_escape is null)
+        {
+            Escape.Scalar(escaper, written, destination[..escapedLength], escapableCount);
+        }
+        else
+        {
+            EscapeRare(written, destination[..escapedLength], escapableCount);
+        }
+
         Writer.Advance(escapedLength);
+    }
+
+    // avoid inlining of rarer path
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int CountRare(ReadOnlySpan<T> span)
+    {
+        Debug.Assert(_escape.HasValue);
+        return new UnixEscaper<T>(_quote, _escape.GetValueOrDefault()).CountEscapable(span);
+    }
+
+    // avoid inlining of rarer path
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void EscapeRare(ReadOnlySpan<T> source, Span<T> destination, int specialCount)
+    {
+        Debug.Assert(_escape.HasValue);
+        Escape.Scalar(new UnixEscaper<T>(_quote, _escape.GetValueOrDefault()), source, destination, specialCount);
     }
 
     /// <inheritdoc />
