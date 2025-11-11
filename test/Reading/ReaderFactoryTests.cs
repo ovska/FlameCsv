@@ -11,8 +11,6 @@ public static class ReaderFactoryTests
         var r = new ConstantBufferReader<byte>(Array.Empty<byte>());
         Assert.Same(r, new ReaderFactory<byte>(r).Create(true));
         Assert.Same(r, new ReaderFactory<byte>(r).Create(false));
-
-        Assert.Throws<UnreachableException>(() => default(ReaderFactory<byte>).Create(true));
     }
 
     [Fact]

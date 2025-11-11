@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
@@ -20,40 +21,22 @@ internal static class Throw
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
     public static void ArgumentNull(string paramName) => throw new ArgumentNullException(paramName);
 
-    [StackTraceHidden]
-    public static void IfDefaultOrEmpty(
-        ImmutableArray<string> array,
-        [CallerArgumentExpression(nameof(array))] string paramName = ""
-    )
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void DefaultOrEmptyImmutableArray(string paramName = "")
     {
-        if (!array.IsDefaultOrEmpty)
-            return;
-
-        Argument(paramName, "The array is default or empty.");
+        throw new ArgumentException("The immutable array is default or empty.", paramName);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void IfDefaultStruct([DoesNotReturnIf(true)] bool signal, Type type)
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void Argument_DefaultStruct(Type type, string? paramName = null)
     {
-        if (!signal)
-            return;
-
-        InvalidOp_DefaultStruct(type);
+        throw new ArgumentException($"The struct '{type.FullName}' was uninitialized.", paramName);
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void InvalidOp_DefaultStruct(Type type)
     {
         throw new InvalidOperationException($"The struct '{type.FullName}' was uninitialized.");
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void IfEnumerationDisposed([DoesNotReturnIf(true)] bool disposed)
-    {
-        if (!disposed)
-            return;
-
-        ObjectDisposed_Enumeration();
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -63,23 +46,9 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void NotSupported_TooLargeRecord(int fieldCount)
+    public static void ObjectDisposed_Enumeration(object instance)
     {
-        throw new NotSupportedException(
-            $"The record has too many fields ({fieldCount}), only up to ~{ushort.MaxValue} are supported."
-        );
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ObjectDisposed_Enumeration()
-    {
-        throw new ObjectDisposedException(null, "The CSV enumeration has already completed.");
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unreachable(string? message)
-    {
-        throw new UnreachableException(message);
+        throw new ObjectDisposedException(instance.GetType().FullName, "The CSV enumeration has already completed.");
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -143,24 +112,13 @@ internal static class Throw
         throw new ArgumentException(message, paramName);
     }
 
-    public static void IfInvalidArgument(
-        [DoesNotReturnIf(true)] bool condition,
-        string message,
-        [CallerArgumentExpression(nameof(condition))] string paramName = ""
-    )
-    {
-        if (!condition)
-            return;
-
-        Argument(paramName, message);
-    }
-
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void Config_TrueOrFalseBooleanValues(bool which)
     {
         throw new CsvConfigurationException(
-            "If custom boolean values are not empty, they must contain at least one value "
-                + $"for both true and false ({which.ToString().ToLowerInvariant()} was missing)."
+            "Both true and false must be present if custom boolean values are configured ("
+                + which.ToString().ToLowerInvariant()
+                + " was missing)."
         );
     }
 
@@ -190,5 +148,23 @@ internal static class Throw
 
         if (!stream.CanWrite)
             Argument(paramName, "Stream is not writable");
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void StreamNotReadable(
+        [NotNull] Stream? stream,
+        [CallerArgumentExpression(nameof(stream))] string paramName = ""
+    )
+    {
+        throw new ArgumentException("Stream.CanRead returned false", paramName);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void StreamNotWritable(
+        [NotNull] Stream? stream,
+        [CallerArgumentExpression(nameof(stream))] string paramName = ""
+    )
+    {
+        throw new ArgumentException("Stream.CanWrite returned false", paramName);
     }
 }

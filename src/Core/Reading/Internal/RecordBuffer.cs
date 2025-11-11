@@ -176,6 +176,7 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// This should be called to ensure massive records without a newline can fit in the buffer.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool EnsureCapacity()
     {
         ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
@@ -187,7 +188,9 @@ internal sealed class RecordBuffer : IDisposable
         {
             if (_fieldCount >= (ushort.MaxValue * 15 / 16))
             {
-                Throw.NotSupported_TooLargeRecord(_fieldCount);
+                throw new NotSupportedException(
+                    $"The record has too many fields ({_fieldCount}), only up to {ushort.MaxValue} are supported."
+                );
             }
 
             ArrayPool<uint>.Shared.Resize(ref _fields, _fields.Length * 2);

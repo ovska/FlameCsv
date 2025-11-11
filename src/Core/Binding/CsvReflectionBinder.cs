@@ -179,7 +179,8 @@ public sealed class CsvReflectionBinder<T> : CsvReflectionBinder, ICsvTypeBinder
         ImmutableArray<string> headers
     )
     {
-        Throw.IfDefaultOrEmpty(headers);
+        if (headers.IsDefaultOrEmpty)
+            Throw.DefaultOrEmptyImmutableArray(nameof(headers));
 
         return _options.GetMaterializer(
             headers,

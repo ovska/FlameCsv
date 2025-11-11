@@ -71,7 +71,9 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     public CsvHeader(IEqualityComparer<string> comparer, ImmutableArray<string> header)
     {
         ArgumentNullException.ThrowIfNull(comparer);
-        Throw.IfDefaultOrEmpty(header);
+
+        if (header.IsDefaultOrEmpty)
+            Throw.DefaultOrEmptyImmutableArray(nameof(header));
 
         _hashCodes = new int[header.Length];
 

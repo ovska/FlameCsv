@@ -113,7 +113,8 @@ public sealed partial class CsvRecordEnumerator<T>
         get => _header;
         set
         {
-            Throw.IfEnumerationDisposed(_version == -1);
+            if (_version is -1)
+                Throw.ObjectDisposed_Enumeration(this);
 
             if (!_hasHeader && value is not null)
                 Throw.NotSupported_CsvHasNoHeader();
@@ -136,7 +137,8 @@ public sealed partial class CsvRecordEnumerator<T>
     /// <inheritdoc/>
     internal override bool MoveNextCore(ref readonly CsvSlice<T> slice)
     {
-        Throw.IfEnumerationDisposed(_version == -1);
+        if (_version is -1)
+            Throw.ObjectDisposed_Enumeration(this);
 
         // header needs to be read
         if (_hasHeader && _header is null)
@@ -167,7 +169,7 @@ public sealed partial class CsvRecordEnumerator<T>
     void IRecordOwner.EnsureVersion(int version)
     {
         if (_version == -1)
-            Throw.ObjectDisposed_Enumeration();
+            Throw.ObjectDisposed_Enumeration(this);
 
         if (version != _version)
             Throw.InvalidOp_EnumerationChanged();
@@ -206,7 +208,7 @@ public sealed partial class CsvRecordEnumerator<T>
     private void ThrowInvalidCurrentAccess()
     {
         if (_version == -1)
-            Throw.ObjectDisposed_Enumeration();
+            Throw.ObjectDisposed_Enumeration(this);
 
         throw new InvalidOperationException("Current was accessed before the enumeration started.");
     }

@@ -261,7 +261,9 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     /// </summary>
     internal void EnsureValid()
     {
-        Throw.IfDefaultStruct(_owner is null, typeof(CsvRecord<T>));
+        if (_owner is null)
+            Throw.InvalidOp_DefaultStruct(typeof(CsvRecord<T>));
+
         _owner.EnsureVersion(_version);
     }
 

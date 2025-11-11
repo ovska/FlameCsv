@@ -111,7 +111,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <param name="inner">Field writer instance to write to</param>
     public CsvWriter([HandlesResourceDisposal] CsvFieldWriter<T> inner)
     {
-        Throw.IfDefaultStruct(inner.Writer is null, typeof(CsvFieldWriter<T>));
+        if (inner.Writer is null)
+            Throw.Argument_DefaultStruct(typeof(CsvFieldWriter<T>), nameof(inner));
 
         _inner = inner;
         _validateFieldCount = inner.Options.ValidateFieldCount;

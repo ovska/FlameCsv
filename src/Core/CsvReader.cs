@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Text;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
@@ -98,11 +99,7 @@ internal readonly struct ReaderFactory<T>
             return _value;
         }
 
-        if (_factory is null)
-        {
-            Throw.Unreachable("ReaderFactory<T> is not initialized");
-        }
-
+        Debug.Assert(_factory is not null, "Uninitialized ReaderFactory");
         return _factory(isAsync);
     }
 }
