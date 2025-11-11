@@ -17,15 +17,15 @@ public readonly record struct CsvIOOptions
 
     /// <summary>
     /// The default buffer size when doing file I/O (64 KiB).<br/>
-    /// This is used when the buffer size is not set by the user when using
-    /// the file I/O methods of <see cref="CsvWriter"/> and <see cref="CsvReader"/>.
+    /// This is used with the file I/O methods of <see cref="CsvWriter"/> and <see cref="CsvReader"/>
+    /// if <see cref="BufferSize"/> is not explicitly configured.
     /// </summary>
     /// <seealso cref="BufferSize"/>
     public const int DefaultFileBufferSize = 1024 * 64;
 
     /// <summary>
     /// The default minimum read size (1 KiB).<br/>
-    /// This is used when the minimum read size is not set by the user.
+    /// This is used when the minimum read size is not explicitly configured.
     /// </summary>
     /// <seealso cref="MinimumReadSize"/>
     public const int DefaultMinimumReadSize = 1024;
@@ -71,8 +71,9 @@ public readonly record struct CsvIOOptions
     /// and <see cref="BufferSize"/> / 2 will be used.
     /// </summary>
     /// <remarks>
-    /// This threshold determines when more data should be read from the source.
-    /// If less than the minimum size of data is available, and more data is available from the source, more data will be read.
+    /// This threshold determines when the next read operation is performed to fill the buffer.
+    /// It should generally be set to a large enough value that it fits at least a single complete CSV record,
+    /// but small enough compared to <see cref="BufferSize"/> to not needlessly perform I/O if there are unread records.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown if the value is negative or zero and not -1.
@@ -104,6 +105,7 @@ public readonly record struct CsvIOOptions
     /// This parameter is not used if the data source or destination is not user provided, e.g. a file stream created in
     /// <see cref="CsvWriter.WriteToFile{TValue}(string,IEnumerable{TValue},CsvOptions{byte}?,CsvIOOptions)"/>
     /// </remarks>
+    /// <seealso cref="ForFileIO"/>
     public bool LeaveOpen { get; init; }
 
     /// <summary>
@@ -121,21 +123,22 @@ public readonly record struct CsvIOOptions
     /// Returns <c>true</c> if a custom buffer size is set, i.e., <see cref="BufferSize"/> is not equal to
     /// <see cref="DefaultBufferSize"/>.
     /// </summary>
-    internal bool HasCustomBufferSize => _bufferSize.GetValueOrDefault(DefaultBufferSize) != DefaultBufferSize;
+    internal bool HasCustomBufferSize => (_bufferSize ?? DefaultBufferSize) != DefaultBufferSize;
 
     /// <summary>
-    /// Returns the options with file I/O specific settings applied:
+    /// Returns a copy of the options with file I/O specific settings applied:
     /// <list type="bullet">
-    /// <item>Sets <see cref="LeaveOpen"/> to <c>false</c> to ensure file handles opened by the library are always closed</item>
+    /// <item>Sets <see cref="LeaveOpen"/> to <c>false</c> to ensure file handles are always closed</item>
     /// <item>Sets <see cref="BufferSize"/> to <see cref="DefaultFileBufferSize"/> if a custom buffer size is not configured</item>
     /// </list>
     /// </summary>
-    internal CsvIOOptions ForFileIO()
+    public CsvIOOptions ForFileIO()
     {
         return this with
         {
             // never leave library-created file streams open!
             LeaveOpen = false,
+
             // use large buffer size for file I/O if no user overridden buffer size
             BufferSize = HasCustomBufferSize ? BufferSize : DefaultFileBufferSize,
         };

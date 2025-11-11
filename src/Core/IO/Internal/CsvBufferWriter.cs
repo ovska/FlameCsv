@@ -32,7 +32,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     {
         _allocator = allocator ?? MemoryPool<T>.Shared;
         _bufferSize = options.BufferSize;
-        _flushThreshold = (int)(_bufferSize * (31.0 / 32.0));
+        _flushThreshold = (int)(_bufferSize * (31d / 32d)); // default 512 bytes
         _memoryOwner = _allocator.Rent(_bufferSize);
         _buffer = _memoryOwner.Memory;
     }
@@ -80,7 +80,9 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         if (_unflushed <= 0)
             return default;
 
-        cancellationToken.ThrowIfCancellationRequested();
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled(cancellationToken);
+
         ReadOnlyMemory<T> memory = _buffer.Slice(0, _unflushed);
         _unflushed = 0;
         return FlushAsyncCore(memory, cancellationToken);

@@ -41,6 +41,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 
     public Span<char> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
+    // advance already copies
     public bool NeedsFlush => false;
 
     public void Flush()
@@ -66,12 +67,13 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
         try
         {
             DisposeCore();
-            return default;
         }
         catch (Exception e)
         {
             return ValueTask.FromException(e);
         }
+
+        return default;
     }
 
     private void DisposeCore()
