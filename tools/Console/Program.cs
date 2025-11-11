@@ -55,8 +55,8 @@ namespace FlameCsv.Console
 
             {
                 var rb = new RecordBuffer();
-                rb.GetFieldArrayRef() = new uint[24 * 65535];
-                rb.GetQuoteArrayRef() = new byte[24 * 65535];
+                rb._fields = new uint[24 * 65535];
+                rb._quotes = new byte[24 * 65535];
                 rb.GetEolArrayRef() = new ushort[65535 + 256];
                 var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
@@ -205,4 +205,10 @@ namespace FlameCsv.Console
 
     [CsvTypeMap<char, Entry>]
     public partial class EntryTypeMapText;
+}
+
+file static class Extensions
+{
+    [UnsafeAccessor(kind: UnsafeAccessorKind.Field, Name = "_fields")]
+    public static extern ref ushort[] GetEolArrayRef(this RecordBuffer buffer);
 }

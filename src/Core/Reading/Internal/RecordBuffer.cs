@@ -24,12 +24,12 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Storage for the field metadata.
     /// </summary>
-    private uint[] _fields;
+    internal uint[] _fields;
 
     /// <summary>
     /// Storage for quote counts.
     /// </summary>
-    private byte[] _quotes;
+    internal byte[] _quotes;
 
     /// <summary>
     /// Storage for EOL field indices.
@@ -280,10 +280,10 @@ internal sealed class RecordBuffer : IDisposable
         }
 
         ushort eol = Unsafe.Add(ref previous, 1);
-        int flag = Unsafe.BitCast<bool, byte>(_eolIndex == 0) << 31;
+        int flag = unchecked(_eolIndex == 0 ? (int)0x8000_0000 : 0);
         int count = eol - previous + 1;
 
-        record = new RecordView(_fields, _quotes, (uint)(previous | flag), count);
+        record = new RecordView((uint)(previous | flag), count);
         _fieldIndex = eol;
         _eolIndex++;
         return true;
@@ -319,15 +319,6 @@ internal sealed class RecordBuffer : IDisposable
         ArrayPool<byte>.Shared.ReturnAndEmpty(ref _quotes);
         ArrayPool<ushort>.Shared.ReturnAndEmpty(ref _eols);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref uint[] GetFieldArrayRef() => ref _fields;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref byte[] GetQuoteArrayRef() => ref _quotes;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ref ushort[] GetEolArrayRef() => ref _eols;
 
     public override string ToString() =>
         _fields.Length == 0

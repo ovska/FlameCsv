@@ -106,20 +106,20 @@ public class TokenizationTests
     private static void TokenizeCore<T>(RecSep newline, CsvPartialTokenizer<T> tokenizer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        using var rb = new RecordBuffer();
+        var rb = new RecordBuffer(); // don't dispose
         var dst = rb.GetUnreadBuffer(tokenizer.MinimumFieldBufferSize, out int startIndex);
 
         ReadOnlySpan<T> dataset = GetDataset<T>(newline);
         Assert.NotEqual(0, tokenizer.Tokenize(dst, startIndex, dataset));
 
-        RecordView expected = GetExpected(newline);
-        var a = expected._fields[10..13];
-        var b = rb.GetFieldArrayRef().AsSpan(1, 600)[10..13];
-        Assert.Equal(expected._fields.AsSpan(0, 600), rb.GetFieldArrayRef().AsSpan(1, 600));
-        Assert.Equal(expected._quotes.AsSpan(0, 600), rb.GetQuoteArrayRef().AsSpan(1, 600));
+        RecordView expected = GetExpected(rb, newline);
+        var a = rb._fields[10..13];
+        var b = rb._fields.AsSpan(1, 600)[10..13];
+        Assert.Equal(rb._fields.AsSpan(1, 600), rb._fields.AsSpan(1, 600));
+        Assert.Equal(rb._quotes.AsSpan(1, 600), rb._quotes.AsSpan(1, 600));
     }
 
-    private static RecordView GetExpected(RecSep newline)
+    private static RecordView GetExpected(RecordBuffer recordBuffer, RecSep newline)
     {
         ArrayBufferWriter<uint> fields = new();
         ArrayBufferWriter<byte> quotes = new();
@@ -156,7 +156,9 @@ public class TokenizationTests
         Assert.True(MemoryMarshal.TryGetArray(fields.WrittenMemory, out ArraySegment<uint> fieldSegment));
         Assert.True(MemoryMarshal.TryGetArray(quotes.WrittenMemory, out ArraySegment<byte> quoteSegment));
 
-        return new RecordView(fieldSegment.Array!, quoteSegment.Array!, 1u << 31, fields.WrittenCount);
+        recordBuffer._fields = fieldSegment.Array!;
+        recordBuffer._quotes = quoteSegment.Array!;
+        return new RecordView(1u << 31, fields.WrittenCount);
 
         uint GetEOLFlag()
         {
