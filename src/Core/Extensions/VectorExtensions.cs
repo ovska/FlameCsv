@@ -23,31 +23,39 @@ internal static class VectorExtensions
         };
     }
 
-    public static string ToAsciiString(this Vector<byte> vector)
+    public static byte[] ToArray(this Vector<byte> vector)
     {
-        Span<byte> bytes = stackalloc byte[Vector<byte>.Count];
+        byte[] bytes = new byte[Vector<byte>.Count];
         vector.CopyTo(bytes);
-        return Encoding.ASCII.GetString(bytes);
+        return bytes;
     }
 
-    public static string ToAsciiString(this Vector128<byte> vector)
+    public static byte[] ToArray(this Vector128<byte> vector)
     {
-        Span<byte> bytes = stackalloc byte[Vector128<byte>.Count];
+        byte[] bytes = new byte[Vector128<byte>.Count];
         vector.CopyTo(bytes);
-        return Encoding.ASCII.GetString(bytes);
+        return bytes;
     }
 
-    public static string ToAsciiString(this Vector256<byte> vector)
+    public static byte[] ToArray(this Vector256<byte> vector)
     {
-        Span<byte> bytes = stackalloc byte[Vector256<byte>.Count];
+        byte[] bytes = new byte[Vector256<byte>.Count];
         vector.CopyTo(bytes);
-        return Encoding.ASCII.GetString(bytes);
+        return bytes;
     }
 
-    public static string ToAsciiString(this Vector512<byte> vector)
+    public static byte[] ToArray(this Vector512<byte> vector)
     {
-        Span<byte> bytes = stackalloc byte[Vector512<byte>.Count];
+        byte[] bytes = new byte[Vector512<byte>.Count];
         vector.CopyTo(bytes);
-        return Encoding.ASCII.GetString(bytes);
+        return bytes;
     }
+
+    public static string ToAsciiString(this Vector<byte> vector) => Encoding.ASCII.GetString(vector.ToArray());
+
+    public static string ToAsciiString(this Vector128<byte> vector) => Encoding.ASCII.GetString(vector.ToArray());
+
+    public static string ToAsciiString(this Vector256<byte> vector) => Encoding.ASCII.GetString(vector.ToArray());
+
+    public static string ToAsciiString(this Vector512<byte> vector) => Encoding.ASCII.GetString(vector.ToArray());
 }

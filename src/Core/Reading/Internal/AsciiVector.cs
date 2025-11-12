@@ -156,7 +156,7 @@ internal static class AsciiVector
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
-    public static ulong MoveMask(Vector512<byte> vec)
+    public static ulong MoveMask(this Vector512<byte> vec)
     {
         if (!AdvSimd.IsSupported)
             return vec.ExtractMostSignificantBits();
@@ -284,8 +284,7 @@ internal static class AsciiVector
 
         Debug.Assert(ZeroLowerLUT.Length == Vector128<byte>.Count * 2);
         Debug.Assert(count >= 0 && count <= Vector128<byte>.Count);
-        int centre = ZeroLowerLUT.Length / 2; // constant folded
-        Vector128<byte> mask = Vector128.LoadUnsafe(in ZeroLowerLUT[0], (uint)centre - (nuint)count);
+        Vector128<byte> mask = Vector128.LoadUnsafe(in ZeroLowerLUT[ZeroLowerLUT.Length / 2], (nuint)count);
         return vector & mask;
     }
 
