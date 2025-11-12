@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace FlameCsv.Writing.Escaping;
 
-internal static partial class Escape
+internal static class Escape
 {
     /// <summary>
     /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
