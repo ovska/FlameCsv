@@ -1,6 +1,8 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using FlameCsv.Intrinsics;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests;
 
@@ -116,6 +118,26 @@ public static class AsciiVectorTests
             TVector commaCheck = TVector.Create(control);
             TVector eq = TVector.Equals(vec, commaCheck);
             Assert.True(eq == TVector.Zero, $"Matched: {vec} to {commaCheck}");
+        }
+    }
+
+    [Fact]
+    public static void Should_Zero_Lower_128()
+    {
+        Assert.SkipUnless(Vector128.IsHardwareAccelerated, "Vector128 not supported");
+
+        Span<byte> actual = stackalloc byte[Vector128<byte>.Count];
+        Span<byte> expected = stackalloc byte[Vector128<byte>.Count];
+
+        for (int i = 0; i < Vector128<byte>.Count; i++)
+        {
+            Vector128<byte> result = AsciiVector.ZeroLower2(Vector128<byte>.AllBitsSet, i);
+            result.CopyTo(actual);
+
+            expected.Clear();
+            expected.Slice(i).Fill((byte)0xFF);
+
+            Assert.Equal(expected, actual);
         }
     }
 }
