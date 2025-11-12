@@ -175,6 +175,7 @@ static partial class CsvReader
     /// <#= docOptions #>
     /// <#= docIOOpts #>
     /// <#= docReadReturns #>
+    [OverloadResolutionPriority(1000)] // prefer byte overload for files
     <#= attrs #>public static <#= enumerable #><byte, TValue> ReadFromFile<<#= typeAttrs #>TValue>(
         string path,<#= typeMapByte #>
         CsvOptions<byte>? options = null,

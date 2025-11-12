@@ -4,32 +4,60 @@
         {
             "label": "Regenerate All T4 Templates",
             "type": "shell",
-            "command": "${workspaceFolder}/transform_t4_templates.bat",
+            "command": "${workspaceFolder}/.vscode/scripts/run-all-tt.sh",
+            "args": [
+                "${workspaceFolder}"
+            ],
             "problemMatcher": [],
-            "group": {
-                "kind": "build",
-                "isDefault": false
-            },
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
                 "clear": true
-            },
-            "detail": "Regenerates all .tt template files in the solution"
+            }
         },
         {
             "label": "Regenerate Current T4 Template",
             "type": "shell",
-            "command": "${workspaceFolder}/transform_t4_templates.bat \"${file}\"",
+            "command": "${workspaceFolder}/.vscode/scripts/run-one-tt.sh",
+            "args": [
+                "${file}"
+            ],
             "problemMatcher": [],
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
                 "clear": true
-            },
-            "group": "build",
-            "detail": "Regenerates the currently open T4 template file"
+            }
         },
+        // {
+        //     "label": "Regenerate All T4 Templates",
+        //     "type": "shell",
+        //     "command": "${workspaceFolder}/transform_t4_templates.bat",
+        //     "problemMatcher": [],
+        //     "group": {
+        //         "kind": "build",
+        //         "isDefault": false
+        //     },
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "panel": "shared",
+        //         "clear": true
+        //     },
+        //     "detail": "Regenerates all .tt template files in the solution"
+        // },
+        // {
+        //     "label": "Regenerate Current T4 Template",
+        //     "type": "shell",
+        //     "command": "${workspaceFolder}/transform_t4_templates.bat \"${file}\"",
+        //     "problemMatcher": [],
+        //     "presentation": {
+        //         "reveal": "always",
+        //         "panel": "shared",
+        //         "clear": true
+        //     },
+        //     "group": "build",
+        //     "detail": "Regenerates the currently open T4 template file"
+        // },
         {
             "label": "Serve DocFX Documentation",
             "type": "shell",
