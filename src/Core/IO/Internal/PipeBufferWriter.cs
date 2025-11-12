@@ -46,16 +46,13 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
 
     public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        if (_unflushed > 0)
+        if (_unflushed > 0 && !_completed)
         {
-            _unflushed = 0;
-
-            if (!_completed)
-            {
-                var result = await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
-                _completed = result.IsCompleted;
-            }
+            var result = await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+            _completed = result.IsCompleted;
         }
+
+        _unflushed = 0;
     }
 
     public async ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)

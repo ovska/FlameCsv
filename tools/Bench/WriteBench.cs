@@ -1,7 +1,5 @@
 ﻿using System.Globalization;
 using FlameCsv.Attributes;
-using FlameCsv.Converters;
-using FlameCsv.Converters.Formattable;
 using FlameCsv.Writing;
 using nietras.SeparatedValues;
 
@@ -19,7 +17,7 @@ public partial class WriteBench
     )]
     public int Count { get; set; }
 
-    [Benchmark]
+    // [Benchmark]
     public void CsvHelper_Records()
     {
         using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
@@ -34,14 +32,14 @@ public partial class WriteBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void CsvHelper_RecordsMany()
     {
         using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
         writer.WriteRecords(_data);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void CsvHelper_Fields()
     {
         using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
@@ -75,7 +73,7 @@ public partial class WriteBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task Async_CsvHelper_Records()
     {
         await using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
@@ -90,14 +88,14 @@ public partial class WriteBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task Async_CsvHelper_RecordsMany()
     {
         await using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
         await writer.WriteRecordsAsync(_data).ConfigureAwait(false);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task Async_CsvHelper_Fields()
     {
         await using var writer = new CsvHelper.CsvWriter(TextWriter.Null, CultureInfo.InvariantCulture);
@@ -131,7 +129,7 @@ public partial class WriteBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void WriterObj()
     {
         using var writer = CsvWriter.Create(TextWriter.Null);
@@ -142,7 +140,7 @@ public partial class WriteBench
             writer.WriteRecord(obj);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void WriterObjTM()
     {
         using var writer = CsvWriter.Create(TextWriter.Null);
@@ -153,7 +151,7 @@ public partial class WriteBench
             writer.WriteRecord(ObjTypeMap.Default, obj);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task Async_WriterObj()
     {
         await using var writer = CsvWriter.Create(TextWriter.Null);
@@ -168,7 +166,7 @@ public partial class WriteBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task Async_WriterObjTM()
     {
         await using var writer = CsvWriter.Create(TextWriter.Null);
@@ -183,7 +181,7 @@ public partial class WriteBench
         }
     }
 
-    [Benchmark(Baseline = true)]
+    // [Benchmark(Baseline = true)]
     public void Generic()
     {
         CsvWriter.Write(TextWriter.Null, _data);
@@ -192,30 +190,25 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default);
+        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default, ioOptions: new() { BufferSize = 32 * 1024 });
     }
 
-    [Benchmark]
+    // [Benchmark]
     public Task Async_Generic()
     {
         return CsvWriter.WriteAsync(TextWriter.Null, _data);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public Task Async_Generic_TypeMap()
     {
         return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Generic_Fields()
     {
         using var writer = CsvFieldWriter.Create(TextWriter.Null, CsvOptions<char>.Default);
-
-        var c1 = new NumberTextConverter<int>(CsvOptions<char>.Default, NumberStyles.Integer);
-        var c2 = StringTextConverter.Instance;
-        var c5 = new NumberTextConverter<double>(CsvOptions<char>.Default, NumberStyles.Float);
-        var c6 = new NullableConverter<char, double>(c5, "".AsMemory());
 
         writer.WriteText("Index");
         writer.WriteDelimiter();
@@ -244,25 +237,25 @@ public partial class WriteBench
                 writer.Writer.Flush();
 
             Obj obj = _data[i];
-            writer.WriteField(c1, obj.Index);
+            writer.FormatValue(obj.Index);
             writer.WriteDelimiter();
-            writer.WriteField(c2, obj.Name);
+            writer.WriteText(obj.Name);
             writer.WriteDelimiter();
-            writer.WriteField(c2, obj.Contact);
+            writer.WriteText(obj.Contact);
             writer.WriteDelimiter();
-            writer.WriteField(c1, obj.Count);
+            writer.FormatValue(obj.Count);
             writer.WriteDelimiter();
-            writer.WriteField(c5, obj.Latitude);
+            writer.FormatValue(obj.Latitude);
             writer.WriteDelimiter();
-            writer.WriteField(c5, obj.Longitude);
+            writer.FormatValue(obj.Longitude);
             writer.WriteDelimiter();
-            writer.WriteField(c5, obj.Height);
+            writer.FormatValue(obj.Height);
             writer.WriteDelimiter();
-            writer.WriteField(c2, obj.Location);
+            writer.WriteText(obj.Location);
             writer.WriteDelimiter();
-            writer.WriteField(c2, obj.Category);
+            writer.WriteText(obj.Category);
             writer.WriteDelimiter();
-            writer.WriteField(c6, obj.Popularity);
+            writer.FormatValue(obj.Popularity);
             writer.WriteNewline();
         }
 
@@ -317,14 +310,15 @@ public partial class WriteBench
     [GlobalSetup]
     public void Setup()
     {
-        _data = CsvReader
-            .Read<Obj>(
-                File.ReadAllBytes(
-                    "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"
-                ),
-                new() { HasHeader = false }
-            )
-            .ToArray();
+        const string Path = @"/Users/sipi/Code/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb.csv";
+
+        // _data = CsvReader.ReadFromFile<Obj>(Path, CsvOptions<byte>.Default).ToArray();
+        using var r = new CsvHelper.CsvReader(
+            new StreamReader(Path),
+            new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true }
+        );
+
+        _data = r.GetRecords<Obj>().ToArray();
     }
 
     private Obj[] _data = null!;
