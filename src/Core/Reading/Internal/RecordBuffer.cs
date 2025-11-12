@@ -9,7 +9,6 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 using FlameCsv.Utilities;
-using JetBrains.Annotations;
 using static FlameCsv.Reading.Internal.Field;
 
 namespace FlameCsv.Reading.Internal;
@@ -124,7 +123,7 @@ internal sealed class RecordBuffer : IDisposable
 
             while (pos <= unrolledEnd)
             {
-                uint mask = LoadFieldsAsBytesARM64(ref Unsafe.As<uint, int>(ref field), (nuint)pos).MoveMask();
+                uint mask = AsciiVector.LoadInt32SignsToByteMasksARM(ref field, (nuint)pos).MoveMask();
 
                 while (mask != 0)
                 {
@@ -280,7 +279,7 @@ internal sealed class RecordBuffer : IDisposable
         }
 
         ushort eol = Unsafe.Add(ref previous, 1);
-        int flag = unchecked(_eolIndex == 0 ? (int)0x8000_0000 : 0);
+        int flag = _eolIndex == 0 ? (1 << 31) : 0;
         int count = eol - previous + 1;
 
         record = new RecordView((uint)(previous | flag), count);
@@ -374,89 +373,4 @@ internal sealed class RecordBuffer : IDisposable
         return vsb.ToString();
     }
 #endif
-
-    internal struct UnsafeSegment<T>
-        where T : unmanaged
-    {
-        [UsedImplicitly]
-        public T[]? array;
-
-        [UsedImplicitly]
-        public int offset;
-
-        [UsedImplicitly]
-        public int count;
-
-#if DEBUG
-        static UnsafeSegment()
-        {
-            if (Unsafe.SizeOf<UnsafeSegment<T>>() != Unsafe.SizeOf<ArraySegment<T>>())
-            {
-                throw new InvalidOperationException("MetaSegment has unexpected size");
-            }
-
-            var array = new T[4];
-            var segment = new UnsafeSegment<T>
-            {
-                array = array,
-                offset = 1,
-                count = 2,
-            };
-            var cast = Unsafe.As<UnsafeSegment<T>, ArraySegment<T>>(ref segment);
-            Debug.Assert(cast.Array == array);
-            Debug.Assert(cast.Offset == 1);
-            Debug.Assert(cast.Count == 2);
-        }
-#endif
-    }
-
-    /// <summary>
-    /// Loads 32 fields, narrowing them to bytes on ARM64. EOL fields are all 0xFF, others are 0x00.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<byte> LoadFieldsAsBytesARM64(ref int field, nuint pos)
-    {
-        if (!AdvSimd.IsSupported)
-            throw new UnreachableException();
-
-        // jagged order to improve instruction-level parallelism
-
-        // load even
-        Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a2 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a4 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a6 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<uint>.Count));
-
-        // load odd
-        Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a3 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a5 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a7 = Vector128.LoadUnsafe(ref field, pos + (7 * (nuint)Vector128<uint>.Count));
-
-        // narrow even
-        Vector64<short> b0 = AdvSimd.ExtractNarrowingSaturateLower(a0);
-        Vector64<short> b2 = AdvSimd.ExtractNarrowingSaturateLower(a2);
-        Vector64<short> b4 = AdvSimd.ExtractNarrowingSaturateLower(a4);
-        Vector64<short> b6 = AdvSimd.ExtractNarrowingSaturateLower(a6);
-
-        // narrow odd
-        Vector128<short> c0 = AdvSimd.ExtractNarrowingSaturateUpper(b0, a1);
-        Vector128<short> c2 = AdvSimd.ExtractNarrowingSaturateUpper(b4, a5);
-        Vector128<short> c1 = AdvSimd.ExtractNarrowingSaturateUpper(b2, a3);
-        Vector128<short> c3 = AdvSimd.ExtractNarrowingSaturateUpper(b6, a7);
-
-        // narrow even
-        Vector64<sbyte> d0 = AdvSimd.ExtractNarrowingSaturateLower(c0);
-        Vector64<sbyte> d1 = AdvSimd.ExtractNarrowingSaturateLower(c2);
-
-        // narrow odd
-        Vector128<sbyte> e0 = AdvSimd.ExtractNarrowingSaturateUpper(d0, c1);
-        Vector128<sbyte> e1 = AdvSimd.ExtractNarrowingSaturateUpper(d1, c3);
-
-        // convert to 0xFF or 0x00 (required by movemask emulation)
-        Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(e0, 7).AsByte();
-        Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(e1, 7).AsByte();
-
-        return Vector256.Create(r0, r1);
-    }
 }

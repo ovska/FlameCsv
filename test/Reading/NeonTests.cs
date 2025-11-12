@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -60,5 +61,28 @@ public static class NeonTests
 
             Assert.Equal(expected, actual);
         }
+    }
+
+    [Theory, MemberData(nameof(SignBits))]
+    public static void Should_Load_Int_Sign_Bits_To_Masks(int[] data)
+    {
+        byte[] expected = data.Select(i => (byte)(i < 0 ? 0xFF : 0x00)).ToArray();
+        Vector256<byte> result = AsciiVector.LoadInt32SignsToByteMasksARM(ref Unsafe.As<int, uint>(ref data[0]), 0);
+        byte[] actual = new byte[32];
+        result.CopyTo(actual);
+        Assert.Equal(expected, actual);
+    }
+
+    public static TheoryData<int[]> SignBits()
+    {
+        return new()
+        {
+            new int[32],
+            Enumerable.Range(0, 32).Select(i => i % 2 == 0 ? -1 : 0).ToArray(),
+            Enumerable.Range(0, 32).Select(i => i % 5 == 0 ? -1 : 0).ToArray(),
+            Enumerable.Range(0, 32).Select(i => i % 7 == 0 ? -1 : 0).ToArray(),
+            Enumerable.Range(0, 32).Select(i => i % 11 == 0 ? -1 : 0).ToArray(),
+            Enumerable.Range(0, 32).Select(_ => -1).ToArray(),
+        };
     }
 }
