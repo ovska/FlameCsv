@@ -16,10 +16,7 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-// var b = new CsvEnumerateBench();
-// b.Setup();
-// b.Flame_byte();
-BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
+BenchmarkRunner.Run<PopNewlineBench>(new Config(), args);
 
 file class Config : ManualConfig
 {
@@ -60,9 +57,10 @@ file class Config : ManualConfig
                 .WithGcServer(true)
         );
 
-#if !ARM
-        AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(maxDepth: 2, printSource: true)));
-#endif
+        if (!OperatingSystem.IsMacOS())
+        {
+            AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(maxDepth: 2, printSource: true)));
+        }
 
         WithOptions(ConfigOptions.DisableLogFile);
     }

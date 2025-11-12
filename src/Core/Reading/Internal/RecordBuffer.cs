@@ -33,7 +33,7 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Storage for EOL field indices.
     /// </summary>
-    private ushort[] _eols;
+    internal ushort[] _eols;
 
     internal int _eolIndex;
     internal int _eolCount;
@@ -269,23 +269,25 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out RecordView record)
     {
-        Unsafe.SkipInit(out record);
-
         ref ushort previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex);
+        int flag = _eolIndex == 0 ? int.MinValue : 0;
 
-        if (_eolIndex >= _eolCount)
+        if (_eolIndex < _eolCount)
         {
-            return false;
+            ushort eol = Unsafe.Add(ref previous, 1);
+            int count = eol - previous + 1;
+
+            record = new RecordView((uint)(previous | flag), count);
+            _fieldIndex = eol;
+            _eolIndex++;
+            return true;
+        }
+        else
+        {
+            Unsafe.SkipInit(out record);
         }
 
-        ushort eol = Unsafe.Add(ref previous, 1);
-        int flag = _eolIndex == 0 ? (1 << 31) : 0;
-        int count = eol - previous + 1;
-
-        record = new RecordView((uint)(previous | flag), count);
-        _fieldIndex = eol;
-        _eolIndex++;
-        return true;
+        return false;
     }
 
     [MemberNotNull(nameof(_fields)), MemberNotNull(nameof(_quotes)), MemberNotNull(nameof(_eols))]
