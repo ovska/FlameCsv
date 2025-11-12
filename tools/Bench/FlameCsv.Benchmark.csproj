@@ -5,7 +5,6 @@
         <AnalysisLevel>latest-minimum</AnalysisLevel>
         <ReportAnalyzer>true</ReportAnalyzer>
         <!--For ETW profiler-->
-        <DebugType>pdbonly</DebugType>
         <DebugSymbols>true</DebugSymbols>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)Generated</CompilerGeneratedFilesOutputPath>

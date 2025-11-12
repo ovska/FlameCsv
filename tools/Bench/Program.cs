@@ -16,11 +16,15 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-BenchmarkRunner.Run<PopNewlineBench>(new Config(), args);
+var w = new WriteBench();
+w.Setup();
+w.Sepp();
+
+BenchmarkRunner.Run<WriteBench>(new Config(), args);
 
 file class Config : ManualConfig
 {
-    const int Iters = 8;
+    const int Iters = 4;
 
     public Config()
     {
