@@ -12,11 +12,6 @@ namespace FlameCsv.Benchmark;
 [HideColumns("Error", "StdDev")]
 public partial class WriteBench
 {
-    [Params( /*5, 1_000,*/
-        10_000
-    )]
-    public int Count { get; set; }
-
     // [Benchmark]
     public void CsvHelper_Records()
     {
@@ -190,7 +185,7 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default, ioOptions: new() { BufferSize = 32 * 1024 });
+        CsvWriter.Write(new StringWriter(), _data, ObjTypeMap.Default);
     }
 
     // [Benchmark]
@@ -266,7 +261,7 @@ public partial class WriteBench
     public void Sepp()
     {
         using var writer = Sep.Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true })
-            .To(TextWriter.Null);
+            .To(new StringWriter());
 
         writer.Header.Add(
             "Index",

@@ -16,10 +16,6 @@ using Perfolizer.Horology;
 //     new Config(),
 //     args);
 
-var w = new WriteBench();
-w.Setup();
-w.Sepp();
-
 BenchmarkRunner.Run<WriteBench>(new Config(), args);
 
 file class Config : ManualConfig

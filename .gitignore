@@ -368,6 +368,8 @@ FodyWeavers.xsd
 # Nuget temp
 .nuget/
 
+*.speedscope.json
+
 # Docfx
 docs/_site/
 docs/api/
