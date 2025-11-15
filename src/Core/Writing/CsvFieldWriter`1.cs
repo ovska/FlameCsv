@@ -180,47 +180,45 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     /// Writes <see cref="CsvOptions{T}.Newline"/> to the writer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void WriteNewline()
+    public unsafe void WriteNewline()
     {
-        int length = _isCRLF ? 2 : 1;
-        Span<T> destination = Writer.GetSpan(length);
+        Span<T> destination = Writer.GetSpan(2);
 
-        if (_isCRLF)
+        if (typeof(T) == typeof(byte))
         {
-            // hopefully we elide the second length check by reversing these
-            if (typeof(T) == typeof(byte))
-            {
-                destination[1] = Unsafe.BitCast<byte, T>((byte)'\n');
-                destination[0] = Unsafe.BitCast<byte, T>((byte)'\r');
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                destination[1] = Unsafe.BitCast<char, T>('\n');
-                destination[0] = Unsafe.BitCast<char, T>('\r');
-            }
-            else
-            {
-                destination[1] = T.CreateTruncating('\n');
-                destination[0] = T.CreateTruncating('\r');
-            }
+            ReadOnlySpan<byte> data = "\n\0\r\n"u8;
+            ushort value = Unsafe.ReadUnaligned<ushort>(
+                ref Unsafe.Add(
+                    ref Unsafe.AsRef(in data[0]),
+                    (uint)(sizeof(ushort) * Unsafe.BitCast<bool, byte>(_isCRLF))
+                )
+            );
+
+            // ensure destination is large enough
+            _ = destination[1];
+
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), value);
+        }
+        else if (typeof(T) == typeof(char))
+        {
+            ReadOnlySpan<char> data = "\n\0\r\n".AsSpan();
+            uint value = Unsafe.ReadUnaligned<uint>(
+                ref Unsafe.Add(
+                    ref Unsafe.As<char, byte>(ref Unsafe.AsRef(in data[0])),
+                    (uint)(sizeof(uint) * Unsafe.BitCast<bool, byte>(_isCRLF))
+                )
+            );
+
+            // ensure destination is large enough
+            _ = destination[1];
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), value);
         }
         else
         {
-            if (typeof(T) == typeof(byte))
-            {
-                destination[0] = Unsafe.BitCast<byte, T>((byte)'\n');
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                destination[0] = Unsafe.BitCast<char, T>('\n');
-            }
-            else
-            {
-                destination[0] = T.CreateTruncating('\n');
-            }
+            throw Token<T>.NotSupported;
         }
 
-        Writer.Advance(length);
+        Writer.Advance(_isCRLF ? 2 : 1);
     }
 
     /// <summary>
@@ -536,18 +534,33 @@ internal ref struct WriterRecord<T> : IDisposable
             Grow(2);
         }
 
-        ref T dst = ref DestinationRef;
-
-        if (_isCRLF)
+        if (typeof(T) == typeof(byte))
         {
-            dst = T.CreateTruncating((byte)'\r');
-            Unsafe.Add(ref dst, 1) = T.CreateTruncating((byte)'\n');
-            _written += 2;
+            ReadOnlySpan<byte> data = "\n\0\r\n"u8;
+            ushort value = Unsafe.ReadUnaligned<ushort>(
+                ref Unsafe.Add(
+                    ref Unsafe.AsRef(in data[0]),
+                    (uint)(sizeof(ushort) * Unsafe.BitCast<bool, byte>(_isCRLF))
+                )
+            );
+
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref DestinationRef), value);
+        }
+        else if (typeof(T) == typeof(char))
+        {
+            ReadOnlySpan<char> data = "\n\0\r\n".AsSpan();
+            uint value = Unsafe.ReadUnaligned<uint>(
+                ref Unsafe.Add(
+                    ref Unsafe.As<char, byte>(ref Unsafe.AsRef(in data[0])),
+                    (uint)(sizeof(uint) * Unsafe.BitCast<bool, byte>(_isCRLF))
+                )
+            );
+
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref DestinationRef), value);
         }
         else
         {
-            dst = T.CreateTruncating((byte)'\n');
-            _written++;
+            throw Token<T>.NotSupported;
         }
     }
 
