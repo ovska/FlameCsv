@@ -1,7 +1,9 @@
-﻿using System.Buffers;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
@@ -33,9 +35,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     private readonly T _delimiter;
     private readonly T _quote;
     private readonly bool _isCRLF;
-    private readonly T? _escape;
-    private readonly SearchValues<T> _needsQuoting;
-    private readonly CsvFieldQuoting _fieldQuoting;
+    private readonly IQuoter<T> _quoter;
     private readonly Allocator<T> _allocator;
 
     /// <summary>
@@ -53,10 +53,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
         _delimiter = T.CreateTruncating(options.Delimiter);
         _quote = T.CreateTruncating(options.Quote);
-        _escape = options.Escape.HasValue ? T.CreateTruncating(options.Escape.Value) : null;
+        _quoter = Quoter.Create(options);
         _isCRLF = options.Newline.IsCRLF();
-        _needsQuoting = options.NeedsQuoting;
-        _fieldQuoting = options.FieldQuoting;
         _allocator = new MemoryPoolAllocator<T>(options.Allocator);
     }
 
@@ -65,6 +63,14 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     /// </summary>
     public void WriteField<TValue>(CsvConverter<T, TValue> converter, TValue? value)
     {
+        // string is the most common reference type, and most likely not using a custom converter
+        if (!typeof(TValue).IsValueType && ReferenceEquals(converter, Converters.StringTextConverter.Instance))
+        {
+            Debug.Assert(typeof(TValue) == typeof(string));
+            WriteText(Unsafe.As<string?>(value));
+            return;
+        }
+
         int tokensWritten;
         scoped Span<T> destination;
 
@@ -91,14 +97,31 @@ public readonly struct CsvFieldWriter<T> : IDisposable
             InvalidTokensWritten.Throw(converter, tokensWritten, destination.Length);
         }
 
-        if (_fieldQuoting == CsvFieldQuoting.Never)
+        if (
+            // JIT folds into a constant
+            (
+                typeof(T) == typeof(bool)
+                || typeof(T) == typeof(int)
+                || typeof(T) == typeof(long)
+                || typeof(T) == typeof(short)
+                || typeof(T) == typeof(byte)
+                || typeof(T) == typeof(uint)
+                || typeof(T) == typeof(ulong)
+                || typeof(T) == typeof(ushort)
+                || typeof(T) == typeof(sbyte)
+                || typeof(T) == typeof(char)
+                || typeof(T) == typeof(float)
+                || typeof(T) == typeof(double)
+                || typeof(T) == typeof(decimal)
+            ) && ReferenceEquals(Options, CsvOptions<T>._default)
+        )
         {
+            // default options imply Auto-quoting
             Writer.Advance(tokensWritten);
+            return;
         }
-        else
-        {
-            EscapeAndAdvance(destination, tokensWritten);
-        }
+
+        EscapeAndAdvance(destination, tokensWritten);
     }
 
     /// <summary>
@@ -109,24 +132,86 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {
-        // we are optimistic here with the sizeHint, assuming that most writes are ASCII
-        int tokensWritten;
-        scoped Span<T> destination = Writer.GetSpan(sizeHint: value.Length);
-
-        while (!Transcode.TryFromChars(value, destination, out tokensWritten))
+        if (typeof(T) == typeof(char))
         {
-            destination = Writer.GetSpan(destination.Length * 2);
-        }
+            ReadOnlySpan<T> valueT = MemoryMarshal.Cast<char, T>(value);
+            QuotingResult result = skipEscaping ? default : _quoter.NeedsQuoting(valueT);
 
-        Debug.Assert((uint)tokensWritten <= (uint)destination.Length);
+            int tokensWritten = valueT.Length + ((2 + result.SpecialCount) & result.NeedsQuoting.ToBitwiseMask32());
+            Span<T> destination = Writer.GetSpan(tokensWritten);
 
-        if (skipEscaping || _fieldQuoting == CsvFieldQuoting.Never)
-        {
+            if (result.NeedsQuoting)
+            {
+                // we use unsafe paths here; ensure writer returns long enough buffer
+                _ = destination[tokensWritten - 1];
+
+                if (result.SpecialCount == 0)
+                {
+                    ref T dst = ref MemoryMarshal.GetReference(destination);
+
+                    Unsafe.CopyBlockUnaligned(
+                        ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, 1)),
+                        ref Unsafe.As<T, byte>(ref Unsafe.AsRef(in MemoryMarshal.GetReference(valueT))),
+                        sizeof(char) * (uint)valueT.Length
+                    );
+
+                    dst = _quote;
+                    Unsafe.Add(ref dst, (uint)tokensWritten - 1u) = _quote;
+                }
+                else
+                {
+                    // escape value directly to the destination buffer
+                    Escape.Scalar(new RFC4180Escaper<T>(_quote), valueT, destination, result.SpecialCount);
+                }
+            }
+            else
+            {
+                valueT.CopyTo(destination);
+            }
+
             Writer.Advance(tokensWritten);
+        }
+        else if (typeof(T) == typeof(byte))
+        {
+            QuotingResult result = skipEscaping ? default : _quoter.NeedsQuoting(value);
+            int bytesWritten;
+            int requiredLength =
+                Encoding.UTF8.GetMaxByteCount(value.Length)
+                + ((2 + result.SpecialCount) & result.NeedsQuoting.ToBitwiseMask32());
+            Span<T> destination = Writer.GetSpan(requiredLength);
+
+            if (result.NeedsQuoting)
+            {
+                // ensure writer returns correct length buffer
+                _ = destination[1];
+
+                if (result.SpecialCount == 0)
+                {
+                    bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
+                    destination[0] = _quote;
+                    destination[^1] = _quote;
+                }
+                else
+                {
+                    bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
+                    Escape.Scalar(
+                        new RFC4180Escaper<T>(_quote),
+                        destination[..bytesWritten],
+                        destination,
+                        result.SpecialCount
+                    );
+                }
+            }
+            else
+            {
+                bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
+            }
+
+            Writer.Advance(bytesWritten);
         }
         else
         {
-            EscapeAndAdvance(destination, tokensWritten);
+            throw Token<T>.NotSupported;
         }
     }
 
@@ -138,17 +223,40 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteRaw(ReadOnlySpan<T> value, bool skipEscaping = false)
     {
-        scoped Span<T> destination = Writer.GetSpan(sizeHint: value.Length);
-        value.CopyTo(destination);
+        QuotingResult result = skipEscaping ? default : _quoter.NeedsQuoting(value);
 
-        if (skipEscaping || _fieldQuoting == CsvFieldQuoting.Never)
+        int tokensWritten = value.Length + ((2 + result.SpecialCount) & result.NeedsQuoting.ToBitwiseMask32());
+        Span<T> destination = Writer.GetSpan(tokensWritten);
+
+        if (result.NeedsQuoting)
         {
-            Writer.Advance(value.Length);
+            // ensure writer returns correct length buffer
+            _ = destination[tokensWritten - 1];
+
+            if (result.SpecialCount == 0)
+            {
+                ref T dst = ref MemoryMarshal.GetReference(destination);
+
+                Unsafe.CopyBlockUnaligned(
+                    ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, 1u)),
+                    ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(value)),
+                    (uint)Unsafe.SizeOf<T>() * (uint)value.Length
+                );
+
+                dst = _quote;
+                Unsafe.Add(ref dst, (uint)tokensWritten - 1u) = _quote;
+            }
+            else
+            {
+                Escape.Scalar(new RFC4180Escaper<T>(_quote), value, destination, result.SpecialCount);
+            }
         }
         else
         {
-            EscapeAndAdvance(destination, value.Length);
+            value.CopyTo(destination);
         }
+
+        Writer.Advance(tokensWritten);
     }
 
     /// <summary>
@@ -156,6 +264,12 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     /// </summary>
     public void WriteNull<TValue>()
     {
+        if (ReferenceEquals(Options, CsvOptions<T>._default))
+        {
+            // default options have an empty null
+            return;
+        }
+
         ReadOnlySpan<T> nullSpan = Options.GetNullSpan(typeof(TValue));
 
         if (!nullSpan.IsEmpty)
@@ -181,45 +295,41 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteNewline()
     {
-        int length = _isCRLF ? 2 : 1;
-        Span<T> destination = Writer.GetSpan(length);
+        Span<T> destination = Writer.GetSpan(2);
 
-        if (_isCRLF)
+        // ensure destination is large enough
+        _ = destination[1];
+
+        if (typeof(T) == typeof(byte))
         {
-            // hopefully we elide the second length check by reversing these
-            if (typeof(T) == typeof(byte))
-            {
-                destination[1] = Unsafe.BitCast<byte, T>((byte)'\n');
-                destination[0] = Unsafe.BitCast<byte, T>((byte)'\r');
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                destination[1] = Unsafe.BitCast<char, T>('\n');
-                destination[0] = Unsafe.BitCast<char, T>('\r');
-            }
-            else
-            {
-                destination[1] = T.CreateTruncating('\n');
-                destination[0] = T.CreateTruncating('\r');
-            }
+            ReadOnlySpan<byte> data = "\n\0\r\n"u8;
+            ushort value = Unsafe.ReadUnaligned<ushort>(
+                ref Unsafe.Add(
+                    ref Unsafe.AsRef(in data[0]),
+                    (uint)(sizeof(ushort) * Unsafe.BitCast<bool, byte>(_isCRLF))
+                )
+            );
+
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), value);
+        }
+        else if (typeof(T) == typeof(char))
+        {
+            ReadOnlySpan<char> data = "\n\0\r\n".AsSpan();
+            uint value = Unsafe.ReadUnaligned<uint>(
+                ref Unsafe.Add(
+                    ref Unsafe.As<char, byte>(ref Unsafe.AsRef(in data[0])),
+                    (uint)(sizeof(uint) * Unsafe.BitCast<bool, byte>(_isCRLF))
+                )
+            );
+
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), value);
         }
         else
         {
-            if (typeof(T) == typeof(byte))
-            {
-                destination[0] = Unsafe.BitCast<byte, T>((byte)'\n');
-            }
-            else if (typeof(T) == typeof(char))
-            {
-                destination[0] = Unsafe.BitCast<char, T>('\n');
-            }
-            else
-            {
-                destination[0] = T.CreateTruncating('\n');
-            }
+            throw Token<T>.NotSupported;
         }
 
-        Writer.Advance(length);
+        Writer.Advance(1 + Unsafe.BitCast<bool, byte>(_isCRLF));
     }
 
     /// <summary>
@@ -228,133 +338,38 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal void EscapeAndAdvance(Span<T> destination, int tokensWritten)
     {
-        if (_fieldQuoting == CsvFieldQuoting.Never)
-        {
-            Writer.Advance(tokensWritten);
-            return;
-        }
-
-        // empty writes don't need escaping
-        if (tokensWritten == 0)
-        {
-            if ((_fieldQuoting & CsvFieldQuoting.Empty) != 0)
-            {
-                // Ensure the buffer is large enough
-                if (destination.Length < 2)
-                {
-                    destination = Writer.GetSpan(2);
-                }
-
-                destination[1] = _quote;
-                destination[0] = _quote;
-                Writer.Advance(2);
-            }
-
-            return;
-        }
-
         scoped ReadOnlySpan<T> written = destination[..tokensWritten];
 
-        bool shouldQuote;
-        int escapableCount;
+        QuotingResult result = _quoter.NeedsQuoting(written);
 
-        RFC4180Escaper<T> escaper = new(_quote);
+        int advanceBy;
 
-        if (_fieldQuoting == CsvFieldQuoting.Always)
+        if (result.NeedsQuoting)
         {
-            shouldQuote = true;
-            escapableCount = _escape is null ? escaper.CountEscapable(written) : CountRare(written);
+            advanceBy = tokensWritten + 2 + result.SpecialCount;
+
+            if (advanceBy > destination.Length)
+            {
+                Span<T> temp = _allocator.GetSpan(tokensWritten);
+                written.CopyTo(temp);
+                written = temp;
+                destination = Writer.GetSpan(advanceBy);
+            }
+
+            Escape.Scalar(new RFC4180Escaper<T>(_quote), written, destination, result.SpecialCount);
         }
         else
         {
-            int index = ((_fieldQuoting & CsvFieldQuoting.Auto) != 0) ? written.IndexOfAny(_needsQuoting) : -1;
-
-            if (index != -1)
-            {
-                shouldQuote = true;
-
-                ReadOnlySpan<T> tail = written[index..];
-                escapableCount = _escape is null ? escaper.CountEscapable(tail) : CountRare(tail);
-            }
-            else
-            {
-                shouldQuote =
-                    // help the branch predictor a bit
-                    (_fieldQuoting & CsvFieldQuoting.LeadingOrTrailingSpaces) != 0
-                    && (
-                        // in net9, accessing the last item first omits a redundant bounds check
-                        ((_fieldQuoting & CsvFieldQuoting.TrailingSpaces) != 0 && written[^1] == Whitespace)
-                        || ((_fieldQuoting & CsvFieldQuoting.LeadingSpaces) != 0 && written[0] == Whitespace)
-                    );
-                escapableCount = 0;
-            }
+            advanceBy = tokensWritten;
         }
 
-        if (!shouldQuote)
-        {
-            // no escaping, advance the original tokensWritten
-            Writer.Advance(tokensWritten);
-            return;
-        }
-
-        int escapedLength = tokensWritten + 2 + escapableCount;
-
-        // ensure the destination fits the unescaped buffer
-        if (destination.Length < escapedLength)
-        {
-            // we cannot rely on the value being preserved if we get a new buffer from the bufferwriter.
-            // Writer.GetSpan might not return the same memory, or it might be cleared before returning
-            // so: copy the value into a temporary buffer from allocator, then escape it to a fresh destination buffer
-            Span<T> temporary = _allocator.GetSpan(length: tokensWritten);
-            written.CopyTo(temporary);
-            written = temporary[..tokensWritten];
-            destination = Writer.GetSpan(escapedLength);
-        }
-
-        if (_escape is null)
-        {
-            Escape.Scalar(escaper, written, destination[..escapedLength], escapableCount);
-        }
-        else
-        {
-            EscapeRare(written, destination[..escapedLength], escapableCount);
-        }
-
-        Writer.Advance(escapedLength);
-    }
-
-    // avoid inlining of rarer path
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private int CountRare(ReadOnlySpan<T> span)
-    {
-        Debug.Assert(_escape.HasValue);
-        return new UnixEscaper<T>(_quote, _escape.GetValueOrDefault()).CountEscapable(span);
-    }
-
-    // avoid inlining of rarer path
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void EscapeRare(ReadOnlySpan<T> source, Span<T> destination, int specialCount)
-    {
-        Debug.Assert(_escape.HasValue);
-        Escape.Scalar(new UnixEscaper<T>(_quote, _escape.GetValueOrDefault()), source, destination, specialCount);
+        Writer.Advance(advanceBy);
     }
 
     /// <inheritdoc />
     public void Dispose()
     {
         _allocator?.Dispose();
-    }
-
-    private static T Whitespace
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get =>
-            Unsafe.SizeOf<T>() switch
-            {
-                sizeof(byte) => Unsafe.BitCast<byte, T>((byte)' '),
-                sizeof(char) => Unsafe.BitCast<char, T>(' '),
-                _ => T.CreateTruncating(' '),
-            };
     }
 }
 

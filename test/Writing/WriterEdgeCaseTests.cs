@@ -1,9 +1,27 @@
-﻿using FlameCsv.Tests.TestData;
+﻿using System.Globalization;
+using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests.Writing;
 
 public static class WriterEdgeCaseTests
 {
+    [Fact]
+    public static void Should_Format_Doubles_Culture_Agnostic()
+    {
+        foreach (var culture in (string[])["en-US", "fi-FI", "fr-FR", "de-DE", "ru-RU", "ja-JP", "zh-CN", "tr-TR"])
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+
+            var sw = new StringWriter();
+            using (var writer = CsvWriter.Create(sw))
+            {
+                writer.WriteField(1234.56);
+            }
+
+            Assert.Equal("1234.56\r\n", sw.ToString());
+        }
+    }
+
     [Fact]
     public static void Should_Check_Escapes_Correctly()
     {

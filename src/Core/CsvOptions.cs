@@ -20,7 +20,7 @@ namespace FlameCsv;
 public sealed partial class CsvOptions<T> : ICanBeReadOnly
     where T : unmanaged, IBinaryInteger<T>
 {
-    private static readonly CsvOptions<T> _default;
+    internal static readonly CsvOptions<T> _default;
 
     static CsvOptions()
     {
@@ -180,6 +180,11 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     public string? GetFormat(Type resultType, string? defaultValue = null)
     {
         return _formats.TryGetExt(resultType, defaultValue);
+    }
+
+    internal bool HasCustomFormat(Type resultType)
+    {
+        return _formats?.ContainsKey(resultType) == true;
     }
 
     /// <summary>

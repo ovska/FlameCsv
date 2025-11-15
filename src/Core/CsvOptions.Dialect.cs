@@ -156,6 +156,11 @@ public partial class CsvOptions<T>
     /// </summary>
     internal SearchValues<T> NeedsQuoting => field ??= InitNeedsQuoting();
 
+    internal SearchValues<char> NeedsQuotingChar =>
+        typeof(T) == typeof(char)
+            ? (SearchValues<char>)(object)NeedsQuoting
+            : (field ??= SearchValues.Create(_delimiter, _quote, '\r', '\n'));
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private SearchValues<T> InitNeedsQuoting()
     {
@@ -210,6 +215,11 @@ file static class DialectHelper
     [StackTraceHidden]
     public static void ValidateToken(char value, [CallerArgumentExpression(nameof(value))] string name = "")
     {
+        if (value > 127)
+        {
+            ThrowOutOfRange(name, value, "Dialect cannot contain non-ASCII characters (over 0x7F)");
+        }
+
         if (value is '\0')
         {
             ThrowOutOfRange(name, value, "Dialect cannot contain null character");
@@ -225,9 +235,9 @@ file static class DialectHelper
             ThrowOutOfRange(name, value, "Dialect cannot contain a space due to whitespace ambiguity");
         }
 
-        if (value > 127)
+        if (char.IsAsciiLetterOrDigit(value) || value is '-')
         {
-            ThrowOutOfRange(name, value, "Dialect cannot contain non-ASCII characters (over 0x7F)");
+            ThrowOutOfRange(name, value, "Dialect cannot contain ASCII letters, numbers, or a minus sign");
         }
     }
 

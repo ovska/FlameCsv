@@ -1,6 +1,10 @@
 ﻿using System.Globalization;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Attributes;
+using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
+using FlameCsv.Writing.Escaping;
 using nietras.SeparatedValues;
 
 // ReSharper disable InconsistentNaming
@@ -185,7 +189,7 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(new StringWriter(), _data, ObjTypeMap.Default);
+        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default);
     }
 
     // [Benchmark]
@@ -198,6 +202,91 @@ public partial class WriteBench
     public Task Async_Generic_TypeMap()
     {
         return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
+    }
+
+    [Benchmark]
+    public void Yardstick()
+    {
+        using var writer = new ArrayPoolBufferWriter<char>(initialCapacity: 32 * 1024);
+
+        "Index".CopyTo(writer.GetSpan("Index".Length));
+        writer.Advance("Index".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Name".CopyTo(writer.GetSpan("Name".Length));
+        writer.Advance("Name".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Contact".CopyTo(writer.GetSpan("Contact".Length));
+        writer.Advance("Contact".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Count".CopyTo(writer.GetSpan("Count".Length));
+        writer.Advance("Count".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Latitude".CopyTo(writer.GetSpan("Latitude".Length));
+        writer.Advance("Latitude".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Longitude".CopyTo(writer.GetSpan("Longitude".Length));
+        writer.Advance("Longitude".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Height".CopyTo(writer.GetSpan("Height".Length));
+        writer.Advance("Height".Length);
+        writer.GetSpan(1)[0] = ',';
+        writer.Advance(1);
+        "Location".CopyTo(writer.GetSpan("Location".Length));
+        writer.Advance("Location".Length);
+        "\r\n".CopyTo(writer.GetSpan(2));
+        writer.Advance(2);
+
+        for (int i = 0; i < _data.Length; i++)
+        {
+            Obj obj = _data[i];
+
+            obj.Index.TryFormat(writer.GetSpan(256), out int indexBytes);
+            writer.Advance(indexBytes);
+            obj.Name.AsSpan().CopyTo(writer.GetSpan(obj.Name.AsSpan().Length));
+            writer.Advance(obj.Name.AsSpan().Length);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Contact.AsSpan().CopyTo(writer.GetSpan(obj.Contact.AsSpan().Length));
+            writer.Advance(obj.Contact.AsSpan().Length);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Count.TryFormat(writer.GetSpan(256), out int countBytes);
+            writer.Advance(countBytes);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Latitude.TryFormat(writer.GetSpan(256), out int latBytes);
+            writer.Advance(latBytes);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Longitude.TryFormat(writer.GetSpan(256), out int lonBytes);
+            writer.Advance(lonBytes);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Height.TryFormat(writer.GetSpan(256), out int heightBytes);
+            writer.Advance(heightBytes);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Location.AsSpan().CopyTo(writer.GetSpan(obj.Location.AsSpan().Length));
+            writer.Advance(obj.Location.AsSpan().Length);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            obj.Category.AsSpan().CopyTo(writer.GetSpan(obj.Category.AsSpan().Length));
+            writer.Advance(obj.Category.AsSpan().Length);
+            writer.GetSpan(1)[0] = ',';
+            writer.Advance(1);
+            if (obj.Popularity.HasValue)
+            {
+                obj.Popularity.Value.TryFormat(writer.GetSpan(256), out int popBytes);
+                writer.Advance(popBytes);
+            }
+            "\r\n".CopyTo(writer.GetSpan(2));
+        }
     }
 
     // [Benchmark]
@@ -257,11 +346,77 @@ public partial class WriteBench
         writer.Writer.Complete(null);
     }
 
+    // [Benchmark]
+    public void Rewrite()
+    {
+        var ioOpts = new CsvIOOptions();
+        var bw = new TextBufferWriter(TextWriter.Null, CsvOptions<char>.Default.Allocator, ioOpts);
+        var quoter = Quoter.Create(CsvOptions<char>.Default);
+        using var allocator = new MemoryPoolAllocator<char>(CsvOptions<char>.Default.Allocator);
+
+        using (var writer = new WriterRecord<char>(CsvOptions<char>.Default, bw, ioOpts.BufferSize, quoter, allocator))
+        {
+            writer.WriteText("Index");
+            writer.WriteDelimiter();
+            writer.WriteText("Name");
+            writer.WriteDelimiter();
+            writer.WriteText("Contact");
+            writer.WriteDelimiter();
+            writer.WriteText("Count");
+            writer.WriteDelimiter();
+            writer.WriteText("Latitude");
+            writer.WriteDelimiter();
+            writer.WriteText("Longitude");
+            writer.WriteDelimiter();
+            writer.WriteText("Height");
+            writer.WriteDelimiter();
+            writer.WriteText("Location");
+            writer.WriteDelimiter();
+            writer.WriteText("Category");
+            writer.WriteDelimiter();
+            writer.WriteText("Popularity");
+            writer.WriteNewline();
+        }
+
+        for (int i = 0; i < _data.Length; i++)
+        {
+            if (bw.NeedsFlush)
+                bw.Flush();
+
+            using (WriterRecord<char> writer = new(CsvOptions<char>.Default, bw, ioOpts.BufferSize, quoter, allocator))
+            {
+                Obj obj = _data[i];
+                writer.FormatValue(obj.Index);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Name);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Contact);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Count);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Latitude);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Longitude);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Height);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Location);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Category);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Popularity);
+                writer.WriteNewline();
+            }
+        }
+
+        bw.Complete(null);
+    }
+
     [Benchmark]
     public void Sepp()
     {
         using var writer = Sep.Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true })
-            .To(new StringWriter());
+            .To(TextWriter.Null);
 
         writer.Header.Add(
             "Index",

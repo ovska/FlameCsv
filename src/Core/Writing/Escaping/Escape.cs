@@ -14,7 +14,6 @@ internal static class Escape
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer. Can be the same memory region as the source</param>
     /// <param name="specialCount">Number of quotes/escapes in the source</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Scalar<T, TEscaper>(
         TEscaper escaper,
         scoped ReadOnlySpan<T> source,
@@ -32,7 +31,7 @@ internal static class Escape
 
         // Work backwards as the source and destination buffers might overlap
         nint srcRemaining = source.Length - 1;
-        nint dstRemaining = destination.Length - 1;
+        nint dstRemaining = source.Length + specialCount + 1;
         ref T src = ref MemoryMarshal.GetReference(source);
         ref T dst = ref MemoryMarshal.GetReference(destination);
 

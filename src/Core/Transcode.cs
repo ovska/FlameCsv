@@ -7,6 +7,23 @@ namespace FlameCsv;
 internal static class Transcode
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetMaxTranscodedSize<T>(scoped ReadOnlySpan<char> value)
+        where T : unmanaged
+    {
+        if (typeof(byte) == typeof(T))
+        {
+            return Encoding.UTF8.GetMaxByteCount(value.Length);
+        }
+
+        if (typeof(char) == typeof(T))
+        {
+            return value.Length;
+        }
+
+        throw Token<T>.NotSupported;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryFromChars<T>(
         scoped ReadOnlySpan<char> value,
         scoped Span<T> destination,
