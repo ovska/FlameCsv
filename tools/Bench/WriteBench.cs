@@ -1,6 +1,9 @@
 ﻿using System.Globalization;
 using FlameCsv.Attributes;
+using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
+using FlameCsv.Writing.Escaping;
 using nietras.SeparatedValues;
 
 // ReSharper disable InconsistentNaming
@@ -185,7 +188,7 @@ public partial class WriteBench
     [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(new StringWriter(), _data, ObjTypeMap.Default);
+        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default);
     }
 
     // [Benchmark]
@@ -258,10 +261,76 @@ public partial class WriteBench
     }
 
     [Benchmark]
+    public void Rewrite()
+    {
+        var ioOpts = new CsvIOOptions();
+        var bw = new TextBufferWriter(TextWriter.Null, CsvOptions<char>.Default.Allocator, ioOpts);
+        var quoter = Quoter.Create(CsvOptions<char>.Default);
+        using var allocator = new MemoryPoolAllocator<char>(CsvOptions<char>.Default.Allocator);
+
+        using (var writer = new WriterRecord<char>(CsvOptions<char>.Default, bw, ioOpts.BufferSize, quoter, allocator))
+        {
+            writer.WriteText("Index");
+            writer.WriteDelimiter();
+            writer.WriteText("Name");
+            writer.WriteDelimiter();
+            writer.WriteText("Contact");
+            writer.WriteDelimiter();
+            writer.WriteText("Count");
+            writer.WriteDelimiter();
+            writer.WriteText("Latitude");
+            writer.WriteDelimiter();
+            writer.WriteText("Longitude");
+            writer.WriteDelimiter();
+            writer.WriteText("Height");
+            writer.WriteDelimiter();
+            writer.WriteText("Location");
+            writer.WriteDelimiter();
+            writer.WriteText("Category");
+            writer.WriteDelimiter();
+            writer.WriteText("Popularity");
+            writer.WriteNewline();
+        }
+
+        for (int i = 0; i < _data.Length; i++)
+        {
+            if (bw.NeedsFlush)
+                bw.Flush();
+
+            using (WriterRecord<char> writer = new(CsvOptions<char>.Default, bw, ioOpts.BufferSize, quoter, allocator))
+            {
+                Obj obj = _data[i];
+                writer.FormatValue(obj.Index);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Name);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Contact);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Count);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Latitude);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Longitude);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Height);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Location);
+                writer.WriteDelimiter();
+                writer.WriteText(obj.Category);
+                writer.WriteDelimiter();
+                writer.FormatValue(obj.Popularity);
+                writer.WriteNewline();
+            }
+        }
+
+        bw.Complete(null);
+    }
+
+    [Benchmark]
     public void Sepp()
     {
         using var writer = Sep.Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true })
-            .To(new StringWriter());
+            .To(TextWriter.Null);
 
         writer.Header.Add(
             "Index",

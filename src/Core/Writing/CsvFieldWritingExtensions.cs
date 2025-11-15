@@ -24,6 +24,110 @@ public static class CsvFieldWritingExtensions
     /// Does not write a trailing delimiter or newline.<br/>
     /// Null values are not written, use <see cref="CsvFieldWriter{T}.WriteField{TValue}"/> instead.
     /// </remarks>
+    internal static void FormatValue<T>(
+        ref readonly this WriterRecord<char> writer,
+        T value,
+        ReadOnlySpan<char> format = default,
+        IFormatProvider? formatProvider = null
+    )
+        where T : ISpanFormattable
+    {
+        // JITed out for value types
+        if (value is null)
+        {
+            return;
+        }
+
+        int written;
+
+        while (!value.TryFormat(writer.Destination, out written, format, formatProvider))
+        {
+            writer.Grow(writer.Remaining);
+        }
+
+        writer.EscapeIfNeeded(writer.Destination, written);
+    }
+
+    /// <inheritdoc cref="FormatValue{T}(ref readonly WriterRecord{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
+    internal static void FormatValue<T>(
+        ref readonly this WriterRecord<byte> writer,
+        T value,
+        ReadOnlySpan<char> format = default,
+        IFormatProvider? formatProvider = null
+    )
+        where T : ISpanFormattable
+    {
+        // JITed out for value types
+        if (value is null)
+        {
+            return;
+        }
+
+        int written;
+
+        // for value types this condition is a runtime constant
+        if (value is IUtf8SpanFormattable)
+        {
+            while (!((IUtf8SpanFormattable)value).TryFormat(writer.Destination, out written, format, formatProvider))
+            {
+                writer.Grow(writer.Remaining);
+            }
+        }
+        else
+        {
+            using var vsb = new ValueStringBuilder(stackalloc char[128]);
+            vsb.AppendFormatted(value, format, formatProvider);
+
+            while (!Encoding.UTF8.TryGetBytes(vsb.AsSpan(), writer.Destination, out written))
+            {
+                writer.Grow(writer.Remaining);
+            }
+        }
+
+        writer.EscapeIfNeeded(writer.Destination, written);
+    }
+
+    /// <inheritdoc cref="FormatValue{T}(ref readonly WriterRecord{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
+    internal static void FormatValue<T>(
+        ref readonly this WriterRecord<char> writer,
+        T? value,
+        ReadOnlySpan<char> format = default,
+        IFormatProvider? formatProvider = null
+    )
+        where T : struct, ISpanFormattable
+    {
+        if (value.HasValue)
+        {
+            FormatValue(in writer, value.Value, format, formatProvider);
+        }
+    }
+
+    /// <inheritdoc cref="FormatValue{T}(ref readonly WriterRecord{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
+    internal static void FormatValue<T>(
+        ref readonly this WriterRecord<byte> writer,
+        T? value,
+        ReadOnlySpan<char> format = default,
+        IFormatProvider? formatProvider = null
+    )
+        where T : struct, ISpanFormattable
+    {
+        if (value.HasValue)
+        {
+            FormatValue(in writer, value.Value, format, formatProvider);
+        }
+    }
+
+    /// <summary>
+    /// Formats the value to the writer.
+    /// </summary>
+    /// <param name="writer">The writer to write to.</param>
+    /// <param name="value">The value to format.</param>
+    /// <param name="format">The format to use.</param>
+    /// <param name="formatProvider">The format provider to use.</param>
+    /// <remarks>
+    /// Does not write a trailing delimiter or newline.<br/>
+    /// Null values are not written, use <see cref="CsvFieldWriter{T}.WriteField{TValue}"/> instead.
+    /// </remarks>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<char> writer,
         T value,

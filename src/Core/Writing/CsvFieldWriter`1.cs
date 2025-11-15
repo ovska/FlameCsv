@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
@@ -365,6 +366,344 @@ file static class InvalidTokensWritten
     {
         throw new InvalidOperationException(
             $"{source.GetType().FullName} reported {tokensWritten} tokens written to a buffer of length {destinationLength}."
+        );
+    }
+}
+
+internal ref struct WriterRecord<T> : IDisposable
+    where T : unmanaged, IBinaryInteger<T>
+{
+    private readonly CsvOptions<T> _options;
+    private readonly IBufferWriter<T> _writer;
+    private readonly Allocator<T> _allocator;
+
+    private Span<T> _buffer;
+    private int _written;
+
+    internal readonly Span<T> Destination
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get =>
+            MemoryMarshal.CreateSpan(
+                ref Unsafe.Add(ref MemoryMarshal.GetReference(_buffer), (uint)_written),
+                _buffer.Length - _written
+            );
+    }
+
+    internal readonly ref T DestinationRef
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => ref Unsafe.Add(ref MemoryMarshal.GetReference(_buffer), (uint)_written);
+    }
+
+    internal readonly int Remaining
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _buffer.Length - _written;
+    }
+
+    internal readonly IQuoter<T> Quoter { get; }
+
+    private readonly byte _delimiter;
+    private readonly bool _isCRLF;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public WriterRecord(
+        CsvOptions<T> options,
+        IBufferWriter<T> writer,
+        int bufferSize,
+        IQuoter<T> quoter,
+        Allocator<T> allocator
+    )
+    {
+        _options = options;
+        _writer = writer;
+        Quoter = quoter;
+        _allocator = allocator;
+        _buffer = writer.GetSpan(bufferSize);
+    }
+
+    public void WriteField<TValue>(CsvConverter<T, TValue> converter, TValue? value)
+    {
+        int tokensWritten;
+
+        if (value is not null || converter.CanFormatNull)
+        {
+            while (!converter.TryFormat(Destination, value!, out tokensWritten))
+            {
+                Grow(Remaining * 2);
+            }
+
+            // validate negative or too large tokensWritten in case of broken user-defined formatters
+            if ((uint)tokensWritten > (uint)Remaining)
+            {
+                InvalidTokensWritten.Throw(converter, tokensWritten, Remaining);
+            }
+        }
+        // JITed out for value types
+        else
+        {
+            ReadOnlySpan<T> nullValue = _options.GetNullSpan(typeof(TValue));
+
+            if (Remaining < nullValue.Length)
+            {
+                Grow(nullValue.Length);
+            }
+
+            nullValue.CopyTo(Destination);
+            tokensWritten = nullValue.Length;
+        }
+
+        QuotingResult result = Quoter.NeedsQuoting(Destination[..tokensWritten]);
+
+        if (result.NeedsQuoting)
+        {
+            Escape(Destination, tokensWritten, result);
+        }
+        else
+        {
+            _written += tokensWritten;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
+    {
+        // we are optimistic here with the sizeHint, assuming that most writes are ASCII
+        int tokensWritten;
+
+        while (!Transcode.TryFromChars(value, Destination, out tokensWritten))
+        {
+            Grow(Transcode.GetMaxTranscodedSize<T>(value));
+        }
+
+        if (!skipEscaping)
+        {
+            QuotingResult result = Quoter.NeedsQuoting(Destination[..tokensWritten]);
+
+            if (result.NeedsQuoting)
+            {
+                Escape(Destination, tokensWritten, result);
+                return;
+            }
+        }
+
+        _written += tokensWritten;
+    }
+
+    public void WriteRaw(ReadOnlySpan<T> value, bool skipEscaping = false)
+    {
+        int length = value.Length;
+
+        if (Remaining < length)
+        {
+            Grow(length);
+        }
+
+        value.CopyTo(Destination);
+
+        if (!skipEscaping)
+        {
+            QuotingResult result = Quoter.NeedsQuoting(value);
+
+            if (result.NeedsQuoting)
+            {
+                Escape(Destination, length, result);
+                return;
+            }
+        }
+
+        _written += length;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteDelimiter()
+    {
+        if (Remaining == 0)
+        {
+            Grow(1);
+        }
+
+        DestinationRef = T.CreateTruncating(_delimiter);
+        _written++;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void WriteNewline()
+    {
+        if (Remaining < 2)
+        {
+            Grow(2);
+        }
+
+        ref T dst = ref DestinationRef;
+
+        if (_isCRLF)
+        {
+            dst = T.CreateTruncating((byte)'\r');
+            Unsafe.Add(ref dst, 1) = T.CreateTruncating((byte)'\n');
+            _written += 2;
+        }
+        else
+        {
+            dst = T.CreateTruncating((byte)'\n');
+            _written++;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal void Grow(int previousSize)
+    {
+        _writer.Advance(_written);
+        _written = 0;
+
+        int requestedSize = previousSize * 2;
+        _buffer = _writer.GetSpan(requestedSize);
+
+        if (_buffer.Length < requestedSize)
+        {
+            ThrowHelper.InvalidBuffer(requestedSize, _buffer.Length, _writer);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void EscapeIfNeeded(Span<T> destination, int written)
+    {
+        QuotingResult result = Quoter.NeedsQuoting(destination[..written]);
+
+        if (result.NeedsQuoting)
+        {
+            Escape(destination, written, result);
+        }
+        else
+        {
+            _written += written;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void Escape(Span<T> destination, int written, QuotingResult result)
+    {
+        int escapedLength = written + 2 + result.SpecialCount;
+
+        // source containing the original written data
+        Span<T> source;
+
+        // rare case: buffer is too small to fit the escaped value
+        if (destination.Length < escapedLength)
+        {
+            Span<T> temp = _allocator.GetSpan(written);
+            destination.Slice(0, written).CopyTo(temp);
+            source = temp[..written];
+
+            _writer.Advance(_written);
+            _written = 0;
+
+            destination = _writer.GetSpan(escapedLength);
+
+            if (destination.Length < escapedLength)
+            {
+                ThrowHelper.InvalidBuffer(escapedLength, destination.Length, _writer);
+            }
+        }
+        else
+        {
+            source = destination.Slice(0, written);
+        }
+
+        Debug.Assert(destination.Length >= source.Length + result.SpecialCount + 2, "Destination buffer is too small");
+        Debug.Assert(
+            !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
+            "If src and dst overlap, they must have the same starting point in memory"
+        );
+
+        // Work backwards as the source and destination buffers might overlap
+        nint srcRemaining = source.Length - 1;
+        nint dstRemaining = destination.Length - 1;
+        ref T src = ref MemoryMarshal.GetReference(source);
+        ref T dst = ref MemoryMarshal.GetReference(destination);
+        int quoteCount = result.SpecialCount;
+        T quote = Quoter.Quote;
+
+        Unsafe.Add(ref dst, dstRemaining) = quote;
+        dstRemaining--;
+
+        // if there are no quotes to escape, just wrap in quotes and copy
+        if (quoteCount == 0)
+            goto End;
+
+        int lastIndex = result.LastIndex ?? source.LastIndexOf(quote);
+
+        // if we found nothing, there are no special chars, or it was the last token
+        if ((uint)lastIndex < srcRemaining)
+        {
+            nint nonSpecialCount = srcRemaining - lastIndex + 1;
+            Copy(ref src, (uint)lastIndex, ref dst, (nuint)(dstRemaining - nonSpecialCount + 1), (uint)nonSpecialCount);
+
+            srcRemaining -= nonSpecialCount;
+            dstRemaining -= nonSpecialCount;
+            Unsafe.Add(ref dst, dstRemaining) = quote;
+            dstRemaining--;
+
+            if (--quoteCount == 0)
+                goto End;
+        }
+
+        while (srcRemaining >= 0)
+        {
+            if (quote == Unsafe.Add(ref src, srcRemaining))
+            {
+                Unsafe.Add(ref dst, dstRemaining) = Unsafe.Add(ref src, srcRemaining);
+                Unsafe.Add(ref dst, dstRemaining - 1) = quote;
+
+                srcRemaining -= 1;
+                dstRemaining -= 2;
+
+                if (--quoteCount == 0)
+                {
+                    goto End;
+                }
+            }
+            else
+            {
+                Unsafe.Add(ref dst, dstRemaining) = Unsafe.Add(ref src, srcRemaining);
+                srcRemaining--;
+                dstRemaining--;
+            }
+        }
+
+        End:
+        Copy(ref src, 0, ref dst, 1, (uint)srcRemaining + 1u);
+
+        // the final quote must!! be written last since src and dst likely occupy the same memory region
+        dst = quote;
+
+        _written += escapedLength;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void Copy(ref T src, nuint srcIndex, ref T dst, nuint dstIndex, uint length)
+        {
+            Unsafe.CopyBlockUnaligned(
+                destination: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref dst, dstIndex)),
+                source: ref Unsafe.As<T, byte>(ref Unsafe.Add(ref src, srcIndex)),
+                byteCount: (uint)Unsafe.SizeOf<T>() * length
+            );
+        }
+    }
+
+    public void Dispose()
+    {
+        _writer.Advance(_written);
+        _written = 0;
+    }
+}
+
+file static class ThrowHelper
+{
+    public static void InvalidBuffer(int requestedLength, int actualLength, object bufferWriter)
+    {
+        throw new InvalidOperationException(
+            $"The buffer returned by the IBufferWriter is too small. Requested length: {requestedLength}, actual length: {actualLength}. BufferWriter: {bufferWriter.GetType().FullName}"
         );
     }
 }
