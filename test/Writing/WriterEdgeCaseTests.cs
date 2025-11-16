@@ -1,10 +1,30 @@
 ﻿using System.Globalization;
+using System.Text;
 using FlameCsv.Tests.TestData;
+using FlameCsv.Writing;
 
 namespace FlameCsv.Tests.Writing;
 
 public static class WriterEdgeCaseTests
 {
+    [Fact]
+    public static void Should_Handle_String_To_Bytes_With_Escapes()
+    {
+        var ms = new MemoryStream();
+
+        using (var writer = CsvFieldWriter.Create(ms, CsvOptions<byte>.Default))
+        {
+            writer.WriteText("test\"");
+            writer.WriteDelimiter();
+            writer.WriteText("\"test\"");
+            writer.WriteDelimiter();
+            writer.WriteText("\"test");
+            writer.Writer.Flush();
+        }
+
+        Assert.Equal("\"test\"\"\",\"\"\"test\"\"\",\"\"\"test\"", Encoding.UTF8.GetString(ms.ToArray()));
+    }
+
     [Fact]
     public static void Should_Format_Doubles_Culture_Agnostic()
     {

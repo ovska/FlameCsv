@@ -181,18 +181,15 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
             if (result.NeedsQuoting)
             {
-                // ensure writer returns correct length buffer. hopefully this elides the bounds checks later
-                _ = destination[1];
-
                 if (result.SpecialCount == 0)
                 {
                     bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
                     destination[0] = _quote;
-                    destination[^1] = _quote;
+                    destination[bytesWritten + 1] = _quote;
                 }
                 else
                 {
-                    bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
+                    bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination));
                     Escape.Scalar(
                         new RFC4180Escaper<T>(_quote),
                         destination[..bytesWritten],
@@ -200,6 +197,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable
                         result.SpecialCount
                     );
                 }
+
+                bytesWritten += (2 + result.SpecialCount);
             }
             else
             {
