@@ -36,16 +36,8 @@ The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is u
 
 This property is only used when reading CSV, and has no effect when writing, see @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" for writing.
 
-### Escape
-An explicit escape character @"FlameCsv.CsvOptions`1.Escape?displayProperty=nameWithType" can be set to a non-null value to escape _any_ character following the escape character. The default value is null, which follows the RFC 4180 spec and wraps values in strings, and escapes quotes with another quote.
-Any field containing the escape character **must** be wrapped in quotes. The escape character itself is escaped by doubling it, e.g., `"\\"`.
-
-> [!TIP]
-> Due to the rarity of this non-standard format, SIMD accelerated parsing is not supported when using an escape character.
-> The library functions identically, but you will lose the performance benefits of SIMD parsing.
-
 > [!WARNING]
-> For performance reasons, all the dialect characters must be ASCII (value 127 or lower). A runtime exception is thrown if the configured dialect contains non-ASCII characters.
+> For performance reasons, all the dialect characters must be non-alphanumeric ASCII (value 127 or lower). A runtime exception is thrown if the configured dialect contains non-ASCII characters.
 
 ### Example
 
@@ -56,7 +48,6 @@ CsvOptions<byte> options = new()
     Quote = '"',
     Newline = CsvNewline.LF,
     Trimming = CsvFieldTrimming.Both,
-    Escape = '\\',
 };
 ```
 

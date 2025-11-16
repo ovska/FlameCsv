@@ -103,7 +103,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
         _delimiter = other._delimiter;
         _quote = other._quote;
-        _escape = other._escape;
         _newline = other._newline;
         _trimming = other._trimming;
 

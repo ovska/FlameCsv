@@ -14,7 +14,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
     public void Objects_Sync(
         CsvNewline newline,
         bool header,
-        char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
@@ -33,7 +32,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             Newline = newline,
             HasHeader = header,
             FieldQuoting = quoting,
-            Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
             MemoryPool = pool,
@@ -57,14 +55,13 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             CsvWriter.Write(output, TestDataGenerator.Objects.Value, options, new() { BufferSize = bufferSize });
         }
 
-        Validate(writer.WrittenMemory, escape.HasValue, newline.IsCRLF(), header, quoting);
+        Validate(writer.WrittenMemory, newline.IsCRLF(), header, quoting);
     }
 
     [Theory, MemberData(nameof(Args))]
     public async Task Objects_Async(
         CsvNewline newline,
         bool header,
-        char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
@@ -78,7 +75,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             Newline = newline,
             HasHeader = header,
             FieldQuoting = quoting,
-            Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
             MemoryPool = pool,
@@ -134,16 +130,10 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             }
         }
 
-        Validate(writer.WrittenMemory, escape.HasValue, newline.IsCRLF(), header, quoting);
+        Validate(writer.WrittenMemory, newline.IsCRLF(), header, quoting);
     }
 
-    private static void Validate(
-        ReadOnlyMemory<byte> result,
-        bool escapeMode,
-        bool crlf,
-        bool header,
-        CsvFieldQuoting quoting
-    )
+    private static void Validate(ReadOnlyMemory<byte> result, bool crlf, bool header, CsvFieldQuoting quoting)
     {
         bool headerRead = false;
         int index = 0;
@@ -195,10 +185,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                         if (quoting == CsvFieldQuoting.Never)
                         {
                             Assert.Equal($" Name'{index}", column);
-                        }
-                        else if (escapeMode)
-                        {
-                            Assert.Equal($"' Name^'{index}'", column);
                         }
                         else
                         {

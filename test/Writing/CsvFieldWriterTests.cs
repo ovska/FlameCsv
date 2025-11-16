@@ -98,10 +98,10 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         Assert.Equal(value, Written);
     }
 
-    [Theory, InlineData(true), InlineData(false)]
-    public async Task Should_Escape_To_Extra_Buffer(bool escapeMode)
+    [Fact]
+    public async Task Should_Escape_To_Extra_Buffer()
     {
-        Initialize(CsvFieldQuoting.Always, bufferSize: 128, escapeMode ? '^' : null);
+        Initialize(CsvFieldQuoting.Always, bufferSize: 128);
 
         // 126, raw value can be written but escaped is 130 long
         var value = $"Test \"{new string('x', 114)}\" test";
@@ -109,12 +109,7 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
         _writer.WriteField(Formatter.Instance, value);
         await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
-        Assert.Equal(
-            escapeMode
-                ? $"\"Test ^\"{new string('x', 114)}^\" test\""
-                : $"\"Test \"\"{new string('x', 114)}\"\" test\"",
-            Written
-        );
+        Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
     }
 
     [Theory, InlineData(-1), InlineData(int.MaxValue)]
@@ -165,17 +160,12 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     }
 
     [MemberNotNull(nameof(_writer))]
-    private void Initialize(CsvFieldQuoting quoting = CsvFieldQuoting.Auto, int bufferSize = 1024, char? escape = null)
+    private void Initialize(CsvFieldQuoting quoting = CsvFieldQuoting.Auto, int bufferSize = 1024)
     {
         _textWriter = new StringWriter();
         _writer = new CsvFieldWriter<char>(
             new TextBufferWriter(_textWriter, HeapMemoryPool<char>.Instance, new() { BufferSize = bufferSize }),
-            new CsvOptions<char>
-            {
-                FieldQuoting = quoting,
-                Null = "null",
-                Escape = escape,
-            }
+            new CsvOptions<char> { FieldQuoting = quoting, Null = "null" }
         );
     }
 

@@ -22,27 +22,28 @@ public class CsvOptionsTests
         // null
         Run(o => o.Delimiter = '\0');
         Run(o => o.Quote = '\0');
-        Run(o => o.Escape = '\0');
 
         // space
         Run(o => o.Delimiter = ' ');
         Run(o => o.Quote = ' ');
-        Run(o => o.Escape = ' ');
 
         // CR
         Run(o => o.Delimiter = '\r');
         Run(o => o.Quote = '\r');
-        Run(o => o.Escape = '\r');
 
         // LF
         Run(o => o.Delimiter = '\n');
         Run(o => o.Quote = '\n');
-        Run(o => o.Escape = '\n');
 
         // not ascii
         Run(o => o.Delimiter = (char)128);
         Run(o => o.Quote = (char)128);
-        Run(o => o.Escape = (char)128);
+
+        // alphanumeric or minus
+        Run(o => o.Delimiter = 'a');
+        Run(o => o.Quote = 'A');
+        Run(o => o.Delimiter = '1');
+        Run(o => o.Quote = '-');
 
         // invalid enum
         Run(o => o.Newline = (1 + CsvNewline.Platform));
@@ -65,8 +66,6 @@ public class CsvOptionsTests
 
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Delimiter = '"' }.Validate());
         Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Quote = ',' }.Validate());
-        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Escape = '"' }.Validate());
-        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Escape = ',' }.Validate());
 
         static void Run(Action<CsvOptions<char>> action)
         {
@@ -84,15 +83,23 @@ public class CsvOptionsTests
         Assert.True(def.NeedsQuoting.Contains('\n'));
         Assert.False(def.NeedsQuoting.Contains('a'));
         Assert.False(def.NeedsQuoting.Contains('\\'));
+        Assert.Same(def.NeedsQuoting, def.NeedsQuoting); // cached
+        Assert.Same(def.NeedsQuoting, def.NeedsQuotingChar); // same instance
 
-        var withEscape = new CsvOptions<char> { Escape = '\\' };
-        withEscape.MakeReadOnly();
-        Assert.True(withEscape.NeedsQuoting.Contains('\\'));
-
+        // ensure CR is quoted as well <--- why?
         var withSingleTokenNewline = new CsvOptions<char> { Newline = CsvNewline.LF };
         withSingleTokenNewline.MakeReadOnly();
         Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\n'));
         Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\r')); // both always added
+
+        var byteOpts = new CsvOptions<byte> { Delimiter = ';', Quote = '\'' };
+        byteOpts.MakeReadOnly();
+
+        Assert.True(byteOpts.NeedsQuoting.Contains((byte)';'));
+        Assert.True(byteOpts.NeedsQuoting.Contains((byte)'\''));
+
+        Assert.True(byteOpts.NeedsQuotingChar.Contains(';'));
+        Assert.True(byteOpts.NeedsQuotingChar.Contains('\''));
     }
 
     [Fact]
@@ -293,7 +300,6 @@ public class CsvOptionsTests
 
         Run(o => o.Delimiter = ',');
         Run(o => o.Quote = '"');
-        Run(o => o.Escape = null);
         Run(o => o.Newline = CsvNewline.Platform);
         Run(o => o.Trimming = CsvFieldTrimming.Leading);
         Run(o => o.RecordCallback = null);

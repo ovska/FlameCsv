@@ -68,13 +68,13 @@ await CsvWriter.WriteAsync(
 # Changelog
 
 ## 1.0.0
+- *Breaking:* Unix-style backslash escaping support removed
 - *Breaking:* Only ASCII tokens are now supported in the dialect (delimiter, quote, newline, etc.)
 - *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
-- *Breaking:* `CsvFieldQuoting` is now a flags enum, and zero values is `CsvFieldQuoting.Never`. Library default has not changed.
+- *Breaking:* `CsvFieldQuoting` is now a flags enum, and zero is `CsvFieldQuoting.Never`. Library default has not changed.
 - *Breaking:* Moved `IgnoreDuplicateHeaders` to `CsvOptions<T>`. Changed for the last match to win instead of first.
 - *Breaking:* Moved `IgnoreUnmatchedHeaders` to `CsvOptions<T>`.
 - *Breaking:* Argument to the exception handler no longer a `ref struct` or has `in`-modifier
-- *Breaking:* Parsing fields with over 536&nbsp;870&nbsp;911 quotes/escapes (0x1FFFFFFF) now throw OverflowException instead of CsvFormatException
 - *Breaking:* ImmutableArray used instead of ReadOnlySpan for header parsing (may require recompile for source generated files)
 - *Breaking:* Deleted `CsvAsyncWriter<T>` (combined with `CsvWriter<T>`), renamed `ColumnIndex` to `FieldIndex`, moved configuration to instance instead of factory method
 - *Breaking:* `CsvOptions<T>` is now sealed
@@ -89,6 +89,7 @@ await CsvWriter.WriteAsync(
 - Added hot reload support for enum changes (if they are eventually supported by the runtime)
 - Numerous parsing performance improvements on all architectures (especially Avx512BW when reading `char`)
 - Removed explicit dependency to `System.IO.Pipelines` package
+- Fixed potential problems when escaping fields with quotes near the end
 - Fixed unreachable code warnings in some source generated enum byte converters
 - Fixed potential parsing error when reading broken data on ARM64 platforms
 - Fixed potential layout bugs on certain architectures when caching type materializers with headers

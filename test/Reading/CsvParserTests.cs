@@ -17,16 +17,15 @@ public class CsvReaderTests
 
         """";
 
-    public static TheoryData<CsvNewline, Mode, bool> ReadLineData
+    public static TheoryData<CsvNewline, bool> ReadLineData
     {
         get
         {
-            var data = new TheoryData<CsvNewline, Mode, bool>();
+            var data = new TheoryData<CsvNewline, bool>();
             foreach (var newline in GlobalData.Enum<CsvNewline>())
-            foreach (var mode in (Mode[])[Mode.RFC, Mode.Escape])
             foreach (var trailingNewline in GlobalData.Booleans)
             {
-                data.Add(newline, mode, trailingNewline);
+                data.Add(newline, trailingNewline);
             }
 
             return data;
@@ -35,7 +34,7 @@ public class CsvReaderTests
 
     [Theory]
     [MemberData(nameof(ReadLineData))]
-    public void Should_Read_Lines(CsvNewline newline, Mode mode, bool trailingNewline)
+    public void Should_Read_Lines(CsvNewline newline, bool trailingNewline)
     {
         string nlt = newline.AsString();
         string data = Data.ReplaceLineEndings(nlt);
@@ -43,18 +42,6 @@ public class CsvReaderTests
         if (!trailingNewline)
         {
             data = data.TrimEnd(nlt.ToCharArray());
-        }
-
-        if (mode == Mode.Escape)
-        {
-            data = data.Replace(
-                """
-                ""The Great""
-                """,
-                """
-                ^"The Great^"
-                """
-            );
         }
 
         string[] expected =
@@ -77,7 +64,7 @@ public class CsvReaderTests
         ];
 
         var parser = new CsvReader<char>(
-            new CsvOptions<char> { Newline = newline, Escape = mode == Mode.Escape ? '^' : null },
+            new CsvOptions<char> { Newline = newline },
             CsvBufferReader.Create(MemorySegment<char>.AsSequence(data.AsMemory(), 64))
         );
 
@@ -258,45 +245,36 @@ public class CsvReaderTests
         Assert.Equal(data.Select(line => line.Select(s => s.Trim(' ').Trim('"')).ToList()), results);
     }
 
-    [Theory, InlineData(true), InlineData(false)]
-    public void Should_Ignore_CR_On_LF_Parser(bool escape)
+    [Fact]
+    public void Should_Ignore_CR_On_LF_Parser()
     {
         // large enough string so we force a SIMD path too
         string data = string.Join("\r\n", Enumerable.Repeat("1,2,3", 100)) + "\r\n";
 
-        var options = new CsvOptions<char> { Newline = CsvNewline.LF, Escape = escape ? '\\' : null };
+        var options = new CsvOptions<char> { Newline = CsvNewline.LF };
         using var reader = new CsvReader<char>(options, data.AsMemory());
 
         foreach (var record in reader.ParseRecords())
         {
-            Assert.Equal(3, record.FieldCount);
+            Assert.Equal("1,2,3\r", record.Raw);
             Assert.Equal("1", record[0].ToString());
             Assert.Equal("2", record[1].ToString());
             Assert.Equal("3\r", record[2].ToString());
         }
     }
 
-    [Theory, InlineData(true), InlineData(false)]
-    public void Should_Handle_Large_Quote_Counts(bool escape)
+    [Fact]
+    public void Should_Handle_Large_Quote_Counts()
     {
-        char c = escape ? '\\' : '"';
-
         StringBuilder data = new();
         data.Append("test,\"");
-
-        for (int i = 0; i < 200; i++)
-        {
-            data.Append(c);
-            data.Append('"');
-        }
-
+        data.Append('"', 400);
         data.Append("\",test\n");
-
         data.Append(data);
 
         foreach (
             var record in new CsvReader<char>(
-                new CsvOptions<char> { Escape = escape ? c : null, Newline = CsvNewline.LF },
+                new CsvOptions<char> { Newline = CsvNewline.LF },
                 data.ToString().AsMemory()
             ).ParseRecords()
         )

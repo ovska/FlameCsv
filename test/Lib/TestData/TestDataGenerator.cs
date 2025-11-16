@@ -53,11 +53,10 @@ public sealed record Obj : IEquatable<Obj>
     }
 }
 
-public enum Mode
+public enum Escaping
 {
     None = 0,
-    RFC = 1,
-    Escape = 2,
+    Quote = 1,
 }
 
 public static class TestDataGenerator
@@ -74,13 +73,13 @@ public static class TestDataGenerator
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<char>>> _chars = [];
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<byte>>> _bytes = [];
 
-    private readonly record struct Key(string Newline, bool WriteHeader, bool TrailingNewline, Mode Escaping);
+    private readonly record struct Key(string Newline, bool WriteHeader, bool TrailingNewline, Escaping Escaping);
 
     public static ReadOnlyMemory<T> Generate<T>(
         CsvNewline newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
-        Mode escaping
+        Escaping escaping
     )
     {
         if (typeof(T) == typeof(char))
@@ -96,7 +95,7 @@ public static class TestDataGenerator
         CsvNewline newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
-        Mode escaping
+        Escaping escaping
     )
     {
         string newLine = newLineToken.AsString();
@@ -105,7 +104,7 @@ public static class TestDataGenerator
             key,
             static key => new Lazy<ReadOnlyMemory<char>>(() =>
             {
-                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
+                (string newLine, bool writeHeader, bool writeTrailingNewline, Escaping escaping) = key;
 
                 StringBuilder writer = StringBuilderPool.Value.Get();
 
@@ -124,7 +123,7 @@ public static class TestDataGenerator
                     if (i != 0)
                         writer.Append(newLine);
 
-                    if (escaping != Mode.None)
+                    if (escaping != Escaping.None)
                     {
                         writer.Append($"\"{i}\"");
                     }
@@ -135,11 +134,7 @@ public static class TestDataGenerator
 
                     writer.Append(',');
 
-                    if (escaping == Mode.Escape)
-                    {
-                        writer.Append($"\"Name^\"{i}\"");
-                    }
-                    else if (escaping == Mode.RFC)
+                    if (escaping == Escaping.Quote)
                     {
                         writer.Append($"\"Name\"\"{i}\"");
                     }
@@ -170,7 +165,7 @@ public static class TestDataGenerator
         CsvNewline newLineToken,
         bool writeHeader,
         bool writeTrailingNewline,
-        Mode escaping
+        Escaping escaping
     )
     {
         string newLine = newLineToken.AsString();
@@ -179,7 +174,7 @@ public static class TestDataGenerator
             key,
             static key => new Lazy<ReadOnlyMemory<byte>>(() =>
             {
-                (string newLine, bool writeHeader, bool writeTrailingNewline, Mode escaping) = key;
+                (string newLine, bool writeHeader, bool writeTrailingNewline, Escaping escaping) = key;
 
                 var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
                 var writer = Utf8StringInterpolation.Utf8String.CreateWriter(innerWriter);
@@ -199,7 +194,7 @@ public static class TestDataGenerator
                     if (i != 0)
                         writer.Append(newLine);
 
-                    if (escaping != Mode.None)
+                    if (escaping != Escaping.None)
                     {
                         writer.AppendFormat($"\"{i}\"");
                     }
@@ -210,11 +205,7 @@ public static class TestDataGenerator
 
                     writer.Append(',');
 
-                    if (escaping == Mode.Escape)
-                    {
-                        writer.AppendFormat($"\"Name^\"{i}\"");
-                    }
-                    else if (escaping == Mode.RFC)
+                    if (escaping == Escaping.Quote)
                     {
                         writer.AppendFormat($"\"Name\"\"{i}\"");
                     }

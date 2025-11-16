@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using FlameCsv.Extensions;
 using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Fuzzing.Scenarios;
@@ -42,20 +41,6 @@ public class Unescape : IScenario
             else
             {
                 RFC4180Mode<T>.Unescape(quote, destination, data, count);
-            }
-
-            // ensure equality
-            int unescapedLength = IndexOfRFC4180Unescaper<T>.UnescapedLength(data.Length, count);
-            var unescaper = new IndexOfRFC4180Unescaper<T>(quote, count);
-            using var assertionMemory = PooledBoundedMemory<T>.Rent(unescapedLength, placement);
-            Span<T> assertion = assertionMemory.Span.Slice(0, unescapedLength);
-            IndexOfUnescaper.Field(data, unescaper, assertion);
-
-            if (!assertion.SequenceEqual(destination.Slice(0, unescapedLength)))
-            {
-                throw new Exception(
-                    $"Unescaped data does not match. Expected: {assertion.AsPrintableString()} Actual: {destination.Slice(0, unescapedLength).AsPrintableString()}"
-                );
             }
         }
         catch (CsvFormatException) { }

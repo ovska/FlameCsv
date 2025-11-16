@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Unescaping;
 
@@ -123,40 +124,13 @@ internal static class Field
         return retVal;
 
         EscapeOrInvalid:
-        return GetFieldNonStandard(start, field, quote, ref data, reader);
+        return Invalid(start, field, quote, ref data, reader);
     }
 
-    private static ReadOnlySpan<T> GetFieldNonStandard<T>(
-        int start,
-        uint field,
-        byte quote,
-        ref T data,
-        CsvReader<T> reader
-    )
+    private static ReadOnlySpan<T> Invalid<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        int length = End(field) - start;
-
-        ReadOnlySpan<T> retVal = MemoryMarshal
-            .CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), length)
-            .Trim(reader._dialect.Trimming);
-
-        if (
-            retVal.Length < 2
-            || retVal[^1] != reader._dialect.Quote
-            || retVal[0] != reader._dialect.Quote
-            || (!IsEscape(quote) && quote % 2 != 0)
-        )
-        {
-            return IndexOfUnescaper.Invalid(retVal, field, quote);
-        }
-
-        uint specialCount = IsSaturated(quote)
-            ? (uint)System.MemoryExtensions.Count(retVal, reader._dialect.Escape)
-            : quote & 0x7Fu;
-
-        Debug.Assert((quote & 0x80) != 0, $"Should be escape: {retVal.AsPrintableString()}");
-        return IndexOfUnescaper.Unix(retVal[1..^1], reader, specialCount);
+        throw new CsvFormatException();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

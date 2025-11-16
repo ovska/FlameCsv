@@ -24,11 +24,6 @@ internal static class CsvTokenizer
     public static CsvPartialTokenizer<T>? CreateSimd<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (options.Escape is not null || !Vector128.IsHardwareAccelerated)
-        {
-            return null;
-        }
-
 #if NET10_0_OR_GREATER
         if (Avx512Tokenizer.IsSupported)
         {
@@ -53,11 +48,6 @@ internal static class CsvTokenizer
     public static CsvTokenizer<T> Create<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (options.Escape.HasValue)
-        {
-            return new UnixTokenizer<T>(options);
-        }
-
         return options.Newline.IsCRLF()
             ? new ScalarTokenizer<T, NewlineCRLF>(options)
             : new ScalarTokenizer<T, NewlineLF>(options);

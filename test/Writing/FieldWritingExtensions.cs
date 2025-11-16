@@ -68,16 +68,6 @@ public class FieldWritingExtensionsTests
         var nfi = new NumberFormatInfo { NumberDecimalSeparator = "," };
         Assert.Equal("\"1,23\"", Chars(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi)));
         Assert.Equal("\"1,23\"", Bytes(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi)));
-
-        nfi = new NumberFormatInfo { NumberDecimalSeparator = "\"" };
-        Assert.Equal(
-            "\"1\\\"23\"",
-            Chars(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi), new() { Escape = '\\' })
-        );
-        Assert.Equal(
-            "\"1\\\"23\"",
-            Bytes(w => w.FormatValue(1.23, format: "F2", formatProvider: nfi), new() { Escape = '\\' })
-        );
     }
 
     private static string Chars(Action<CsvFieldWriter<char>> func, CsvOptions<char>? options = null)

@@ -109,7 +109,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable
                 || typeof(T) == typeof(ulong)
                 || typeof(T) == typeof(ushort)
                 || typeof(T) == typeof(sbyte)
-                || typeof(T) == typeof(char)
                 || typeof(T) == typeof(float)
                 || typeof(T) == typeof(double)
                 || typeof(T) == typeof(decimal)
@@ -182,7 +181,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
 
             if (result.NeedsQuoting)
             {
-                // ensure writer returns correct length buffer
+                // ensure writer returns correct length buffer. hopefully this elides the bounds checks later
                 _ = destination[1];
 
                 if (result.SpecialCount == 0)
@@ -204,7 +203,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
             }
             else
             {
-                bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
+                bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination));
             }
 
             Writer.Advance(bytesWritten);

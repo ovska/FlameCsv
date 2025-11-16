@@ -14,7 +14,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
     public void Objects_Sync(
         CsvNewline newline,
         bool header,
-        char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
@@ -28,7 +27,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             Newline = newline,
             HasHeader = header,
             FieldQuoting = quoting,
-            Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
             MemoryPool = pool,
@@ -70,7 +68,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             }
         }
 
-        Validate(output, escape.HasValue, newline.IsCRLF(), header, quoting);
+        Validate(output, newline.IsCRLF(), header, quoting);
         StringBuilderPool.Value.Return(output);
     }
 
@@ -78,7 +76,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
     public async Task Objects_Async(
         CsvNewline newline,
         bool header,
-        char? escape,
         CsvFieldQuoting quoting,
         bool sourceGen,
         int bufferSize,
@@ -95,7 +92,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             Newline = newline,
             HasHeader = header,
             FieldQuoting = quoting,
-            Escape = escape,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
             MemoryPool = pool,
@@ -125,7 +121,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             );
         }
 
-        Validate(output, escape.HasValue, newline.IsCRLF(), header, quoting);
+        Validate(output, newline.IsCRLF(), header, quoting);
         StringBuilderPool.Value.Return(output);
     }
 
@@ -149,7 +145,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         Assert.Equal("Id,Name,IsEnabled\r\n1,Bob,true\r\n", sw.ToString());
     }
 
-    private static void Validate(StringBuilder sb, bool escapeMode, bool crlf, bool header, CsvFieldQuoting quoting)
+    private static void Validate(StringBuilder sb, bool crlf, bool header, CsvFieldQuoting quoting)
     {
         ReadOnlySequence<char> sequence = StringBuilderSegment.Create(sb);
         Assert.True(sequence.IsSingleSegment);
@@ -202,10 +198,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                         if (quoting == CsvFieldQuoting.Never)
                         {
                             Assert.Equal($" Name'{index}", column);
-                        }
-                        else if (escapeMode)
-                        {
-                            Assert.Equal($"' Name^'{index}'", column);
                         }
                         else
                         {
