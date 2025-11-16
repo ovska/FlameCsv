@@ -117,7 +117,7 @@ internal sealed class RecordBuffer : IDisposable
         nuint idx = 0;
 
         // arm64
-        if (AdvSimd.IsSupported)
+        if (false && AdvSimd.IsSupported) // TODO FIX!
         {
             nint unrolledEnd = end - Vector256<byte>.Count;
 
