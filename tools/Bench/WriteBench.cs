@@ -183,7 +183,7 @@ public partial class WriteBench
         CsvWriter.Write(TextWriter.Null, _data);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Generic_TypeMap()
     {
         CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default);
@@ -195,6 +195,17 @@ public partial class WriteBench
         return CsvWriter.WriteAsync(TextWriter.Null, _data);
     }
 
+    [Benchmark]
+    public Task ParallelAsync()
+    {
+        return CsvParallel.WriteUnorderedAsync(
+            _data,
+            CsvOptions<char>.Default,
+            CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
+            (m, ct) => new ValueTask(TextWriter.Null.WriteAsync(m, ct))
+        );
+    }
+
     // [Benchmark]
     public Task Async_Generic_TypeMap()
     {
@@ -202,6 +213,17 @@ public partial class WriteBench
     }
 
     [Benchmark]
+    public void Parallel()
+    {
+        CsvParallel.WriteUnordered(
+            _data,
+            CsvOptions<char>.Default,
+            CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
+            TextWriter.Null.Write
+        );
+    }
+
+    // [Benchmark]
     public void Yardstick()
     {
         using var writer = new ArrayPoolBufferWriter<char>(initialCapacity: 32 * 1024);
@@ -343,7 +365,7 @@ public partial class WriteBench
         writer.Writer.Complete(null);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Sepp()
     {
         using var writer = Sep.Writer(c => c with { Sep = new(','), Escape = true, WriteHeader = true })
@@ -391,7 +413,7 @@ public partial class WriteBench
     [GlobalSetup]
     public void Setup()
     {
-        const string Path = @"/Users/sipi/Code/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb.csv";
+        const string Path = @"/Users/sipi/Code/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb_4x.csv";
 
         // _data = CsvReader.ReadFromFile<Obj>(Path, CsvOptions<byte>.Default).ToArray();
         using var r = new CsvHelper.CsvReader(
@@ -439,4 +461,39 @@ public partial class WriteBench
 
     [CsvTypeMap<char, Obj>]
     public partial class ObjTypeMap;
+
+    private sealed class NonListLike<T>(T[] value) : IEnumerable<T>
+    {
+        public IEnumerator<T> GetEnumerator()
+        {
+            return new NonListLikeEnumerator<T>(value);
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+
+    private sealed class NonListLikeEnumerator<T>(T[] value) : IEnumerator<T>
+    {
+        private int _index = -1;
+
+        public T Current => value[_index];
+
+        object? System.Collections.IEnumerator.Current => Current;
+
+        public void Dispose() { }
+
+        public bool MoveNext()
+        {
+            _index++;
+            return _index < value.Length;
+        }
+
+        public void Reset()
+        {
+            _index = -1;
+        }
+    }
 }

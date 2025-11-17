@@ -1,332 +1,14 @@
-﻿#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using System.Threading.Channels;
+using FlameCsv.IO;
+using FlameCsv.ParallelUtils;
+using FlameCsv.Writing;
 
 namespace FlameCsv;
 
-using IO;
-#if FEATURE_PARALLEL
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using Reading;
-using Reading.Internal;
-using JetBrains.Annotations;
-
-/// <summary>
-/// Provides methods for parallel processing of CSV data.
-/// </summary>
-[PublicAPI]
-public static class CsvParallel
-{
-    private static ParallelOptions DefaultParallelOptions { get; } = new();
-
-    public static ParallelLoopResult ForEach<T>(
-        ICsvPipeReader<T> reader,
-        Action<CsvValueRecord<T>> action,
-        CsvOptions<T>? options = null,
-        ParallelOptions? parallelOptions = null
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(action);
-
-        options ??= CsvOptions<T>.Default;
-        parallelOptions ??= DefaultParallelOptions;
-
-        RecordTracker tracker = new();
-
-        return Parallel.ForEach(
-            GetParallelQuery(options, reader, tracker, parallelOptions.CancellationToken),
-            parallelOptions,
-            record =>
-            {
-                try
-                {
-                    action(record);
-                }
-                finally
-                {
-                    tracker.ReleaseRecord();
-                }
-            }
-        );
-    }
-
-    public static Task ForEachAsync<T>(
-        ICsvPipeReader<T> reader,
-        Func<CsvValueRecord<T>, CancellationToken, ValueTask> action,
-        CsvOptions<T>? options = null,
-        ParallelOptions? parallelOptions = null
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(action);
-
-        options ??= CsvOptions<T>.Default;
-        parallelOptions ??= DefaultParallelOptions;
-
-        RecordTracker tracker = new();
-
-        return Parallel.ForEachAsync(
-            GetParallelQueryAsync(options, reader, tracker, parallelOptions.CancellationToken),
-            parallelOptions,
-            async (record, ct) =>
-            {
-                try
-                {
-                    await action(record, ct).ConfigureAwait(false);
-                }
-                finally
-                {
-                    tracker.ReleaseRecord();
-                }
-            }
-        );
-    }
-
-    internal static IEnumerable<CsvValueRecord<T>> GetParallelQuery<T>(
-        CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
-        [HandlesResourceDisposal] RecordTracker trackerArg,
-        CancellationToken cancellationToken
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(reader);
-
-        using var tracker = trackerArg;
-        using var slabAllocator = new SlabAllocator<T>(options.Allocator);
-
-        using CsvParser<T> parser = CsvParser.CreateCore(
-            options,
-            reader,
-            new CsvParserOptions<T> { UnescapeAllocator = slabAllocator, MultiSegmentAllocator = slabAllocator }
-        );
-
-        using ParallelEnumerationOwner owner = new();
-
-        int line = 0;
-        long position = 0;
-        bool needsHeader = parser.Options.HasHeader;
-
-        CsvFields<T> fields;
-        CsvValueRecord<T> record;
-
-        while (parser.TryAdvanceReader())
-        {
-            if (!parser.TryReadLine(out fields, isFinalBlock: false))
-            {
-                continue;
-            }
-
-            if (TryYield(in fields, out record))
-            {
-                yield return record;
-            }
-
-            while (parser.TryGetBuffered(out fields))
-            {
-                if (TryYield(in fields, out record))
-                {
-                    yield return record;
-                }
-            }
-
-            owner.NextVersion();
-            slabAllocator.Reset();
-        }
-
-        // read the final block
-        while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
-        {
-            if (TryYield(in fields, out record))
-            {
-                yield return record;
-            }
-        }
-
-        bool TryYield(in CsvFields<T> fieldsLocal, out CsvValueRecord<T> recordLocal)
-        {
-            bool retVal = false;
-            Interlocked.Increment(ref line);
-
-            if (needsHeader)
-            {
-                CsvFieldsRef<T> fieldsRef = new(in fieldsLocal, parser._unescapeAllocator);
-
-                owner.Header = CsvHeader.Parse(
-                    parser.Options,
-                    ref fieldsRef,
-                    options.Comparer,
-                    static (comparer, headers) => new CsvHeader(comparer, headers)
-                );
-
-                needsHeader = false;
-                recordLocal = default;
-            }
-            else
-            {
-                tracker.AddRecord();
-                recordLocal = new CsvValueRecord<T>(version: 0, position, line, in fields, options, owner);
-                retVal = true;
-            }
-
-            Interlocked.Add(ref position, fields.GetRecordLength(includeTrailingNewline: true));
-            return retVal;
-        }
-    }
-
-    [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task")]
-    internal static async IAsyncEnumerable<CsvValueRecord<T>> GetParallelQueryAsync<T>(
-        CsvOptions<T> options,
-        ICsvPipeReader<T> reader,
-        [HandlesResourceDisposal] RecordTracker trackerArg,
-        [EnumeratorCancellation] CancellationToken cancellationToken
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(reader);
-
-        using var tracker = trackerArg;
-        using var slabAllocator = new SlabAllocator<T>(options.Allocator);
-
-        await using CsvParser<T> parser = CsvParser.CreateCore(
-            options,
-            reader,
-            new CsvParserOptions<T> { UnescapeAllocator = slabAllocator, MultiSegmentAllocator = slabAllocator }
-        );
-
-        using ParallelEnumerationOwner owner = new();
-
-        int line = 0;
-        long position = 0;
-        bool needsHeader = parser.Options.HasHeader;
-
-        CsvFields<T> fields;
-        CsvValueRecord<T> record;
-
-        while (await parser.TryAdvanceReaderAsync(cancellationToken))
-        {
-            if (!parser.TryReadLine(out fields, isFinalBlock: false))
-            {
-                continue;
-            }
-
-            if (TryYield(in fields, out record))
-            {
-                yield return record;
-
-                // wait until the previous record is released - we can't proceed until the unbuffered record is handled
-                await tracker.WaitForAllRecordsReleasedAsync(cancellationToken);
-            }
-
-            while (parser.TryGetBuffered(out fields))
-            {
-                if (TryYield(in fields, out record))
-                {
-                    yield return record;
-                }
-            }
-
-            await tracker.WaitForAllRecordsReleasedAsync(cancellationToken);
-            owner.NextVersion();
-            slabAllocator.Reset();
-        }
-
-        // read the final block
-        while (parser.TryReadUnbuffered(out fields, isFinalBlock: true))
-        {
-            if (TryYield(in fields, out record))
-            {
-                yield return record;
-            }
-        }
-
-        bool TryYield(in CsvFields<T> fieldsLocal, out CsvValueRecord<T> recordLocal)
-        {
-            bool retVal = false;
-            Interlocked.Increment(ref line);
-
-            if (needsHeader)
-            {
-                CsvFieldsRef<T> fieldsRef = new(in fieldsLocal, parser._unescapeAllocator);
-
-                owner.Header = CsvHeader.Parse(
-                    parser.Options,
-                    ref fieldsRef,
-                    options.Comparer,
-                    static (comparer, headers) => new CsvHeader(comparer, headers)
-                );
-
-                needsHeader = false;
-                recordLocal = default;
-            }
-            else
-            {
-                tracker.AddRecord();
-                recordLocal = new CsvValueRecord<T>(version: 0, position, line, in fields, options, owner);
-                retVal = true;
-            }
-
-            Interlocked.Add(ref position, fields.GetRecordLength(includeTrailingNewline: true));
-            return retVal;
-        }
-    }
-}
-
-internal sealed class RecordTracker : IDisposable
-{
-    private long _activeRecordCount;
-    private readonly SemaphoreSlim _allCompleted = new(initialCount: 1, maxCount: 1);
-
-    public void AddRecord()
-    {
-        if (Interlocked.Increment(ref _activeRecordCount) == 1)
-        {
-            // First active record - acquire the semaphore to block completion signaling
-            _allCompleted.Wait(0);
-        }
-    }
-
-    public void ReleaseRecord()
-    {
-        if (Interlocked.Decrement(ref _activeRecordCount) == 0)
-        {
-            // Last record completed - signal completion
-            _allCompleted.Release();
-        }
-    }
-
-    public void WaitForAllRecordsReleased(CancellationToken cancellationToken)
-    {
-        if (Interlocked.Read(ref _activeRecordCount) > 0)
-        {
-            _allCompleted.Wait(cancellationToken);
-            // Don't release here - next AddRecord will check and acquire if needed
-            _allCompleted.Release();
-        }
-    }
-
-    public async ValueTask WaitForAllRecordsReleasedAsync(CancellationToken cancellationToken)
-    {
-        if (Interlocked.Read(ref _activeRecordCount) > 0)
-        {
-            await _allCompleted.WaitAsync(cancellationToken).ConfigureAwait(false);
-            _allCompleted.Release();
-        }
-    }
-
-    public void Dispose() => _allCompleted.Dispose();
-}
-#else
-
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class CsvParallel
 {
-    private static ParallelOptions DefaultParallelOptions { get; } = new();
-
     public static ParallelLoopResult ForEach<T>(
         ICsvBufferReader<T> reader,
         Action<CsvRecord<T>> action,
@@ -348,5 +30,309 @@ internal static class CsvParallel
     {
         throw new NotSupportedException();
     }
+
+    internal static void WriteUnordered<T, TValue>(
+        IEnumerable<TValue> source,
+        CsvOptions<T> options,
+        IDematerializer<T, TValue> dematerializer,
+        Action<ReadOnlySpan<T>> sink,
+        int chunkSize = 128,
+        ParallelOptions? parallelOptions = null
+    )
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ParallelCore<TValue, CsvWriterProducer<T, TValue>, CsvWriterConsumer<T>, CsvFieldWriter<T>>(
+            source.Chunk(chunkSize),
+            new CsvWriterProducer<T, TValue>(options, dematerializer, sink),
+            new CsvWriterConsumer<T>(),
+            parallelOptions
+        );
+    }
+
+    internal static Task WriteUnorderedAsync<T, TValue>(
+        IEnumerable<TValue> source,
+        CsvOptions<T> options,
+        IDematerializer<T, TValue> dematerializer,
+        Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> sink,
+        int chunkSize = 128,
+        ParallelOptions? parallelOptions = null
+    )
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);
+
+        return ParallelAsyncCore<TValue, CsvWriterProducer<T, TValue>, CsvWriterConsumer<T>, CsvFieldWriter<T>>(
+            source.Chunk(chunkSize),
+            new CsvWriterProducer<T, TValue>(options, dematerializer, sink),
+            new CsvWriterConsumer<T>(),
+            parallelOptions
+        );
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static void ParallelCore<T, TProducer, TConsumer, TState>(
+        IEnumerable<T[]> source,
+        TProducer producer,
+        TConsumer consumer,
+        ParallelOptions? parallelOptions = null
+    )
+        where TProducer : struct, IProducer<T, TState>
+        where TConsumer : struct, IConsumer<TState>
+    {
+        parallelOptions?.CancellationToken.ThrowIfCancellationRequested();
+
+        producer.BeforeLoop();
+
+        long faultedOn = -1;
+
+        ConcurrentQueue<TState> consumerQueue = [];
+        Exception? consumerException = null;
+        Exception? producerException = null;
+
+        const int MaxQueuedConsumers = 2;
+        using SemaphoreSlim producerSignal = new(initialCount: 0); // limits how many producers can be active
+        using SemaphoreSlim consumerSignal = new(initialCount: 0); // signals when there are items to consume
+        using var cts = parallelOptions is { CancellationToken: { CanBeCanceled: true } userToken }
+            ? CancellationTokenSource.CreateLinkedTokenSource(userToken)
+            : new CancellationTokenSource();
+
+        long activeProducers = 0;
+
+        Task consumerTask = Task.Run(
+            () =>
+            {
+                while (!cts.Token.IsCancellationRequested)
+                {
+                    consumerSignal.Wait(cts.Token);
+
+                    while (consumerQueue.TryDequeue(out TState? state))
+                    {
+                        try
+                        {
+                            consumer.Consume(in state);
+                        }
+                        catch (Exception e)
+                        {
+                            consumerException = e;
+                            cts.Cancel();
+                        }
+                        finally
+                        {
+                            consumer.Finalize(in state, consumerException);
+                            producerSignal.Release();
+                        }
+                    }
+
+                    if (Volatile.Read(in activeProducers) == 0)
+                    {
+                        break; // All done, queue was empty
+                    }
+                }
+            },
+            CancellationToken.None
+        );
+
+        ParallelLoopResult result = Parallel.ForEach(
+            source: source,
+            parallelOptions: new ParallelOptions
+            {
+                MaxDegreeOfParallelism = parallelOptions?.MaxDegreeOfParallelism ?? -1,
+                TaskScheduler = parallelOptions?.TaskScheduler,
+                CancellationToken = cts.Token,
+            },
+            localInit: () =>
+            {
+                producerSignal.Release(MaxQueuedConsumers); // make space for writers
+                Interlocked.Increment(ref activeProducers);
+                return producer.CreateState();
+            },
+            body: (chunk, loopState, index, state) =>
+            {
+                try
+                {
+                    foreach (var item in chunk)
+                    {
+                        if (consumer.ShouldConsume(in state))
+                        {
+                            consumerQueue.Enqueue(state);
+                            consumerSignal.Release(); // signal that consumer should work
+                            producerSignal.Wait(cts.Token); // wait until there's space for another producer
+                            state = producer.CreateState();
+                        }
+
+                        producer.Produce(item, ref state);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Interlocked.CompareExchange(ref faultedOn, index, -1);
+                    producerException = e;
+                    loopState.Stop();
+                    cts.Cancel();
+                }
+
+                return state;
+            },
+            localFinally: state =>
+            {
+                consumerQueue.Enqueue(state);
+                consumerSignal.Release(); // signal that consumer should work
+
+                if (Interlocked.Decrement(ref activeProducers) == 0)
+                {
+                    consumerSignal.Release(); // Wake up consumer to check completion
+                }
+            }
+        );
+
+        // this should only contain items on exception
+        while (consumerQueue.TryDequeue(out TState? state))
+        {
+            consumer.Finalize(in state, producerException ?? consumerException);
+        }
+
+        consumerTask.GetAwaiter().GetResult();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    internal static async Task ParallelAsyncCore<T, TProducer, TConsumer, TState>(
+        IEnumerable<T[]> source,
+        TProducer producer,
+        TConsumer consumer,
+        ParallelOptions? parallelOptions = null
+    )
+        where TProducer : struct, IProducer<T, TState>
+        where TConsumer : struct, IConsumer<TState>
+    {
+        parallelOptions?.CancellationToken.ThrowIfCancellationRequested();
+
+        await producer.BeforeLoopAsync(parallelOptions?.CancellationToken ?? default).ConfigureAwait(false);
+
+        using var cts = parallelOptions is { CancellationToken: { CanBeCanceled: true } userToken }
+            ? CancellationTokenSource.CreateLinkedTokenSource(userToken)
+            : new CancellationTokenSource();
+
+        AsyncLocal<StrongBox<TState>> localState = new(); // per-thread state
+        ConcurrentQueue<TState> createdStates = []; // all created states to be finalized later
+
+        Exception? consumerException = null;
+        Exception? producerException = null;
+
+        int channelCapacity = parallelOptions?.MaxDegreeOfParallelism is int parallelism and > 0
+            ? Math.Min(parallelism, Environment.ProcessorCount)
+            : Environment.ProcessorCount;
+
+        Channel<TState> channel = Channel.CreateBounded<TState>(
+            new BoundedChannelOptions(channelCapacity)
+            {
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.Wait,
+            }
+        );
+
+        Task consumerTask = Task.Run(
+            async () =>
+            {
+                while (
+                    !cts.IsCancellationRequested
+                    && await channel.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false)
+                )
+                {
+                    while (channel.Reader.TryRead(out TState? state))
+                    {
+                        try
+                        {
+                            await consumer.ConsumeAsync(state, cts.Token).ConfigureAwait(false);
+                        }
+                        catch (Exception e)
+                        {
+                            consumerException ??= e;
+                            cts.Cancel();
+                            break;
+                        }
+                        finally
+                        {
+                            await consumer.FinalizeAsync(state, consumerException).ConfigureAwait(false);
+                        }
+                    }
+                }
+            },
+            CancellationToken.None
+        );
+
+        try
+        {
+            await Parallel
+                .ForEachAsync(
+                    source,
+                    parallelOptions: new ParallelOptions
+                    {
+                        MaxDegreeOfParallelism = parallelOptions?.MaxDegreeOfParallelism ?? -1,
+                        TaskScheduler = parallelOptions?.TaskScheduler,
+                        CancellationToken = cts.Token,
+                    },
+                    body: async (chunk, cancellationToken) =>
+                    {
+                        try
+                        {
+                            StrongBox<TState>? box = localState.Value;
+
+                            if (box is null)
+                            {
+                                box = localState.Value = new StrongBox<TState>(producer.CreateState());
+                                createdStates.Enqueue(box.Value!);
+                            }
+
+                            foreach (var item in chunk)
+                            {
+                                if (consumer.ShouldConsume(in box.Value!))
+                                {
+                                    await channel
+                                        .Writer.WriteAsync(box.Value!, cancellationToken)
+                                        .ConfigureAwait(false);
+                                    box.Value = producer.CreateState();
+                                }
+
+                                producer.Produce(item, ref box.Value!);
+                            }
+                        }
+                        catch
+                        {
+                            cts.Cancel();
+                            throw;
+                        }
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            producerException ??= e;
+        }
+
+        Exception? exception = producerException ?? consumerException;
+
+        while (createdStates.TryDequeue(out TState? state))
+        {
+            if (exception is null)
+            {
+                await channel.Writer.WriteAsync(state, cts.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                await consumer.FinalizeAsync(state, exception).ConfigureAwait(false);
+            }
+        }
+
+        channel.Writer.Complete(exception);
+
+        if (producerException is not null)
+            producer.OnException(producerException);
+
+        if (consumerException is not null)
+            consumer.OnException(consumerException);
+
+        await consumerTask.ConfigureAwait(false);
+    }
 }
-#endif

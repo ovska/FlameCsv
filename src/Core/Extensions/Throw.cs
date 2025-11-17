@@ -58,6 +58,12 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void NotSupported(string message)
+    {
+        throw new NotSupportedException(message);
+    }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void NotSupported_CsvHasNoHeader()
     {
         throw new NotSupportedException("The CSV does not have a header record.");

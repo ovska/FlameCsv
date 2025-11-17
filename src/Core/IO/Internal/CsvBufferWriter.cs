@@ -26,6 +26,8 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         get => _unflushed >= _flushThreshold;
     }
 
+    internal ReadOnlyMemory<T> WrittenMemory => _buffer.Slice(0, _unflushed);
+
     protected bool IsDisposed => _unflushed == -1;
 
     protected CsvBufferWriter(MemoryPool<T> allocator, in CsvIOOptions options)
