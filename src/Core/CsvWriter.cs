@@ -6,8 +6,6 @@ using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
 
-// ReSharper disable InlineTemporaryVariable
-
 namespace FlameCsv;
 
 /// <summary>

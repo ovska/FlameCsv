@@ -3,8 +3,6 @@ using FlameCsv.Attributes;
 using FlameCsv.Converters;
 using FlameCsv.Exceptions;
 
-// ReSharper disable UnusedMember.Local
-
 namespace FlameCsv.Tests.Binding;
 
 public static class CsvBooleanValuesAttributeTests

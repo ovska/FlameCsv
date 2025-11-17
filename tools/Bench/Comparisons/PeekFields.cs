@@ -5,8 +5,6 @@ using FlameCsv.Reading;
 using nietras.SeparatedValues;
 using Sylvan.Data.Csv;
 
-// ReSharper disable all
-
 namespace FlameCsv.Benchmark.Comparisons;
 
 [MemoryDiagnoser]

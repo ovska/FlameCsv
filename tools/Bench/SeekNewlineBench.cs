@@ -1,5 +1,3 @@
-// ReSharper disable all
-
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;

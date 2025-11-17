@@ -2,9 +2,6 @@
 using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
 
-// ReSharper disable ConvertIfStatementToSwitchStatement
-// ReSharper disable LoopCanBeConvertedToQuery
-
 namespace FlameCsv.Tests.Reading;
 
 public sealed class CsvReaderTestsUtf8 : CsvReaderTestsBase<byte>

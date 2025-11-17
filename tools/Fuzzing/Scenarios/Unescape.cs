@@ -3,7 +3,6 @@ using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Fuzzing.Scenarios;
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public class Unescape : IScenario
 {
     public static bool SupportsUtf16 => true;

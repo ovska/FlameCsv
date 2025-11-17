@@ -7,8 +7,6 @@ using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
 
-// ReSharper disable AccessToDisposedClosure
-
 namespace FlameCsv.Tests.Reading;
 
 public abstract class CsvReaderTestsBase

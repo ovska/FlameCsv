@@ -5,7 +5,6 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv.Reflection;
 
-// ReSharper disable once ClassNeverInstantiated.Global
 internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum>
     where TEnum : struct, Enum
 {

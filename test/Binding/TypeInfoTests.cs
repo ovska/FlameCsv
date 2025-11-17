@@ -4,8 +4,6 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Tests.Binding;
 
-// ReSharper disable UnusedParameter.Local
-// ReSharper disable UnusedMember.Local
 #pragma warning disable CS0414 // Field is assigned but its value is never used
 #pragma warning disable CS9113 // Parameter is unread.
 

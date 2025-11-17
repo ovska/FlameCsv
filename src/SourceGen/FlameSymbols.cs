@@ -1,6 +1,5 @@
 ﻿namespace FlameCsv.SourceGen;
 
-// ReSharper disable InconsistentNaming
 using NNW = NotNullWhenAttribute;
 
 // ref struct to avoid accidental storage

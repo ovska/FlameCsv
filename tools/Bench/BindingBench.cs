@@ -1,5 +1,4 @@
-﻿// ReSharper disable all
-using System.Globalization;
+﻿using System.Globalization;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using Sylvan.Data;

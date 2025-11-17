@@ -2,9 +2,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
-// ReSharper disable UnusedMember.Local
-// ReSharper disable once ClassNeverInstantiated.Global
-
 namespace FlameCsv.Fuzzing.Scenarios;
 
 public class Converters : IScenario

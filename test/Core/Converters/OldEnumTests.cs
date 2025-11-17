@@ -4,8 +4,6 @@ using FlameCsv.Converters.Enums;
 using FlameCsv.Reflection;
 using FlameCsv.Utilities.Comparers;
 
-// ReSharper disable UnusedMember.Global
-
 namespace FlameCsv.Tests.Converters;
 
 public static class OldEnumTests

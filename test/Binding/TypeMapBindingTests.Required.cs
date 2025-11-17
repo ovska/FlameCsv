@@ -2,7 +2,7 @@
 using FlameCsv.Attributes;
 using FlameCsv.Converters.Enums;
 
-// ReSharper disable all
+
 
 namespace FlameCsv.Tests.Binding;
 

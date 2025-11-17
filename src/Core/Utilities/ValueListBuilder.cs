@@ -1,5 +1,5 @@
 ﻿#pragma warning disable CS1587
-// ReSharper disable all
+
 #nullable enable
 using System.Buffers;
 using System.Diagnostics;

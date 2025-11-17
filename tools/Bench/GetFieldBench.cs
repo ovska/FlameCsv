@@ -1,5 +1,5 @@
 #if false
-// ReSharper disable all
+
 
 using FlameCsv.Intrinsics;
 using FlameCsv.IO.Internal;

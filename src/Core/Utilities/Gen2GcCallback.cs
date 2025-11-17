@@ -5,9 +5,6 @@ using System.Runtime.InteropServices;
 using JetBrains.Annotations;
 
 #pragma warning disable CA1806
-// ReSharper disable RedundantCatchClause
-// ReSharper disable ObjectCreationAsStatement
-// ReSharper disable UnusedMember.Global
 
 namespace FlameCsv.Utilities;
 

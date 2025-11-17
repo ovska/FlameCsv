@@ -1,5 +1,4 @@
-﻿// ReSharper disable RedundantUsingDirective.Global
-global using FlameCsv.Exceptions;
+﻿global using FlameCsv.Exceptions;
 global using FlameCsv.Fuzzing.Scenarios;
 global using FlameCsv.Fuzzing.Utilities;
 global using FlameCsv.IO;

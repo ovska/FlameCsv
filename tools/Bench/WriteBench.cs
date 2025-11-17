@@ -7,9 +7,6 @@ using FlameCsv.Writing;
 using FlameCsv.Writing.Escaping;
 using nietras.SeparatedValues;
 
-// ReSharper disable InconsistentNaming
-// ReSharper disable ClassNeverInstantiated.Global
-
 namespace FlameCsv.Benchmark;
 
 [MemoryDiagnoser]

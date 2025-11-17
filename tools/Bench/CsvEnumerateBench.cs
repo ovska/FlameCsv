@@ -2,8 +2,6 @@
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
 
-// ReSharper disable all
-
 namespace FlameCsv.Benchmark;
 
 // [MemoryDiagnoser(displayGenColumns: false)]

@@ -5,8 +5,6 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
-// ReSharper disable all
-
 namespace FlameCsv.SourceGen.Helpers;
 
 [SuppressMessage("Style", "IDE0301:Simplify collection initialization")]

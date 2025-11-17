@@ -10,7 +10,11 @@ namespace FlameCsv.Tests.SourceGen;
 [Collection(typeof(MetadataCollection))]
 public class TypeMapTests(MetadataFixture fixture)
 {
-    private readonly MetadataReference[] _metadataReferences = [ReferenceAssemblies.SystemRuntime, fixture.FlameCsvCore];
+    private readonly MetadataReference[] _metadataReferences =
+    [
+        ReferenceAssemblies.SystemRuntime,
+        fixture.FlameCsvCore,
+    ];
 
     [Fact]
     public void Test_Cacheability()

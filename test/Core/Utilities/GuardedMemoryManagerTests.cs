@@ -1,7 +1,5 @@
 ﻿using System.Runtime.Versioning;
 
-// ReSharper disable UnusedMember.Global
-
 namespace FlameCsv.Tests.Utilities;
 
 public class GuardedMemoryManagerCharTests : GuardedMemoryManagerTestsBase<char>;

@@ -95,8 +95,8 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         writer.Write("@s__p_Id_");
         writer.Write(HeaderName);
     }
-    
-        public void WriteOverrideId(IndentedTextWriter writer)
+
+    public void WriteOverrideId(IndentedTextWriter writer)
     {
         writer.Write("@s__p_Override_");
         writer.Write(HeaderName);

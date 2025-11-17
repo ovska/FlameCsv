@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
 
-// ReSharper disable InconsistentNaming
-
 namespace FlameCsv.Tests.Converters;
 
 public abstract class EnumTests<T>

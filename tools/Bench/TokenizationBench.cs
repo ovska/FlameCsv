@@ -1,4 +1,3 @@
-// ReSharper disable all
 using System.Text;
 using FlameCsv.Reading.Internal;
 

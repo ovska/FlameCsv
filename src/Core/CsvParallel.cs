@@ -321,7 +321,7 @@ internal sealed class RecordTracker : IDisposable
     public void Dispose() => _allCompleted.Dispose();
 }
 #else
-// ReSharper disable All
+
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class CsvParallel
 {

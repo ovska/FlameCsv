@@ -6,7 +6,6 @@ using nietras.SeparatedValues;
 using Sylvan.Data.Csv;
 
 #pragma warning disable CA1859
-// ReSharper disable all
 
 namespace FlameCsv.Benchmark.Comparisons;
 

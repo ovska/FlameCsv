@@ -2,8 +2,6 @@
 using FlameCsv.Attributes;
 using FlameCsv.Exceptions;
 
-// ReSharper disable InconsistentNaming
-
 namespace FlameCsv.Tests.Binding;
 
 public static partial class TypeMapBindingTests

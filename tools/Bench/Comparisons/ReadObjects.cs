@@ -6,8 +6,6 @@ using FlameCsv.IO;
 using Sylvan.Data;
 using Sylvan.Data.Csv;
 
-// ReSharper disable all
-
 namespace FlameCsv.Benchmark.Comparisons;
 
 [MemoryDiagnoser]

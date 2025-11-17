@@ -18,13 +18,12 @@ internal sealed record EnumModel
         if (
             converterSymbol is INamedTypeSymbol converterType
             && attributeData.AttributeClass
-                is
-            {
-                TypeArguments: [
-                { } tokenType,
+                is {
+                    TypeArguments: [
+                        { } tokenType,
                         INamedTypeSymbol { CanBeReferencedByName: true, EnumUnderlyingType: not null } enumType,
                     ]
-            }
+                }
         )
         {
             if (tokenType.SpecialType is not (SpecialType.System_Byte or SpecialType.System_Char))

@@ -139,7 +139,7 @@ public class NeedsQuotingBench
             cmpQuote = AdvSimd.ShiftRightLogical(cmpQuote, 15);
             any |= cmpDelim | cmpLF | cmpCR;
             quoteSum += cmpQuote;
-        
+
             index += (nuint)Vector128<short>.Count;
         }
 

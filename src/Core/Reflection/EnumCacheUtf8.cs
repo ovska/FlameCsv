@@ -5,8 +5,6 @@ using FlameCsv.Converters.Enums;
 using FlameCsv.Utilities;
 using FlameCsv.Utilities.Comparers;
 
-// ReSharper disable StaticMemberInGenericType
-
 namespace FlameCsv.Reflection;
 
 // strings cannot be directly used with other alternate comparers than ROS<char>
@@ -21,7 +19,6 @@ internal readonly struct StringLike
     public static implicit operator ReadOnlySpan<char>(StringLike value) => value.Value;
 }
 
-// ReSharper disable once ClassNeverInstantiated.Global
 internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
     where TEnum : struct, Enum
 {

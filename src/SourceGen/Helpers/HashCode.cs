@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 #pragma warning disable CS0809 // Obsolete member overrides non-obsolete member
-// ReSharper disable all
+
 
 namespace FlameCsv.SourceGen.Helpers;
 

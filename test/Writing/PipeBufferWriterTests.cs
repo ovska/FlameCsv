@@ -3,8 +3,6 @@ using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.IO.Internal;
 
-// ReSharper disable InconsistentNaming
-
 namespace FlameCsv.Tests.Writing;
 
 public sealed class PipeBufferWriterTests : IAsyncDisposable

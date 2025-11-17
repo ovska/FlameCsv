@@ -3,8 +3,6 @@ using System.Text;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
-// ReSharper disable DisposeOnUsingVariable
-
 namespace FlameCsv.Tests.IO;
 
 public static class ConstantBufferReaderTests

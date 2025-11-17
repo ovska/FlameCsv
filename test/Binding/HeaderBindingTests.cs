@@ -139,8 +139,6 @@ public static partial class HeaderBindingTests
     }
 }
 
-// ReSharper disable all
-
 [CsvHeader("_targeted", MemberName = nameof(Targeted))]
 file class Shim
 {

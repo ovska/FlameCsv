@@ -1,7 +1,5 @@
 ﻿using FlameCsv.Attributes;
 
-// ReSharper disable ClassNeverInstantiated.Global
-
 namespace FlameCsv.Benchmark.Comparisons;
 
 [CsvTypeMap<char, Entry>]

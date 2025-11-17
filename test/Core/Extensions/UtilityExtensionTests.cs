@@ -2,8 +2,6 @@
 using FlameCsv.Extensions;
 using FlameCsv.Utilities.Comparers;
 
-// ReSharper disable PreferConcreteValueOverDefault
-
 namespace FlameCsv.Tests.Extensions;
 
 public static class UtilityExtensionTests

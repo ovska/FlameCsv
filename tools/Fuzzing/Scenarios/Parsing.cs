@@ -2,7 +2,6 @@
 
 namespace FlameCsv.Fuzzing.Scenarios;
 
-// ReSharper disable once ClassNeverInstantiated.Global
 public class Parsing : IScenario
 {
     public static void Run(ReadOnlyMemory<byte> data, PoisonPagePlacement placement)

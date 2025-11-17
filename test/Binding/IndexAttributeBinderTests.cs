@@ -114,7 +114,6 @@ public static class IndexAttributeBinderTests
         Assert.Equal("C", ((MemberCsvBinding<Duplicates>)result.Bindings[3]).Member.Name);
     }
 
-
     private class ObjIFace : IFace
     {
         public int A { get; set; }

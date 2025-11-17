@@ -2,8 +2,6 @@
 using FlameCsv.Converters;
 using FlameCsv.Converters.Formattable;
 
-// ReSharper disable InconsistentNaming
-
 namespace FlameCsv.Tests.Converters;
 
 public static partial class ConverterResolutionTests

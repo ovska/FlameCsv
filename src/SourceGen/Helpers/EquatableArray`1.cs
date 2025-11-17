@@ -7,8 +7,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-// ReSharper disable all
-
 namespace FlameCsv.SourceGen.Helpers;
 
 /// <summary>

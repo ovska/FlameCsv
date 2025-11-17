@@ -2,8 +2,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 
-// ReSharper disable InconsistentNaming
-
 namespace FlameCsv.Tests;
 
 [SupportedOSPlatform("windows")]
