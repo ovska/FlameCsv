@@ -93,6 +93,20 @@ public class RFC4180ModeTests
         Assert.Single(result);
         Assert.Equal([pt1 + '"' + pt2], result[0]);
     }
+
+    [Fact]
+    public void Should_Unescape_Field_With_Many_Quotes()
+    {
+        var quotes = new string('"', 1000);
+        var field = $"\"{quotes}\"";
+        var result = field.Read(CsvOptions<char>.Default);
+        Assert.Equal(
+            [
+                [new string('"', 500)],
+            ],
+            result
+        );
+    }
 }
 
 file static class Extensions

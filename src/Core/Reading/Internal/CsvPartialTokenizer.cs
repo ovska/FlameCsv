@@ -72,7 +72,7 @@ internal abstract class CsvPartialTokenizer<T>
                 uint eolFlag = Bithacks.ProcessFlag(maskLF, consumed + lz, flag);
                 quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
-                Field.SaturateTo7Bits(ref quotesConsumed);
+                Field.SaturateQuotes(ref quotesConsumed);
 
                 ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
                 ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
@@ -102,7 +102,7 @@ internal abstract class CsvPartialTokenizer<T>
 
                 pos -= eolFlag;
 
-                Field.SaturateTo7Bits(ref quotesConsumed);
+                Field.SaturateQuotes(ref quotesConsumed);
 
                 // consume masks
                 maskControl = Bithacks.ResetLowestSetBit(maskControl);
@@ -154,8 +154,10 @@ internal abstract class CsvPartialTokenizer<T>
                 flag = Field.IsEOL;
             }
 
+            Field.SaturateQuotes(ref quotesConsumed);
+
             Unsafe.Add(ref fieldRef, fieldIndex) = (index - 1) | flag;
-            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Min(quotesConsumed, 127);
+            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
 
             fieldIndex++;
             quotesConsumed = 0;
@@ -205,8 +207,10 @@ internal abstract class CsvPartialTokenizer<T>
             maskControl &= ~maskUpToPos;
             maskQuote &= ~maskUpToPos;
 
+            Field.SaturateQuotes(ref quotesConsumed);
+
             Unsafe.Add(ref fieldRef, fieldIndex) = value | flag;
-            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)Math.Min(quotesConsumed, 127);
+            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
             quotesConsumed = 0;
             fieldIndex++;
         }

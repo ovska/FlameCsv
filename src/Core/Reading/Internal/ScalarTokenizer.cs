@@ -135,7 +135,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             FoundNonQuote:
 
             uint flag = TNewline.GetNewlineFlag(delimiter, ref Unsafe.Add(ref first, runningIndex));
-            Field.SaturateTo7Bits(ref quotesConsumed);
+            Field.SaturateQuotes(ref quotesConsumed);
 
             Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | flag;
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
@@ -233,7 +233,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             if ((nint)runningIndex == (data.Length - 1))
             {
                 T final = Unsafe.Add(ref first, runningIndex);
-                Field.SaturateTo7Bits(ref quotesConsumed);
+                Field.SaturateQuotes(ref quotesConsumed);
 
                 if (IsAnyNewline(final))
                 {
@@ -257,7 +257,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
                 }
             }
 
-            Field.SaturateTo7Bits(ref quotesConsumed);
+            Field.SaturateQuotes(ref quotesConsumed);
             Unsafe.Add(ref dstField, fieldIndex) = (uint)++runningIndex | Field.IsEOL; // add shadow EOL
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
@@ -270,13 +270,20 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsAny(T value)
     {
+        // for bytes, valid values have a non-zero LUT entry
         if (typeof(T) == typeof(byte))
         {
-            // valid controls have have a nonzero value
             return Unsafe.BitCast<byte, bool>(_lut[Unsafe.BitCast<T, byte>(value)]);
         }
 
-        Debug.Assert(typeof(T) == typeof(char), "T must be either byte or char");
+        if (typeof(T) != typeof(char))
+        {
+            throw Token<T>.NotSupported;
+        }
+
+        // for chars, the LUT contains the char itself
+        // index the 256 byte LUT with the lowest 7 bits, and compare
+        // this way weird chars like (',' | (',' << 8)) don't match
         uint c = Unsafe.BitCast<T, char>(value);
         return Unsafe.Add(ref Unsafe.As<byte, char>(ref _lut.elem0), c & 127u) == c;
     }

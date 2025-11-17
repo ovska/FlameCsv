@@ -68,7 +68,7 @@ internal static class Field
         ref T first = ref Unsafe.Add(ref data, (uint)start);
         ReadOnlySpan<T> retVal;
 
-        if ((byte)(quote - 1) < 127)
+        if (quote != 0)
         {
             T q = reader._dialect.Quote;
 
@@ -81,9 +81,10 @@ internal static class Field
 
             if (quote != 2) // already trimmed the quotes
             {
-                uint quoteCount = IsSaturated(quote)
-                    ? (uint)System.MemoryExtensions.Count(retVal, q)
-                    : (uint)(quote - 2); // TODO: make a quote agnostic unescaper?
+                uint quoteCount =
+                    quote == byte.MaxValue // TODO: make a quote agnostic unescaper?
+                        ? (uint)System.MemoryExtensions.Count(retVal, q)
+                        : (uint)(quote - 2);
 
                 if (quoteCount % 2 != 0)
                 {
@@ -130,15 +131,12 @@ internal static class Field
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SaturateTo7Bits(ref uint quotesConsumed)
+    public static void SaturateQuotes(ref uint quotesConsumed)
     {
         // this should be highly predictable so a branch is optimal
-        if (quotesConsumed > 127)
+        if (quotesConsumed > byte.MaxValue)
         {
-            quotesConsumed = 127;
+            quotesConsumed = byte.MaxValue;
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsSaturated(byte quote) => (quote & 0x7F) == 0x7F;
 }
