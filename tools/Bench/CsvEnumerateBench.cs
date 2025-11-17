@@ -141,30 +141,4 @@ public class CsvEnumerateBench
         }
     }
 #endif
-
-#if FEATURE_PARALLEL
-    [Benchmark]
-    public void Flame_Parallel()
-    {
-        CsvParallel.Enumerate<object?, Invoker>(in _byteSeq, new()).ForAll(_ => { });
-    }
-
-    private readonly struct Invoker : ICsvParallelTryInvoke<byte, object?>
-    {
-        public bool TryInvoke(
-            scoped ref CsvFieldsRef<byte> fields,
-            in CsvParallelState state,
-            [MaybeNullWhen(false)] out object? result
-        )
-        {
-            for (int i = 0; i < fields.FieldCount; i++)
-            {
-                _ = fields[i];
-            }
-
-            result = default;
-            return false;
-        }
-    }
-#endif
 }

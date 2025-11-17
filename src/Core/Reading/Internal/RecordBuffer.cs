@@ -48,9 +48,9 @@ internal sealed class RecordBuffer : IDisposable
     /// </summary>
     internal int _fieldCount;
 
-    public RecordBuffer()
+    public RecordBuffer(int bufferSize = DefaultFieldBufferSize)
     {
-        Initialize();
+        Initialize(bufferSize);
     }
 
     /// <summary>
@@ -117,13 +117,15 @@ internal sealed class RecordBuffer : IDisposable
         nuint idx = 0;
 
         // arm64
-        if (false && AdvSimd.IsSupported) // TODO FIX!
+        if (AdvSimd.IsSupported)
         {
             nint unrolledEnd = end - Vector256<byte>.Count;
 
             while (pos <= unrolledEnd)
             {
-                uint mask = AsciiVector.LoadInt32SignsToByteMasksARM(ref field, (nuint)pos).MoveMask();
+                uint mask = AsciiVector
+                    .LoadInt32SignsToByteMasksARM(ref Unsafe.As<uint, int>(ref field), (nuint)pos)
+                    .MoveMask();
 
                 while (mask != 0)
                 {
@@ -291,11 +293,11 @@ internal sealed class RecordBuffer : IDisposable
     }
 
     [MemberNotNull(nameof(_fields)), MemberNotNull(nameof(_quotes)), MemberNotNull(nameof(_eols))]
-    public void Initialize()
+    public void Initialize(int bufferSize = DefaultFieldBufferSize)
     {
-        ArrayPool<uint>.Shared.EnsureCapacity(ref _fields, DefaultFieldBufferSize);
-        ArrayPool<byte>.Shared.EnsureCapacity(ref _quotes, DefaultFieldBufferSize);
-        ArrayPool<ushort>.Shared.EnsureCapacity(ref _eols, DefaultFieldBufferSize);
+        ArrayPool<uint>.Shared.EnsureCapacity(ref _fields, bufferSize);
+        ArrayPool<byte>.Shared.EnsureCapacity(ref _quotes, bufferSize);
+        ArrayPool<ushort>.Shared.EnsureCapacity(ref _eols, bufferSize);
 
         _fields[0] = 0;
         _eols[0] = 0;
@@ -316,9 +318,9 @@ internal sealed class RecordBuffer : IDisposable
         _eolIndex = 0;
         _eolCount = 0;
 
-        ArrayPool<uint>.Shared.ReturnAndEmpty(ref _fields);
-        ArrayPool<byte>.Shared.ReturnAndEmpty(ref _quotes);
-        ArrayPool<ushort>.Shared.ReturnAndEmpty(ref _eols);
+        ArrayPool<uint>.Shared.EnsureReturned(ref _fields);
+        ArrayPool<byte>.Shared.EnsureReturned(ref _quotes);
+        ArrayPool<ushort>.Shared.EnsureReturned(ref _eols);
     }
 
     public override string ToString() =>

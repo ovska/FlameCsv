@@ -134,12 +134,12 @@ internal static class UtilityExtensions
         }
     }
 
-    public static void ReturnAndEmpty<T>(this ArrayPool<T> pool, ref T[] array)
+    public static void EnsureReturned<T>(this ArrayPool<T> pool, ref T[] array)
     {
         T[] local = array;
         array = [];
 
-        if (local.Length != 0)
+        if (local.Length > 0)
         {
             pool.Return(local);
         }

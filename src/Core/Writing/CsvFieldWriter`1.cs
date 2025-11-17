@@ -127,7 +127,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     /// Writes the text to the writer.
     /// </summary>
     /// <param name="value">Text to write</param>
-    /// <param name="skipEscaping">Don't validate, escape or quote the written value in any way</param>
+    /// <param name="skipEscaping">Don't quote or escape the value</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {

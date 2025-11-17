@@ -68,18 +68,13 @@ internal static class Field
         ref T first = ref Unsafe.Add(ref data, (uint)start);
         ReadOnlySpan<T> retVal;
 
-        if (IsEscape(quote))
-        {
-            goto EscapeOrInvalid;
-        }
-
         if ((byte)(quote - 1) < 127)
         {
             T q = reader._dialect.Quote;
 
             if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1) != q)
             {
-                goto EscapeOrInvalid;
+                goto InvalidField;
             }
 
             retVal = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
@@ -92,7 +87,7 @@ internal static class Field
 
                 if (quoteCount % 2 != 0)
                 {
-                    goto EscapeOrInvalid;
+                    goto InvalidField;
                 }
 
                 Span<T> buffer = reader.GetUnescapeBuffer(retVal.Length);
@@ -123,13 +118,14 @@ internal static class Field
 
         return retVal;
 
-        EscapeOrInvalid:
+        InvalidField:
         return Invalid(start, field, quote, ref data, reader);
     }
 
     private static ReadOnlySpan<T> Invalid<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
+        // TODO
         throw new CsvFormatException();
     }
 
@@ -142,9 +138,6 @@ internal static class Field
             quotesConsumed = 127;
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsEscape(byte quote) => quote > 127; // msb
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsSaturated(byte quote) => (quote & 0x7F) == 0x7F;

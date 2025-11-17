@@ -152,16 +152,6 @@ public partial class CsvReadBench
         }
     }
 
-#if FEATURE_PARALLEL
-    [Benchmark]
-    public void FlameParallel()
-    {
-        var query = CsvParallel.Read(Header ? _bytesHeader : _bytes, EntryTypeMap_Utf8.Default, OptionsInstanceB);
-
-        foreach (var record in query.AsOrdered().WithMergeOptions(ParallelMergeOptions.NotBuffered)) { }
-    }
-#endif
-
     public sealed class Entry
     {
         [CsvHelper.Configuration.Attributes.Index(0), CsvIndex(0)]

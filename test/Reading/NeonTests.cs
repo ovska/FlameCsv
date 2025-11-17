@@ -67,7 +67,7 @@ public static class NeonTests
     public static void Should_Load_Int_Sign_Bits_To_Masks(int[] data)
     {
         byte[] expected = data.Select(i => (byte)(i < 0 ? 0xFF : 0x00)).ToArray();
-        Vector256<byte> result = AsciiVector.LoadInt32SignsToByteMasksARM(ref Unsafe.As<int, uint>(ref data[0]), 0);
+        Vector256<byte> result = AsciiVector.LoadInt32SignsToByteMasksARM(ref data[0], 0);
         byte[] actual = new byte[32];
         result.CopyTo(actual);
         Assert.Equal(expected, actual);

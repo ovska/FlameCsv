@@ -22,7 +22,7 @@ public enum CsvFieldQuoting
     Never = 0,
 
     /// <summary>
-    /// Quote fields that contain control characters (delimiters, quotes, newlines, or escapes).
+    /// Quote fields that contain delimiters, quotes, or line breaks.
     /// This is the default behavior.
     /// </summary>
     Auto = 1 << 0,
@@ -48,7 +48,7 @@ public enum CsvFieldQuoting
     LeadingOrTrailingSpaces = LeadingSpaces | TrailingSpaces,
 
     /// <summary>
-    /// Always quote all fields, even if they don't contain any characters that need escaping.
+    /// Always quote all fields.
     /// </summary>
     Always = ~0,
 }
