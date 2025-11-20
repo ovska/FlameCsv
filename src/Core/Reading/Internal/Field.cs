@@ -58,10 +58,7 @@ internal static class Field
         int end = End(field);
 
         // trim before unquoting to preserve spaces in strings
-        if (reader._dialect.Trimming != CsvFieldTrimming.None)
-        {
-            reader._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
-        }
+        reader._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
 
         int length = end - start;
 
@@ -72,12 +69,12 @@ internal static class Field
         {
             T q = reader._dialect.Quote;
 
-            if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1) != q)
+            if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1u) != q)
             {
                 goto InvalidField;
             }
 
-            retVal = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1), length - 2);
+            retVal = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1u), length - 2);
 
             if (quote != 2) // already trimmed the quotes
             {

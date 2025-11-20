@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -102,35 +103,24 @@ internal static class ReadExtensions
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        T space;
+        Debug.Assert(start >= 0 && end >= start);
 
-        if (typeof(T) == typeof(byte))
-        {
-            space = Unsafe.BitCast<byte, T>((byte)' ');
-        }
-        else if (typeof(T) == typeof(char))
-        {
-            space = Unsafe.BitCast<char, T>(' ');
-        }
-        else
-        {
-            space = T.CreateTruncating(' ');
-        }
+        T space = T.CreateTruncating(' ');
 
-        if ((trimming & CsvFieldTrimming.Leading) != 0)
+        if ((trimming & CsvFieldTrimming.Leading) != 0 && start < end && Unsafe.Add(ref data, (uint)start) == space)
         {
-            for (; start < end; start++)
+            for (start++; start < end; start++)
             {
-                if (Unsafe.Add(ref data, start) != space)
+                if (Unsafe.Add(ref data, (uint)start) != space)
                     break;
             }
         }
 
-        if ((trimming & CsvFieldTrimming.Trailing) != 0)
+        if ((trimming & CsvFieldTrimming.Trailing) != 0 && end > start && Unsafe.Add(ref data, (uint)end - 1u) == space)
         {
-            for (; end > start; end--)
+            for (end--; end > start; end--)
             {
-                if (Unsafe.Add(ref data, end - 1) != space)
+                if (Unsafe.Add(ref data, (uint)end - 1u) != space)
                     break;
             }
         }
@@ -140,21 +130,6 @@ internal static class ReadExtensions
     public static ReadOnlySpan<T> Trim<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
         where T : unmanaged, IBinaryInteger<T>
     {
-        T space;
-
-        if (typeof(T) == typeof(byte))
-        {
-            space = Unsafe.BitCast<byte, T>((byte)' ');
-        }
-        else if (typeof(T) == typeof(char))
-        {
-            space = Unsafe.BitCast<char, T>(' ');
-        }
-        else
-        {
-            space = T.CreateTruncating(' ');
-        }
-
         int start = 0;
         int end = value.Length - 1;
 
@@ -162,7 +137,7 @@ internal static class ReadExtensions
         {
             for (; start < value.Length; start++)
             {
-                if (value[start] != space)
+                if (value[start] != T.CreateTruncating(' '))
                     break;
             }
         }
@@ -171,7 +146,7 @@ internal static class ReadExtensions
         {
             for (; end >= start; end--)
             {
-                if (value[end] != space)
+                if (value[end] != T.CreateTruncating(' '))
                     break;
             }
         }

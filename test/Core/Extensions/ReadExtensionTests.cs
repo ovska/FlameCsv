@@ -57,11 +57,11 @@ public static class ReadExtensionTests
         Assert.Equal(expected, input.AsSpan().Trim(value).ToString());
         Assert.Equal(expected, Encoding.UTF8.GetString(Encoding.UTF8.GetBytes(input).AsSpan().Trim(value)));
 
-        ref char firstChar = ref MemoryMarshal.GetReference(input.AsSpan());
+        char[] copy = [' ', .. input, ' ']; // ensure OOB reads don't happen
         int start = 0;
         int end = input.Length;
 
-        value.TrimUnsafe(ref firstChar, ref start, ref end);
+        value.TrimUnsafe(ref copy[1], ref start, ref end);
         Assert.Equal(expected, input.AsSpan(start, end - start).ToString());
     }
 
