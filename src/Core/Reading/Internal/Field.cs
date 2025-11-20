@@ -123,8 +123,16 @@ internal static class Field
     private static ReadOnlySpan<T> Invalid<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // TODO
-        throw new CsvFormatException();
+        ReadOnlySpan<T> value = MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref data, (uint)start),
+            End(field) - start
+        );
+
+        string asString = value.AsPrintableString();
+
+        throw new CsvFormatException(
+            $"Invalid quoted field {start}..{End(field)} ({field:X8} - {quote}) with value: {asString}"
+        );
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

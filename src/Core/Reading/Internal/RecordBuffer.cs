@@ -281,8 +281,23 @@ internal sealed class RecordBuffer : IDisposable
 
             _quotes.AsSpan(start, length).CopyTo(_quotes.AsSpan(1));
 
-            // the quote buffer must be cleared
-            _quotes.AsSpan(1 + start + length).Clear();
+            // Clear stale quote data beyond the copied fields
+            _quotes.AsSpan(1 + length, _fieldCount - length).Clear();
+
+#if DEBUG
+            if (_quotes.AsSpan(1 + length).IndexOfAnyExcept<byte>(0) is int idx && idx >= 0)
+            {
+                throw new InvalidOperationException("Quote buffer was not properly cleared.");
+            }
+#endif
+        }
+        else
+        {
+            // TODO: delete this branch and make a test for it!
+
+            // no unread fields
+            _fields[0] = 0;
+            _quotes.AsSpan(1, _fieldCount).Clear();
         }
 
         _fieldCount -= _fieldIndex;
