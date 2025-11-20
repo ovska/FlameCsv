@@ -13,28 +13,28 @@ internal static class CsvTokenizer
         if (Avx512Tokenizer.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new Avx512Tokenizer<T, NewlineCRLF>(options)
-                : new Avx512Tokenizer<T, NewlineLF>(options);
+                ? new Avx512Tokenizer<T, TrueConstant>(options)
+                : new Avx512Tokenizer<T, FalseConstant>(options);
         }
 #endif
 
         if (Avx2Tokenizer.IsSupported)
         {
             return options.Newline.IsCRLF()
-                ? new Avx2Tokenizer<T, NewlineCRLF>(options)
-                : new Avx2Tokenizer<T, NewlineLF>(options);
+                ? new Avx2Tokenizer<T, TrueConstant>(options)
+                : new Avx2Tokenizer<T, FalseConstant>(options);
         }
 
         return options.Newline.IsCRLF()
-            ? new SimdTokenizer<T, NewlineCRLF>(options)
-            : new SimdTokenizer<T, NewlineLF>(options);
+            ? new SimdTokenizer<T, TrueConstant>(options)
+            : new SimdTokenizer<T, FalseConstant>(options);
     }
 
     public static CsvScalarTokenizer<T> CreateScalar<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
         return options.Newline.IsCRLF()
-            ? new ScalarTokenizer<T, NewlineCRLF>(options)
-            : new ScalarTokenizer<T, NewlineLF>(options);
+            ? new ScalarTokenizer<T, TrueConstant>(options)
+            : new ScalarTokenizer<T, FalseConstant>(options);
     }
 }

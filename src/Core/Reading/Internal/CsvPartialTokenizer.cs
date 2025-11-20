@@ -80,6 +80,7 @@ internal abstract class CsvTokenizer<T>
                 dstField = index + consumed + lz - eolFlag;
                 dstQuote = (byte)quotesConsumed;
 
+                // zero extend through ulong so shift by 32 works correctly
                 maskControl = Unsafe.BitCast<uint, TMask>((uint)((ulong)Unsafe.BitCast<TMask, uint>(maskControl) << k));
                 maskQuote = Unsafe.BitCast<uint, TMask>((uint)((ulong)Unsafe.BitCast<TMask, uint>(maskQuote) >> k));
 

@@ -6,9 +6,9 @@ using FlameCsv.Intrinsics;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
+internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : INewline
+    where TCRLF : struct, IConstant
 {
     private readonly T _quote;
     private readonly T _delimiter;
@@ -31,7 +31,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
             lut[options.Delimiter] = 1;
             lut['\n'] = 1;
 
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 lut['\r'] = 1;
             }
@@ -52,7 +52,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
             span[options.Delimiter] = options.Delimiter;
             span['\n'] = '\n';
 
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 span['\r'] = '\r';
             }
@@ -139,7 +139,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
 
             if (current != delimiter)
             {
-                flag = TNewline.IsCRLF && Bithacks.IsCRLF(ref current) ? Field.IsCRLF : Field.IsEOL;
+                flag = TCRLF.Value && Bithacks.IsCRLF(ref current) ? Field.IsCRLF : Field.IsEOL;
             }
 
             Field.SaturateQuotes(ref quotesConsumed);
@@ -148,7 +148,7 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             quotesConsumed = 0;
-            runningIndex += TNewline.IsCRLF ? (1 + ((flag >> 30) & 1)) : 1;
+            runningIndex += TCRLF.Value ? (1 + ((flag >> 30) & 1)) : 1;
             continue;
 
             FoundQuote:
@@ -291,6 +291,6 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsAnyNewline(T value)
     {
-        return value == T.CreateTruncating('\n') || (TNewline.IsCRLF && value == T.CreateTruncating('\r'));
+        return value == T.CreateTruncating('\n') || (TCRLF.Value && value == T.CreateTruncating('\r'));
     }
 }

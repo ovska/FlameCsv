@@ -84,10 +84,10 @@ public class TokenizationBench
         Newline = CsvNewline.CRLF,
     };
 
-    private readonly SimdTokenizer<char, NewlineLF> _t128LF = new(_dCharLF);
-    private readonly SimdTokenizer<byte, NewlineLF> _t128bLF = new(_dByteLF);
-    private readonly SimdTokenizer<byte, NewlineCRLF> _t128bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<char, NewlineCRLF> _t128CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, FalseConstant> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, FalseConstant> _t128bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, TrueConstant> _t128bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<char, TrueConstant> _t128CRLF = new(_dCharCRLF);
 
     private CsvTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
     private CsvTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
@@ -108,10 +108,10 @@ public class TokenizationBench
     }
 
 #if !ARM
-    private readonly Avx2Tokenizer<byte, NewlineLF> _avx2Byte = new(_dByteLF);
-    private readonly Avx2Tokenizer<char, NewlineLF> _avx2Char = new(_dCharLF);
-    private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
-    private readonly Avx2Tokenizer<char, NewlineCRLF> _avx2CharCRLF = new(_dCharCRLF);
+    private readonly Avx2Tokenizer<byte, FalseConstant> _avx2Byte = new(_dByteLF);
+    private readonly Avx2Tokenizer<char, FalseConstant> _avx2Char = new(_dCharLF);
+    private readonly Avx2Tokenizer<byte, TrueConstant> _avx2ByteCRLF = new(_dByteCRLF);
+    private readonly Avx2Tokenizer<char, TrueConstant> _avx2CharCRLF = new(_dCharCRLF);
 
     private CsvTokenizer<char> Avx2Char => TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
     private CsvTokenizer<byte> Avx2Byte => TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
@@ -132,10 +132,10 @@ public class TokenizationBench
     }
 
 #if NET10_0_OR_GREATER
-    private readonly Avx512Tokenizer<byte, NewlineLF> _avx512Byte = new(_dByteLF);
-    private readonly Avx512Tokenizer<char, NewlineLF> _avx512Char = new(_dCharLF);
-    private readonly Avx512Tokenizer<byte, NewlineCRLF> _avx512ByteCRLF = new(_dByteCRLF);
-    private readonly Avx512Tokenizer<char, NewlineCRLF> _avx512CharCRLF = new(_dCharCRLF);
+    private readonly Avx512Tokenizer<byte, FalseConstant> _avx512Byte = new(_dByteLF);
+    private readonly Avx512Tokenizer<char, FalseConstant> _avx512Char = new(_dCharLF);
+    private readonly Avx512Tokenizer<byte, TrueConstant> _avx512ByteCRLF = new(_dByteCRLF);
+    private readonly Avx512Tokenizer<char, TrueConstant> _avx512CharCRLF = new(_dCharCRLF);
 
     private CsvTokenizer<char> Avx512Char => TokenizerIsLF ? _avx512Char : _avx512CharCRLF;
     private CsvTokenizer<byte> Avx512Byte => TokenizerIsLF ? _avx512Byte : _avx512ByteCRLF;

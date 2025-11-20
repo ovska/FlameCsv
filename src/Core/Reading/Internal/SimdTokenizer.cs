@@ -7,9 +7,9 @@ using FlameCsv.Intrinsics;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
+internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : struct, INewline
+    where TCRLF : struct, IConstant
 {
     private static int EndOffset
     {
@@ -66,17 +66,17 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTok
         Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
         Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
-        Vector256<byte> vecCR = TNewline.IsCRLF ? Vector256.Create((byte)'\r') : default;
+        Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
 
         Vector256<byte> vector = AsciiVector.Load256(ref first, index);
 
         Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
-        Vector256<byte> hasCR = TNewline.IsCRLF ? Vector256.Equals(vector, vecCR) : default;
+        Vector256<byte> hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
         Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
         Vector256<byte> hasControl = hasLF | hasDelimiter;
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
-        uint maskCR = TNewline.IsCRLF ? hasCR.MoveMask() : 0;
+        uint maskCR = TCRLF.Value ? hasCR.MoveMask() : 0;
         uint maskControl = hasControl.MoveMask();
         uint maskLF = hasLF.MoveMask();
         uint maskQuote = hasQuote.MoveMask();
@@ -90,7 +90,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTok
 
             Unsafe.SkipInit(out uint shiftedCR); // this can be garbage on LF, it's never used
 
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 vector = nextVector;
                 nextVector = prefetchVector;
@@ -149,7 +149,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTok
             // clear the bits that are inside quotes
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             ParseAny(
                 index: (uint)index,
@@ -166,7 +166,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTok
             goto ContinueRead;
 
             PathologicalPath:
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 // clear the bits that are inside quotes
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
@@ -198,12 +198,12 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTok
             index += (nuint)Vector256<byte>.Count;
 
             hasLF = Vector256.Equals(vector, vecLF);
-            hasCR = TNewline.IsCRLF ? Vector256.Equals(vector, vecCR) : default;
+            hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
             hasDelimiter = Vector256.Equals(vector, vecDelim);
             hasQuote = Vector256.Equals(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
-            maskCR = TNewline.IsCRLF ? hasCR.MoveMask() : 0;
+            maskCR = TCRLF.Value ? hasCR.MoveMask() : 0;
             maskControl = hasControl.MoveMask();
             maskLF = hasLF.MoveMask();
             maskQuote = hasQuote.MoveMask();
@@ -256,7 +256,7 @@ internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTok
             } while (m5 != 0);
         }
 
-        uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+        uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);
         uint intermediate = index - flag;
         Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;

@@ -35,8 +35,8 @@ public class TokenizationTests
         TokenizeCore<char>(
             newline,
             newline == RecSep.LF
-                ? new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default)
-                : new Avx2Tokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
+                ? new Avx2Tokenizer<char, FalseConstant>(CsvOptions<char>.Default)
+                : new Avx2Tokenizer<char, TrueConstant>(CsvOptions<char>.Default)
         );
     }
 
@@ -48,8 +48,8 @@ public class TokenizationTests
         TokenizeCore<byte>(
             newline,
             newline == RecSep.LF
-                ? new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
-                : new Avx2Tokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+                ? new Avx2Tokenizer<byte, FalseConstant>(CsvOptions<byte>.Default)
+                : new Avx2Tokenizer<byte, TrueConstant>(CsvOptions<byte>.Default)
         );
     }
 
@@ -62,8 +62,8 @@ public class TokenizationTests
         TokenizeCore<char>(
             newline,
             newline == RecSep.LF
-                ? new ArmTokenizer<char, NewlineLF>(CsvOptions<char>.Default)
-                : new ArmTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
+                ? new ArmTokenizer<char, FalseConstant>(CsvOptions<char>.Default)
+                : new ArmTokenizer<char, TrueConstant>(CsvOptions<char>.Default)
         );
     }
 
@@ -75,8 +75,8 @@ public class TokenizationTests
         TokenizeCore<byte>(
             newline,
             newline == RecSep.LF
-                ? new ArmTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
-                : new ArmTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+                ? new ArmTokenizer<byte, FalseConstant>(CsvOptions<byte>.Default)
+                : new ArmTokenizer<byte, TrueConstant>(CsvOptions<byte>.Default)
         );
     }
 #endif
@@ -87,8 +87,8 @@ public class TokenizationTests
         TokenizeCore<char>(
             newline,
             newline == RecSep.LF
-                ? new SimdTokenizer<char, NewlineLF>(CsvOptions<char>.Default)
-                : new SimdTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default)
+                ? new SimdTokenizer<char, FalseConstant>(CsvOptions<char>.Default)
+                : new SimdTokenizer<char, TrueConstant>(CsvOptions<char>.Default)
         );
     }
 
@@ -98,8 +98,8 @@ public class TokenizationTests
         TokenizeCore<byte>(
             newline,
             newline == RecSep.LF
-                ? new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default)
-                : new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default)
+                ? new SimdTokenizer<byte, FalseConstant>(CsvOptions<byte>.Default)
+                : new SimdTokenizer<byte, TrueConstant>(CsvOptions<byte>.Default)
         );
     }
 
@@ -229,7 +229,7 @@ public class TokenizationTests
     {
         Assert.SkipUnless(Avx2Tokenizer.IsSupported, "AVX2 is not supported on this platform.");
 
-        var tokenizer = new Avx2Tokenizer<char, NewlineLF>(CsvOptions<char>.Default);
+        var tokenizer = new Avx2Tokenizer<char, FalseConstant>(CsvOptions<char>.Default);
         var data =
             "abcd1,abcd2,abcd3,abcd4,abcd5,abcd6,abcd7,abcd8,abcd9,abcd10,abcd11,abcd11,abcd11,abcd11,abcd11,abcd11";
         char[] buffer = new char[256];
@@ -250,9 +250,9 @@ public class TokenizationTests
     //     static void Core<TVector>()
     //         where TVector : struct, IAsciiVector<TVector>
     //     {
-    //         BoundaryImpl<NewlineLF, TVector>("xxxxx\nyyyyy\nzzzzzz\n", ["xxxxx", "yyyyy", "zzzzzz"]);
-    //         BoundaryImpl<NewlineCRLF, TVector>("xxxxx\nyyyyy\nzzzzzz\n", ["xxxxx", "yyyyy", "zzzzzz"]);
-    //         BoundaryImpl<NewlineCRLF, TVector>("xxxxx\r\nyyyyy\r\nzzzzzz\n", ["xxxxx", "yyyyy", "zzzzzz"]);
+    //         BoundaryImpl<FalseConstant, TVector>("xxxxx\nyyyyy\nzzzzzz\n", ["xxxxx", "yyyyy", "zzzzzz"]);
+    //         BoundaryImpl<TrueConstant, TVector>("xxxxx\nyyyyy\nzzzzzz\n", ["xxxxx", "yyyyy", "zzzzzz"]);
+    //         BoundaryImpl<TrueConstant, TVector>("xxxxx\r\nyyyyy\r\nzzzzzz\n", ["xxxxx", "yyyyy", "zzzzzz"]);
     //     }
     // }
 
@@ -282,8 +282,8 @@ public class TokenizationTests
     //             vsb.Append('\n');
     //         }
 
-    //         BoundaryImpl<NewlineLF, TVector>(vsb.AsSpan(), Enumerable.Repeat(str, 1024));
-    //         BoundaryImpl<NewlineCRLF, TVector>(vsb.AsSpan(), Enumerable.Repeat(str, 1024));
+    //         BoundaryImpl<FalseConstant, TVector>(vsb.AsSpan(), Enumerable.Repeat(str, 1024));
+    //         BoundaryImpl<TrueConstant, TVector>(vsb.AsSpan(), Enumerable.Repeat(str, 1024));
     //     }
 
     //     // two tokens
@@ -298,7 +298,7 @@ public class TokenizationTests
     //             vsb.Append("\r\n");
     //         }
 
-    //         BoundaryImpl<NewlineCRLF, TVector>(vsb.AsSpan(), Enumerable.Repeat(str, 1024));
+    //         BoundaryImpl<TrueConstant, TVector>(vsb.AsSpan(), Enumerable.Repeat(str, 1024));
     //     }
 
     //     // odd case #1: two LF's with CRLF parser
@@ -317,7 +317,7 @@ public class TokenizationTests
     //             expected.Add("");
     //         }
 
-    //         BoundaryImpl<NewlineCRLF, TVector>(vsb.AsSpan(), expected);
+    //         BoundaryImpl<TrueConstant, TVector>(vsb.AsSpan(), expected);
     //     }
 
     //     // odd case #2: LF followed by delimiter with CRLF parser
@@ -340,7 +340,7 @@ public class TokenizationTests
     //             expected.Add("");
     //         }
 
-    //         BoundaryImpl<NewlineCRLF, TVector>(vsb.AsSpan(), expected);
+    //         BoundaryImpl<TrueConstant, TVector>(vsb.AsSpan(), expected);
     //     }
 
     //     // odd case #3: CRLF followed by delimiter with CRLF parser
@@ -363,7 +363,7 @@ public class TokenizationTests
     //             expected.Add("");
     //         }
 
-    //         BoundaryImpl<NewlineCRLF, TVector>(vsb.AsSpan(), expected);
+    //         BoundaryImpl<TrueConstant, TVector>(vsb.AsSpan(), expected);
     //     }
     // }
 
@@ -403,7 +403,7 @@ public class TokenizationTests
     //     "a,b,c\nd,e,f\ng,h,i\n".CopyTo(buffer);
 
     //     using var rb = new RecordBuffer();
-    //     var tokenizer = new SimdTokenizer<char, NewlineCRLF>(CsvOptions<char>.Default);
+    //     var tokenizer = new SimdTokenizer<char, TrueConstant>(CsvOptions<char>.Default);
 
     //     bool read = tokenizer.Tokenize(rb, buffer);
     //     Assert.True(read, "Failed to read records from buffer.");

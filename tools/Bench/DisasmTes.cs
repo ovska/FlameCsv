@@ -4,9 +4,9 @@
 using System.Text;
 using FlameCsv.Reading.Internal;
 #if CRLF
-using TNewline = FlameCsv.Reading.Internal.NewlineCRLF;
+using TNewline = FlameCsv.TrueConstant;
 #else
-using TNewline = FlameCsv.Reading.Internal.NewlineLF;
+using TNewline = FlameCsv.FalseConstant;
 #endif
 
 namespace FlameCsv.Benchmark;

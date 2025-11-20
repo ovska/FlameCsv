@@ -14,9 +14,9 @@ internal static class Avx512Tokenizer
 }
 
 [SkipLocalsInit]
-internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
+internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : struct, INewline
+    where TCRLF : struct, IConstant
 {
     // leave space for 2 vectors;
     // vector count to avoid reading past the buffer
@@ -75,7 +75,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
             Vector512<byte> vecDelim = Vector512.Create(byte.CreateTruncating(_delimiter));
             Vector512<byte> vecQuote = Vector512.Create(byte.CreateTruncating(_quote));
             Vector512<byte> vecLF = Vector512.Create((byte)'\n');
-            Vector512<byte> vecCR = TNewline.IsCRLF ? Vector512.Create((byte)'\r') : default;
+            Vector512<byte> vecCR = TCRLF.Value ? Vector512.Create((byte)'\r') : default;
 
             const int fixupScalar = unchecked((int)0x8000007F);
 
@@ -141,7 +141,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 Unsafe.SkipInit(out ulong maskLF);
                 Unsafe.SkipInit(out ulong shiftedCR);
 
-                if (TNewline.IsCRLF)
+                if (TCRLF.Value)
                 {
                     maskCR = Vector512.Equals(vector, vecCR).ExtractMostSignificantBits();
                     maskLF = hasLF.ExtractMostSignificantBits(); // queue the movemask
@@ -153,13 +153,13 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 vector = nextVector;
                 nextVector = AsciiVector.LoadAligned512<T>(ptr + index + (nuint)(2 * Vector512<byte>.Count));
 
-                if ((TNewline.IsCRLF ? (maskControl | shiftedCR) : maskControl) == 0)
+                if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
                 {
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
                     goto ContinueRead;
                 }
 
-                if (TNewline.IsCRLF && Bithacks.IsDisjointCR(maskLF, shiftedCR))
+                if (TCRLF.Value && Bithacks.IsDisjointCR(maskLF, shiftedCR))
                 {
                     // maskControl doesn't contain CR by default, add it so we can find lone CR's
                     maskControl |= maskCR;
@@ -181,7 +181,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 Vector512<byte> packedAny = Avx512Vbmi2.Compress(Vector512<byte>.Zero, hasAny, taggedIndices);
 
                 // create a fixup to keep only the low bits and the MSB (which is 1 on newlines)
-                Vector512<int> fixup = TNewline.IsCRLF
+                Vector512<int> fixup = TCRLF.Value
                     ? Vector512.Create(shiftedCR != 0 ? (fixupScalar | (1 << 30)) : fixupScalar)
                     : msbAndBitsUpTo7;
 
@@ -205,7 +205,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 continue;
 
                 SlowPath:
-                if (!TNewline.IsCRLF)
+                if (!TCRLF.Value)
                 {
                     maskLF = hasLF.ExtractMostSignificantBits();
                 }
@@ -213,7 +213,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 // clear the bits that are inside quotes
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-                uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
                 ParseAny(
                     index: (uint)index,
@@ -230,7 +230,7 @@ internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvT
                 goto ContinueRead;
 
                 PathologicalPath:
-                if (TNewline.IsCRLF)
+                if (TCRLF.Value)
                 {
                     // clear the bits that are inside quotes
                     maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);

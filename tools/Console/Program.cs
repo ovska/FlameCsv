@@ -37,7 +37,7 @@ namespace FlameCsv.Console
 #pragma warning disable CS0168 // Variable is declared but never used
             try
             {
-                new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(
+                new SimdTokenizer<byte, FalseConstant>(CsvOptions<byte>.Default).Tokenize(
                     new FieldBuffer() { Fields = new uint[24 * 65536], Quotes = new byte[24 * 65536] },
                     0,
                     byteArray
@@ -58,15 +58,15 @@ namespace FlameCsv.Console
                 rb.GetEolArrayRef() = new ushort[65535 + 256];
                 var dst = rb.GetUnreadBuffer(0, out int startIndex);
 
-                new SimdTokenizer<byte, NewlineCRLF>(CsvOptions<byte>.Default).Tokenize(
+                new SimdTokenizer<byte, TrueConstant>(CsvOptions<byte>.Default).Tokenize(
                     dst,
                     0,
                     Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n"))
                 );
-                // new Avx2Tokenizer<byte, NewlineLF>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
+                // new Avx2Tokenizer<byte, FalseConstant>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
             }
 
-            // var tokenizer = new SimdTokenizer<byte, NewlineLF, Vec256>(CsvOptions<byte>.Default);
+            // var tokenizer = new SimdTokenizer<byte, FalseConstant, Vec256>(CsvOptions<byte>.Default);
             // _ = tokenizer.Tokenize(metas, byteArray, 0);
 
             // MemoryProfiler.CollectAllocations(true);

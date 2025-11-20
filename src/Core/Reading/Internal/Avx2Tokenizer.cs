@@ -15,9 +15,9 @@ internal static class Avx2Tokenizer
 }
 
 [SkipLocalsInit]
-internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
+internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
-    where TNewline : struct, INewline
+    where TCRLF : struct, IConstant
 {
     private static nuint EndOffset
     {
@@ -84,7 +84,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
 
         Unsafe.SkipInit(out Vector256<byte> vecCR);
 
-        if (TNewline.IsCRLF)
+        if (TCRLF.Value)
         {
             vecCR = Vector256.Create((byte)'\r');
         }
@@ -119,7 +119,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
             Unsafe.SkipInit(out uint maskLF); // calculated only on-demand for LF newlines
             Unsafe.SkipInit(out uint shiftedCR); // never used on LF newlines
 
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 Vector256<byte> hasCR = Vector256.Equals(vector, vecCR);
                 uint maskCR = hasCR.ExtractMostSignificantBits();
@@ -166,7 +166,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
             }
 
             // build a mask to remove extra bits caused by sign-extension
-            Vector256<int> fixup = TNewline.IsCRLF
+            Vector256<int> fixup = TCRLF.Value
                 ? Vector256.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
                 : Vector256.Create(fixupScalar);
 
@@ -231,7 +231,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
             // add the base offset to the "tzcnts"
             Vector256<uint> result = fixedTaggedVector + indexVector;
 
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 // subtract 1 from CRLF matches
                 result -= ((fixedTaggedVector >> 30) & Vector256<uint>.One);
@@ -247,7 +247,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
             continue;
 
             SlowPath:
-            if (!TNewline.IsCRLF)
+            if (!TCRLF.Value)
             {
                 maskLF = hasLF.ExtractMostSignificantBits();
             }
@@ -255,7 +255,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
             // clear the bits that are inside quotes
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-            uint flag = TNewline.IsCRLF ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             ParseAny(
                 index: (uint)index,
@@ -272,7 +272,7 @@ internal sealed class Avx2Tokenizer<T, TNewline> : CsvTokenizer<T>
             goto ContinueRead;
 
             PathologicalPath:
-            if (TNewline.IsCRLF)
+            if (TCRLF.Value)
             {
                 // clear the bits that are inside quotes
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
