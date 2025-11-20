@@ -1,4 +1,3 @@
-#if NET10_0_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -107,7 +106,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
 
                     do
                     {
-                        Unsafe.Add(ref temp.elem0, idx) = Unsafe.Add(ref first, idx);
+                        Unsafe.Add(ref dst, idx) = Unsafe.Add(ref src, idx);
                         idx++;
                     } while (idx < skip);
 
@@ -126,7 +125,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                 }
             }
 
-            Vector512<byte> nextVector = AsciiVector.LoadAligned512<T>(ptr + index + (nuint)Vector512<byte>.Count);
+            Vector512<byte> nextVector = AsciiVector.LoadAligned512<T>(ptr + (index + (nuint)Vector512<byte>.Count));
 
             do
             {
@@ -267,4 +266,3 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         }
     }
 }
-#endif

@@ -101,7 +101,8 @@ internal static class AsciiVector
             offset + (nuint)Vector512<short>.Count
         );
 
-        return Avx512BW.PackUnsignedSaturate(v0, v1);
+        Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(v0, v1);
+        return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0L, 2, 4, 6, 1, 3, 5, 7)).AsByte();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -122,7 +123,8 @@ internal static class AsciiVector
         Vector512<short> v0 = Vector512.LoadAligned((short*)ptr);
         Vector512<short> v1 = Vector512.LoadAligned((short*)ptr + Vector512<short>.Count);
 
-        return Avx512BW.PackUnsignedSaturate(v0, v1);
+        Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(v0, v1);
+        return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0L, 2, 4, 6, 1, 3, 5, 7)).AsByte();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
