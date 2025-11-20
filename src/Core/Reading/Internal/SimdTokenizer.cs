@@ -7,7 +7,7 @@ using FlameCsv.Intrinsics;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvPartialTokenizer<T>
+internal sealed class SimdTokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline
 {

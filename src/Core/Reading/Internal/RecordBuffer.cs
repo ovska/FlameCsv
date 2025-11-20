@@ -53,6 +53,8 @@ internal sealed class RecordBuffer : IDisposable
         Initialize(bufferSize);
     }
 
+    public int RecordsBuffered => _eolCount - _eolIndex;
+
     /// <summary>
     /// Returns unconsumed meta buffer. If 3 fields were left in the buffer on last reset,
     /// returns array length - 3.

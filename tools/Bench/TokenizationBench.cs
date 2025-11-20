@@ -89,8 +89,8 @@ public class TokenizationBench
     private readonly SimdTokenizer<byte, NewlineCRLF> _t128bCRLF = new(_dByteCRLF);
     private readonly SimdTokenizer<char, NewlineCRLF> _t128CRLF = new(_dCharCRLF);
 
-    private CsvPartialTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
-    private CsvPartialTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
+    private CsvTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
+    private CsvTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
 
     [Benchmark(Baseline = true)]
     public void Simd()
@@ -113,8 +113,8 @@ public class TokenizationBench
     private readonly Avx2Tokenizer<byte, NewlineCRLF> _avx2ByteCRLF = new(_dByteCRLF);
     private readonly Avx2Tokenizer<char, NewlineCRLF> _avx2CharCRLF = new(_dCharCRLF);
 
-    private CsvPartialTokenizer<char> Avx2Char => TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
-    private CsvPartialTokenizer<byte> Avx2Byte => TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
+    private CsvTokenizer<char> Avx2Char => TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
+    private CsvTokenizer<byte> Avx2Byte => TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
 
     [Benchmark]
     public void Avx2()
@@ -137,8 +137,8 @@ public class TokenizationBench
     private readonly Avx512Tokenizer<byte, NewlineCRLF> _avx512ByteCRLF = new(_dByteCRLF);
     private readonly Avx512Tokenizer<char, NewlineCRLF> _avx512CharCRLF = new(_dCharCRLF);
 
-    private CsvPartialTokenizer<char> Avx512Char => TokenizerIsLF ? _avx512Char : _avx512CharCRLF;
-    private CsvPartialTokenizer<byte> Avx512Byte => TokenizerIsLF ? _avx512Byte : _avx512ByteCRLF;
+    private CsvTokenizer<char> Avx512Char => TokenizerIsLF ? _avx512Char : _avx512CharCRLF;
+    private CsvTokenizer<byte> Avx512Byte => TokenizerIsLF ? _avx512Byte : _avx512ByteCRLF;
 
     // [Benchmark]
     public void Avx512()

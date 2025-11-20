@@ -1,11 +1,12 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
+internal sealed class ScalarTokenizer<T, TNewline> : CsvScalarTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : INewline
 {
@@ -133,22 +134,21 @@ internal sealed class ScalarTokenizer<T, TNewline> : CsvTokenizer<T>
             }
 
             FoundNonQuote:
+            ref T current = ref Unsafe.Add(ref first, runningIndex);
+            uint flag = 0;
 
-            uint flag = TNewline.GetNewlineFlag(delimiter, ref Unsafe.Add(ref first, runningIndex));
+            if (current != delimiter)
+            {
+                flag = TNewline.IsCRLF && Bithacks.IsCRLF(ref current) ? Field.IsCRLF : Field.IsEOL;
+            }
+
             Field.SaturateQuotes(ref quotesConsumed);
 
             Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | flag;
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             quotesConsumed = 0;
-            if (TNewline.IsCRLF)
-            {
-                runningIndex += (1 + ((flag >> 30) & 1));
-            }
-            else
-            {
-                runningIndex++;
-            }
+            runningIndex += TNewline.IsCRLF ? (1 + ((flag >> 30) & 1)) : 1;
             continue;
 
             FoundQuote:

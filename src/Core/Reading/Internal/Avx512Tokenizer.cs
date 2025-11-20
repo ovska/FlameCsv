@@ -14,7 +14,7 @@ internal static class Avx512Tokenizer
 }
 
 [SkipLocalsInit]
-internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvPartialTokenizer<T>
+internal sealed class Avx512Tokenizer<T, TNewline>(CsvOptions<T> options) : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TNewline : struct, INewline
 {

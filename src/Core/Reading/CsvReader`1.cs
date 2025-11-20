@@ -29,12 +29,12 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
-    private readonly CsvPartialTokenizer<T>? _simdTokenizer;
+    private readonly CsvTokenizer<T>? _tokenizer;
 
     /// <summary>
     /// Scalar tokenizer that is used to parse the tail end of the data, or as a fallback if SIMD is not available.
     /// </summary>
-    private readonly CsvTokenizer<T> _scalarTokenizer;
+    private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
     internal readonly Allocator<T> _unescapeAllocator;
     internal readonly Dialect<T> _dialect;
@@ -88,8 +88,8 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         _dialect = new Dialect<T>(options);
         _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
-        _simdTokenizer = CsvTokenizer.CreateSimd(options);
-        _scalarTokenizer = CsvTokenizer.Create(options);
+        _tokenizer = CsvTokenizer.Create(options);
+        _scalarTokenizer = CsvTokenizer.CreateScalar(options);
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         Read:
         int fieldsRead;
 
-        if (readToEnd || _simdTokenizer is null)
+        if (readToEnd || _tokenizer is null)
         {
             FieldBuffer destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
             fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd);
@@ -183,10 +183,10 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
         else
         {
             FieldBuffer destination = _recordBuffer.GetUnreadBuffer(
-                _simdTokenizer.MinimumFieldBufferSize,
+                _tokenizer.MinimumFieldBufferSize,
                 out int startIndex
             );
-            fieldsRead = _simdTokenizer.Tokenize(destination, startIndex, data);
+            fieldsRead = _tokenizer.Tokenize(destination, startIndex, data);
         }
 
         if (fieldsRead != 0)
@@ -196,7 +196,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             // request more data if the next tokenizing would not be large enough to be productive
             if (
                 _state == State.Reading
-                && (data.Length - _recordBuffer.BufferedDataLength) < _simdTokenizer?.PreferredLength
+                && (data.Length - _recordBuffer.BufferedDataLength) < _tokenizer?.PreferredLength
             )
             {
                 _state = State.DataExhausted;

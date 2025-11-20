@@ -5,7 +5,7 @@ using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 
-internal abstract class CsvPartialTokenizer<T>
+internal abstract class CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>

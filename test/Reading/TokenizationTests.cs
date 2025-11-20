@@ -103,7 +103,7 @@ public class TokenizationTests
         );
     }
 
-    private static void TokenizeCore<T>(RecSep newline, CsvPartialTokenizer<T> tokenizer)
+    private static void TokenizeCore<T>(RecSep newline, CsvTokenizer<T> tokenizer)
         where T : unmanaged, IBinaryInteger<T>
     {
         var rb = new RecordBuffer(); // don't dispose

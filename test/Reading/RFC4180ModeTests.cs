@@ -33,13 +33,15 @@ public class RFC4180ModeTests
     [InlineData("\" test\"", " test")]
     [InlineData("\"test \"", "test ")]
     [InlineData("\" test \"", " test ")]
+    [InlineData("  \"  test  \"  ", "  test  ")]
     public void Should_Trim_Fields(string input, string expected)
     {
         var result = input.Read(new CsvOptions<char> { Trimming = CsvFieldTrimming.Both });
         Assert.Single(result);
         Assert.Equal([expected], result[0]);
     }
-
+ 
+ 
     [Fact]
     public void Should_Seek_Long_Line()
     {
@@ -106,6 +108,15 @@ public class RFC4180ModeTests
             ],
             result
         );
+    }
+
+    [Fact]
+    public void Should_Trim_Outside_Quotes()
+    {
+        var data = "  \"  spaced field  \"  \n";
+        var result = data.Read(new CsvOptions<char> { Trimming = CsvFieldTrimming.Both });
+        Assert.Single(result);
+        Assert.Equal(["  spaced field  "], result[0]);
     }
 }
 

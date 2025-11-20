@@ -1,27 +1,12 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.Intrinsics;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
-internal abstract class CsvTokenizer<T>
-    where T : unmanaged, IBinaryInteger<T>
-{
-    /// <summary>
-    /// Reads fields from the data into <paramref name="buffer"/> until the end of the data is reached.
-    /// </summary>
-    /// <param name="buffer">Buffer to parse the records to</param>
-    /// <param name="startIndex">Start index in the data</param>
-    /// <param name="data">Data to read from</param>
-    /// <param name="readToEnd">Whether to read to end even if data has no trailing newline</param>
-    /// <returns>Number of fields read</returns>
-    public abstract int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd);
-}
-
 internal static class CsvTokenizer
 {
     [ExcludeFromCodeCoverage]
-    public static CsvPartialTokenizer<T>? CreateSimd<T>(CsvOptions<T> options)
+    public static CsvTokenizer<T>? Create<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
 #if NET10_0_OR_GREATER
@@ -45,7 +30,7 @@ internal static class CsvTokenizer
             : new SimdTokenizer<T, NewlineLF>(options);
     }
 
-    public static CsvTokenizer<T> Create<T>(CsvOptions<T> options)
+    public static CsvScalarTokenizer<T> CreateScalar<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
         return options.Newline.IsCRLF()

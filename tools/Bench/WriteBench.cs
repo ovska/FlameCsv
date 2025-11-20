@@ -196,6 +196,17 @@ public partial class WriteBench
     }
 
     [Benchmark]
+    public void Parallel()
+    {
+        CsvParallel.WriteUnordered(
+            _data,
+            CsvOptions<char>.Default,
+            CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
+            TextWriter.Null.Write
+        );
+    }
+
+    // [Benchmark]
     public Task ParallelAsync()
     {
         return CsvParallel.WriteUnorderedAsync(
@@ -210,17 +221,6 @@ public partial class WriteBench
     public Task Async_Generic_TypeMap()
     {
         return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
-    }
-
-    [Benchmark]
-    public void Parallel()
-    {
-        CsvParallel.WriteUnordered(
-            _data,
-            CsvOptions<char>.Default,
-            CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
-            TextWriter.Null.Write
-        );
     }
 
     // [Benchmark]
