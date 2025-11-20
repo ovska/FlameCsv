@@ -1,75 +1,220 @@
-// using System.Buffers;
-// using FlameCsv.Reading;
-// using FlameCsv.Reading.Internal;
+using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 
-// namespace FlameCsv.IO.Internal;
+namespace FlameCsv.IO.Internal;
 
-// internal readonly struct Chunk<T> : IDisposable
-//     where T : unmanaged, IBinaryInteger<T>
-// {
-//     public ReadOnlyMemory<T> Data { get; }
+internal readonly struct SlimRecord<T>(ReadOnlyMemory<T> memory, RecordView view, RecordBuffer buffer) : ICsvRecord<T>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    public ReadOnlySpan<T> this[int index]
+    {
+        get
+        {
+            ReadOnlySpan<T> data = memory.Span;
+            ReadOnlySpan<uint> fields = view.GetFields(buffer);
+            int start = Field.NextStart(fields[index]);
+            uint field = fields[index + 1];
 
-//     private readonly RecordBuffer _recordBuffer;
-//     private readonly IDisposable _owner;
+            if (view.IsFirst && index == 0)
+            {
+                start = 0;
+            }
 
-//     public Chunk(RecordBuffer recordBuffer, IMemoryOwner<T> owner)
-//     {
-//         Data = owner.Memory;
-//         _owner = owner;
-//     }
+            return data[start..Field.End(field)];
+        }
+    }
 
-//     public void Dispose()
-//     {
-//         _recordBuffer.Dispose();
-//         _owner.Dispose();
-//     }
+    public int FieldCount => view.FieldCount;
 
-//     public bool TryPop(out CsvRecordRef<T> record)
-//     {
-//         if (_recordBuffer.TryPop(out RecordView view))
-//         {
-//             record = new(); // TODO
-//             return true;
-//         }
+    public ReadOnlySpan<T> Raw
+    {
+        get => throw new NotSupportedException();
+    }
+}
 
-//         record = default;
-//         return false;
-//     }
-// }
+internal sealed class Chunk<T> : IDisposable
+    where T : unmanaged, IBinaryInteger<T>
+{
+    public ReadOnlyMemory<T> Data { get; }
+    public RecordBuffer RecordBuffer { get; }
 
-// internal abstract class ParallelReader<T>
-//     where T : unmanaged, IBinaryInteger<T>
-// {
-//     private readonly CsvOptions<T> _options;
-//     private readonly int _bufferSize;
+    public Chunk(ReadOnlyMemory<T> data, RecordBuffer recordBuffer)
+    {
+        Data = data;
+        RecordBuffer = recordBuffer;
+    }
 
-//     private readonly CsvTokenizer<T> _tokenizer;
-//     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
+    public bool TryPop(out SlimRecord<T> record)
+    {
+        if (RecordBuffer.TryPop(out RecordView view))
+        {
+            record = new(Data, view, RecordBuffer);
+            return true;
+        }
 
-//     public bool IsCompleted { get; private set; }
+        record = default;
+        return false;
+    }
 
-//     protected ParallelReader(CsvOptions<T> options, CsvIOOptions ioOptions)
-//     {
-//         _options = options;
-//         _bufferSize = ioOptions.BufferSize;
-//     }
+    public void Dispose()
+    {
+        RecordBuffer.Dispose();
+    }
+}
 
-//     protected abstract int ReadCore(Span<T> buffer);
-//     protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);
+internal sealed class ParallelTextReader : ParallelReader<char>
+{
+    private readonly TextReader _reader;
 
-//     private bool TryAdvance(IMemoryOwner<T> owner, int read, out Chunk<T> chunk)
-//     {
-//         if (read == 0)
-//         {
-//             // TODO: handle tail
-//             chunk = default;
-//             return false;
-//         }
+    public ParallelTextReader(TextReader reader, CsvOptions<char> options, CsvIOOptions ioOptions)
+        : base(options, ioOptions)
+    {
+        ArgumentNullException.ThrowIfNull(reader);
+        _reader = reader;
+    }
 
-//         RecordBuffer recordBuffer = new(bufferSize: 192); // TODO tweak
+    protected override int ReadCore(Span<char> buffer)
+    {
+        return _reader.Read(buffer);
+    }
 
-//         FieldBuffer destination = recordBuffer.GetUnreadBuffer(_tokenizer.MinimumFieldBufferSize, out int startIndex);
-//         int count = _tokenizer.Tokenize(destination, startIndex, owner.Memory.Span.Slice(0, read));
-//         recordBuffer.SetFieldsRead(count);
-//     }
-// }
+    protected override ValueTask<int> ReadAsyncCore(Memory<char> buffer, CancellationToken cancellationToken)
+    {
+        return _reader.ReadAsync(buffer, cancellationToken);
+    }
+
+    protected override void DisposeCore()
+    {
+        _reader.Dispose();
+    }
+
+    protected override ValueTask DisposeAsyncCore()
+    {
+        _reader.Dispose();
+        return default;
+    }
+}
+
+internal abstract class ParallelReader<T> : IDisposable, IAsyncDisposable
+    where T : unmanaged, IBinaryInteger<T>
+{
+    private readonly CsvOptions<T> _options;
+    private readonly int _bufferSize;
+
+    private readonly CsvTokenizer<T>? _tokenizer;
+    private readonly CsvScalarTokenizer<T> _scalarTokenizer;
+
+    public bool IsCompleted { get; private set; }
+
+    private T[] _previousData;
+    private int _previousRead;
+
+    private int _recordBufferSize = 192;
+
+    protected ParallelReader(CsvOptions<T> options, CsvIOOptions ioOptions)
+    {
+        _options = options;
+        _bufferSize = ioOptions.BufferSize;
+
+        _previousData = [];
+        _previousRead = 0;
+
+        _tokenizer = CsvTokenizer.Create(options);
+        _scalarTokenizer = CsvTokenizer.CreateScalar(options);
+    }
+
+    protected abstract int ReadCore(Span<T> buffer);
+    protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);
+    protected abstract void DisposeCore();
+    protected abstract ValueTask DisposeAsyncCore();
+
+    public Chunk<T>? Read()
+    {
+        while (!IsCompleted || _previousRead > 0)
+        {
+            Memory<T> memory = new T[BitOperations.RoundUpToPowerOf2((uint)Math.Max(_bufferSize, _previousRead))];
+
+            _previousData.AsMemory(0, _previousRead).CopyTo(memory);
+            int read = ReadCore(memory.Slice(_previousRead).Span);
+            int totalRead = read + _previousRead;
+            _previousRead = 0;
+
+            if (read == 0)
+            {
+                IsCompleted = true;
+                break;
+            }
+
+            if (TryAdvance(memory, totalRead, out Chunk<T>? chunk))
+            {
+                int leftover = totalRead - chunk.RecordBuffer.BufferedRecordLength;
+
+                if (_previousData.Length < leftover)
+                {
+                    _previousData = new T[leftover];
+                }
+
+                memory.Slice(chunk.RecordBuffer.BufferedRecordLength, leftover).CopyTo(_previousData);
+                _previousRead = leftover;
+
+                return chunk;
+            }
+
+            // read something but no complete records
+            // TODO
+            throw new NotImplementedException();
+        }
+
+        return null;
+    }
+
+    private bool TryAdvance(ReadOnlyMemory<T> memory, int read, [NotNullWhen(true)] out Chunk<T>? chunk)
+    {
+        Debug.Assert(read > 0);
+
+        RecordBuffer recordBuffer = new(_recordBufferSize);
+
+        FieldBuffer destination = recordBuffer.GetUnreadBuffer(_tokenizer!.MinimumFieldBufferSize, out int startIndex);
+        int count = _tokenizer.Tokenize(destination, startIndex, memory.Span.Slice(0, read));
+
+        if (count > 0)
+        {
+            recordBuffer.SetFieldsRead(count);
+
+            if (recordBuffer.UnreadRecords > 0)
+            {
+                /*                 // Adjust buffer size based on utilization
+                                // If we're using more than 75% of the buffer capacity, grow it
+                                if (count > (_recordBufferSize * 3 / 4))
+                                {
+                                    _recordBufferSize = Math.Min(_recordBufferSize * 2, 4096 * 16);
+                                }
+                                // If we're using less than 25% of the buffer capacity, shrink it
+                                else if (count < (_recordBufferSize / 4))
+                                {
+                                    _recordBufferSize = Math.Max(_recordBufferSize / 2, 64);
+                                } */
+
+                // copy tail to leftover buffer
+                chunk = new Chunk<T>(memory, recordBuffer);
+                return true;
+            }
+        }
+
+        chunk = default;
+        return false;
+    }
+
+    public void Dispose()
+    {
+        DisposeCore();
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        return DisposeAsyncCore();
+    }
+}

@@ -3,7 +3,6 @@ using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
-using Sylvan.Data.Csv;
 
 #pragma warning disable CA1859
 
@@ -28,9 +27,9 @@ public class EnumerateBench
         Quote = '"',
     };
 
-    private static readonly CsvDataReaderOptions _sylvanOptions = new()
+    private static readonly Sylvan.Data.Csv.CsvDataReaderOptions _sylvanOptions = new()
     {
-        CsvStyle = CsvStyle.Standard,
+        CsvStyle = Sylvan.Data.Csv.CsvStyle.Standard,
         Delimiter = ',',
         Quote = '"',
         HeaderComparer = StringComparer.OrdinalIgnoreCase,
@@ -81,7 +80,7 @@ public class EnumerateBench
                 o with
                 {
                     Sep = new Sep(','),
-                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    CultureInfo = CultureInfo.InvariantCulture,
                     HasHeader = true,
                     Unescape = false,
                 }

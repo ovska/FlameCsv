@@ -7,34 +7,25 @@ public class RecordBufferTests
     [Fact]
     public void Should_Read_Fields()
     {
-        using RecordBuffer buffer = new();
-        uint[] array =
-        [
-            /**/
-            0,
-            1u,
-            3u,
-            5u,
-            7u | Field.IsCRLF,
-            10u,
-            20u,
-            30u,
-            40u,
-            default,
-            default,
-            default,
-        ];
+        const int bufferSize = 256;
 
-        uint[] poolArray = buffer._fields;
-        buffer._fields = array;
+        using RecordBuffer buffer = new(bufferSize);
+        ((ReadOnlySpan<uint>)[0, 1u, 3u, 5u, 7u | Field.IsCRLF, 10u, 20u, 30u, 40u]).CopyTo(buffer._fields);
+
+        uint[] array = buffer._fields;
 
         buffer.SetFieldsRead(8);
+
+        Assert.Equal(8, buffer.UnreadFields);
+        Assert.Equal(41, buffer.BufferedDataLength); // +1 for trailing comma
+        Assert.Equal(1, buffer.UnreadRecords);
+        Assert.Equal(9, buffer.BufferedRecordLength); // 7+2 (crlf)
 
         Assert.True(buffer.TryPop(out var view));
         Assert.Equal(array[..5].AsSpan(), view.GetFields(buffer));
 
-        // first 8 (+ startofdata) were read
-        Assert.Equal(3, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
+        // first 8 (+ 0 at start) were read
+        Assert.Equal(bufferSize - 9, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
         Assert.Equal(41, startIndex);
 
         Assert.False(buffer.TryPop(out _));
@@ -47,7 +38,5 @@ public class RecordBufferTests
         buffer.SetFieldsRead(1);
         Assert.True(buffer.TryPop(out view));
         Assert.Equal(array[..6].AsSpan(), view.GetFields(buffer));
-
-        buffer._fields = poolArray;
     }
 }

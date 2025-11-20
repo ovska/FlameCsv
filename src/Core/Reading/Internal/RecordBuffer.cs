@@ -53,8 +53,6 @@ internal sealed class RecordBuffer : IDisposable
         Initialize(bufferSize);
     }
 
-    public int RecordsBuffered => _eolCount - _eolIndex;
-
     /// <summary>
     /// Returns unconsumed meta buffer. If 3 fields were left in the buffer on last reset,
     /// returns array length - 3.
@@ -81,7 +79,10 @@ internal sealed class RecordBuffer : IDisposable
         };
     }
 
-    public int BufferedFields
+    /// <summary>
+    /// Number of fields that have been buffered and not yet consumed.
+    /// </summary>
+    public int UnreadFields
     {
         get
         {
@@ -90,12 +91,41 @@ internal sealed class RecordBuffer : IDisposable
         }
     }
 
+    /// <summary>
+    /// End position of the last field that has been read.
+    /// </summary>
     public int BufferedDataLength
     {
         get
         {
             ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
             return NextStart(_fields[_fieldCount]);
+        }
+    }
+
+    /// <summary>
+    /// Number of complete records that have been buffered and not yet consumed.
+    /// </summary>
+    public int UnreadRecords => _eolCount - _eolIndex;
+
+    /// <summary>
+    /// Returns the end position of the last fully formed record that has been read, including trailing newline.
+    /// </summary>
+    public int BufferedRecordLength
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
+
+            Debug.Assert(_fields[0] is 0, "First field should always be zero to indicate start of data");
+
+            if (_eolCount == 0)
+            {
+                return 0;
+            }
+
+            uint lastField = _fields[_eols[_eolCount]];
+            return NextStart(lastField);
         }
     }
 
