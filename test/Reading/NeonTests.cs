@@ -66,6 +66,8 @@ public static class NeonTests
     [Theory, MemberData(nameof(SignBits))]
     public static void Should_Load_Int_Sign_Bits_To_Masks(int[] data)
     {
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+
         byte[] expected = data.Select(i => (byte)(i < 0 ? 0xFF : 0x00)).ToArray();
         Vector256<byte> result = AsciiVector.LoadInt32SignsToByteMasksARM(ref data[0], 0);
         byte[] actual = new byte[32];

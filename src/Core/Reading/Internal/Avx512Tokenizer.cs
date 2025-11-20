@@ -51,7 +51,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
 
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
-        if ((uint)(data.Length - startIndex) < EndOffset)
+        if ((uint)(data.Length - startIndex) < EndOffset || destination.Fields.Length < MaxFieldsPerIteration)
         {
             return 0;
         }
@@ -93,7 +93,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
             // TODO: benchmark unaligned loads on real-world buffer sizes (currently optimized for fully buffered data)
             {
                 nint alignment = 64;
-                nint remainder = ((nint)Unsafe.AsPointer(ref Unsafe.Add(ref first, index)) % alignment) / sizeof(T);
+                nint remainder = ((nint)(ptr + index) % alignment) / sizeof(T);
 
                 if (remainder != 0)
                 {
@@ -116,6 +116,8 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                     // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
                     indexVector = Vector512.Create((uint)index - (uint)remainder);
                     index -= (nuint)remainder;
+
+                    Debug.Assert(((nint)index + 64) >= 0);
                 }
                 else
                 {
@@ -126,7 +128,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
 
             Vector512<byte> nextVector = AsciiVector.LoadAligned512<T>(ptr + index + (nuint)Vector512<byte>.Count);
 
-            while (fieldIndex <= fieldEnd && index <= searchSpaceEnd)
+            do
             {
                 Vector512<byte> hasLF = Vector512.Equals(vector, vecLF);
                 Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
@@ -259,7 +261,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                 }
 
                 goto ContinueRead;
-            }
+            } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
             return (int)fieldIndex;
         }
