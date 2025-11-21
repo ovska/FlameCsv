@@ -1,20 +1,23 @@
 using CommunityToolkit.HighPerformance;
 using FlameCsv.IO.Internal;
+using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 
-namespace FlameCsv.Reading;
+namespace FlameCsv.Tests.Reading;
 
 public class ParallelReaderTests
 {
     [Fact]
     public void Should_Read()
     {
-        Assert.Equal(TestDataGenerator.Objects.Value, ReadSequential());
+        TestConsoleWriter.RedirectToTestOutput();
+
+        ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, true, Escaping.None);
+
+        Assert.Equal(CsvReader.Read<Obj>(data), ReadSequential());
 
         IEnumerable<Obj> ReadSequential()
         {
-            var data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, true, Escaping.None);
-
             using var sr = new StreamReader(data.AsStream());
             using var reader = new ParallelTextReader(sr, CsvOptions<char>.Default, default);
             IMaterializer<char, Obj>? materializer = null;
@@ -37,11 +40,10 @@ public class ParallelReaderTests
                     else
                     {
                         var obj = materializer.Parse(ref record);
-                        obj.Name = $" {obj.Name?.Replace('-', '\'')}";
-                        obj.LastLogin = DateTimeOffset.UnixEpoch;
                         yield return obj;
                     }
                 }
+
                 chunk.Dispose();
             }
         }

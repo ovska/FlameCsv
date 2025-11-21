@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
@@ -112,7 +112,7 @@ internal abstract class ParallelReader<T> : IDisposable, IAsyncDisposable
     private T[] _previousData;
     private int _previousRead;
 
-    private int _recordBufferSize = 192;
+    private int _recordBufferSize = 368;
 
     protected ParallelReader(CsvOptions<T> options, CsvIOOptions ioOptions)
     {
@@ -145,7 +145,6 @@ internal abstract class ParallelReader<T> : IDisposable, IAsyncDisposable
             if (read == 0)
             {
                 IsCompleted = true;
-                break;
             }
 
             if (TryAdvance(memory, totalRead, out Chunk<T>? chunk))
@@ -162,10 +161,6 @@ internal abstract class ParallelReader<T> : IDisposable, IAsyncDisposable
 
                 return chunk;
             }
-
-            // read something but no complete records
-            // TODO
-            throw new NotImplementedException();
         }
 
         return null;
@@ -176,27 +171,36 @@ internal abstract class ParallelReader<T> : IDisposable, IAsyncDisposable
         Debug.Assert(read > 0);
 
         RecordBuffer recordBuffer = new(_recordBufferSize);
+        ReadOnlySpan<T> data = memory.Span.Slice(0, read);
 
         FieldBuffer destination = recordBuffer.GetUnreadBuffer(_tokenizer!.MinimumFieldBufferSize, out int startIndex);
-        int count = _tokenizer.Tokenize(destination, startIndex, memory.Span.Slice(0, read));
+
+        int count = _tokenizer is null
+            ? _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: false)
+            : _tokenizer.Tokenize(destination, startIndex, data);
+
+        if (count == 0 && IsCompleted)
+        {
+            count = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: true);
+        }
 
         if (count > 0)
         {
-            recordBuffer.SetFieldsRead(count);
+            int recordsRead = recordBuffer.SetFieldsRead(count);
 
-            if (recordBuffer.UnreadRecords > 0)
+            if (recordsRead > 0)
             {
-                /*                 // Adjust buffer size based on utilization
-                                // If we're using more than 75% of the buffer capacity, grow it
-                                if (count > (_recordBufferSize * 3 / 4))
-                                {
-                                    _recordBufferSize = Math.Min(_recordBufferSize * 2, 4096 * 16);
-                                }
-                                // If we're using less than 25% of the buffer capacity, shrink it
-                                else if (count < (_recordBufferSize / 4))
-                                {
-                                    _recordBufferSize = Math.Max(_recordBufferSize / 2, 64);
-                                } */
+                // Adjust the next buffer's size based on utilization
+                // If we're using more than 75% of the buffer capacity, grow it
+                if (count > (_recordBufferSize * 3 / 4))
+                {
+                    _recordBufferSize = Math.Min(_recordBufferSize * 2, 4096 * 16);
+                }
+                // If we're using less than 25% of the buffer capacity, shrink it
+                else if (count < (_recordBufferSize / 4))
+                {
+                    _recordBufferSize = Math.Max(_recordBufferSize / 2, 64);
+                }
 
                 // copy tail to leftover buffer
                 chunk = new Chunk<T>(memory, recordBuffer);
@@ -216,5 +220,18 @@ internal abstract class ParallelReader<T> : IDisposable, IAsyncDisposable
     public ValueTask DisposeAsync()
     {
         return DisposeAsyncCore();
+    }
+
+    private sealed class Enumerator(ParallelReader<T> reader) : IEnumerator<Chunk<T>>
+    {
+        public Chunk<T> Current { get; private set; } = null!;
+
+        public bool MoveNext() => (Current = reader.Read()!) is not null;
+
+        object IEnumerator.Current => Current;
+
+        void IEnumerator.Reset() => throw new NotSupportedException();
+
+        void IDisposable.Dispose() { }
     }
 }

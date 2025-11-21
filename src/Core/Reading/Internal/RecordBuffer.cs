@@ -132,8 +132,11 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Marks fields as read, and returns the end position of the last field.
     /// </summary>
+    /// <returns>
+    /// Total number of fully formed records in the buffer.
+    /// </returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void SetFieldsRead(int count)
+    public int SetFieldsRead(int count)
     {
         Debug.Assert(count >= 0);
         Debug.Assert((_fieldCount + count) < _fields.Length);
@@ -204,6 +207,7 @@ internal sealed class RecordBuffer : IDisposable
         }
 
         _eolCount += (int)idx;
+        return (int)idx;
     }
 
     /// <summary>
