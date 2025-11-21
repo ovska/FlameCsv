@@ -35,11 +35,11 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
+    public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
     {
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
-        if ((uint)(data.Length - startIndex) < EndOffset)
+        if ((uint)(data.Length - startIndex) < EndOffset || destination.Fields.Length < MaxFieldsPerIteration)
         {
             return 0;
         }
@@ -48,16 +48,16 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         nuint index = (uint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
 
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(buffer.Fields);
-        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
         nuint fieldIndex = 0;
-        nuint fieldEnd = Math.Max(0, (nuint)buffer.Fields.Length - (nuint)MaxFieldsPerIteration);
+        nuint fieldEnd = Math.Max(0, (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration);
 
         // ensure the worst case doesn't read past the end (e.g. data ends in Vector.Count delimiters)
         // we do this so there are no bounds checks in the loops
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
-        Debug.Assert(buffer.Fields.Length >= Vector256<byte>.Count);
-        Debug.Assert(buffer.Quotes.Length >= Vector256<byte>.Count);
+        Debug.Assert(destination.Fields.Length >= Vector256<byte>.Count);
+        Debug.Assert(destination.Quotes.Length >= Vector256<byte>.Count);
 
         // load the constants into registers
         uint quotesConsumed = 0;

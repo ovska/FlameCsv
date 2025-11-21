@@ -1,3 +1,4 @@
+#if false
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reading.Internal;
@@ -85,3 +86,4 @@ internal static class SWAR
         };
     }
 }
+#endif

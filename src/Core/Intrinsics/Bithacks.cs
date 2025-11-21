@@ -13,6 +13,9 @@ namespace FlameCsv.Intrinsics;
 [SkipLocalsInit]
 internal static class Bithacks
 {
+    /// <summary>
+    /// Resets the lowest set bit in <paramref name="mask"/> (<c>BLSR</c> or emulation).
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T ResetLowestSetBit<T>(T mask)
         where T : unmanaged, IBinaryInteger<T>
@@ -32,6 +35,9 @@ internal static class Bithacks
         return mask & (mask - T.One);
     }
 
+    /// <summary>
+    /// Returns whether there are CR bits set, the CR and LF bits do not form well-formed CRLF sequences.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsDisjointCR<T>(T maskLF, T shiftedCR)
         where T : unmanaged, IBinaryInteger<T>
@@ -42,7 +48,7 @@ internal static class Bithacks
     }
 
     /// <summary>
-    /// Returns the mask up to the lowest set bit (<c>BLSMSK</c>).
+    /// Returns the mask up to the lowest set bit (<c>BLSMSK</c> or emulation).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T GetMaskUpToLowestSetBit<T>(T mask)
@@ -63,6 +69,11 @@ internal static class Bithacks
         return mask ^ (mask - T.One); // lowered to blsmsk on x86
     }
 
+    /// <summary>
+    /// Returns the subraction flag for the given newline setting. If <paramref name="noCR"/> is <c>true</c>,
+    /// subracting the EOL flag will set the LF bit only; otherwise 1 is subtracted from the value, along with
+    /// both CR and LF bits being set.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetSubractionFlag(bool noCR)
     {
@@ -115,7 +126,7 @@ internal static class Bithacks
     }
 
     /// <summary>
-    /// Flips all bits in <paramref name="value"/> is condition is odd.
+    /// Flips all bits in <paramref name="value"/> is condition is odd (has the lowest bit set).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ConditionalFlipQuotes<T>(ref T value, T condition)
@@ -126,7 +137,7 @@ internal static class Bithacks
     }
 
     /// <summary>
-    /// Returns <c>true</c> if the value has a popcount of 0 or 1.
+    /// Returns <c>true</c> if the value has a population count of 0 or 1.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ZeroOrOneBitsSet<T>(T value)
@@ -145,11 +156,15 @@ internal static class Bithacks
         return (value & (value - T.One)) == T.Zero;
     }
 
+    /// <summary>
+    /// Does a prefix XOR-based computation of the quote mask.
+    /// </summary>
+    /// <param name="quoteBits">Movemask result containing bits at quote positions</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static T ComputeQuoteMask<T>(T quoteBits)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (Pclmulqdq.IsSupported && Sse2.IsSupported)
+        if (Pclmulqdq.IsSupported)
         {
             var vec = Vector128.CreateScalar(ulong.CreateTruncating(quoteBits));
             var result = Pclmulqdq.CarrylessMultiply(vec, Vector128<ulong>.AllBitsSet, 0);
@@ -185,6 +200,9 @@ internal static class Bithacks
         return mask;
     }
 
+    /// <summary>
+    /// Returns whether the given value is the start of a CRLF sequence (reads one value past the reference).
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCRLF<T>(ref T value)
         where T : unmanaged, IBinaryInteger<T>
@@ -204,6 +222,9 @@ internal static class Bithacks
         throw Token<T>.NotSupported;
     }
 
+    /// <summary>
+    /// Reverses the bits in the given value.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
     public static T ReverseBits<T>(T v)
@@ -217,6 +238,9 @@ internal static class Bithacks
         };
     }
 
+    /// <summary>
+    /// Isolates the lowest <paramref name="count"/> bits in an <see cref="UInt32"/>.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
     public static T IsolateLowestBits<T>(T value, uint count)

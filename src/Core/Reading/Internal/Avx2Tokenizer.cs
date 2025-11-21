@@ -45,7 +45,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data)
+    public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
     {
         if (!Avx2.IsSupported)
         {
@@ -55,7 +55,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
 
-        if ((uint)(data.Length - startIndex) < EndOffset)
+        if ((uint)(data.Length - startIndex) < EndOffset || destination.Fields.Length < MaxFieldsPerIteration)
         {
             return 0;
         }
@@ -68,13 +68,13 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
         scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (nuint)startIndex;
         nuint searchSpaceEnd = (nuint)data.Length - EndOffset;
-        nuint fieldEnd = (nuint)buffer.Fields.Length - (nuint)MaxFieldsPerIteration;
+        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
         nuint fieldIndex = 0;
 
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
-        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(buffer.Fields);
+        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
 
         Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
         Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));

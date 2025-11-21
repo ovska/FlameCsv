@@ -90,7 +90,8 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
             Vector512<byte> vector;
 
             // align the start
-            // TODO: benchmark unaligned loads on real-world buffer sizes (currently optimized for fully buffered data)
+            // TODO: benchmark whether unaligned loads are worth it on real-world buffer sizes and streaming;
+            // currently only optimized for fully buffered data
             {
                 nint alignment = 64;
                 nint remainder = ((nint)(ptr + index) % alignment) / sizeof(T);

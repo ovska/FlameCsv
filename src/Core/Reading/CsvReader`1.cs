@@ -49,7 +49,7 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     internal readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
 
-    private EnumeratorStack _stackMemory; // don't make me readonly
+    private EnumeratorStack _stackMemory; // don't make me readonly!
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
