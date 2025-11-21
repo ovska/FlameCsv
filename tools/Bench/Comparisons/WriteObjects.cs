@@ -9,7 +9,7 @@ namespace FlameCsv.Benchmark.Comparisons;
 [MemoryDiagnoser]
 public class WriteObjects
 {
-    [Params(100, 5000, 20_000)]
+    [Params(20_000)]
     public int Records { get; set; } = 5000;
 
     [Params(false, true)]
@@ -32,10 +32,11 @@ public class WriteObjects
         if (Async)
         {
             await CsvWriter.WriteAsync(_destination, Data, EntryTypeMap.Default);
-            return;
         }
-
-        CsvWriter.Write(_destination, Data, EntryTypeMap.Default);
+        else
+        {
+            CsvWriter.Write(_destination, Data, EntryTypeMap.Default);
+        }
     }
 
     [Benchmark]
@@ -44,10 +45,11 @@ public class WriteObjects
         if (Async)
         {
             await CsvWriter.WriteAsync(_destination, Data);
-            return;
         }
-
-        CsvWriter.Write(_destination, Data);
+        else
+        {
+            CsvWriter.Write(_destination, Data);
+        }
     }
 
     [Benchmark]

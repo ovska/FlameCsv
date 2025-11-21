@@ -7,20 +7,20 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using Perfolizer.Horology;
 
-// BenchmarkRunner.Run(
-//     [
-//         typeof(ReadObjects),
-//         typeof(WriteObjects),
-//         typeof(EnumerateBench),
-//     ],
-//     new Config(),
-//     args);
-
-BenchmarkRunner.Run<WriteBench>(new Config(), args);
+BenchmarkRunner.Run(
+    [
+        /**/
+        typeof(ReadObjects),
+        typeof(WriteObjects),
+        typeof(EnumerateBench),
+    ],
+    new Config(),
+    args
+);
 
 file class Config : ManualConfig
 {
-    const int Iters = 4;
+    const int Iters = 16;
 
     public Config()
     {
@@ -59,7 +59,7 @@ file class Config : ManualConfig
 
         if (!OperatingSystem.IsMacOS())
         {
-            AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(maxDepth: 2, printSource: true)));
+            // AddDiagnoser(new DisassemblyDiagnoser(new DisassemblyDiagnoserConfig(maxDepth: 2, printSource: true)));
         }
 
         WithOptions(ConfigOptions.DisableLogFile);

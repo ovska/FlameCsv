@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>FlameCsv.Benchmark.Comparisons.EnumerateBench-20251121-082113</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.6, Windows 11 (10.0.26100.7171/24H2/2024Update/HudsonValley)
+AMD Ryzen 7 PRO 7840U w/ Radeon 780M Graphics 3.30GHz, 1 CPU, 16 logical and 8 physical cores
+.NET SDK 10.0.100
+  [Host]     : .NET 10.0.0 (10.0.0, 10.0.25.52411), X64 RyuJIT x86-64-v4
+  Job-CASMLP : .NET 10.0.0 (10.0.0, 10.0.25.52411), X64 RyuJIT x86-64-v4
+</code></pre>
+<pre><code>MinIterationTime=1s  Server=True  MaxIterationCount=48  
+MaxWarmupIterationCount=32  MinIterationCount=16  MinWarmupIterationCount=16  
+</code></pre>
+
+<table>
+<thead><tr><th>Method</th><th>ReadFields</th><th>Async</th><th>Mean </th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>_FlameCsv</td><td>False</td><td>False</td><td>688.8 &mu;s</td><td>4.46 &mu;s</td><td>4.18 &mu;s</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>936 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>False</td><td>False</td><td>2,257.3 &mu;s</td><td>13.25 &mu;s</td><td>13.01 &mu;s</td><td>3.28</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>5936 B</td><td>6.34</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>False</td><td>2,601.0 &mu;s</td><td>11.81 &mu;s</td><td>11.05 &mu;s</td><td>3.78</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>42024 B</td><td>44.90</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>False</td><td>23,947.0 &mu;s</td><td>131.27 &mu;s</td><td>116.36 &mu;s</td><td>34.77</td><td>0.26</td><td>-</td><td>-</td><td>-</td><td>24280 B</td><td>25.94</td>
+</tr><tr><td>_FlameCsv</td><td>False</td><td>True</td><td>1,166.6 &mu;s</td><td>19.60 &mu;s</td><td>18.33 &mu;s</td><td>1.00</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>1000 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>False</td><td>True</td><td>2,423.6 &mu;s</td><td>17.34 &mu;s</td><td>17.03 &mu;s</td><td>2.08</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>5936 B</td><td>5.94</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>True</td><td>3,447.5 &mu;s</td><td>33.37 &mu;s</td><td>32.77 &mu;s</td><td>2.96</td><td>0.05</td><td>1.9531</td><td>-</td><td>-</td><td>78025 B</td><td>78.03</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>True</td><td>23,877.5 &mu;s</td><td>104.59 &mu;s</td><td>87.34 &mu;s</td><td>20.47</td><td>0.32</td><td>-</td><td>-</td><td>-</td><td>170152 B</td><td>170.15</td>
+</tr><tr><td>_FlameCsv</td><td>True</td><td>False</td><td>973.3 &mu;s</td><td>11.92 &mu;s</td><td>11.71 &mu;s</td><td>1.00</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>936 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>True</td><td>False</td><td>2,382.2 &mu;s</td><td>18.25 &mu;s</td><td>17.93 &mu;s</td><td>2.45</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>5936 B</td><td>6.34</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>False</td><td>4,178.7 &mu;s</td><td>23.35 &mu;s</td><td>22.94 &mu;s</td><td>4.29</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>42025 B</td><td>44.90</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>False</td><td>37,461.5 &mu;s</td><td>741.10 &mu;s</td><td>1,153.80 &mu;s</td><td>38.49</td><td>1.25</td><td>7312.5000</td><td>62.5000</td><td>-</td><td>37466888 B</td><td>40,028.73</td>
+</tr><tr><td>_FlameCsv</td><td>True</td><td>True</td><td>1,348.8 &mu;s</td><td>13.30 &mu;s</td><td>13.07 &mu;s</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>1000 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>True</td><td>True</td><td>2,514.3 &mu;s</td><td>22.07 &mu;s</td><td>21.67 &mu;s</td><td>1.86</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>5936 B</td><td>5.94</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>True</td><td>5,036.6 &mu;s</td><td>29.35 &mu;s</td><td>28.83 &mu;s</td><td>3.73</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>78025 B</td><td>78.03</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>True</td><td>38,452.5 &mu;s</td><td>676.54 &mu;s</td><td>632.84 &mu;s</td><td>28.51</td><td>0.53</td><td>1062.5000</td><td>31.2500</td><td>31.2500</td><td>-</td><td>0.00</td>
+</tr></tbody></table>
+</body>
+</html>

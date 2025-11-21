@@ -12,7 +12,8 @@ namespace FlameCsv.Benchmark.Comparisons;
 [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
 public partial class ReadObjects
 {
-    [Params(100, 5000, 20_000)]
+    [Params(
+     20_000)]
     public int Records { get; set; } = 5000;
 
     [Params(false, true)]
@@ -47,15 +48,14 @@ public partial class ReadObjects
         if (Async)
         {
             await using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
-            await foreach (var entry in new CsvValueEnumerable<char, Entry>(reader, _flameCsvOptions))
+            await foreach (var entry in CsvReader.Read<Entry>(GetStream(), _flameCsvOptions))
             {
                 _ = entry;
             }
         }
         else
         {
-            using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
-            foreach (var entry in new CsvValueEnumerable<char, Entry>(reader, _flameCsvOptions))
+            foreach (var entry in CsvReader.Read<Entry>(GetStream(), _flameCsvOptions))
             {
                 _ = entry;
             }
@@ -67,18 +67,14 @@ public partial class ReadObjects
     {
         if (Async)
         {
-            await using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
-            await foreach (
-                var entry in new CsvTypeMapEnumerable<char, Entry>(reader, _flameCsvOptions, EntryTypeMap.Default)
-            )
+            await foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
             {
                 _ = entry;
             }
         }
         else
         {
-            using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
-            foreach (var entry in new CsvTypeMapEnumerable<char, Entry>(reader, _flameCsvOptions, EntryTypeMap.Default))
+            foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
             {
                 _ = entry;
             }
