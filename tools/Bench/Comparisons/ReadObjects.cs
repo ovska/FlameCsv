@@ -63,36 +63,35 @@ public partial class ReadObjects
     [Benchmark]
     public async Task _Parallel()
     {
-        await using var reader = new ParallelTextReader(new StreamReader(GetStream()), _flameCsvOptions, default);
+        using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions);
         IMaterializer<char, Entry>? materializer = null;
+        using ManualResetEventSlim headerRead = _flameCsvOptions.HasHeader ? new() : null!;
 
         Parallel.ForEach(
             reader,
             new() { MaxDegreeOfParallelism = 4 },
             chunk =>
             {
-                while (chunk.TryPop(out CsvRecordRef<char> record))
+                using (chunk)
                 {
-                    if (materializer is null)
+                    while (chunk.TryPop(out CsvRecordRef<char> record))
                     {
-                        if (chunk.Position == 0)
+                        if (materializer is null)
                         {
-                            var headers = CsvHeader.ParseFast<char, CsvRecordRef<char>>(ref record);
-                            materializer = _flameCsvOptions.TypeBinder.GetMaterializer<Entry>([.. headers]);
-                        }
-                        else
-                        {
-                            SpinWait spinner = default;
-
-                            while (materializer is null)
+                            if (chunk.Position == 0)
                             {
-                                spinner.SpinOnce();
+                                var headers = CsvHeader.Parse<char, CsvRecordRef<char>>(ref record);
+                                materializer = _flameCsvOptions.TypeBinder.GetMaterializer<Entry>(headers);
+                                headerRead.Set();
+                                continue;
+                            }
+                            else
+                            {
+                                headerRead.Wait();
                             }
                         }
-                    }
-                    else
-                    {
-                        _ = materializer.Parse(ref record);
+
+                        _ = materializer!.Parse(ref record);
                     }
                 }
             }
@@ -178,11 +177,13 @@ public partial class ReadObjects
     private readonly byte[] _data0;
     private readonly byte[] _data1;
     private readonly byte[] _data2;
+    private readonly string _string2;
 
     public ReadObjects()
     {
         _data0 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_100records.csv");
         _data1 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb.csv");
         _data2 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
+        _string2 = Encoding.UTF8.GetString(_data2);
     }
 }

@@ -18,8 +18,11 @@ public class ParallelReaderTests
 
         IEnumerable<Obj> ReadSequential()
         {
+            using var pool = ReturnTrackingMemoryPool<char>.Create();
+            CsvOptions<char> options = new() { MemoryPool = pool };
+
             using var sr = new StreamReader(data.AsStream());
-            using var reader = new ParallelTextReader(sr, CsvOptions<char>.Default, default);
+            using var reader = new ParallelTextReader(sr, options, default);
             IMaterializer<char, Obj>? materializer = null;
 
             while (reader.Read() is Chunk<char> chunk)
@@ -35,7 +38,7 @@ public class ParallelReaderTests
                             headers.Add(record[i].ToString());
                         }
 
-                        materializer = CsvOptions<char>.Default.TypeBinder.GetMaterializer<Obj>([.. headers]);
+                        materializer = options.TypeBinder.GetMaterializer<Obj>([.. headers]);
                     }
                     else
                     {

@@ -373,3 +373,5 @@ FodyWeavers.xsd
 # Docfx
 docs/_site/
 docs/api/
+
+**/.DS_Store
