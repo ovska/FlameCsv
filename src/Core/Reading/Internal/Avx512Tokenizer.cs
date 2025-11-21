@@ -1,3 +1,4 @@
+#if NET10_0_OR_GREATER
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -266,3 +267,4 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         }
     }
 }
+#endif
