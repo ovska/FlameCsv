@@ -51,7 +51,7 @@ internal static class Field
     public static int End(uint field) => (int)(field & EndMask);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
+    public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, CsvReaderBase<T> reader)
         where T : unmanaged, IBinaryInteger<T>
     {
         int end = End(field);
@@ -116,10 +116,10 @@ internal static class Field
         return retVal;
 
         InvalidField:
-        return Invalid(start, field, quote, ref data, reader);
+        return Invalid(start, field, quote, ref data);
     }
 
-    private static ReadOnlySpan<T> Invalid<T>(int start, uint field, byte quote, ref T data, CsvReader<T> reader)
+    private static ReadOnlySpan<T> Invalid<T>(int start, uint field, byte quote, ref T data)
         where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> value = MemoryMarshal.CreateReadOnlySpan(

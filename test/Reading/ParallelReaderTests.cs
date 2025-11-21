@@ -24,7 +24,7 @@ public class ParallelReaderTests
 
             while (reader.Read() is Chunk<char> chunk)
             {
-                while (chunk.TryPop(out var record))
+                while (chunk.TryPop(out CsvRecordRef<char> record))
                 {
                     if (materializer is null)
                     {

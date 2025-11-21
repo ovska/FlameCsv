@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using FlameCsv.Enumeration;
 using FlameCsv.IO;
+using FlameCsv.IO.Internal;
+using FlameCsv.Reading;
 using Sylvan.Data;
 using Sylvan.Data.Csv;
 
@@ -12,11 +13,8 @@ namespace FlameCsv.Benchmark.Comparisons;
 [SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
 public partial class ReadObjects
 {
-    [Params(
-     20_000)]
-    public int Records { get; set; } = 5000;
+    public int Records { get; set; } = 20000;
 
-    [Params(false, true)]
     public bool Async { get; set; }
 
     private static readonly CsvOptions<char> _flameCsvOptions = new()
@@ -42,7 +40,7 @@ public partial class ReadObjects
         HeaderComparer = StringComparer.OrdinalIgnoreCase,
     };
 
-    [Benchmark]
+    // [Benchmark]
     public async Task _FlameCsv()
     {
         if (Async)
@@ -62,68 +60,109 @@ public partial class ReadObjects
         }
     }
 
-    [Benchmark(Baseline = true)]
-    public async Task _Flame_SrcGen()
-    {
-        if (Async)
-        {
-            await foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
-            {
-                _ = entry;
-            }
-        }
-        else
-        {
-            foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
-            {
-                _ = entry;
-            }
-        }
-    }
-
     [Benchmark]
-    public async Task _Sylvan()
+    public async Task _Parallel()
     {
-        using var reader = GetReader();
-        using var csv = Sylvan.Data.Csv.CsvDataReader.Create(reader, _sylvanOptions);
+        await using var reader = new ParallelTextReader(new StreamReader(GetStream()), _flameCsvOptions, default);
+        IMaterializer<char, Entry>? materializer = null;
 
-        if (Async)
-        {
-            await foreach (var entry in csv.GetRecordsAsync<Entry>())
+        Parallel.ForEach(
+            reader,
+            new() { MaxDegreeOfParallelism = 4 },
+            chunk =>
             {
-                _ = entry;
+                while (chunk.TryPop(out CsvRecordRef<char> record))
+                {
+                    if (materializer is null)
+                    {
+                        if (chunk.Position == 0)
+                        {
+                            var headers = CsvHeader.ParseFast<char, CsvRecordRef<char>>(ref record);
+                            materializer = _flameCsvOptions.TypeBinder.GetMaterializer<Entry>([.. headers]);
+                        }
+                        else
+                        {
+                            SpinWait spinner = default;
+
+                            while (materializer is null)
+                            {
+                                spinner.SpinOnce();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        _ = materializer.Parse(ref record);
+                    }
+                }
             }
-        }
-        else
-        {
-            foreach (var entry in csv.GetRecords<Entry>())
-            {
-                _ = entry;
-            }
-        }
+        );
     }
 
-    [Benchmark]
-    public async Task _CsvHelper()
-    {
-        using var reader = GetReader();
-        using var csv = new CsvHelper.CsvReader(reader, _helperConfig);
+    // [Benchmark(Baseline = true)]
+    // public async Task _Flame_SrcGen()
+    // {
+    //     if (Async)
+    //     {
+    //         await foreach (
+    //             var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions)
+    //         )
+    //         {
+    //             _ = entry;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
+    //         {
+    //             _ = entry;
+    //         }
+    //     }
+    // }
 
-        if (Async)
-        {
-            await foreach (var entry in csv.GetRecordsAsync<Entry>())
-            {
-                _ = entry;
-            }
-        }
-        else
-        {
-            foreach (var entry in csv.GetRecords<Entry>())
-            {
-                _ = entry;
-            }
-        }
-    }
+    // [Benchmark]
+    // public async Task _Sylvan()
+    // {
+    //     using var reader = GetReader();
+    //     using var csv = Sylvan.Data.Csv.CsvDataReader.Create(reader, _sylvanOptions);
+
+    //     if (Async)
+    //     {
+    //         await foreach (var entry in csv.GetRecordsAsync<Entry>())
+    //         {
+    //             _ = entry;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         foreach (var entry in csv.GetRecords<Entry>())
+    //         {
+    //             _ = entry;
+    //         }
+    //     }
+    // }
+
+    // [Benchmark]
+    // public async Task _CsvHelper()
+    // {
+    //     using var reader = GetReader();
+    //     using var csv = new CsvHelper.CsvReader(reader, _helperConfig);
+
+    //     if (Async)
+    //     {
+    //         await foreach (var entry in csv.GetRecordsAsync<Entry>())
+    //         {
+    //             _ = entry;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         foreach (var entry in csv.GetRecords<Entry>())
+    //         {
+    //             _ = entry;
+    //         }
+    //     }
+    // }
 
     private Stream GetStream() =>
         Records switch

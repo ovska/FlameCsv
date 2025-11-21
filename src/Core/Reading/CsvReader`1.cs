@@ -1,9 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using FlameCsv.IO;
-using FlameCsv.IO.Internal;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
@@ -18,14 +16,9 @@ namespace FlameCsv.Reading;
 [MustDisposeResource]
 [PublicAPI]
 [SkipLocalsInit]
-public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
+public sealed partial class CsvReader<T> : CsvReaderBase<T>, IDisposable, IAsyncDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
-    /// <summary>
-    /// Current options instance.
-    /// </summary>
-    public CsvOptions<T> Options { get; }
-
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
@@ -36,9 +29,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// </summary>
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
-    internal readonly Allocator<T> _unescapeAllocator;
-    internal readonly Dialect<T> _dialect;
-
     /// <summary>
     /// Whether the instance has been disposed.
     /// </summary>
@@ -48,8 +38,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
 
     internal readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
-
-    private EnumeratorStack _stackMemory; // don't make me readonly!
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
@@ -73,20 +61,17 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
     /// Initializes a new instance of the <see cref="CsvReader{T}"/> class.
     /// </summary>
     public CsvReader(CsvOptions<T> options, ICsvBufferReader<T> reader)
+        : base(options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
 
         options.MakeReadOnly();
 
-        Options = options;
         _recordBuffer = new RecordBuffer();
         _reader = reader;
         _skipBOM = typeof(T) == typeof(byte);
         _state = State.Initialized;
-
-        _dialect = new Dialect<T>(options);
-        _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
 
         _tokenizer = CsvTokenizer.Create(options);
         _scalarTokenizer = CsvTokenizer.CreateScalar(options);
@@ -380,19 +365,6 @@ public sealed partial class CsvReader<T> : IDisposable, IAsyncDisposable
             _buffer = ReadOnlyMemory<T>.Empty;
             _recordBuffer.Dispose();
         }
-    }
-
-    internal Span<T> GetUnescapeBuffer(int length)
-    {
-        int stackLength = EnumeratorStack.Length / Unsafe.SizeOf<T>();
-
-        // allocate a new buffer if the requested length is larger than the stack buffer
-        if (length > stackLength)
-        {
-            return _unescapeAllocator.GetSpan(length);
-        }
-
-        return MemoryMarshal.Cast<byte, T>((Span<byte>)_stackMemory);
     }
 
     private enum State : byte

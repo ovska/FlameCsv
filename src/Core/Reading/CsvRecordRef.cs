@@ -22,14 +22,15 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     private readonly ref T _data;
     private readonly ReadOnlySpan<uint> _fields;
     private readonly ref byte _quotes;
-    internal readonly CsvReader<T> _reader;
+    internal readonly CsvReaderBase<T> _reader;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(scoped ref readonly CsvSlice<T> slice)
-        : this(slice.Reader, ref MemoryMarshal.GetReference(slice.Data.Span), slice.Record) { }
+        : this(slice.Reader, slice.Reader._recordBuffer, ref MemoryMarshal.GetReference(slice.Data.Span), slice.Record)
+    { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecordRef(CsvReader<T> reader, ref T data, RecordView view)
+    internal CsvRecordRef(CsvReaderBase<T> reader, RecordBuffer recordBuffer, ref T data, RecordView view)
     {
         _isFirst = view.IsFirst;
         _reader = reader;
@@ -41,11 +42,11 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         // skip the first which points to the start of the record
 
         _fields = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(reader._recordBuffer._fields), start),
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._fields), start),
             length
         );
 
-        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(reader._recordBuffer._quotes), start);
+        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._quotes), start);
     }
 
     /// <inheritdoc/>

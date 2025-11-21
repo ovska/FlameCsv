@@ -28,12 +28,19 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     internal static ImmutableArray<string> Parse<T>(ref readonly CsvSlice<T> slice)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (slice.FieldCount == 0)
+        CsvRecordRef<T> record = new(in slice);
+        return Parse<T, CsvRecordRef<T>>(ref record);
+    }
+
+    internal static ImmutableArray<string> Parse<T, TRecord>(ref readonly TRecord record)
+        where T : unmanaged, IBinaryInteger<T>
+        where TRecord : ICsvRecord<T>, allows ref struct
+    {
+        if (record.FieldCount == 0)
         {
             CsvFormatException.Throw("CSV header was empty");
         }
 
-        CsvRecordRef<T> record = new(in slice);
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
         EnumeratorStack stack = new();

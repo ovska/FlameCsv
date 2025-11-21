@@ -108,7 +108,7 @@ partial class CsvReader<T>
         /// Current record.
         /// </summary>
         [UnscopedRef]
-        public CsvRecordRef<T> Current => new(_reader, ref _data, _view);
+        public CsvRecordRef<T> Current => new(_reader, _reader._recordBuffer, ref _data, _view);
 
         /// <summary>
         /// Attempts to read the next record.
@@ -166,16 +166,16 @@ partial class CsvReader<T>
             _data = ref Unsafe.NullRef<T>();
         }
 
-        CsvRecordRef<T> IEnumerator<CsvRecordRef<T>>.Current => new(_reader, ref _data, _view);
+        CsvRecordRef<T> IEnumerator<CsvRecordRef<T>>.Current => new(_reader, _reader._recordBuffer, ref _data, _view);
         readonly object IEnumerator.Current => throw new NotSupportedException();
 
         bool IEnumerator.MoveNext() => MoveNext();
 
         void IEnumerator.Reset()
         {
-            _reader.Reset();
             _view = default;
             _data = ref Unsafe.NullRef<T>();
+            _reader.Reset();
         }
     }
 
