@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Runtime.InteropServices;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
@@ -8,7 +9,7 @@ namespace FlameCsv.IO.Internal;
 /// Chunks for parallel CSV reading.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal sealed class Chunk<T> : IDisposable
+internal sealed class Chunk<T> : IDisposable, IEnumerable<CsvRecordRef<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -74,5 +75,35 @@ internal sealed class Chunk<T> : IDisposable
 
         RecordBuffer.Dispose();
         _owner?.Dispose();
+    }
+
+    public IEnumerator<CsvRecordRef<T>> GetEnumerator() => new Enumerator(this);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    private sealed class Enumerator : IEnumerator<CsvRecordRef<T>>
+    {
+        private readonly Chunk<T> _chunk;
+        private RecordView _current;
+
+        public Enumerator(Chunk<T> chunk)
+        {
+            _chunk = chunk;
+            _current = default;
+        }
+
+        public CsvRecordRef<T> Current =>
+            new(_chunk._reader, _chunk.RecordBuffer, ref MemoryMarshal.GetReference(_chunk.Data.Span), _current);
+
+        object IEnumerator.Current => throw new NotSupportedException();
+
+        public bool MoveNext() => _chunk.RecordBuffer.TryPop(out _current);
+
+        public void Reset() => throw new NotSupportedException();
+
+        public void Dispose() { }
     }
 }

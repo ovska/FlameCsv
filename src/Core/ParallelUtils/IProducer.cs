@@ -1,3 +1,9 @@
+using System.Collections.Immutable;
+using System.Diagnostics;
+using FlameCsv.Binding;
+using FlameCsv.Extensions;
+using FlameCsv.Reading;
+
 namespace FlameCsv.ParallelUtils;
 
 /// <summary>
@@ -6,6 +12,7 @@ namespace FlameCsv.ParallelUtils;
 /// <typeparam name="TInput">Data type for the input</typeparam>
 /// <typeparam name="TState">State that accumulates the inputs</typeparam>
 internal interface IProducer<TInput, TState>
+    where TInput : allows ref struct
 {
     /// <summary>
     /// A single task to run before the main loop is started.

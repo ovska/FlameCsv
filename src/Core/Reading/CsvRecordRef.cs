@@ -18,7 +18,7 @@ namespace FlameCsv.Reading;
 public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly bool _isFirst;
+    internal readonly bool _isFirst;
     private readonly ref T _data;
     private readonly ReadOnlySpan<uint> _fields;
     private readonly ref byte _quotes;
