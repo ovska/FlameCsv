@@ -18,11 +18,11 @@ namespace FlameCsv.Reading;
 public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly bool _isFirst;
+    internal readonly bool _isFirst;
     private readonly ref T _data;
     private readonly ReadOnlySpan<uint> _fields;
     private readonly ref byte _quotes;
-    internal readonly CsvReaderBase<T> _reader;
+    internal readonly RecordOwner<T> _owner;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(scoped ref readonly CsvSlice<T> slice)
@@ -30,10 +30,10 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecordRef(CsvReaderBase<T> reader, RecordBuffer recordBuffer, ref T data, RecordView view)
+    internal CsvRecordRef(RecordOwner<T> reader, RecordBuffer recordBuffer, ref T data, RecordView view)
     {
         _isFirst = view.IsFirst;
-        _reader = reader;
+        _owner = reader;
         _data = ref data;
 
         int start = view.Start + 1;
@@ -80,9 +80,9 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
 
             int length = end - start;
 
-            if ((((int)_reader._dialect.Trimming) | quote) != 0)
+            if ((((int)_owner._dialect.Trimming) | quote) != 0)
             {
-                return Field.GetValue(start, current, quote, ref _data, _reader);
+                return Field.GetValue(start, current, quote, ref _data, _owner);
             }
 
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), length);

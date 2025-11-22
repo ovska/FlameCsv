@@ -4,7 +4,6 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.Wasm;
 using System.Runtime.Intrinsics.X86;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 

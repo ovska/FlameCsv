@@ -1,4 +1,8 @@
+using System.Buffers;
+using System.Collections;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.ParallelUtils;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 
@@ -8,13 +12,13 @@ namespace FlameCsv.IO.Internal;
 /// Chunks for parallel CSV reading.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-internal sealed class Chunk<T> : IDisposable
+internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRecordRef<T>>, IHasOrder
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// 0-based start position of the chunk in the data source.
+    /// Index of the chunk.
     /// </summary>
-    public long Position { get; }
+    public int Order { get; }
 
     /// <summary>
     /// Data of the chunk.
@@ -31,33 +35,30 @@ internal sealed class Chunk<T> : IDisposable
     /// </summary>
     private readonly IDisposable? _owner;
 
-    /// <summary>
-    /// Reader that produced this chunk.
-    /// </summary>
-    private readonly CsvReaderBase<T> _reader;
+    private IMemoryOwner<T>? _unescapeBuffer;
 
     internal byte _disposed;
 
     public Chunk(
-        long position,
+        int order,
+        CsvOptions<T> options,
         ReadOnlyMemory<T> data,
         IDisposable? owner,
-        RecordBuffer recordBuffer,
-        CsvReaderBase<T> reader
+        RecordBuffer recordBuffer
     )
+        : base(options)
     {
-        Position = position;
+        Order = order;
         Data = data;
         _owner = owner;
         RecordBuffer = recordBuffer;
-        _reader = reader;
     }
 
     public bool TryPop(out CsvRecordRef<T> record)
     {
         if (RecordBuffer.TryPop(out RecordView view))
         {
-            record = new(_reader, RecordBuffer, ref MemoryMarshal.GetReference(Data.Span), view);
+            record = new(this, RecordBuffer, ref MemoryMarshal.GetReference(Data.Span), view);
             return true;
         }
 
@@ -74,5 +75,50 @@ internal sealed class Chunk<T> : IDisposable
 
         RecordBuffer.Dispose();
         _owner?.Dispose();
+        _unescapeBuffer?.Dispose();
+    }
+
+    public IEnumerator<CsvRecordRef<T>> GetEnumerator() => new Enumerator(this);
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    internal override Span<T> GetUnescapeBuffer(int length)
+    {
+        // allocate a new buffer if the requested length is larger than the stack buffer
+        if (_unescapeBuffer is null || _unescapeBuffer.Memory.Length < length)
+        {
+            _unescapeBuffer?.Dispose();
+            _unescapeBuffer = Options.Allocator.Rent(length);
+        }
+
+        return _unescapeBuffer.Memory.Span;
+    }
+
+    private static T[] _array = new T[1024];
+
+    [SkipLocalsInit]
+    private sealed class Enumerator : IEnumerator<CsvRecordRef<T>>
+    {
+        private readonly Chunk<T> _chunk;
+        private RecordView _current;
+
+        public Enumerator(Chunk<T> chunk)
+        {
+            _chunk = chunk;
+        }
+
+        public CsvRecordRef<T> Current =>
+            new(_chunk, _chunk.RecordBuffer, ref MemoryMarshal.GetReference(_chunk.Data.Span), _current);
+
+        object IEnumerator.Current => throw new NotSupportedException();
+
+        public bool MoveNext() => _chunk.RecordBuffer.TryPop(out _current);
+
+        public void Reset() => throw new NotSupportedException();
+
+        public void Dispose() { }
     }
 }

@@ -1,9 +1,3 @@
-using System.Buffers;
-using System.Collections;
-using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
-
 namespace FlameCsv.IO.Internal;
 
 internal static class ParallelReader

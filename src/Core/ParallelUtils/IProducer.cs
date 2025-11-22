@@ -5,7 +5,8 @@ namespace FlameCsv.ParallelUtils;
 /// </summary>
 /// <typeparam name="TInput">Data type for the input</typeparam>
 /// <typeparam name="TState">State that accumulates the inputs</typeparam>
-internal interface IProducer<TInput, TState>
+internal interface IProducer<TInput, TState> : IDisposable
+    where TInput : allows ref struct
 {
     /// <summary>
     /// A single task to run before the main loop is started.
@@ -20,9 +21,7 @@ internal interface IProducer<TInput, TState>
     /// <summary>
     /// Processes the shared with a given input.
     /// </summary>
-    /// <param name="input"></param>
-    /// <param name="state"></param>
-    void Produce(TInput input, ref TState state);
+    void Produce(int order, TInput input, ref TState state);
 
     /// <summary>
     /// Creates a new state.

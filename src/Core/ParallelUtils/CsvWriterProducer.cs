@@ -10,7 +10,7 @@ namespace FlameCsv.ParallelUtils;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TValue"></typeparam>
-internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFieldWriter<T>>
+internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFieldWriter<T>>, IDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvOptions<T> _options;
@@ -65,7 +65,7 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Produce(TValue input, ref CsvFieldWriter<T> state)
+    public void Produce(int order, TValue input, ref CsvFieldWriter<T> state)
     {
         _dematerializer.Write(ref state, input);
         state.WriteNewline();
@@ -81,4 +81,6 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
     {
         throw new CsvWriteException("An error occurred while formatting CSV.", exception);
     }
+
+    void IDisposable.Dispose() { }
 }

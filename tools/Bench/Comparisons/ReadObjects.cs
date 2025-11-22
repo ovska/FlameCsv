@@ -64,60 +64,29 @@ public partial class ReadObjects
     public async Task _Parallel()
     {
         using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions);
-        IMaterializer<char, Entry>? materializer = null;
-        using ManualResetEventSlim headerRead = _flameCsvOptions.HasHeader ? new() : null!;
-
-        Parallel.ForEach(
-            reader,
-            new() { MaxDegreeOfParallelism = 4 },
-            chunk =>
-            {
-                using (chunk)
-                {
-                    while (chunk.TryPop(out CsvRecordRef<char> record))
-                    {
-                        if (materializer is null)
-                        {
-                            if (chunk.Position == 0)
-                            {
-                                var headers = CsvHeader.Parse<char, CsvRecordRef<char>>(ref record);
-                                materializer = _flameCsvOptions.TypeBinder.GetMaterializer<Entry>(headers);
-                                headerRead.Set();
-                                continue;
-                            }
-                            else
-                            {
-                                headerRead.Wait();
-                            }
-                        }
-
-                        _ = materializer!.Parse(ref record);
-                    }
-                }
-            }
-        );
+        CsvParallel.ForEach(EntryTypeMap.Default, reader, list => { }, _flameCsvOptions);
     }
 
-    // [Benchmark(Baseline = true)]
-    // public async Task _Flame_SrcGen()
-    // {
-    //     if (Async)
-    //     {
-    //         await foreach (
-    //             var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions)
-    //         )
-    //         {
-    //             _ = entry;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
-    //         {
-    //             _ = entry;
-    //         }
-    //     }
-    // }
+    [Benchmark(Baseline = true)]
+    public async Task _Flame_SrcGen()
+    {
+        if (Async)
+        {
+            await foreach (
+                var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions)
+            )
+            {
+                _ = entry;
+            }
+        }
+        else
+        {
+            foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
+            {
+                _ = entry;
+            }
+        }
+    }
 
     // [Benchmark]
     // public async Task _Sylvan()

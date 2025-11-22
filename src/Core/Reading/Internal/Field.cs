@@ -51,13 +51,13 @@ internal static class Field
     public static int End(uint field) => (int)(field & EndMask);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, CsvReaderBase<T> reader)
+    public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, RecordOwner<T> owner)
         where T : unmanaged, IBinaryInteger<T>
     {
         int end = End(field);
 
         // trim before unquoting to preserve spaces in strings
-        reader._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
+        owner._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
 
         int length = end - start;
 
@@ -66,7 +66,7 @@ internal static class Field
 
         if (quote != 0)
         {
-            T q = reader._dialect.Quote;
+            T q = owner._dialect.Quote;
 
             if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1u) != q)
             {
@@ -87,7 +87,7 @@ internal static class Field
                     goto InvalidField;
                 }
 
-                Span<T> buffer = reader.GetUnescapeBuffer(retVal.Length);
+                Span<T> buffer = owner.GetUnescapeBuffer(retVal.Length);
 
                 // Vector<char> is not supported
                 if (Unsafe.SizeOf<T>() is sizeof(char))

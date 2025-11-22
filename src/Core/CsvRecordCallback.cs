@@ -33,7 +33,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     )
         : this(record, header.AsSpan(), lineIndex, position, ref skip, ref headerRead)
     {
-        if (record._reader is null)
+        if (record._owner is null)
             Throw.Argument_DefaultStruct(typeof(CsvRecordRef<T>), nameof(record));
 
         if (header.IsDefault)
@@ -84,7 +84,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _record._reader.Options;
+    public CsvOptions<T> Options => _record._owner.Options;
 
     /// <summary>
     /// 1-based line number.

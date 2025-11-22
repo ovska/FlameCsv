@@ -1,15 +1,14 @@
 using System.Buffers;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
-using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.IO.Internal;
 
-internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
+internal abstract class ParallelReader<T> : IParallelReader<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly MemoryPool<T> _memoryPool;
+    private readonly CsvOptions<T> _options;
     private readonly int _bufferSize;
 
     private readonly CsvTokenizer<T>? _tokenizer;
@@ -23,16 +22,19 @@ internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
     private int _recordBufferSize = 1024;
 
     private long _position;
+    private int _index;
 
     protected ParallelReader(CsvOptions<T> options, CsvIOOptions ioOptions)
-        : base(options)
     {
-        _memoryPool = options.Allocator;
+        options.MakeReadOnly();
+
+        _options = options;
         _bufferSize = ioOptions.BufferSize;
 
         _previousData = HeapMemoryOwner<T>.Empty;
         _previousRead = 0;
         _position = 0;
+        _index = 0;
 
         _tokenizer = CsvTokenizer.Create(options);
         _scalarTokenizer = CsvTokenizer.CreateScalar(options);
@@ -60,7 +62,7 @@ internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
             if (TryAdvance(owner, memory.Slice(0, totalRead), out Chunk<T>? chunk))
             {
                 int leftover = totalRead - chunk.RecordBuffer.BufferedRecordLength;
-                _memoryPool.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
+                _options.Allocator.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
 
                 memory.Slice(chunk.RecordBuffer.BufferedRecordLength, leftover).CopyTo(_previousData.Memory);
                 _previousRead = leftover;
@@ -74,7 +76,7 @@ internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
 
     private IMemoryOwner<T> GetBufferForReading(out int startIndex)
     {
-        IMemoryOwner<T> memory = _memoryPool.Rent(_bufferSize);
+        IMemoryOwner<T> memory = _options.Allocator.Rent(_bufferSize);
         startIndex = _previousRead;
 
         _previousData.Memory.Slice(0, _previousRead).CopyTo(memory.Memory);
@@ -123,7 +125,7 @@ internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
                     _recordBufferSize = Math.Max(_recordBufferSize / 2, 256);
                 }
 
-                chunk = new Chunk<T>(_position, memory, owner, recordBuffer, this);
+                chunk = new Chunk<T>(_index++, _options, memory, owner, recordBuffer);
                 _position += recordBuffer.BufferedRecordLength;
                 return true;
             }
@@ -141,7 +143,6 @@ internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
         _position = -1;
 
         _previousData.Dispose();
-        _unescapeAllocator.Dispose();
         DisposeCore();
     }
 
@@ -153,7 +154,6 @@ internal abstract class ParallelReader<T> : CsvReaderBase<T>, IParallelReader<T>
         _position = -1;
 
         _previousData.Dispose();
-        _unescapeAllocator.Dispose();
         await DisposeAsyncCore().ConfigureAwait(false);
     }
 

@@ -1,5 +1,10 @@
 namespace FlameCsv.ParallelUtils;
 
+internal interface IHasOrder
+{
+    int Order{ get; }
+}
+
 /// <summary>
 /// Consumes states produced by a <see cref="IProducer{TInput, TState}"/> in a parallel processing loop.
 /// </summary>

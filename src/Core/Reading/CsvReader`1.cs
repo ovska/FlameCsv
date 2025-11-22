@@ -1,7 +1,9 @@
 ﻿using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.IO;
+using FlameCsv.IO.Internal;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
@@ -16,7 +18,7 @@ namespace FlameCsv.Reading;
 [MustDisposeResource]
 [PublicAPI]
 [SkipLocalsInit]
-public sealed partial class CsvReader<T> : CsvReaderBase<T>, IDisposable, IAsyncDisposable
+public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -35,6 +37,9 @@ public sealed partial class CsvReader<T> : CsvReaderBase<T>, IDisposable, IAsync
     private bool IsDisposed => _state == State.Disposed;
 
     internal readonly RecordBuffer _recordBuffer;
+
+    internal readonly Allocator<T> _unescapeAllocator;
+    private EnumeratorStack _stackMemory; // don't make me readonly!
 
     internal readonly ICsvBufferReader<T> _reader;
     private ReadOnlyMemory<T> _buffer;
@@ -66,8 +71,6 @@ public sealed partial class CsvReader<T> : CsvReaderBase<T>, IDisposable, IAsync
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
 
-        options.MakeReadOnly();
-
         _recordBuffer = new RecordBuffer();
         _reader = reader;
         _skipBOM = typeof(T) == typeof(byte);
@@ -75,6 +78,8 @@ public sealed partial class CsvReader<T> : CsvReaderBase<T>, IDisposable, IAsync
 
         _tokenizer = CsvTokenizer.Create(options);
         _scalarTokenizer = CsvTokenizer.CreateScalar(options);
+
+        _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
     }
 
     /// <summary>
@@ -365,6 +370,19 @@ public sealed partial class CsvReader<T> : CsvReaderBase<T>, IDisposable, IAsync
             _buffer = ReadOnlyMemory<T>.Empty;
             _recordBuffer.Dispose();
         }
+    }
+
+    internal override Span<T> GetUnescapeBuffer(int length)
+    {
+        int stackLength = EnumeratorStack.Length / Unsafe.SizeOf<T>();
+
+        // allocate a new buffer if the requested length is larger than the stack buffer
+        if (length > stackLength)
+        {
+            return _unescapeAllocator.GetSpan(length);
+        }
+
+        return MemoryMarshal.Cast<byte, T>((Span<byte>)_stackMemory);
     }
 
     private enum State : byte

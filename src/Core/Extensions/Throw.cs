@@ -1,9 +1,7 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;
 
 namespace FlameCsv.Extensions;
