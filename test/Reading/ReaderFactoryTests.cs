@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using FlameCsv.IO.Internal;
+﻿using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests.Reading;
 

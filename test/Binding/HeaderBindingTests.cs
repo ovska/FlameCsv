@@ -1,7 +1,6 @@
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
-using FlameCsv.Reading;
 
 [assembly: CsvHeader("_id", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped), MemberName = "Id")]
 [assembly: CsvHeader("_name", TargetType = typeof(FlameCsv.Tests.Binding.AssemblyScoped), MemberName = "Name")]

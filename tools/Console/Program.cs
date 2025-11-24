@@ -2,15 +2,12 @@
 #pragma warning disable CS0162 // Unreachable code detected
 
 using System.Buffers;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Text.Json;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Formattable;
-using FlameCsv.Intrinsics;
 using FlameCsv.IO;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;

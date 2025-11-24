@@ -1,12 +1,7 @@
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Intrinsics;
-using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 

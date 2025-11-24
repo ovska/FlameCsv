@@ -1,9 +1,6 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
+﻿using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Extensions;
-using FlameCsv.Intrinsics;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests;

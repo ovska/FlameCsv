@@ -3,8 +3,6 @@ using System.Globalization;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
-using FlameCsv.Reading;
-using Sylvan.Data;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;
@@ -15,6 +13,7 @@ public partial class ReadObjects
 {
     public int Records { get; set; } = 20000;
 
+    [Params(true)]
     public bool Async { get; set; }
 
     private static readonly CsvOptions<char> _flameCsvOptions = new()
@@ -64,7 +63,15 @@ public partial class ReadObjects
     public async Task _Parallel()
     {
         using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions);
-        CsvParallel.ForEach(EntryTypeMap.Default, reader, list => { }, _flameCsvOptions);
+
+        if (Async)
+        {
+            await CsvParallel.ForEachAsync(EntryTypeMap.Default, reader, (list, ct) => default, _flameCsvOptions);
+        }
+        else
+        {
+            CsvParallel.ForEach(EntryTypeMap.Default, reader, list => { }, _flameCsvOptions);
+        }
     }
 
     [Benchmark(Baseline = true)]

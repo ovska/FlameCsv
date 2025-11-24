@@ -4,7 +4,6 @@ using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.IO;
 using FlameCsv.Reading;
-using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests.Reading;
 

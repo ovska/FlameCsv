@@ -1,10 +1,7 @@
 ﻿using System.Globalization;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Attributes;
-using FlameCsv.IO;
-using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
-using FlameCsv.Writing.Escaping;
 using nietras.SeparatedValues;
 
 namespace FlameCsv.Benchmark;
