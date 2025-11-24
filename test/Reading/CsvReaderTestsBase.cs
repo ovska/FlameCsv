@@ -13,44 +13,16 @@ public abstract class CsvReaderTestsBase
 {
     protected static readonly int[] _bufferSizes = [-1, 256, 1024];
 
-    public sealed class SyncData : TheoryData<CsvNewline, bool, bool, int, Escaping, bool, bool?>;
-
-    public sealed class AsyncData : TheoryData<CsvNewline, bool, bool, int, Escaping, bool, bool?>;
-
-    public static SyncData SyncParams
-    {
-        get
-        {
-            var data =
-                from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
-                from writeHeader in GlobalData.Booleans
-                from writeTrailingNewline in (bool[])[true] // GlobalData.Booleans
-                from bufferSize in _bufferSizes
-                from escaping in GlobalData.Enum<Escaping>()
-                from sourceGen in GlobalData.Booleans
-                from guarded in GlobalData.GuardedMemory
-                select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen, guarded);
-            return [.. data];
-        }
-    }
-
-    public static AsyncData AsyncParams
-    {
-        get
-        {
-            var data =
-                from crlf in GlobalData.Enum<CsvNewline>()
-                from writeHeader in GlobalData.Booleans
-                from writeTrailingNewline in (bool[])[true] // GlobalData.Booleans
-                from bufferSize in _bufferSizes
-                from escaping in GlobalData.Enum<Escaping>()
-                from sourceGen in GlobalData.Booleans
-                from guarded in GlobalData.GuardedMemory
-                select (crlf, writeHeader, writeTrailingNewline, bufferSize, escaping, sourceGen, guarded);
-
-            return [.. data];
-        }
-    }
+    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool?> Data =>
+        [
+            .. from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
+            from writeHeader in GlobalData.Booleans
+            from bufferSize in _bufferSizes
+            from escaping in GlobalData.Enum<Escaping>()
+            from sourceGen in GlobalData.Booleans
+            from guarded in GlobalData.GuardedMemory
+            select (crlf, writeHeader, bufferSize, escaping, sourceGen, guarded),
+        ];
 }
 
 /// <summary>
@@ -63,11 +35,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
     protected abstract ICsvBufferReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
 
-    [Theory, MemberData(nameof(SyncParams))]
+    [Theory, MemberData(nameof(Data))]
     public async Task Objects_Sync(
         CsvNewline newline,
         bool header,
-        bool trailingLF,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
@@ -76,7 +47,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     {
         using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
         CsvOptions<T> options = GetOptions(newline, header, pool);
-        var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
+        var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
 
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
         {
@@ -88,11 +59,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    [Theory, MemberData(nameof(SyncParams))]
+    [Theory, MemberData(nameof(Data))]
     public async Task Records_Sync(
         CsvNewline newline,
         bool header,
-        bool trailingLF,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
@@ -106,7 +76,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         {
             CsvOptions<T> options = GetOptions(newline, header, pool);
 
-            var memory = TestDataGenerator.Generate<T>(newline, header, trailingLF, escaping);
+            var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
             using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
             {
                 await using var reader = CsvBufferReader.Create(in sequence);
@@ -121,11 +91,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    [Theory, MemberData(nameof(AsyncParams))]
+    [Theory, MemberData(nameof(Data))]
     public async Task Objects_Async(
         CsvNewline newline,
         bool header,
-        bool trailingLF,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
@@ -139,7 +108,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         {
             CsvOptions<T> options = GetOptions(newline, header, pool);
 
-            var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
+            var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
 
             await using var stream = data.AsStream();
             await using var reader = GetReader(stream, options, bufferSize);
@@ -155,11 +124,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    [Theory, MemberData(nameof(AsyncParams))]
+    [Theory, MemberData(nameof(Data))]
     public async Task Records_Async(
         CsvNewline newline,
         bool header,
-        bool trailingLF,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
@@ -173,7 +141,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         {
             CsvOptions<T> options = GetOptions(newline, header, pool);
 
-            var data = TestDataGenerator.Generate<byte>(newline, header, trailingLF, escaping);
+            var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
             await using var stream = data.AsStream();
             await using var reader = GetReader(stream, options, bufferSize);
 

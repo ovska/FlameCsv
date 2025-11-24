@@ -29,7 +29,7 @@ public static class ScalarTests
         Assert.Equal(fbScalar.Fields, fbSimd.Fields);
         Assert.Equal(fbScalar.Quotes, fbSimd.Quotes);
 
-        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, true, Escaping.Quote).Span;
+        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, Escaping.Quote).Span;
 
         int resultScalar = scalarTokenizer.Tokenize(fbScalar, scalarStartIndex, data, readToEnd: false);
         int resultSimd = simdTokenizer!.Tokenize(fbSimd, simdStartIndex, data);

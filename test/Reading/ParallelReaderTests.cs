@@ -12,7 +12,7 @@ public class ParallelReaderTests
     {
         TestConsoleWriter.RedirectToTestOutput();
 
-        ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, true, Escaping.None);
+        ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, Escaping.None);
 
         Assert.Equal(CsvReader.Read<Obj>(data), ReadSequential());
 

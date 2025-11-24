@@ -73,38 +73,28 @@ public static class TestDataGenerator
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<char>>> _chars = [];
     private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<byte>>> _bytes = [];
 
-    private readonly record struct Key(string Newline, bool WriteHeader, bool TrailingNewline, Escaping Escaping);
+    private readonly record struct Key(string Newline, bool WriteHeader, Escaping Escaping);
 
-    public static ReadOnlyMemory<T> Generate<T>(
-        CsvNewline newLineToken,
-        bool writeHeader,
-        bool writeTrailingNewline,
-        Escaping escaping
-    )
+    public static ReadOnlyMemory<T> Generate<T>(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
         if (typeof(T) == typeof(char))
-            return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, writeTrailingNewline, escaping);
+            return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, escaping);
 
         if (typeof(T) == typeof(byte))
-            return (ReadOnlyMemory<T>)(object)GenerateBytes(newLineToken, writeHeader, writeTrailingNewline, escaping);
+            return (ReadOnlyMemory<T>)(object)GenerateBytes(newLineToken, writeHeader, escaping);
 
         throw new UnreachableException();
     }
 
-    public static ReadOnlyMemory<char> GenerateText(
-        CsvNewline newLineToken,
-        bool writeHeader,
-        bool writeTrailingNewline,
-        Escaping escaping
-    )
+    public static ReadOnlyMemory<char> GenerateText(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
         string newLine = newLineToken.AsString();
-        var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
+        var key = new Key(newLine, writeHeader, escaping);
         var chars = _chars.GetOrAdd(
             key,
             static key => new Lazy<ReadOnlyMemory<char>>(() =>
             {
-                (string newLine, bool writeHeader, bool writeTrailingNewline, Escaping escaping) = key;
+                (string newLine, bool writeHeader, Escaping escaping) = key;
 
                 StringBuilder writer = StringBuilderPool.Value.Get();
 
@@ -151,8 +141,7 @@ public static class TestDataGenerator
                     writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
                 }
 
-                if (writeTrailingNewline)
-                    writer.Append(newLine);
+                writer.Append(newLine);
 
                 return writer.ToString().AsMemory();
             })
@@ -161,20 +150,15 @@ public static class TestDataGenerator
         return chars.Value;
     }
 
-    public static ReadOnlyMemory<byte> GenerateBytes(
-        CsvNewline newLineToken,
-        bool writeHeader,
-        bool writeTrailingNewline,
-        Escaping escaping
-    )
+    public static ReadOnlyMemory<byte> GenerateBytes(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
         string newLine = newLineToken.AsString();
-        var key = new Key(newLine, writeHeader, writeTrailingNewline, escaping);
+        var key = new Key(newLine, writeHeader, escaping);
         var chars = _bytes.GetOrAdd(
             key,
             static key => new Lazy<ReadOnlyMemory<byte>>(() =>
             {
-                (string newLine, bool writeHeader, bool writeTrailingNewline, Escaping escaping) = key;
+                (string newLine, bool writeHeader, Escaping escaping) = key;
 
                 var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
                 var writer = Utf8StringInterpolation.Utf8String.CreateWriter(innerWriter);
@@ -222,8 +206,7 @@ public static class TestDataGenerator
                     writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
                 }
 
-                if (writeTrailingNewline)
-                    writer.Append(newLine);
+                writer.Append(newLine);
 
                 if (innerWriter.Capacity != RequiredCapacity)
                     throw new UnreachableException(innerWriter.Capacity.ToString());
