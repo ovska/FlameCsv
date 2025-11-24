@@ -16,6 +16,10 @@ public readonly record struct CsvParallelOptions
     /// <summary>
     /// Token to cancel the read or write operation.
     /// </summary>
+    /// <remarks>
+    /// Cancellation will not guarantee that an <see cref="OperationCanceledException"/> is thrown, only
+    /// that the operation will halt as soon as possible.
+    /// </remarks>
     public CancellationToken CancellationToken { get; init; }
 
     /// <summary>

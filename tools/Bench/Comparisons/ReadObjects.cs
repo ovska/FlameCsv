@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
+using FlameCsv.ParallelUtils;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;
@@ -13,7 +14,7 @@ public partial class ReadObjects
 {
     public int Records { get; set; } = 20000;
 
-    [Params(true)]
+    [Params(false, true)]
     public bool Async { get; set; }
 
     private static readonly CsvOptions<char> _flameCsvOptions = new()
@@ -63,18 +64,31 @@ public partial class ReadObjects
     public async Task _Parallel()
     {
         using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions);
+        using CancellationTokenSource cts = new();
 
         if (Async)
         {
-            await CsvParallel.ForEachAsync(EntryTypeMap.Default, reader, (list, ct) => default, _flameCsvOptions);
+            await CsvParallel.ForEachAsync(
+                reader,
+                ValueProducer<char, Entry>.Create(EntryTypeMap.Default, _flameCsvOptions, default),
+                (_, _, _) => ValueTask.CompletedTask,
+                cts,
+                null
+            );
         }
         else
         {
-            CsvParallel.ForEach(EntryTypeMap.Default, reader, list => { }, _flameCsvOptions);
+            CsvParallel.ForEach(
+                reader,
+                ValueProducer<char, Entry>.Create(EntryTypeMap.Default, _flameCsvOptions, default),
+                (in _, _) => { },
+                cts,
+                null
+            );
         }
     }
 
-    [Benchmark(Baseline = true)]
+    // [Benchmark(Baseline = true)]
     public async Task _Flame_SrcGen()
     {
         if (Async)

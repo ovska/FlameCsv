@@ -19,7 +19,7 @@ namespace FlameCsv.Writing;
 /// This type must be disposed to release rented memory.
 /// </remarks>
 [MustDisposeResource]
-public readonly struct CsvFieldWriter<T> : IDisposable
+public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -369,6 +369,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable
     {
         _allocator?.Dispose();
     }
+
+    bool ParallelUtils.IConsumable.ShouldConsume => Writer.NeedsFlush;
 }
 
 file static class InvalidTokensWritten

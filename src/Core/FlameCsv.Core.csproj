@@ -83,6 +83,10 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>CsvWriter.Generated.cs</LastGenOutput>
         </None>
+        <None Update="CsvParallel.Generated.tt">
+            <Generator>TextTemplatingFileGenerator</Generator>
+            <LastGenOutput>CsvParallel.Generated.cs</LastGenOutput>
+        </None>
     </ItemGroup>
     <!-- Nuget -->
     <!-- Templates -->
@@ -148,6 +152,11 @@
             <AutoGen>True</AutoGen>
             <DesignTime>True</DesignTime>
             <DependentUpon>CsvWriter.Generated.tt</DependentUpon>
+        </Compile>
+        <Compile Update="CsvParallel.Generated.cs">
+            <AutoGen>True</AutoGen>
+            <DesignTime>True</DesignTime>
+            <DependentUpon>CsvParallel.Generated.tt</DependentUpon>
         </Compile>
     </ItemGroup>
     <ItemGroup>

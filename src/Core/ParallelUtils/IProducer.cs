@@ -1,7 +1,7 @@
 namespace FlameCsv.ParallelUtils;
 
 /// <summary>
-/// Processes states for use in a parallel processing loop and yields them to a <see cref="IConsumer{TState}"/>.
+/// Processes states for use in a parallel processing loop and yields them to a consumer.
 /// </summary>
 /// <typeparam name="TInput">Data type for the input</typeparam>
 /// <typeparam name="TState">State that accumulates the inputs</typeparam>
@@ -27,9 +27,4 @@ internal interface IProducer<TInput, TState> : IDisposable
     /// Creates a new state.
     /// </summary>
     TState CreateState();
-
-    /// <summary>
-    /// Notifies the producer that an exception has occurred during producing.
-    /// </summary>
-    void OnException(Exception exception);
 }

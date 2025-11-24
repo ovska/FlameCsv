@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using FlameCsv.Exceptions;
 using FlameCsv.IO;
 using FlameCsv.Writing;
 
@@ -10,7 +9,7 @@ namespace FlameCsv.ParallelUtils;
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="TValue"></typeparam>
-internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFieldWriter<T>>, IDisposable
+internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFieldWriter<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvOptions<T> _options;
@@ -77,10 +76,55 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
         return new CsvFieldWriter<T>(new MemoryPoolBufferWriter<T>(_sink, _asyncSink, _options.Allocator), _options);
     }
 
-    public void OnException(Exception exception)
-    {
-        throw new CsvWriteException("An error occurred while formatting CSV.", exception);
-    }
-
     void IDisposable.Dispose() { }
+}
+
+internal static class CsvWriterProducer<T>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    public static readonly CsvParallel.Consume<CsvFieldWriter<T>> Consume = (in state, ex) =>
+    {
+        try
+        {
+            if (ex is null)
+            {
+                state.Writer.Flush();
+            }
+        }
+        catch (Exception e)
+        {
+            ex ??= e;
+            throw;
+        }
+        finally
+        {
+            state.Writer.Complete(ex);
+            state.Dispose();
+        }
+    };
+
+    public static readonly CsvParallel.ConsumeAsync<CsvFieldWriter<T>> ConsumeAsync = async (
+        state,
+        ex,
+        cancellationToken
+    ) =>
+    {
+        try
+        {
+            if (ex is null)
+            {
+                await state.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception e)
+        {
+            ex ??= e;
+            throw;
+        }
+        finally
+        {
+            await state.Writer.CompleteAsync(ex, cancellationToken).ConfigureAwait(false);
+            state.Dispose();
+        }
+    };
 }

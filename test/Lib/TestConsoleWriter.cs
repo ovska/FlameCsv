@@ -8,7 +8,7 @@ public static class TestConsoleWriter
     {
         Console.SetOut(new TestOutputWriter());
     }
-    
+
     private sealed class TestOutputWriter : TextWriter
     {
         public override Encoding Encoding => throw new NotImplementedException();
