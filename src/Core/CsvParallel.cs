@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using FlameCsv.Binding;
@@ -9,72 +9,25 @@ using FlameCsv.Writing;
 
 namespace FlameCsv;
 
-internal static class CsvParallel
+/// <summary>
+/// Provides static methods for reading and writing CSV data in parallel.
+/// </summary>
+/// <remarks>
+/// All operations are currently <strong>unordered</strong>, and the record order is not guaranteed.
+/// </remarks>
+public static partial class CsvParallel
 {
+    /// <summary>
+    /// Default chunk size for parallel CSV processing.
+    /// </summary>
     public const int DefaultChunkSize = 128;
 
-    /// <summary>
-    /// Options for parallel CSV processing.
-    /// </summary>
-    public readonly record struct Options
-    {
-        /// <summary>
-        /// Size of chunks to use when processing data in parallel.<br/>
-        /// When reading CSV, this many records are parsed before they are yielded to the consumer.<br/>
-        /// Less critical when writing, the records are batched but the writers are still flushed based on their buffer saturation.<br/>
-        /// If unset, defaults to <c>128</c>.
-        /// </summary>
-        public int? ChunkSize { get; init; }
-
-        /// <summary>
-        /// Token to cancel the read or write operation.
-        /// </summary>
-        public CancellationToken CancellationToken { get; init; }
-
-        /// <summary>
-        /// Maximum degree of parallelism to use when processing CSV data in parallel.<br/>
-        /// When reading, the default is <c>4</c> or the number of processors on the machine, whichever is smaller.<br/>
-        /// When writing, defaults to the number of processors on the machine, or the one picked by TPL.
-        /// </summary>
-        public int? MaxDegreeOfParallelism { get; init; }
-
-        internal Options Validated()
-        {
-            if (ChunkSize.HasValue)
-            {
-                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ChunkSize.Value, "options.ChunkSize");
-            }
-
-            if (MaxDegreeOfParallelism.HasValue)
-            {
-                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(
-                    MaxDegreeOfParallelism.Value,
-                    "options.MaxDegreeOfParallelism"
-                );
-            }
-
-            return this;
-        }
-
-        internal Options ValidatedForReading()
-        {
-            var options = Validated();
-
-            if (!options.MaxDegreeOfParallelism.HasValue)
-            {
-                options = options with { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 4) };
-            }
-
-            return options;
-        }
-    }
-
-    public static void ForEach<T, TValue>(
+    internal static void ForEach<T, TValue>(
         CsvTypeMap<T, TValue> typeMap,
         IParallelReader<T> reader,
         Action<List<TValue>> action,
         CsvOptions<T>? options = null,
-        Options parallelOptions = default
+        CsvParallelOptions parallelOptions = default
     )
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -92,12 +45,12 @@ internal static class CsvParallel
         );
     }
 
-    public static Task ForEachAsync<T, TValue>(
+    internal static Task ForEachAsync<T, TValue>(
         CsvTypeMap<T, TValue> typeMap,
         IParallelReader<T> reader,
         Func<List<TValue>, CancellationToken, ValueTask> asyncAction,
         CsvOptions<T>? options = null,
-        Options parallelOptions = default
+        CsvParallelOptions parallelOptions = default
     )
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -126,7 +79,7 @@ internal static class CsvParallel
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         Action<ReadOnlySpan<T>> sink,
-        Options parallelOptions = default
+        CsvParallelOptions parallelOptions = default
     )
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -151,7 +104,7 @@ internal static class CsvParallel
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> sink,
-        Options parallelOptions = default
+        CsvParallelOptions parallelOptions = default
     )
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -176,7 +129,7 @@ internal static class CsvParallel
         IEnumerable<TElement> source,
         TProducer producer,
         TConsumer consumer,
-        Options parallelOptions
+        CsvParallelOptions parallelOptions
     )
         where T : allows ref struct
         where TElement : IEnumerable<T>, IHasOrder
@@ -323,7 +276,7 @@ internal static class CsvParallel
         IEnumerable<TElement> source,
         TProducer producer,
         TConsumer consumer,
-        Options parallelOptions
+        CsvParallelOptions parallelOptions
     )
         where T : allows ref struct
         where TElement : IEnumerable<T>, IHasOrder
