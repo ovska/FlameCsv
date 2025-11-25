@@ -9,7 +9,7 @@ public readonly record struct CsvParallelOptions
     /// Size of chunks to use when processing data in parallel.<br/>
     /// When reading CSV, this many records are parsed before they are yielded to the consumer.<br/>
     /// Less critical when writing, the records are batched but the writers are still flushed based on their buffer saturation.<br/>
-    /// If unset, defaults to <c>128</c> (<see cref="FlameCsv.CsvParallel.DefaultChunkSize"/>)
+    /// If unset, defaults to <c>128</c> (<see cref="CsvParallel.DefaultChunkSize"/>)
     /// </summary>
     public int? ChunkSize { get; init; }
 
@@ -33,14 +33,14 @@ public readonly record struct CsvParallelOptions
     {
         if (ChunkSize.HasValue)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ChunkSize.Value, "options.ChunkSize");
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ChunkSize.Value, "parallelOptions.ChunkSize");
         }
 
         if (MaxDegreeOfParallelism.HasValue)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(
                 MaxDegreeOfParallelism.Value,
-                "options.MaxDegreeOfParallelism"
+                "parallelOptions.MaxDegreeOfParallelism"
             );
         }
 

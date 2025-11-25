@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using FlameCsv.Binding;
 using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
 using FlameCsv.Reading;
@@ -10,34 +9,6 @@ namespace FlameCsv;
 
 public static partial class CsvParallel
 {
-    public static IEnumerable<ReadOnlySpan<TValue>> Read<TValue>(
-        ReadOnlyMemory<char> csv,
-        CsvTypeMap<char, TValue> typeMap,
-        CsvOptions<char>? options = null,
-        CsvParallelOptions parallelOptions = default
-    )
-    {
-        return AsEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default),
-            ValueProducer<char, TValue>.Create(typeMap, options, parallelOptions),
-            parallelOptions
-        );
-    }
-
-    public static IAsyncEnumerable<ReadOnlyMemory<TValue>> ReadAsync<TValue>(
-        ReadOnlyMemory<char> csv,
-        CsvTypeMap<char, TValue> typeMap,
-        CsvOptions<char>? options = null,
-        CsvParallelOptions parallelOptions = default
-    )
-    {
-        return AsAsyncEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default),
-            ValueProducer<char, TValue>.Create(typeMap, options, parallelOptions),
-            parallelOptions
-        );
-    }
-
     private static ParallelEnumerable<TValue> AsEnumerableCore<T, TValue>(
         IParallelReader<T> reader,
         ValueProducer<T, TValue> producer,
