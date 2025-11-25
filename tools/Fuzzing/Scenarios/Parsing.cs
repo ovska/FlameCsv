@@ -8,14 +8,20 @@ public class Parsing : IScenario
     {
         try
         {
-            using var pool = new BoundedMemoryPool<byte>();
             using var stream = data.AsStream();
 
-            var options = new CsvOptions<byte> { MemoryPool = pool };
-            var readOptions = new CsvIOOptions { NoDirectBufferAccess = true };
+            var readOptions = new CsvIOOptions
+            {
+                NoDirectBufferAccess = true,
+                BufferPool = new BoundedBufferPool(placement),
+            };
 
             foreach (
-                var r in new CsvReader<byte>(options, CsvBufferReader.Create(stream, pool, readOptions)).ParseRecords()
+                var r in new CsvReader<byte>(
+                    CsvOptions<byte>.Default,
+                    CsvBufferReader.Create(stream, readOptions),
+                    in readOptions
+                ).ParseRecords()
             )
             {
                 for (int i = 0; i < r.FieldCount; i++)
@@ -36,10 +42,19 @@ public class Parsing : IScenario
     {
         try
         {
-            using var pool = new BoundedMemoryPool<char>();
-            var options = new CsvOptions<char> { MemoryPool = pool };
+            var readOptions = new CsvIOOptions
+            {
+                NoDirectBufferAccess = true,
+                BufferPool = new BoundedBufferPool(placement),
+            };
 
-            foreach (var r in new CsvReader<char>(options, CsvBufferReader.Create(data)).ParseRecords())
+            foreach (
+                var r in new CsvReader<char>(
+                    CsvOptions<char>.Default,
+                    CsvBufferReader.Create(data),
+                    in readOptions
+                ).ParseRecords()
+            )
             {
                 for (int i = 0; i < r.FieldCount; i++)
                 {

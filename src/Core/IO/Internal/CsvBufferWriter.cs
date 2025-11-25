@@ -7,7 +7,8 @@ namespace FlameCsv.IO.Internal;
 internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     where T : unmanaged
 {
-    private readonly MemoryPool<T> _allocator;
+    public IBufferPool BufferPool { get; }
+
     private readonly int _bufferSize;
     private readonly int _flushThreshold;
     private int _unflushed;
@@ -30,12 +31,12 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
 
     protected bool IsDisposed => _unflushed == -1;
 
-    protected CsvBufferWriter(MemoryPool<T> allocator, in CsvIOOptions options)
+    protected CsvBufferWriter(in CsvIOOptions options)
     {
-        _allocator = allocator ?? MemoryPool<T>.Shared;
+        BufferPool = options.EffectiveBufferPool;
         _bufferSize = options.BufferSize;
         _flushThreshold = (int)(_bufferSize * (31d / 32d)); // default 512 bytes
-        _memoryOwner = _allocator.Rent(_bufferSize);
+        _memoryOwner = BufferPool.Rent<T>(_bufferSize);
         _buffer = _memoryOwner.Memory;
     }
 
@@ -61,7 +62,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private Memory<T> ResizeBuffer(int sizeHint)
     {
-        _allocator.EnsureCapacity(
+        BufferPool.EnsureCapacity(
             ref _memoryOwner,
             minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
             copyOnResize: true

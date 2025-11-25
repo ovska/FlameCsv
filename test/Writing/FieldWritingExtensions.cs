@@ -73,7 +73,7 @@ public class FieldWritingExtensionsTests
     private static string Chars(Action<CsvFieldWriter<char>> func, CsvOptions<char>? options = null)
     {
         var sb = new StringBuilder();
-        var bufferWriter = new StringBuilderBufferWriter(sb, MemoryPool<char>.Shared);
+        var bufferWriter = new StringBuilderBufferWriter(sb, null);
         using var writer = new CsvFieldWriter<char>(bufferWriter, options ?? CsvOptions<char>.Default);
         func(writer);
         bufferWriter.Complete(null);
@@ -83,7 +83,7 @@ public class FieldWritingExtensionsTests
     private static string Bytes(Action<CsvFieldWriter<byte>> func, CsvOptions<byte>? options = null)
     {
         using var ms = new MemoryStream();
-        var bufferWriter = new StreamBufferWriter(ms, MemoryPool<byte>.Shared, default);
+        var bufferWriter = new StreamBufferWriter(ms, default);
         using var writer = new CsvFieldWriter<byte>(bufferWriter, options ?? CsvOptions<byte>.Default);
         func(writer);
         bufferWriter.Complete(null);

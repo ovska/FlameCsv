@@ -10,7 +10,7 @@ public class StringBuilderBufferWriterTests
     public void ShouldResizeBuffer()
     {
         var builder = new StringBuilder();
-        var writer = new StringBuilderBufferWriter(builder, MemoryPool<char>.Shared);
+        var writer = new StringBuilderBufferWriter(builder, null);
 
         var memory = writer.GetMemory(100);
         "abc".AsSpan().CopyTo(memory.Span);
@@ -31,7 +31,7 @@ public class StringBuilderBufferWriterTests
     public void AdvanceAndGetMemory()
     {
         var builder = new StringBuilder();
-        var writer = new StringBuilderBufferWriter(builder, MemoryPool<char>.Shared);
+        var writer = new StringBuilderBufferWriter(builder, null);
 
         var memory = writer.GetMemory(10);
         memory.Span.Fill('A');
@@ -55,7 +55,7 @@ public class StringBuilderBufferWriterTests
     public async Task FlushDoesNotThrow()
     {
         var builder = new StringBuilder();
-        var writer = new StringBuilderBufferWriter(builder, MemoryPool<char>.Shared);
+        var writer = new StringBuilderBufferWriter(builder, null);
 
         Assert.False(writer.NeedsFlush);
         writer.Flush();
@@ -68,7 +68,7 @@ public class StringBuilderBufferWriterTests
     [Fact]
     public async Task ThrowsIfDisposed()
     {
-        var writer = new StringBuilderBufferWriter(new(), MemoryPool<char>.Shared);
+        var writer = new StringBuilderBufferWriter(new(), null);
         writer.Complete(null);
 
         Assert.Throws<ObjectDisposedException>(() => writer.Advance(0));

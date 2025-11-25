@@ -13,9 +13,9 @@ internal sealed class MemoryPoolBufferWriter<T> : CsvBufferWriter<T>
     public MemoryPoolBufferWriter(
         Action<ReadOnlySpan<T>>? onFlush,
         Func<ReadOnlyMemory<T>, CancellationToken, ValueTask>? onFlushAsync,
-        MemoryPool<T> allocator
+        in CsvIOOptions ioOptions
     )
-        : base(allocator, new CsvIOOptions { BufferSize = CsvIOOptions.DefaultFileBufferSize * 2 })
+        : base(in ioOptions)
     {
         _onFlush = onFlush;
         _onFlushAsync = onFlushAsync;

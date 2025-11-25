@@ -13,7 +13,7 @@ namespace FlameCsv;
 [PublicAPI]
 public static partial class CsvReader
 {
-    private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions)
+    internal static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions)
     {
         return new FileStream(
             path,
@@ -25,31 +25,25 @@ public static partial class CsvReader
         );
     }
 
-    private static StreamBufferReader GetFileBufferReader(
-        string path,
-        bool isAsync,
-        MemoryPool<byte> memoryPool,
-        CsvIOOptions ioOptions
-    )
+    private static StreamBufferReader GetFileBufferReader(string path, bool isAsync, in CsvIOOptions ioOptions)
     {
-        return new StreamBufferReader(GetFileStream(path, isAsync, in ioOptions), memoryPool, in ioOptions);
+        return new StreamBufferReader(GetFileStream(path, isAsync, in ioOptions), in ioOptions);
     }
 
     private static ICsvBufferReader<char> GetFileBufferReader(
         string path,
         Encoding? encoding,
         bool isAsync,
-        MemoryPool<char> memoryPool,
-        CsvIOOptions ioOptions
+        in CsvIOOptions ioOptions
     )
     {
         FileStream stream = GetFileStream(path, isAsync, in ioOptions);
 
         try
         {
-            if (encoding is null || encoding.Equals(Encoding.UTF8))
+            if (encoding?.Equals(Encoding.UTF8) != false)
             {
-                return new Utf8StreamReader(stream, memoryPool, in ioOptions);
+                return new Utf8StreamReader(stream, in ioOptions);
             }
 
             return CsvBufferReader.Create(
@@ -60,8 +54,7 @@ public static partial class CsvReader
                     ioOptions.BufferSize,
                     leaveOpen: false
                 ),
-                memoryPool,
-                ioOptions
+                in ioOptions
             );
         }
         catch

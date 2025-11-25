@@ -11,8 +11,8 @@ public static class WriteUtil
     /// </summary>
     public static string Write(Action<CsvFieldWriter<char>> writeAction)
     {
-        using var pool = ReturnTrackingMemoryPool<char>.Create(null);
-        pool.TrackStackTraces = true;
+        using var pool = new ReturnTrackingBufferPool();
+        pool._charPool.TrackStackTraces = true;
 
         var sb = new StringBuilder();
 

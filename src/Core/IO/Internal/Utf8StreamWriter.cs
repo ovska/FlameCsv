@@ -11,8 +11,8 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
     private readonly bool _leaveOpen;
     private byte[] _byteBuffer;
 
-    public Utf8StreamWriter(Stream stream, MemoryPool<char>? allocator, in CsvIOOptions options)
-        : base(allocator ?? MemoryPool<char>.Shared, in options)
+    public Utf8StreamWriter(Stream stream, in CsvIOOptions options)
+        : base(in options)
     {
         Throw.IfNotWritable(stream);
         _stream = stream;

@@ -26,7 +26,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             return; // pipes dont support synchronous writing
         }
 
-        using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         var options = new CsvOptions<byte>
         {
             Newline = newline,
@@ -34,7 +34,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             FieldQuoting = quoting,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
-            MemoryPool = pool,
         };
 
         using var writer = new ArrayPoolBufferWriter<byte>(initialCapacity: short.MaxValue * 4);
@@ -47,12 +46,17 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 ObjByteTypeMap.Default,
                 options,
-                new() { BufferSize = bufferSize }
+                new() { BufferSize = bufferSize, BufferPool = pool }
             );
         }
         else
         {
-            CsvWriter.Write(output, TestDataGenerator.Objects.Value, options, new() { BufferSize = bufferSize });
+            CsvWriter.Write(
+                output,
+                TestDataGenerator.Objects.Value,
+                options,
+                new() { BufferSize = bufferSize, BufferPool = pool }
+            );
         }
 
         Validate(writer.WrittenMemory, newline.IsCRLF(), header, quoting);
@@ -69,7 +73,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool? guarded
     )
     {
-        using var pool = ReturnTrackingMemoryPool<byte>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         var options = new CsvOptions<byte>
         {
             Newline = newline,
@@ -77,7 +81,6 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             FieldQuoting = quoting,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
-            MemoryPool = pool,
         };
 
         using var writer = new ArrayPoolBufferWriter<byte>(initialCapacity: short.MaxValue * 4);
@@ -88,7 +91,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             if (outputType)
             {
                 await CsvWriter.WriteAsync(
-                    PipeWriter.Create(output, new(pool: pool, minimumBufferSize: bufferSize)),
+                    PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)),
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
                     options,
@@ -102,7 +105,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjByteTypeMap.Default,
                     options,
-                    new() { BufferSize = bufferSize },
+                    new() { BufferSize = bufferSize, BufferPool = pool },
                     TestContext.Current.CancellationToken
                 );
             }
@@ -112,7 +115,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             if (outputType)
             {
                 await CsvWriter.WriteAsync(
-                    PipeWriter.Create(output, new(pool: pool, minimumBufferSize: bufferSize)),
+                    PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)),
                     TestDataGenerator.Objects.Value,
                     options,
                     TestContext.Current.CancellationToken
@@ -124,7 +127,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
                     output,
                     TestDataGenerator.Objects.Value,
                     options,
-                    new() { BufferSize = bufferSize },
+                    new() { BufferSize = bufferSize, BufferPool = pool },
                     TestContext.Current.CancellationToken
                 );
             }

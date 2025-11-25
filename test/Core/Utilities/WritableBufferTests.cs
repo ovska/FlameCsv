@@ -7,7 +7,7 @@ public class WritableBufferTests
     [Fact]
     public void Should_Write_And_Return_Buffers()
     {
-        using var pool = new ReturnTrackingArrayMemoryPool<char>();
+        using var pool = new ReturnTrackingBufferPool();
         var buffer = new WritableBuffer<char>(pool);
 
         buffer.Push("test");

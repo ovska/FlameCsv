@@ -195,12 +195,13 @@ public partial class WriteBench
     [Benchmark]
     public void Parallel()
     {
-        CsvParallel.WriteUnordered(
-            _data,
-            CsvOptions<char>.Default,
-            CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
-            TextWriter.Null.Write
-        );
+        throw new NotImplementedException();
+        // CsvParallel.WriteUnordered(
+        //     _data,
+        //     CsvOptions<char>.Default,
+        //     CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
+        //     TextWriter.Null.Write
+        // );
     }
 
     // [Benchmark]

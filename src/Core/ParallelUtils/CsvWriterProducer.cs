@@ -16,14 +16,17 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
     private readonly IDematerializer<T, TValue> _dematerializer;
     private readonly Action<ReadOnlySpan<T>>? _sink;
     private readonly Func<ReadOnlyMemory<T>, CancellationToken, ValueTask>? _asyncSink;
+    private readonly CsvIOOptions _ioOptions;
 
     public CsvWriterProducer(
         CsvOptions<T> options,
+        CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
         Action<ReadOnlySpan<T>> sink
     )
     {
         _options = options;
+        _ioOptions = ioOptions;
         _dematerializer = dematerializer;
         _sink = sink;
     }
@@ -73,7 +76,7 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldWriter<T> CreateState()
     {
-        return new CsvFieldWriter<T>(new MemoryPoolBufferWriter<T>(_sink, _asyncSink, _options.Allocator), _options);
+        return new CsvFieldWriter<T>(new MemoryPoolBufferWriter<T>(_sink, _asyncSink, in _ioOptions), _options);
     }
 
     void IDisposable.Dispose() { }

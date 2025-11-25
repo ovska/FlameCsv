@@ -1,6 +1,7 @@
 ﻿using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Utilities;
@@ -34,12 +35,12 @@ internal struct WritableBuffer<T> : IDisposable
     private IMemoryOwner<T> _owner;
     private Memory<T> _memory;
 
-    private readonly MemoryPool<T> _memoryPool;
+    private readonly IBufferPool _bufferPool;
     private readonly List<Range> _items = [];
 
-    public WritableBuffer(MemoryPool<T> allocator)
+    public WritableBuffer(IBufferPool bufferPool)
     {
-        _memoryPool = allocator;
+        _bufferPool = bufferPool;
         _owner = HeapMemoryOwner<T>.Empty;
     }
 
@@ -50,7 +51,7 @@ internal struct WritableBuffer<T> : IDisposable
 
         if ((_memory.Length - _written) < value.Length)
         {
-            _memory = _memoryPool.EnsureCapacity(
+            _memory = _bufferPool.EnsureCapacity(
                 ref _owner,
                 Math.Max(value.Length + _written, 256),
                 copyOnResize: true

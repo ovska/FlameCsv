@@ -8,14 +8,14 @@ namespace FlameCsv.IO.Internal;
 internal sealed class Utf8StreamReader : CsvBufferReader<char>
 {
     private readonly Stream _stream;
-    private readonly byte[] _buffer;
+    private readonly byte[] _buffer; // TODO: refactor to use IBufferPool
     private int _count;
     private int _offset;
     private bool _endOfStream;
     private bool _preambleRead;
 
-    public Utf8StreamReader(Stream stream, MemoryPool<char>? memoryPool, in CsvIOOptions options)
-        : base(memoryPool ?? MemoryPool<char>.Shared, in options)
+    public Utf8StreamReader(Stream stream, in CsvIOOptions options)
+        : base(in options)
     {
         _stream = stream;
         _buffer = ArrayPool<byte>.Shared.Rent(options.BufferSize);

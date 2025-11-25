@@ -33,7 +33,7 @@ static partial class CsvReader
     {
         ArgumentNullException.ThrowIfNull(reader);
         options ??= CsvOptions<char>.Default;
-        return new CsvValueEnumerable<char, TValue>(CsvBufferReader.Create(reader, options.Allocator, ioOptions), options);
+        return new CsvValueEnumerable<char, TValue>(CsvBufferReader.Create(reader, in ioOptions), options);
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ static partial class CsvReader
     {
         Throw.IfNotReadable(stream);
         options ??= CsvOptions<char>.Default;
-        return new CsvValueEnumerable<char, TValue>(CsvBufferReader.Create(stream, encoding, options.Allocator, ioOptions), options);
+        return new CsvValueEnumerable<char, TValue>(CsvBufferReader.Create(stream, encoding, in ioOptions), options);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ static partial class CsvReader
     {
         Throw.IfNotReadable(stream);
         options ??= CsvOptions<byte>.Default;
-        return new CsvValueEnumerable<byte, TValue>(CsvBufferReader.Create(stream, options.Allocator, ioOptions), options);
+        return new CsvValueEnumerable<byte, TValue>(CsvBufferReader.Create(stream, in ioOptions), options);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ static partial class CsvReader
         options ??= CsvOptions<char>.Default;
         ioOptions = ioOptions.ForFileIO();
         return new CsvValueEnumerable<char, TValue>(
-            new ReaderFactory<char>(isAsync => GetFileBufferReader(path, encoding, isAsync, options.Allocator, ioOptions)),
+            new ReaderFactory<char>(isAsync => GetFileBufferReader(path, encoding, isAsync, in ioOptions)),
             options);
     }
     
@@ -128,7 +128,7 @@ static partial class CsvReader
         options ??= CsvOptions<byte>.Default;
         ioOptions = ioOptions.ForFileIO();
         return new CsvValueEnumerable<byte, TValue>(
-            new ReaderFactory<byte>(isAsync => GetFileBufferReader(path, isAsync, options.Allocator, ioOptions)),
+            new ReaderFactory<byte>(isAsync => GetFileBufferReader(path, isAsync, in ioOptions)),
             options);
     }
 
@@ -282,7 +282,7 @@ static partial class CsvReader
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(typeMap);
         options ??= CsvOptions<char>.Default;
-        return new CsvTypeMapEnumerable<char, TValue>(CsvBufferReader.Create(reader, options.Allocator, ioOptions), options, typeMap);
+        return new CsvTypeMapEnumerable<char, TValue>(CsvBufferReader.Create(reader, in ioOptions), options, typeMap);
     }
 
     /// <summary>
@@ -307,7 +307,7 @@ static partial class CsvReader
         Throw.IfNotReadable(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         options ??= CsvOptions<char>.Default;
-        return new CsvTypeMapEnumerable<char, TValue>(CsvBufferReader.Create(stream, encoding, options.Allocator, ioOptions), options, typeMap);
+        return new CsvTypeMapEnumerable<char, TValue>(CsvBufferReader.Create(stream, encoding, in ioOptions), options, typeMap);
     }
 
     /// <summary>
@@ -331,7 +331,7 @@ static partial class CsvReader
         Throw.IfNotReadable(stream);
         ArgumentNullException.ThrowIfNull(typeMap);
         options ??= CsvOptions<byte>.Default;
-        return new CsvTypeMapEnumerable<byte, TValue>(CsvBufferReader.Create(stream, options.Allocator, ioOptions), options, typeMap);
+        return new CsvTypeMapEnumerable<byte, TValue>(CsvBufferReader.Create(stream, in ioOptions), options, typeMap);
     }
 
     /// <summary>
@@ -357,7 +357,7 @@ static partial class CsvReader
         options ??= CsvOptions<char>.Default;
         ioOptions = ioOptions.ForFileIO();
         return new CsvTypeMapEnumerable<char, TValue>(
-            new ReaderFactory<char>(isAsync => GetFileBufferReader(path, encoding, isAsync, options.Allocator, ioOptions)),
+            new ReaderFactory<char>(isAsync => GetFileBufferReader(path, encoding, isAsync, in ioOptions)),
             options, typeMap);
     }
     
@@ -383,7 +383,7 @@ static partial class CsvReader
         options ??= CsvOptions<byte>.Default;
         ioOptions = ioOptions.ForFileIO();
         return new CsvTypeMapEnumerable<byte, TValue>(
-            new ReaderFactory<byte>(isAsync => GetFileBufferReader(path, isAsync, options.Allocator, ioOptions)),
+            new ReaderFactory<byte>(isAsync => GetFileBufferReader(path, isAsync, in ioOptions)),
             options, typeMap);
     }
 
@@ -554,7 +554,7 @@ static partial class CsvReader
         options ??= CsvOptions<char>.Default;
         ioOptions = ioOptions.ForFileIO();
         return new CsvRecordEnumerable<char>(
-            new ReaderFactory<char>(isAsync => GetFileBufferReader(path, encoding, isAsync, options.Allocator, ioOptions)),
+            new ReaderFactory<char>(isAsync => GetFileBufferReader(path, encoding, isAsync, in ioOptions)),
             options);
     }
     
@@ -582,7 +582,7 @@ static partial class CsvReader
         options ??= CsvOptions<byte>.Default;
         ioOptions = ioOptions.ForFileIO();
         return new CsvRecordEnumerable<byte>(
-            new ReaderFactory<byte>(isAsync => GetFileBufferReader(path, isAsync, options.Allocator, ioOptions)),
+            new ReaderFactory<byte>(isAsync => GetFileBufferReader(path, isAsync, in ioOptions)),
             options);
     }
 
@@ -715,7 +715,7 @@ static partial class CsvReader
     {
         ArgumentNullException.ThrowIfNull(reader);
         return new CsvRecordEnumerable<char>(
-            CsvBufferReader.Create(reader, options?.Allocator, ioOptions),
+            CsvBufferReader.Create(reader, in ioOptions),
             options ?? CsvOptions<char>.Default);
     }
 
@@ -742,7 +742,7 @@ static partial class CsvReader
     {
         Throw.IfNotReadable(stream);
         return new CsvRecordEnumerable<char>(
-            CsvBufferReader.Create(stream, encoding, options?.Allocator, ioOptions),
+            CsvBufferReader.Create(stream, encoding, in ioOptions),
             options ?? CsvOptions<char>.Default);
     }
     
@@ -768,7 +768,7 @@ static partial class CsvReader
     {
         Throw.IfNotReadable(stream);
         return new CsvRecordEnumerable<byte>(
-            CsvBufferReader.Create(stream, options?.Allocator, ioOptions),
+            CsvBufferReader.Create(stream, in ioOptions),
             options ?? CsvOptions<byte>.Default);
     }
 

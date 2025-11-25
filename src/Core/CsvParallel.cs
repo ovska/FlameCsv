@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
 using FlameCsv.Reading;
@@ -69,6 +70,7 @@ public static partial class CsvParallel
     internal static void WriteUnordered<T, TValue>(
         IEnumerable<TValue> source,
         CsvOptions<T> options,
+        CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
         Action<ReadOnlySpan<T>> sink,
         CsvParallelOptions parallelOptions = default
@@ -86,7 +88,7 @@ public static partial class CsvParallel
             CsvFieldWriter<T>
         >(
             ParallelChunker.Chunk(source, parallelOptions.ChunkSize ?? DefaultChunkSize),
-            new CsvWriterProducer<T, TValue>(options, dematerializer, sink),
+            new CsvWriterProducer<T, TValue>(options, ioOptions, dematerializer, sink),
             CsvWriterProducer<T>.Consume,
             cts,
             parallelOptions.MaxDegreeOfParallelism

@@ -4,14 +4,22 @@ namespace FlameCsv.IO.Internal;
 
 internal static class ParallelReader
 {
-    public static IParallelReader<char> Create(ReadOnlyMemory<char> csv, CsvOptions<char> options)
+    public static IParallelReader<char> Create(
+        ReadOnlyMemory<char> csv,
+        CsvOptions<char> options,
+        IBufferPool? bufferPool
+    )
     {
-        return new ParallelMemoryReader<char>(csv, options);
+        return new ParallelMemoryReader<char>(csv, options, bufferPool);
     }
 
-    public static IParallelReader<byte> Create(ReadOnlyMemory<byte> csv, CsvOptions<byte> options)
+    public static IParallelReader<byte> Create(
+        ReadOnlyMemory<byte> csv,
+        CsvOptions<byte> options,
+        IBufferPool? bufferPool
+    )
     {
-        return new ParallelMemoryReader<byte>(csv, options);
+        return new ParallelMemoryReader<byte>(csv, options, bufferPool);
     }
 
     public static IParallelReader<byte> Create(Stream stream, CsvOptions<byte> options, CsvIOOptions ioOptions)

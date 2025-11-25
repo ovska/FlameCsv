@@ -14,8 +14,10 @@ public class Utf8StreamReaderScenario : IScenario
     {
         var task = RunAsync(data, placement);
 
-        using var pool = new BoundedMemoryPool<char>(placement);
-        using var reader = new Utf8StreamReader(data.AsStream(), pool, new());
+        using var reader = new Utf8StreamReader(
+            data.AsStream(),
+            new() { BufferPool = new BoundedBufferPool(placement) }
+        );
 
         using var vsb = new ValueStringBuilder(stackalloc char[128]);
 
@@ -49,8 +51,7 @@ public class Utf8StreamReaderScenario : IScenario
 
     public static async Task<string> RunAsync(ReadOnlyMemory<byte> data, PoisonPagePlacement placement)
     {
-        using var pool = new BoundedMemoryPool<char>(placement);
-        var reader = new Utf8StreamReader(data.AsStream(), pool, new());
+        var reader = new Utf8StreamReader(data.AsStream(), new() { BufferPool = new BoundedBufferPool(placement) });
 
         await using var _ = reader.ConfigureAwait(false);
 

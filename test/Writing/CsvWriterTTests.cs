@@ -341,8 +341,8 @@ public partial class CsvWriterTTests
         );
     }
 
-    [Theory, InlineData(true), InlineData(false)]
-    public static void Should_Write_Records(bool preserved)
+    [Fact]
+    public static void Should_Write_Records()
     {
         const string chars = "A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9\r\n";
         byte[] bytes = Encoding.UTF8.GetBytes(chars);
@@ -359,7 +359,7 @@ public partial class CsvWriterTTests
                         writer.NextRecord();
                     }
 
-                    _ = preserved ? writer.WriteRecord(record.Preserve()) : writer.WriteRecord(in record);
+                    writer.WriteRecord(in record);
                     Assert.Equal(3, writer.FieldIndex);
                     writer.NextRecord();
                 }
@@ -378,7 +378,7 @@ public partial class CsvWriterTTests
                         writer.NextRecord();
                     }
 
-                    _ = preserved ? writer.WriteRecord(record.Preserve()) : writer.WriteRecord(in record);
+                    writer.WriteRecord(in record);
                     Assert.Equal(3, writer.FieldIndex);
                     writer.NextRecord();
                 }
@@ -489,7 +489,7 @@ public partial class CsvWriterTTests
                         writer.NextRecord();
                     }
 
-                    _ = preserved ? writer.WriteRecord(record.Preserve()) : writer.WriteRecord(in record);
+                    writer.WriteRecord(in record);
                     Assert.Equal(3, writer.FieldIndex);
                     writer.NextRecord();
                 }

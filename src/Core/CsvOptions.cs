@@ -85,7 +85,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
         _recordCallback = other._recordCallback;
         _fieldQuoting = other._fieldQuoting;
-        _memoryPool = other._memoryPool;
         _booleanValues = other._booleanValues;
         _formatProvider = other._formatProvider;
         _providers = other._providers?.Clone();
@@ -212,7 +211,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     private CsvRecordCallback<T>? _recordCallback;
     private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
-    private MemoryPool<T> _memoryPool = MemoryPool<T>.Shared;
     private SealableList<(string, bool)>? _booleanValues;
     private ICsvTypeBinder<T>? _typeBinder;
 
@@ -412,21 +410,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
-    /// Pool used to create buffers for reading and writing CSV data.
-    /// Default value is <see cref="MemoryPool{T}.Shared"/>.
-    /// Set to <see langword="null"/> to disable pooling and always heap allocate.
-    /// </summary>
-    /// <remarks>
-    /// Buffers that are larger than <see cref="MemoryPool{T}.MaxBufferSize"/> size are rented from the shared array pool.
-    /// If this is not desired, create a custom pool that has no max size and throws on allocation failures.
-    /// </remarks>
-    public MemoryPool<T>? MemoryPool
-    {
-        get => ReferenceEquals(_memoryPool, HeapMemoryPool<T>.Instance) ? null : _memoryPool;
-        set => this.SetValue(ref _memoryPool, value ?? HeapMemoryPool<T>.Instance);
-    }
-
-    /// <summary>
     /// Returns tokens used to parse and format <see langword="null"/> values. See <see cref="GetNullToken(Type)"/>.
     /// </summary>
     /// <seealso cref="CsvConverter{T,TValue}.CanFormatNull"/>
@@ -447,7 +430,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
-    internal MemoryPool<T> Allocator => _memoryPool;
 
     [Flags]
     private enum Config : byte

@@ -373,14 +373,6 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         private string[]? _fields;
     }
 
-    /// <summary>
-    /// Preserves the data in the value record.
-    /// </summary>
-    public CsvPreservedRecord<T> Preserve() => new(in this);
-
-    /// <inheritdoc cref="Preserve"/>
-    public static explicit operator CsvPreservedRecord<T>(in CsvRecord<T> record) => new(in record);
-
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowParseException(Type type, int index, CsvFieldIdentifier id, object converter)

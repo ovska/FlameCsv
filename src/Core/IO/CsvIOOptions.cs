@@ -120,6 +120,14 @@ public readonly record struct CsvIOOptions
     public bool NoDirectBufferAccess { get; init; }
 
     /// <summary>
+    /// Gets or sets the buffer pool used for renting buffers.<br/>
+    /// The default is <c>null</c>, which uses <see cref="System.Buffers.MemoryPool{T}.Shared"/>.
+    /// </summary>
+    public IBufferPool? BufferPool { get; init; }
+
+    internal IBufferPool EffectiveBufferPool => BufferPool ?? DefaultBufferPool.Instance;
+
+    /// <summary>
     /// Returns <c>true</c> if a custom buffer size is set, i.e., <see cref="BufferSize"/> is not equal to
     /// <see cref="DefaultBufferSize"/>.
     /// </summary>

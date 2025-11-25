@@ -155,61 +155,6 @@ public static partial class CsvPreservedRecordTests
         Assert.False(enumerator.MoveNext());
     }
 
-    [Fact]
-    public static void Should_Parse_Fields_And_Records_Obj()
-    {
-        var enumerable = new CsvRecordEnumerable<char>(
-            "A,B,C\r\n1,2,3\r\n".AsMemory(),
-            CsvOptions<char>.Default
-        ).Preserve();
-
-        using IEnumerator<CsvPreservedRecord<char>> enumerator = enumerable.GetEnumerator();
-
-        Assert.True(enumerator.MoveNext());
-
-        var record = enumerator.Current;
-
-        Assert.NotNull(record.Header);
-        Assert.Equal(["A", "B", "C"], record.Header.Values);
-
-        Assert.Equal("1,2,3", record.RawRecord.ToString());
-
-        Assert.Equal("1", record[0].ToString());
-        Assert.Equal("2", record[1].ToString());
-        Assert.Equal("3", record[2].ToString());
-        Assert.Equal("1", record.GetField(0).ToString());
-        Assert.Equal("2", record.GetField(1).ToString());
-        Assert.Equal("3", record.GetField(2).ToString());
-
-        Assert.Equal("1", record["A"].ToString());
-        Assert.Equal("2", record["B"].ToString());
-        Assert.Equal("3", record["C"].ToString());
-        Assert.Equal("1", record.GetField("A").ToString());
-        Assert.Equal("2", record.GetField("B").ToString());
-        Assert.Equal("3", record.GetField("C").ToString());
-
-        Assert.Equal(1, record.ParseField<int>(0));
-        Assert.Equal(1, record.ParseField<int>("A"));
-        Assert.Equal(2, record.ParseField<int>(1));
-        Assert.Equal(2, record.ParseField<int>("B"));
-        Assert.Equal(3, record.ParseField<int>(2));
-        Assert.Equal(3, record.ParseField<int>("C"));
-
-        Assert.Equal(2, record.Line);
-        Assert.Equal(7L, record.Position);
-
-        Obj[] objs = [record.ParseRecord<Obj>(), record.ParseRecord(ObjTypeMap.Default)];
-
-        foreach (var obj in objs)
-        {
-            Assert.Equal(1, obj.A);
-            Assert.Equal(2, obj.B);
-            Assert.Equal(3, obj.C);
-        }
-
-        Assert.False(enumerator.MoveNext());
-    }
-
     private sealed class Obj
     {
         public int A { get; set; }

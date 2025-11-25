@@ -100,9 +100,7 @@ public static class ConstantBufferReaderTests
         static void Impl(Stream stream)
         {
             using (stream)
-            using (
-                var reader = CsvBufferReader.Create(stream, HeapMemoryPool<byte>.Instance, new() { LeaveOpen = true })
-            )
+            using (var reader = CsvBufferReader.Create(stream, new() { LeaveOpen = true }))
             {
                 Assert.IsNotType<ConstantBufferReader<byte>>(reader);
             }
@@ -125,9 +123,7 @@ public static class ConstantBufferReaderTests
         static void Impl(TextReader reader)
         {
             using (reader)
-            using (
-                var pipe = CsvBufferReader.Create(reader, HeapMemoryPool<char>.Instance, new() { BufferSize = 4096 })
-            )
+            using (var pipe = CsvBufferReader.Create(reader, new() { BufferSize = 4096 }))
             {
                 Assert.IsNotType<ConstantBufferReader<char>>(pipe);
             }
@@ -137,13 +133,13 @@ public static class ConstantBufferReaderTests
     [Fact]
     public static async Task Should_Advance_Stream()
     {
-        using var pool = ReturnTrackingMemoryPool<byte>.Create();
+        using var pool = new ReturnTrackingBufferPool();
 
         await using MemoryStream stream = new();
         stream.Write("Hello, World!"u8);
         stream.Position = 0;
 
-        await using (var reader = CsvBufferReader.Create(stream, pool, new() { LeaveOpen = true }))
+        await using (var reader = CsvBufferReader.Create(stream, new() { LeaveOpen = true, BufferPool = pool }))
         {
             Assert.IsType<ConstantBufferReader<byte>>(reader);
 
@@ -171,12 +167,12 @@ public static class ConstantBufferReaderTests
     [Theory, InlineData(0), InlineData(5)]
     public static async Task Should_Advance_TextReader(int pos)
     {
-        using var pool = ReturnTrackingMemoryPool<char>.Create();
+        using var pool = new ReturnTrackingBufferPool();
 
         using var reader = new StringReader("Hello, World!");
         Assert.Equal(pos, reader.Read(new char[pos]));
 
-        await using var pipeReader = CsvBufferReader.Create(reader, pool, new() { LeaveOpen = true });
+        await using var pipeReader = CsvBufferReader.Create(reader, new() { LeaveOpen = true, BufferPool = pool });
 
         Assert.IsType<ConstantBufferReader<char>>(pipeReader);
 

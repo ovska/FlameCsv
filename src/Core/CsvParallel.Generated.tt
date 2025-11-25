@@ -70,7 +70,7 @@ static partial class CsvParallel
 
         string ioOptsParam = streaming
             ? ", ioOptions"
-            : "";
+            : ", null";
             
         string encodingParam = fromFile && !utf8
             ? ", encoding"

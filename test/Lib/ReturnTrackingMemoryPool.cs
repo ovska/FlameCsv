@@ -3,12 +3,37 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests;
 
+public sealed class ReturnTrackingBufferPool : IBufferPool, IDisposable
+{
+    public readonly ReturnTrackingMemoryPool<byte> _bytePool;
+    public readonly ReturnTrackingMemoryPool<char> _charPool;
+
+    public ReturnTrackingBufferPool(bool? guardedFromEnd = null)
+    {
+        _bytePool = ReturnTrackingMemoryPool<byte>.Create(guardedFromEnd);
+        _charPool = ReturnTrackingMemoryPool<char>.Create(guardedFromEnd);
+    }
+
+    public IMemoryOwner<byte> GetBytes(int length) => _bytePool.Rent(length);
+
+    public IMemoryOwner<char> GetChars(int length) => _charPool.Rent(length);
+
+    public void Dispose()
+    {
+        using (_bytePool)
+        {
+            using (_charPool) { }
+        }
+    }
+}
+
 [SupportedOSPlatform("windows")]
-public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T>
+file sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     public override int MaxBufferSize { get; } = Environment.SystemPageSize * 128;
@@ -31,7 +56,7 @@ public sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTra
     }
 }
 
-public sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
+file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     public override int MaxBufferSize => Array.MaxLength;

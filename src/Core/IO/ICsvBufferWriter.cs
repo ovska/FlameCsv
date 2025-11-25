@@ -16,6 +16,11 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T>
     where T : unmanaged
 {
     /// <summary>
+    /// Gets the buffer pool used by the writer.
+    /// </summary>
+    public IBufferPool BufferPool { get; }
+
+    /// <summary>
     /// Whether the writer should be flushed to prevent resizing internal buffers.
     /// </summary>
     bool NeedsFlush { get; }

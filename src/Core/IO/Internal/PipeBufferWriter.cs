@@ -19,10 +19,13 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
         get => _unflushed >= InternalFlushThreshold;
     }
 
-    public PipeBufferWriter(PipeWriter pipeWriter)
+    public IBufferPool BufferPool { get; }
+
+    public PipeBufferWriter(PipeWriter pipeWriter, IBufferPool? bufferPool)
     {
         ArgumentNullException.ThrowIfNull(pipeWriter);
         _pipeWriter = pipeWriter;
+        BufferPool = bufferPool ?? DefaultBufferPool.Instance; 
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

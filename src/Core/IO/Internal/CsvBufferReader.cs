@@ -22,7 +22,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     /// <inheritdoc cref="ReadCore"/>
     protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);
 
-    private readonly MemoryPool<T> _pool;
+    private readonly IBufferPool _bufferPool;
     private IMemoryOwner<T> _owner;
 
     /// <summary>
@@ -45,10 +45,10 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     /// <summary>Whether the previous call to Read returned 0 characters</summary>
     private bool _completed;
 
-    protected CsvBufferReader(MemoryPool<T> pool, in CsvIOOptions options)
+    protected CsvBufferReader(in CsvIOOptions options)
     {
-        _pool = pool;
-        _owner = pool.Rent(options.BufferSize);
+        _bufferPool = options.EffectiveBufferPool;
+        _owner = _bufferPool.Rent<T>(options.BufferSize);
         _buffer = _owner.Memory;
         _unread = ReadOnlyMemory<T>.Empty;
         _minimumReadSize = options.MinimumReadSize;
@@ -140,7 +140,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ResizeBuffer()
     {
-        IMemoryOwner<T> newOwner = _pool.Rent(_buffer.Length * 2);
+        IMemoryOwner<T> newOwner = _bufferPool.Rent<T>(_buffer.Length * 2);
         _buffer = newOwner.Memory;
         _unread.CopyTo(_buffer);
 

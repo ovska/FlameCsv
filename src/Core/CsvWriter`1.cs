@@ -377,38 +377,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     }
 
     /// <summary>
-    /// Writes the provided record to the writer.
-    /// </summary>
-    /// <remarks>
-    /// If the record uses the same options-instance as the writer, the raw record is written directly.
-    /// </remarks>
-    /// <param name="record">Record to write</param>
-    /// <returns>Number of fields written</returns>
-    public int WriteRecord(CsvPreservedRecord<T> record)
-    {
-        ArgumentNullException.ThrowIfNull(record);
-
-        // check if the records have the exact same dialect
-        if (Options.DialectEqualsForWriting(record.Options))
-        {
-            WriteDelimiterIfNeeded();
-            _inner.WriteRaw(record.RawRecord.Span, skipEscaping: true);
-            FieldIndex += record.FieldCount;
-        }
-        else
-        {
-            foreach (var segment in record._fields)
-            {
-                WriteDelimiterIfNeeded();
-                _inner.WriteRaw(segment, skipEscaping: false);
-                FieldIndex++;
-            }
-        }
-
-        return record.FieldCount;
-    }
-
-    /// <summary>
     /// Writes the header from the provided record.
     /// </summary>
     /// <param name="record">Record to write the headers from</param>

@@ -6,17 +6,18 @@ namespace FlameCsv.IO.Internal;
 
 internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
 {
+    public IBufferPool BufferPool { get; }
+
     private IMemoryOwner<char> _memoryOwner;
     private Memory<char> _memory;
-    private readonly MemoryPool<char> _pool;
     private readonly StringBuilder _builder;
     private bool _disposed;
 
-    public StringBuilderBufferWriter(StringBuilder builder, MemoryPool<char> allocator)
+    public StringBuilderBufferWriter(StringBuilder builder, IBufferPool? bufferPool)
     {
         _builder = builder;
-        _pool = allocator;
-        _memoryOwner = allocator.Rent(4096);
+        BufferPool = bufferPool ?? DefaultBufferPool.Instance;
+        _memoryOwner = BufferPool.Rent<char>(4096);
         _memory = _memoryOwner.Memory;
     }
 
@@ -32,7 +33,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
         {
             // copyOnResize is not needed because the data is only copied when advancing,
             // GetMemory is never guaranteed to return the same memory as the previous call
-            _pool.EnsureCapacity(ref _memoryOwner, sizeHint, copyOnResize: false);
+            BufferPool.EnsureCapacity(ref _memoryOwner, sizeHint, copyOnResize: false);
             _memory = _memoryOwner.Memory;
         }
 

@@ -33,7 +33,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract ICsvBufferReader<T> GetReader(Stream stream, CsvOptions<T> options, int bufferSize);
+    protected abstract ICsvBufferReader<T> GetReader(
+        Stream stream,
+        CsvOptions<T> options,
+        int bufferSize,
+        IBufferPool pool
+    );
 
     [Theory, MemberData(nameof(Data))]
     public async Task Objects_Sync(
@@ -45,8 +50,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool? guarded
     )
     {
-        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
-        CsvOptions<T> options = GetOptions(newline, header, pool);
+        using var pool = new ReturnTrackingBufferPool(guarded);
+        CsvOptions<T> options = GetOptions(newline, header);
         var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
 
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
@@ -69,12 +74,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool? guarded
     )
     {
-        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, pool);
+            CsvOptions<T> options = GetOptions(newline, header);
 
             var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
             using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
@@ -101,17 +106,17 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool? guarded
     )
     {
-        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, pool);
+            CsvOptions<T> options = GetOptions(newline, header);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
 
             await using var stream = data.AsStream();
-            await using var reader = GetReader(stream, options, bufferSize);
+            await using var reader = GetReader(stream, options, bufferSize, pool);
 
             IAsyncEnumerable<Obj> source = sourceGen
                 ? new CsvTypeMapEnumerable<T, Obj>(reader, options, TypeMap)
@@ -134,16 +139,16 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool? guarded
     )
     {
-        using var pool = ReturnTrackingMemoryPool<T>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, pool);
+            CsvOptions<T> options = GetOptions(newline, header);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
             await using var stream = data.AsStream();
-            await using var reader = GetReader(stream, options, bufferSize);
+            await using var reader = GetReader(stream, options, bufferSize, pool);
 
             var items = await GetItems(reader, options, sourceGen, header, newline, isAsync: true);
 
@@ -241,14 +246,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    protected static CsvOptions<T> GetOptions(CsvNewline newline, bool header, MemoryPool<T> pool)
+    protected static CsvOptions<T> GetOptions(CsvNewline newline, bool header)
     {
         return new CsvOptions<T>
         {
             Formats = { [typeof(DateTime)] = "O" },
             Newline = newline,
             HasHeader = header,
-            MemoryPool = pool,
 #if false
             ExceptionHandler = static (in CsvExceptionHandlerArgs<T> args) =>
             {

@@ -37,7 +37,7 @@ public sealed class TextBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(() => new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, default));
+        Assert.Throws<ArgumentNullException>(() => new TextBufferWriter(null!, default));
     }
 
     [Fact]
@@ -131,10 +131,6 @@ public sealed class TextBufferWriterTests : IAsyncDisposable
     [MemberNotNull(nameof(_writer))]
     private void Initialize(int bufferSize = 1024)
     {
-        _writer = new TextBufferWriter(
-            _textWriter = new StringWriter(),
-            HeapMemoryPool<char>.Instance,
-            new() { BufferSize = bufferSize }
-        );
+        _writer = new TextBufferWriter(_textWriter = new StringWriter(), new() { BufferSize = bufferSize });
     }
 }

@@ -8,8 +8,8 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
     private ReadOnlySequence<T> _data;
     private ReadOnlySequence<T> _originalData;
 
-    public ConstantSequenceReader(in ReadOnlySequence<T> data, MemoryPool<T> pool, in CsvIOOptions options)
-        : base(pool, in options)
+    public ConstantSequenceReader(in ReadOnlySequence<T> data, in CsvIOOptions options)
+        : base(in options)
     {
         _data = data;
         _originalData = data;

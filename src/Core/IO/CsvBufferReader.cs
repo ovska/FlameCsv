@@ -74,18 +74,14 @@ public static class CsvBufferReader
     }
 
     /// <inheritdoc cref="Create(string?)"/>
-    public static ICsvBufferReader<char> Create(
-        in ReadOnlySequence<char> csv,
-        MemoryPool<char>? memoryPool = null,
-        CsvIOOptions options = default
-    )
+    public static ICsvBufferReader<char> Create(in ReadOnlySequence<char> csv, in CsvIOOptions options = default)
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
             return Create(csv.First);
         }
 
-        return new ConstantSequenceReader<char>(in csv, memoryPool ?? MemoryPool<char>.Shared, in options);
+        return new ConstantSequenceReader<char>(in csv, in options);
     }
 
     /// <inheritdoc cref="Create(string?)"/>
@@ -100,27 +96,19 @@ public static class CsvBufferReader
     }
 
     /// <inheritdoc cref="Create(string?)"/>
-    public static ICsvBufferReader<byte> Create(
-        in ReadOnlySequence<byte> csv,
-        MemoryPool<byte>? memoryPool = null,
-        CsvIOOptions options = default
-    )
+    public static ICsvBufferReader<byte> Create(in ReadOnlySequence<byte> csv, in CsvIOOptions options = default)
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
             return Create(csv.First);
         }
 
-        return new ConstantSequenceReader<byte>(in csv, memoryPool ?? MemoryPool<byte>.Shared, in options);
+        return new ConstantSequenceReader<byte>(in csv, in options);
     }
 
     /// <inheritdoc cref="Create(string?)"/>
     [OverloadResolutionPriority(-1)]
-    public static ICsvBufferReader<T> Create<T>(
-        in ReadOnlySequence<T> csv,
-        MemoryPool<T>? memoryPool = null,
-        CsvIOOptions options = default
-    )
+    public static ICsvBufferReader<T> Create<T>(in ReadOnlySequence<T> csv, in CsvIOOptions options = default)
         where T : unmanaged
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
@@ -128,25 +116,20 @@ public static class CsvBufferReader
             return new ConstantBufferReader<T>(csv.First);
         }
 
-        return new ConstantSequenceReader<T>(in csv, memoryPool ?? MemoryPool<T>.Shared, in options);
+        return new ConstantSequenceReader<T>(in csv, in options);
     }
 
     /// <summary>
     /// Creates a new CSV reader instance from a <see cref="Stream"/>.
     /// </summary>
     /// <param name="stream">The stream</param>
-    /// <param name="memoryPool">Memory pool used; defaults to <see cref="MemoryPool{T}.Shared"/>.</param>
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
     /// <remarks>
     /// If the stream is a <see cref="MemoryStream"/>, the buffer is accessed directly for zero-copy reads if possible;
     /// see <see cref="CsvIOOptions.NoDirectBufferAccess"/>.
     /// </remarks>
-    public static ICsvBufferReader<byte> Create(
-        Stream stream,
-        MemoryPool<byte>? memoryPool = null,
-        CsvIOOptions options = default
-    )
+    public static ICsvBufferReader<byte> Create(Stream stream, in CsvIOOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
         Throw.IfNotReadable(stream);
@@ -165,25 +148,20 @@ public static class CsvBufferReader
             );
         }
 
-        return new StreamBufferReader(stream, memoryPool ?? MemoryPool<byte>.Shared, in options);
+        return new StreamBufferReader(stream, in options);
     }
 
     /// <summary>
     /// Creates a new CSV reader instance from a <see cref="TextReader"/>.
     /// </summary>
     /// <param name="reader">The text reader</param>
-    /// <param name="memoryPool">Memory pool used; defaults to <see cref="MemoryPool{T}.Shared"/>.</param>
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
     /// <remarks>
     /// If the stream is a <see cref="StringReader"/>, the internal string is accessed directly for zero-copy reads;
     /// see <see cref="CsvIOOptions.NoDirectBufferAccess"/>.
     /// </remarks>
-    public static ICsvBufferReader<char> Create(
-        TextReader reader,
-        MemoryPool<char>? memoryPool = null,
-        CsvIOOptions options = default
-    )
+    public static ICsvBufferReader<char> Create(TextReader reader, in CsvIOOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
 
@@ -208,7 +186,7 @@ public static class CsvBufferReader
             _ = stringReader.Read();
         }
 
-        return new TextBufferReader(reader, memoryPool ?? MemoryPool<char>.Shared, in options);
+        return new TextBufferReader(reader, in options);
 
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_s")]
         static extern ref string? GetString(StringReader stringReader);
@@ -222,7 +200,6 @@ public static class CsvBufferReader
     /// </summary>
     /// <param name="stream">The stream</param>
     /// <param name="encoding">Encoding used to read the bytes</param>
-    /// <param name="memoryPool">Memory pool used; defaults to <see cref="MemoryPool{T}.Shared"/>.</param>
     /// <param name="options">Options to configure the reader</param>
     /// <returns></returns>
     /// <remarks>
@@ -233,8 +210,7 @@ public static class CsvBufferReader
     public static ICsvBufferReader<char> Create(
         Stream stream,
         Encoding? encoding = null,
-        MemoryPool<char>? memoryPool = null,
-        CsvIOOptions options = default
+        in CsvIOOptions options = default
     )
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -242,12 +218,11 @@ public static class CsvBufferReader
 
         if (encoding is null || Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8))
         {
-            return new Utf8StreamReader(stream, memoryPool ?? MemoryPool<char>.Shared, in options);
+            return new Utf8StreamReader(stream, in options);
         }
 
         return new TextBufferReader(
             new StreamReader(stream, encoding, bufferSize: options.BufferSize, leaveOpen: options.LeaveOpen),
-            memoryPool ?? MemoryPool<char>.Shared,
             in options
         );
     }

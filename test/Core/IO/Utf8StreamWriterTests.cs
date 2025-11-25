@@ -15,7 +15,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 1024, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
         const string testData = "Hello, World!";
 
         // Act
@@ -37,7 +37,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 1024, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
         const string testData = "Hello, World!";
 
         // Act
@@ -59,7 +59,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 1024, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
         // Mix of 1, 2, 3, and 4-byte UTF-8 characters
         const string testData = "Hello, 世界! 😊 ñáéíóú";
 
@@ -83,7 +83,7 @@ public class Utf8StreamWriterTests
         using var ms = new MemoryStream();
         // Small buffer to force multiple transcode operations
         var options = new CsvIOOptions { BufferSize = 256, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
         // Data larger than the buffer
         var testData = new string('A', 800);
 
@@ -106,7 +106,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 64, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
         // Each emoji is a surrogate pair (2 UTF-16 chars, 4 UTF-8 bytes)
         const string testData = "😊😂🚀🎉👍";
 
@@ -130,7 +130,7 @@ public class Utf8StreamWriterTests
         const int bufferSize = 64;
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = bufferSize, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
 
         // Create content exactly matching buffer size
         var testData = new string('A', bufferSize);
@@ -154,7 +154,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 512, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
 
         // Act - Request a span larger than default buffer
         var span = writer.GetSpan(1500);
@@ -171,7 +171,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 512, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
 
         // Act & Assert
         Assert.Throws<ArgumentOutOfRangeException>(() => writer.Advance(5000));
@@ -185,7 +185,7 @@ public class Utf8StreamWriterTests
         // Arrange
         using var ms = new MemoryStream();
         var options = new CsvIOOptions { BufferSize = 64, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(ms, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(ms, options);
 
         // Act - Multiple operations sequence
         // Write 1
@@ -223,7 +223,7 @@ public class Utf8StreamWriterTests
         // Arrange
         var failingStream = new FailingStream();
         var options = new CsvIOOptions { BufferSize = 32, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(failingStream, MemoryPool<char>.Shared, options);
+        var writer = new Utf8StreamWriter(failingStream, options);
 
         const string testData = "Test data";
 
@@ -258,7 +258,6 @@ public class Utf8StreamWriterTests
         using var stream = new MemoryStream();
         var writer = new Utf8StreamWriter(
             stream,
-            MemoryPool<char>.Shared,
             new CsvIOOptions { BufferSize = CsvIOOptions.MinimumBufferSize, LeaveOpen = true }
         );
 

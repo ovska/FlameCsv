@@ -48,7 +48,7 @@ public static class CsvFieldWriter
     {
         try
         {
-            return new CsvFieldWriter<char>(new TextBufferWriter(textWriter, options.Allocator, in ioOptions), options);
+            return new CsvFieldWriter<char>(new TextBufferWriter(textWriter, in ioOptions), options);
         }
         catch
         {
@@ -65,11 +65,15 @@ public static class CsvFieldWriter
     /// The writer is completed if an exception occurs during construction.
     /// </remarks>
     [MustDisposeResource]
-    public static CsvFieldWriter<byte> Create(PipeWriter pipeWriter, CsvOptions<byte> options)
+    public static CsvFieldWriter<byte> Create(
+        PipeWriter pipeWriter,
+        CsvOptions<byte> options,
+        IBufferPool? bufferPool = null
+    )
     {
         try
         {
-            return new CsvFieldWriter<byte>(new PipeBufferWriter(pipeWriter), options);
+            return new CsvFieldWriter<byte>(new PipeBufferWriter(pipeWriter, bufferPool), options);
         }
         catch (Exception e)
         {
@@ -93,7 +97,7 @@ public static class CsvFieldWriter
     {
         try
         {
-            return new CsvFieldWriter<byte>(new StreamBufferWriter(stream, options.Allocator, in ioOptions), options);
+            return new CsvFieldWriter<byte>(new StreamBufferWriter(stream, in ioOptions), options);
         }
         catch
         {
@@ -139,7 +143,7 @@ public static class CsvFieldWriter
     {
         try
         {
-            return new CsvFieldWriter<char>(new TextBufferWriter(textWriter, options.Allocator, in ioOptions), options);
+            return new CsvFieldWriter<char>(new TextBufferWriter(textWriter, in ioOptions), options);
         }
         catch
         {
@@ -164,7 +168,7 @@ public static class CsvFieldWriter
     {
         try
         {
-            return new CsvFieldWriter<byte>(new StreamBufferWriter(stream, options.Allocator, in ioOptions), options);
+            return new CsvFieldWriter<byte>(new StreamBufferWriter(stream, in ioOptions), options);
         }
         catch
         {
@@ -181,11 +185,15 @@ public static class CsvFieldWriter
     /// The writer is completed asynchronously if an exception occurs during construction.
     /// </remarks>
     [MustDisposeResource]
-    public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(PipeWriter pipeWriter, CsvOptions<byte> options)
+    public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(
+        PipeWriter pipeWriter,
+        CsvOptions<byte> options,
+        IBufferPool? bufferPool = null
+    )
     {
         try
         {
-            return new CsvFieldWriter<byte>(new PipeBufferWriter(pipeWriter), options);
+            return new CsvFieldWriter<byte>(new PipeBufferWriter(pipeWriter, bufferPool), options);
         }
         catch (Exception e)
         {

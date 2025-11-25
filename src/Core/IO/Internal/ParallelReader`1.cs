@@ -9,6 +9,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvOptions<T> _options;
+
+    private readonly IBufferPool _pool;
     private readonly int _bufferSize;
 
     private readonly CsvTokenizer<T>? _tokenizer;
@@ -29,7 +31,9 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         options.MakeReadOnly();
 
         _options = options;
+
         _bufferSize = ioOptions.BufferSize;
+        _pool = ioOptions.EffectiveBufferPool;
 
         _previousData = HeapMemoryOwner<T>.Empty;
         _previousRead = 0;
@@ -62,7 +66,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
             if (TryAdvance(owner, memory.Slice(0, totalRead), out Chunk<T>? chunk))
             {
                 int leftover = totalRead - chunk.RecordBuffer.BufferedRecordLength;
-                _options.Allocator.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
+                _pool.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
 
                 memory.Slice(chunk.RecordBuffer.BufferedRecordLength, leftover).CopyTo(_previousData.Memory);
                 _previousRead = leftover;
@@ -76,7 +80,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     private IMemoryOwner<T> GetBufferForReading(out int startIndex)
     {
-        IMemoryOwner<T> memory = _options.Allocator.Rent(_bufferSize);
+        IMemoryOwner<T> memory = _pool.Rent<T>(_bufferSize);
         startIndex = _previousRead;
 
         _previousData.Memory.Slice(0, _previousRead).CopyTo(memory.Memory);
@@ -125,7 +129,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
                     _recordBufferSize = Math.Max(_recordBufferSize / 2, 256);
                 }
 
-                chunk = new Chunk<T>(_index++, _options, memory, owner, recordBuffer);
+                chunk = new Chunk<T>(_index++, _options, memory, _pool, owner, recordBuffer);
                 _position += recordBuffer.BufferedRecordLength;
                 return true;
             }

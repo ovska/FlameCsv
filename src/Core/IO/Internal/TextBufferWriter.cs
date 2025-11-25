@@ -10,8 +10,8 @@ internal sealed class TextBufferWriter : CsvBufferWriter<char>
     private readonly TextWriter _writer;
     private readonly bool _leaveOpen;
 
-    public TextBufferWriter(TextWriter writer, MemoryPool<char> allocator, in CsvIOOptions options)
-        : base(allocator, in options)
+    public TextBufferWriter(TextWriter writer, in CsvIOOptions options)
+        : base(in options)
     {
         ArgumentNullException.ThrowIfNull(writer);
         _writer = writer;

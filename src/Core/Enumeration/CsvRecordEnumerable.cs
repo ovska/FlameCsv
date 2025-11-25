@@ -73,33 +73,6 @@ public sealed class CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>, IAsyncEn
         return new CsvRecordEnumerator<T>(_options, _reader.Create(true), cancellationToken);
     }
 
-    /// <summary>
-    /// Copies the data in the records so they can be safely accessed after enumeration.
-    /// </summary>
-    public IEnumerable<CsvPreservedRecord<T>> Preserve()
-    {
-        foreach (ref readonly var csvRecord in this)
-        {
-            yield return new CsvPreservedRecord<T>(in csvRecord);
-        }
-    }
-
-    /// <inheritdoc cref="Preserve"/>
-    public async IAsyncEnumerable<CsvPreservedRecord<T>> PreserveAsync(
-        [EnumeratorCancellation] CancellationToken cancellationToken = default
-    )
-    {
-        var enumerator = GetAsyncEnumerator(cancellationToken);
-
-        await using (enumerator.ConfigureAwait(false))
-        {
-            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
-            {
-                yield return new CsvPreservedRecord<T>(in enumerator.Current);
-            }
-        }
-    }
-
     [MustDisposeResource]
     IEnumerator<CsvRecord<T>> IEnumerable<CsvRecord<T>>.GetEnumerator() => GetEnumerator();
 

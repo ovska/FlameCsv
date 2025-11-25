@@ -1,4 +1,5 @@
 using System.Buffers;
+using FlameCsv.IO;
 
 namespace FlameCsv.Tests;
 
@@ -22,6 +23,7 @@ public static class MemorySegment
 }
 
 public class MemorySegment<T> : ReadOnlySequenceSegment<T>
+    where T : unmanaged
 {
     public MemorySegment(ReadOnlyMemory<T> memory)
     {
@@ -77,7 +79,7 @@ public class MemorySegment<T> : ReadOnlySequenceSegment<T>
         ReadOnlyMemory<T> data,
         int bufferSize,
         int emptyFrequency,
-        MemoryPool<T>? pool,
+        IBufferPool? pool,
         out ReadOnlySequence<T> sequence
     )
     {
@@ -118,7 +120,7 @@ public class MemorySegment<T> : ReadOnlySequenceSegment<T>
             if (pool is null)
                 return memory;
 
-            var owner = pool.Rent(memory.Length);
+            var owner = pool.Rent<T>(memory.Length);
             memory.CopyTo(owner.Memory);
             owners.Add(owner);
             return owner.Memory.Slice(0, memory.Length);

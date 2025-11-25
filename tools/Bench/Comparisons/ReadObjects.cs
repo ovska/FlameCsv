@@ -63,7 +63,7 @@ public partial class ReadObjects
     [Benchmark]
     public async Task _Parallel()
     {
-        using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions);
+        using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions, null);
         using CancellationTokenSource cts = new();
 
         if (Async)

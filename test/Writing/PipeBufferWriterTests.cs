@@ -37,9 +37,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     [Fact]
     public static void Should_Validate_Constructor_Params()
     {
-        Assert.Throws<ArgumentNullException>(() =>
-            new TextBufferWriter(null!, HeapMemoryPool<char>.Instance, new() { BufferSize = 1024 })
-        );
+        Assert.Throws<ArgumentNullException>(() => new TextBufferWriter(null!, new() { BufferSize = 1024 }));
     }
 
     [Fact]
@@ -148,7 +146,8 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
             PipeWriter.Create(
                 _memoryStream = new MemoryStream(),
                 new StreamPipeWriterOptions(minimumBufferSize: bufferSize)
-            )
+            ),
+            null
         );
     }
 

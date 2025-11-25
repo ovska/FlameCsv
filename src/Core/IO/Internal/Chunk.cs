@@ -35,6 +35,8 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
     /// </summary>
     private readonly IDisposable? _owner;
 
+    private readonly IBufferPool _bufferPool;
+
     private IMemoryOwner<T>? _unescapeBuffer;
 
     internal byte _disposed;
@@ -43,6 +45,7 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
         int order,
         CsvOptions<T> options,
         ReadOnlyMemory<T> data,
+        IBufferPool bufferPool,
         IDisposable? owner,
         RecordBuffer recordBuffer
     )
@@ -50,6 +53,7 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
     {
         Order = order;
         Data = data;
+        _bufferPool = bufferPool;
         _owner = owner;
         RecordBuffer = recordBuffer;
     }
@@ -91,13 +95,11 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
         if (_unescapeBuffer is null || _unescapeBuffer.Memory.Length < length)
         {
             _unescapeBuffer?.Dispose();
-            _unescapeBuffer = Options.Allocator.Rent(length);
+            _unescapeBuffer = _bufferPool.Rent<T>(length);
         }
 
         return _unescapeBuffer.Memory.Span;
     }
-
-    private static T[] _array = new T[1024];
 
     [SkipLocalsInit]
     private sealed class Enumerator : IEnumerator<CsvRecordRef<T>>

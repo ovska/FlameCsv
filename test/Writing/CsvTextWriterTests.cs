@@ -21,7 +21,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool? guarded
     )
     {
-        using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         var options = new CsvOptions<char>
         {
             Newline = newline,
@@ -29,7 +29,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             FieldQuoting = quoting,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
-            MemoryPool = pool,
         };
 
         StringBuilder output = StringBuilderPool.Value.Get();
@@ -43,7 +42,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                     TestDataGenerator.Objects.Value,
                     ObjCharTypeMap.Default,
                     options,
-                    new() { BufferSize = bufferSize }
+                    new() { BufferSize = bufferSize, BufferPool = pool }
                 );
             }
             else
@@ -86,7 +85,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         if (outputType)
             return;
 
-        using var pool = ReturnTrackingMemoryPool<char>.Create(guarded);
+        using var pool = new ReturnTrackingBufferPool(guarded);
         var options = new CsvOptions<char>
         {
             Newline = newline,
@@ -94,7 +93,6 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             FieldQuoting = quoting,
             Quote = '\'',
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
-            MemoryPool = pool,
         };
 
         StringBuilder output = StringBuilderPool.Value.Get();
@@ -106,7 +104,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 TestDataGenerator.Objects.Value,
                 ObjCharTypeMap.Default,
                 options,
-                new() { BufferSize = bufferSize },
+                new() { BufferSize = bufferSize, BufferPool = pool },
                 cancellationToken: TestContext.Current.CancellationToken
             );
         }
@@ -116,7 +114,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
                 new StringWriter(output),
                 TestDataGenerator.Objects.Value,
                 options,
-                new() { BufferSize = bufferSize },
+                new() { BufferSize = bufferSize, BufferPool = pool },
                 cancellationToken: TestContext.Current.CancellationToken
             );
         }

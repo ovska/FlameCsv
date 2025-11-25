@@ -1,4 +1,5 @@
 using System.Buffers;
+using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests.Extensions;
@@ -27,7 +28,7 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_NegativeMinimumLength_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
+        var pool = DefaultBufferPool.Instance;
         IMemoryOwner<char>? memoryOwner = null;
 
         // Act & Assert
@@ -38,7 +39,7 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_ZeroMinimumLength_ReturnsEmptyMemory()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
+        var pool = DefaultBufferPool.Instance;
         IMemoryOwner<char>? memoryOwner = null;
 
         // Act
@@ -53,7 +54,7 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_NullMemoryOwner_CreatesNewMemoryOwner()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
+        var pool = DefaultBufferPool.Instance;
         IMemoryOwner<char>? memoryOwner = null;
         const int minimumLength = 100;
 
@@ -73,8 +74,8 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_SufficientCapacity_ReturnsExistingMemory()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
-        IMemoryOwner<char>? memoryOwner = pool.Rent(200);
+        var pool = DefaultBufferPool.Instance;
+        IMemoryOwner<char>? memoryOwner = pool.Rent<char>(200);
         var originalLength = memoryOwner.Memory.Length;
         var originalPin = memoryOwner.Memory.Pin();
         const int minimumLength = 100;
@@ -113,8 +114,8 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_InsufficientCapacity_WithoutCopy_CreatesNewMemory()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
-        IMemoryOwner<char>? memoryOwner = pool.Rent(50);
+        var pool = DefaultBufferPool.Instance;
+        IMemoryOwner<char>? memoryOwner = pool.Rent<char>(50);
         var originalLength = memoryOwner.Memory.Length;
         var originalPin = memoryOwner.Memory.Pin();
         const int minimumLength = 200;
@@ -155,8 +156,8 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_InsufficientCapacity_WithCopy_CopiesExistingData()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
-        IMemoryOwner<char>? memoryOwner = pool.Rent(50);
+        var pool = DefaultBufferPool.Instance;
+        IMemoryOwner<char>? memoryOwner = pool.Rent<char>(50);
         var originalLength = memoryOwner.Memory.Length;
 
         // Fill original memory with test data
@@ -181,30 +182,10 @@ public class MemoryPoolExtensionTests
     }
 
     [Fact]
-    public void EnsureCapacity_MinimumLengthExceedsPoolMaxSize_UsesSharedPool()
-    {
-        // Arrange
-        var customPool = new CustomMemoryPool<char>(maxBufferSize: 100);
-        IMemoryOwner<char>? memoryOwner = null;
-        const int minimumLength = 500; // Exceeds custom pool max size
-
-        // Act
-        var result = customPool.EnsureCapacity(ref memoryOwner, minimumLength);
-
-        // Assert
-        Assert.True(result.Length >= minimumLength);
-        Assert.NotNull(memoryOwner);
-
-        // Cleanup
-        memoryOwner?.Dispose();
-        customPool.Dispose();
-    }
-
-    [Fact]
     public void EnsureCapacity_EmptyMemoryWithExistingOwner_CreatesNewMemory()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
+        var pool = DefaultBufferPool.Instance;
         IMemoryOwner<char>? memoryOwner = new EmptyMemoryOwner<char>();
         const int minimumLength = 100;
 
@@ -224,8 +205,8 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_ExactMinimumLength_ReturnsExistingMemory()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
-        IMemoryOwner<char>? memoryOwner = pool.Rent(100);
+        var pool = DefaultBufferPool.Instance;
+        IMemoryOwner<char>? memoryOwner = pool.Rent<char>(100);
         var originalLength = memoryOwner.Memory.Length;
         int minimumLength = originalLength; // Exact match
         var originalPin = memoryOwner.Memory.Pin();
@@ -264,7 +245,7 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_MultipleResizes_WorksCorrectly()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
+        var pool = DefaultBufferPool.Instance;
         IMemoryOwner<char>? memoryOwner = null;
 
         try
@@ -313,7 +294,7 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_WithZeroCapacityOwner_CreatesNewMemory()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
+        var pool = DefaultBufferPool.Instance;
         IMemoryOwner<char>? memoryOwner = new ZeroCapacityMemoryOwner<char>();
         const int minimumLength = 100;
 
@@ -333,8 +314,8 @@ public class MemoryPoolExtensionTests
     public void EnsureCapacity_CopyOnResize_PreservesDataExactly()
     {
         // Arrange
-        var pool = MemoryPool<char>.Shared;
-        IMemoryOwner<char>? memoryOwner = pool.Rent(20);
+        var pool = DefaultBufferPool.Instance;
+        IMemoryOwner<char>? memoryOwner = pool.Rent<char>(20);
 
         // Fill with specific pattern
         var span = memoryOwner.Memory.Span;

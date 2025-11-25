@@ -21,11 +21,10 @@ public class ParallelReaderTests
 
         IEnumerable<Obj> ReadSequential()
         {
-            using var pool = ReturnTrackingMemoryPool<char>.Create();
-            CsvOptions<char> options = new() { MemoryPool = pool };
+            using var pool = new ReturnTrackingBufferPool();
 
             using var sr = new StreamReader(data.AsStream());
-            using var reader = new ParallelTextReader(sr, options, default);
+            using var reader = new ParallelTextReader(sr, CsvOptions<char>.Default, new() { BufferPool = pool });
             IMaterializer<char, Obj>? materializer = null;
 
             while (reader.Read() is Chunk<char> chunk)
@@ -41,7 +40,7 @@ public class ParallelReaderTests
                             headers.Add(record[i].ToString());
                         }
 
-                        materializer = options.TypeBinder.GetMaterializer<Obj>([.. headers]);
+                        materializer = CsvOptions<char>.Default.TypeBinder.GetMaterializer<Obj>([.. headers]);
                     }
                     else
                     {
@@ -114,7 +113,7 @@ public class ParallelReaderTests
         ConcurrentBag<Obj> bag = new();
 
         await CsvParallel.ForEachAsync(
-            ParallelReader.Create(data, CsvOptions<char>.Default),
+            ParallelReader.Create(data, CsvOptions<char>.Default, null),
             ValueProducer<char, Obj>.Create(
                 ObjCharTypeMap.Default,
                 options: CsvOptions<char>.Default,

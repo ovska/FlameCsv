@@ -30,23 +30,21 @@ public static partial class CsvWriter
         string path,
         Encoding? encoding,
         bool isAsync,
-        MemoryPool<char> memoryPool,
-        CsvIOOptions ioOptions
+        in CsvIOOptions ioOptions
     )
     {
         FileStream stream = GetFileStream(path, isAsync, in ioOptions);
 
         try
         {
-            if (encoding is null || encoding.Equals(Encoding.UTF8))
+            if (encoding?.Equals(Encoding.UTF8) != false)
             {
-                return new Utf8StreamWriter(stream, memoryPool, in ioOptions);
+                return new Utf8StreamWriter(stream, in ioOptions);
             }
 
             return new TextBufferWriter(
                 new StreamWriter(stream, encoding, ioOptions.BufferSize, leaveOpen: false),
-                memoryPool ?? MemoryPool<char>.Shared,
-                ioOptions
+                in ioOptions
             );
         }
         catch

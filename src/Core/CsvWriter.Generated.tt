@@ -136,7 +136,7 @@ static partial class CsvWriter
         IDematerializer<char, TValue> dematerializer = <#= bindValue #>;
 
         ioOptions = ioOptions.ForFileIO();
-        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: false, options.Allocator, ioOptions);
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: false, in ioOptions);
         using var writer = CsvFieldWriter.Create(fileWriter, options);
 
         WriteCore(values, writer, dematerializer);
@@ -347,7 +347,7 @@ static partial class CsvWriter
         IDematerializer<char, TValue> dematerializer = <#= bindValue #>;
 
         ioOptions = ioOptions.ForFileIO();
-        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, options.Allocator, ioOptions);
+        ICsvBufferWriter<char> fileWriter = GetFileBufferWriter(path, encoding, isAsync: true, in ioOptions);
 
         return WriteAsyncCore(
             values,

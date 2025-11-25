@@ -52,7 +52,7 @@ public class Utf8StreamBench
         CsvBufferReader.Create(new StreamReader(new MemoryStream(_data), Encoding.UTF8, bufferSize: 16 * 1024));
 
     private static ICsvBufferReader<char> GetStream() =>
-        new Utf8StreamReader(new MemoryStream(_data), MemoryPool<char>.Shared, new());
+        new Utf8StreamReader(new MemoryStream(_data), new());
 
     private static readonly int[] _offsets = Enumerable
         .Range(0, 1024)

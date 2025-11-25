@@ -54,18 +54,18 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </summary>
     private State _state;
 
-    /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
-    public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv)
-        : this(options, CsvBufferReader.Create(csv)) { }
+    /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T},in CsvIOOptions)"/>
+    public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv, in CsvIOOptions ioOptions = default)
+        : this(options, CsvBufferReader.Create(csv), in ioOptions) { }
 
-    /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T})"/>
-    public CsvReader(CsvOptions<T> options, in ReadOnlySequence<T> csv)
-        : this(options, CsvBufferReader.Create(in csv)) { }
+    /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T},in CsvIOOptions)"/>
+    public CsvReader(CsvOptions<T> options, in ReadOnlySequence<T> csv, in CsvIOOptions ioOptions = default)
+        : this(options, CsvBufferReader.Create(in csv), in ioOptions) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvReader{T}"/> class.
     /// </summary>
-    public CsvReader(CsvOptions<T> options, ICsvBufferReader<T> reader)
+    public CsvReader(CsvOptions<T> options, ICsvBufferReader<T> reader, in CsvIOOptions ioOptions = default)
         : base(options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -79,7 +79,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         _tokenizer = CsvTokenizer.Create(options);
         _scalarTokenizer = CsvTokenizer.CreateScalar(options);
 
-        _unescapeAllocator = new MemoryPoolAllocator<T>(options.Allocator);
+        _unescapeAllocator = new Allocator<T>(ioOptions.EffectiveBufferPool);
     }
 
     /// <summary>

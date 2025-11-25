@@ -31,7 +31,7 @@ static partial class CsvParallel
     )
     {
         return AsAsyncEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default, null),
             ValueProducer<char, TValue>.Create(options, parallelOptions),
             parallelOptions
         );
@@ -57,7 +57,7 @@ static partial class CsvParallel
     )
     {
         return AsEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default, null),
             ValueProducer<char, TValue>.Create(options, parallelOptions),
             parallelOptions
         );
@@ -205,7 +205,7 @@ static partial class CsvParallel
     )
     {
         return AsAsyncEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default, null),
             ValueProducer<byte, TValue>.Create(options, parallelOptions),
             parallelOptions
         );
@@ -231,7 +231,7 @@ static partial class CsvParallel
     )
     {
         return AsEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default, null),
             ValueProducer<byte, TValue>.Create(options, parallelOptions),
             parallelOptions
         );
@@ -382,7 +382,7 @@ static partial class CsvParallel
         ArgumentNullException.ThrowIfNull(typeMap);
 
         return AsAsyncEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default, null),
             ValueProducer<char, TValue>.Create(typeMap, options, parallelOptions),
             parallelOptions
         );
@@ -411,7 +411,7 @@ static partial class CsvParallel
         ArgumentNullException.ThrowIfNull(typeMap);
 
         return AsEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<char>.Default, null),
             ValueProducer<char, TValue>.Create(typeMap, options, parallelOptions),
             parallelOptions
         );
@@ -574,7 +574,7 @@ static partial class CsvParallel
         ArgumentNullException.ThrowIfNull(typeMap);
 
         return AsAsyncEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default, null),
             ValueProducer<byte, TValue>.Create(typeMap, options, parallelOptions),
             parallelOptions
         );
@@ -603,7 +603,7 @@ static partial class CsvParallel
         ArgumentNullException.ThrowIfNull(typeMap);
 
         return AsEnumerableCore(
-            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default),
+            ParallelReader.Create(csv, options ?? CsvOptions<byte>.Default, null),
             ValueProducer<byte, TValue>.Create(typeMap, options, parallelOptions),
             parallelOptions
         );

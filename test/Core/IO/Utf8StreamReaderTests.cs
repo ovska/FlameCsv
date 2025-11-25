@@ -12,7 +12,7 @@ public class Utf8StreamReaderTests
     {
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
         var options = new CsvIOOptions { BufferSize = bufferSize };
-        return new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        return new Utf8StreamReader(stream, options);
     }
 
     [Theory]
@@ -120,7 +120,7 @@ public class Utf8StreamReaderTests
 
         var stream = new MemoryStream(invalidBytes);
         var options = new CsvIOOptions { BufferSize = 1024 };
-        using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        using var reader = new Utf8StreamReader(stream, options);
 
         var charBuffer = new char[20]; // Ample space
         int totalCharsRead = 0;
@@ -153,7 +153,7 @@ public class Utf8StreamReaderTests
         var stream = new MemoryStream(invalidBytes);
         // Buffer size forces the invalid byte FF to be read in the next chunk
         var options = new CsvIOOptions { BufferSize = 6 }; // Reads "Test" + E2 82
-        using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        using var reader = new Utf8StreamReader(stream, options);
 
         var charBuffer = new char[20]; // Ample space
         var sb = new StringBuilder();
@@ -344,7 +344,7 @@ public class Utf8StreamReaderTests
 
         var stream = new MemoryStream(invalidBytes);
         var options = new CsvIOOptions { BufferSize = 1024 };
-        await using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        await using var reader = new Utf8StreamReader(stream, options);
 
         var charBuffer = new char[20]; // Ample space
         int totalCharsRead = 0;
@@ -377,7 +377,7 @@ public class Utf8StreamReaderTests
         var stream = new MemoryStream(invalidBytes);
         // Buffer size forces the invalid byte FF to be read in the next chunk
         var options = new CsvIOOptions { BufferSize = 6 }; // Reads "Test" + E2 82
-        await using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        await using var reader = new Utf8StreamReader(stream, options);
 
         var charBuffer = new char[20]; // Ample space
         var sb = new StringBuilder();
@@ -470,7 +470,7 @@ public class Utf8StreamReaderTests
     {
         var stream = new MemoryStream([.. Encoding.UTF8.GetPreamble(), .. "TestData"u8]);
         var options = new CsvIOOptions { BufferSize = 1024 };
-        using var reader = new Utf8StreamReader(stream, MemoryPool<char>.Shared, options);
+        using var reader = new Utf8StreamReader(stream, options);
         var charBuffer = new char[10];
         int charsRead = reader.ReadCore(charBuffer);
         Assert.Equal(8, charsRead); // "TestData" length
@@ -502,7 +502,6 @@ public class Utf8StreamReaderTests
 
         using var reader = new Utf8StreamReader(
             stream,
-            MemoryPool<char>.Shared,
             new() { BufferSize = CsvIOOptions.MinimumBufferSize, MinimumReadSize = CsvIOOptions.MinimumBufferSize / 2 }
         );
 

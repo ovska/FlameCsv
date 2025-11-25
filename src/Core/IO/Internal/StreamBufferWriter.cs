@@ -11,8 +11,8 @@ internal sealed class StreamBufferWriter : CsvBufferWriter<byte>
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
 
-    public StreamBufferWriter(Stream stream, MemoryPool<byte> allocator, in CsvIOOptions options)
-        : base(allocator, in options)
+    public StreamBufferWriter(Stream stream, in CsvIOOptions options)
+        : base(in options)
     {
         Throw.IfNotWritable(stream);
         _stream = stream;
