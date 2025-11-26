@@ -14,8 +14,8 @@ public class DataReaderTests
     [Fact]
     public void Should_Throw_If_No_Header()
     {
-        using CsvRecordEnumerator<char> enumerator = CsvReader
-            .Enumerate(data, new() { HasHeader = false })
+        using CsvRecordEnumerator<char> enumerator = Csv.From(data)
+            .Enumerate(new() { HasHeader = false })
             .GetEnumerator();
 
         IDataReader reader = enumerator;
@@ -31,20 +31,20 @@ public class DataReaderTests
     {
         // default null value is empty string
         TestImpl(
-            CsvReader.Enumerate("id,col,name\n1,,John Doe").GetEnumerator(),
+            Csv.From("id,col,name\n1,,John Doe").Enumerate().GetEnumerator(),
             r => ((CsvRecordEnumerator<char>)r).Current
         );
         TestImpl(
-            CsvReader.Enumerate("id,col,name\n1,,John Doe"u8.ToArray()).GetEnumerator(),
+            Csv.From("id,col,name\n1,,John Doe"u8.ToArray()).Enumerate().GetEnumerator(),
             r => ((CsvRecordEnumerator<byte>)r).Current
         );
 
         TestImpl(
-            CsvReader.Enumerate("id,col,name\n1,null,John Doe", new() { Null = "null" }).GetEnumerator(),
+            Csv.From("id,col,name\n1,null,John Doe").Enumerate(new() { Null = "null" }).GetEnumerator(),
             r => ((CsvRecordEnumerator<char>)r).Current
         );
         TestImpl(
-            CsvReader.Enumerate("id,col,name\n1,null,John Doe"u8.ToArray(), new() { Null = "null" }).GetEnumerator(),
+            Csv.From("id,col,name\n1,null,John Doe"u8.ToArray()).Enumerate(new() { Null = "null" }).GetEnumerator(),
             r => ((CsvRecordEnumerator<byte>)r).Current
         );
 
@@ -75,11 +75,11 @@ public class DataReaderTests
             + "1,2023-10-01T12:00:00Z,2023-10-02T12:00:00Z,\"Hello, World!\"\n"
             + "2,2023-10-03T12:00:00Z,2023-10-04T12:00:00Z,\"Hello, World!\"\n";
 
-        using CsvRecordEnumerator<char> charEnumerator = CsvReader.Enumerate(complexData).GetEnumerator();
+        using CsvRecordEnumerator<char> charEnumerator = Csv.From(complexData).Enumerate().GetEnumerator();
         TestImpl(charEnumerator, r => ((CsvRecordEnumerator<char>)r).Current);
 
-        using CsvRecordEnumerator<byte> byteEnumerator = CsvReader
-            .Enumerate(Encoding.UTF8.GetBytes(complexData))
+        using CsvRecordEnumerator<byte> byteEnumerator = Csv.From(Encoding.UTF8.GetBytes(complexData))
+            .Enumerate()
             .GetEnumerator();
         TestImpl(byteEnumerator, r => ((CsvRecordEnumerator<byte>)r).Current);
 
@@ -122,11 +122,11 @@ public class DataReaderTests
     [Fact]
     public void Should_Return_Value()
     {
-        using CsvRecordEnumerator<char> charEnumerator = CsvReader.Enumerate(data).GetEnumerator();
+        using CsvRecordEnumerator<char> charEnumerator = Csv.From(data).Enumerate().GetEnumerator();
         TestImpl(charEnumerator, r => ((CsvRecordEnumerator<char>)r).Current);
 
-        using CsvRecordEnumerator<byte> byteEnumerator = CsvReader
-            .Enumerate(Encoding.UTF8.GetBytes(data))
+        using CsvRecordEnumerator<byte> byteEnumerator = Csv.From(Encoding.UTF8.GetBytes(data))
+            .Enumerate()
             .GetEnumerator();
         TestImpl(byteEnumerator, r => ((CsvRecordEnumerator<byte>)r).Current);
 

@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
 using Sylvan.Data.Csv;
@@ -45,15 +44,14 @@ public partial class ReadObjects
     {
         if (Async)
         {
-            await using var reader = CsvBufferReader.Create(GetStream(), encoding: Encoding.UTF8);
-            await foreach (var entry in CsvReader.Read<Entry>(GetStream(), _flameCsvOptions))
+            await foreach (var entry in Csv.From(GetStream()).WithUtf8Encoding().ReadAsync<Entry>(_flameCsvOptions))
             {
                 _ = entry;
             }
         }
         else
         {
-            foreach (var entry in CsvReader.Read<Entry>(GetStream(), _flameCsvOptions))
+            foreach (var entry in Csv.From(GetStream()).WithUtf8Encoding().Read<Entry>(_flameCsvOptions))
             {
                 _ = entry;
             }
@@ -94,7 +92,9 @@ public partial class ReadObjects
         if (Async)
         {
             await foreach (
-                var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions)
+                var entry in Csv.From(GetStream())
+                    .WithUtf8Encoding()
+                    .ReadAsync<Entry>(EntryTypeMap.Default, _flameCsvOptions)
             )
             {
                 _ = entry;
@@ -102,7 +102,11 @@ public partial class ReadObjects
         }
         else
         {
-            foreach (var entry in CsvReader.Read<Entry>(GetStream(), EntryTypeMap.Default, options: _flameCsvOptions))
+            foreach (
+                var entry in Csv.From(GetStream())
+                    .WithUtf8Encoding()
+                    .Read<Entry>(EntryTypeMap.Default, _flameCsvOptions)
+            )
             {
                 _ = entry;
             }

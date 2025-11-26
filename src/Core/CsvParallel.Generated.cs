@@ -9,6 +9,21 @@ using FlameCsv.ParallelUtils;
 
 namespace FlameCsv;
 
+file static class CsvReader
+{
+    public static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions)
+    {
+        return new FileStream(
+            path,
+            FileMode.Create,
+            FileAccess.Write,
+            FileShare.None,
+            ioOptions.BufferSize,
+            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
+        );
+    }
+}
+
 static partial class CsvParallel
 {
     /// <summary>

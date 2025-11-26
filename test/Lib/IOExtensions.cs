@@ -6,7 +6,7 @@ namespace FlameCsv.Tests;
 public static class IOExtensions
 {
     public static ReadOnlyMemory<T> ReadToBuffer<T>(this ICsvBufferReader<T> reader)
-        where T : unmanaged
+        where T : unmanaged, IBinaryInteger<T>
     {
         ArrayBufferWriter<T> buffer = new();
 
@@ -23,7 +23,7 @@ public static class IOExtensions
     }
 
     public static async ValueTask<ReadOnlyMemory<T>> ReadToBufferAsync<T>(this ICsvBufferReader<T> reader)
-        where T : unmanaged
+        where T : unmanaged, IBinaryInteger<T>
     {
         ArrayBufferWriter<T> buffer = new();
 

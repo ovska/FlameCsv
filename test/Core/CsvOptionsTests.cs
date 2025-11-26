@@ -370,7 +370,7 @@ public class CsvOptionsTests
 
         CsvOptions<char> options = new() { HasHeader = true, RecordCallback = Callback };
 
-        using (var enumerator = CsvReader.Enumerate(data, options).GetEnumerator())
+        using (var enumerator = Csv.From(data).Enumerate(options).GetEnumerator())
         {
             Assert.True(enumerator.MoveNext());
             Assert.Equal("1", enumerator.Current.GetField("A").ToString());
@@ -385,7 +385,7 @@ public class CsvOptionsTests
             Assert.False(enumerator.MoveNext());
         }
 
-        var values = CsvReader.Read<Skippable>(data, options).ToList();
+        var values = Csv.From(data).Read<Skippable>(options).ToList();
         Assert.Equal(2, values.Count);
         Assert.Equal(1, values[0].A);
         Assert.Equal(2, values[0].B);
@@ -420,7 +420,7 @@ public class CsvOptionsTests
         // record
         var options = new CsvOptions<char> { RecordCallback = Callback };
 
-        using var enumerator = CsvReader.Enumerate(data, options).GetEnumerator();
+        using var enumerator = Csv.From(data).Enumerate(options).GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
         Assert.Equal("1,2,3", enumerator.Current.Raw.ToString());
@@ -429,7 +429,7 @@ public class CsvOptionsTests
         Assert.Equal("7,8,9", enumerator.Current.Raw.ToString());
 
         // values
-        var values = CsvReader.Read<Skippable>(data, options).ToList();
+        var values = Csv.From(data).Read<Skippable>(options).ToList();
 
         Assert.Equal(2, values.Count);
         Assert.Equal(1, values[0].A);
@@ -443,9 +443,9 @@ public class CsvOptionsTests
     [Fact]
     public void Should_Return_Correct_HeaderRead_in_Skip()
     {
-        foreach (var _ in CsvReader.Enumerate("A,B,C\n1,2,3", GetOpts(true))) { }
+        foreach (var _ in Csv.From("A,B,C\n1,2,3").Enumerate(GetOpts(true))) { }
 
-        foreach (var _ in CsvReader.Enumerate("X,y,z\nX,y,z", GetOpts(false))) { }
+        foreach (var _ in Csv.From("X,y,z\nX,y,z").Enumerate(GetOpts(false))) { }
 
         CsvOptions<char> GetOpts(bool hasHeader)
         {

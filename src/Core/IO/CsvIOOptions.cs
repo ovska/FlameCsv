@@ -17,7 +17,7 @@ public readonly record struct CsvIOOptions
 
     /// <summary>
     /// The default buffer size when doing file I/O (64 KiB).<br/>
-    /// This is used with the file I/O methods of <see cref="CsvWriter"/> and <see cref="CsvReader"/>
+    /// This is used with the file I/O methods in <see cref="Csv"/>.
     /// if <see cref="BufferSize"/> is not explicitly configured.
     /// </summary>
     /// <seealso cref="BufferSize"/>
@@ -102,8 +102,7 @@ public readonly record struct CsvIOOptions
     /// The default is <c>false</c>.
     /// </summary>
     /// <remarks>
-    /// This parameter is not used if the data source or destination is not user provided, e.g. a file stream created in
-    /// <see cref="CsvWriter.WriteToFile{TValue}(string,IEnumerable{TValue},CsvOptions{byte}?,CsvIOOptions)"/>
+    /// This parameter is ignored if the stream was not created by the library, such as when writing to a file.
     /// </remarks>
     /// <seealso cref="ForFileIO"/>
     public bool LeaveOpen { get; init; }

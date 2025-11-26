@@ -24,8 +24,8 @@ internal sealed class Allocator<T>(IBufferPool bufferPool) : IDisposable
 
     public void Dispose()
     {
-        _memoryOwner = null!;
         _memoryOwner?.Dispose();
+        _memoryOwner = null!;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

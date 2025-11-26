@@ -17,8 +17,8 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         {
             // Write test data to the temporary file using the same data as FileWritingTests
             var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
-            CsvWriter.WriteToFile(FilePath, GetTestData(), options, encoding: Encoding.UTF8);
-            CsvWriter.WriteToFile(UnicodeFilePath, GetTestData(), options, encoding: Encoding.Unicode);
+            Csv.ToFile(FilePath, Encoding.UTF8).Write(GetTestData(), options);
+            Csv.ToFile(UnicodeFilePath, Encoding.Unicode).Write(GetTestData(), options);
         }
 
         public void Dispose()
@@ -71,10 +71,11 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
 
         var results = isAsync
-            ? await CsvReader
-                .ReadFromFile<Obj>(_fixture.GetPath(useUtf8), options, encoding)
+            ? await Csv.FromFile(_fixture.GetPath(useUtf8))
+                .WithEncoding(encoding)
+                .ReadAsync<Obj>(options)
                 .ToListAsync(TestContext.Current.CancellationToken)
-            : CsvReader.ReadFromFile<Obj>(_fixture.GetPath(useUtf8), options, encoding).ToList();
+            : Csv.FromFile(_fixture.GetPath(useUtf8)).WithEncoding(encoding).Read<Obj>(options).ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -91,10 +92,10 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<byte> { Formats = { { typeof(DateTimeOffset), "O" } } };
 
         var results = isAsync
-            ? await CsvReader
-                .ReadFromFile<Obj>(_fixture.FilePath, options)
+            ? await Csv.FromFile(_fixture.FilePath)
+                .ReadAsync<Obj>(options)
                 .ToListAsync(TestContext.Current.CancellationToken)
-            : CsvReader.ReadFromFile<Obj>(_fixture.FilePath, options).ToList();
+            : Csv.FromFile(_fixture.FilePath).Read<Obj>(options).ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -112,10 +113,14 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
 
         var results = isAsync
-            ? await CsvReader
-                .ReadFromFile(_fixture.GetPath(useUtf8), ObjCharTypeMap.Default, options, encoding)
+            ? await Csv.FromFile(_fixture.GetPath(useUtf8))
+                .WithEncoding(encoding)
+                .ReadAsync(ObjCharTypeMap.Default, options)
                 .ToListAsync(TestContext.Current.CancellationToken)
-            : CsvReader.ReadFromFile(_fixture.GetPath(useUtf8), ObjCharTypeMap.Default, options, encoding).ToList();
+            : Csv.FromFile(_fixture.GetPath(useUtf8))
+                .WithEncoding(encoding)
+                .Read(ObjCharTypeMap.Default, options)
+                .ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -132,10 +137,10 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<byte> { Formats = { { typeof(DateTimeOffset), "O" } } };
 
         var results = isAsync
-            ? await CsvReader
-                .ReadFromFile(_fixture.FilePath, ObjByteTypeMap.Default, options)
+            ? await Csv.FromFile(_fixture.FilePath)
+                .ReadAsync(ObjByteTypeMap.Default, options)
                 .ToListAsync(TestContext.Current.CancellationToken)
-            : CsvReader.ReadFromFile(_fixture.FilePath, ObjByteTypeMap.Default, options).ToList();
+            : Csv.FromFile(_fixture.FilePath).Read(ObjByteTypeMap.Default, options).ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -158,8 +163,9 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         if (isAsync)
         {
             await foreach (
-                var record in CsvReader
-                    .EnumerateFromFile(path, options, encoding)
+                var record in Csv.FromFile(path)
+                    .WithEncoding(encoding)
+                    .EnumerateAsync(options)
                     .WithCancellation(TestContext.Current.CancellationToken)
             )
             {
@@ -168,7 +174,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         }
         else
         {
-            foreach (var record in CsvReader.EnumerateFromFile(path, options, encoding))
+            foreach (var record in Csv.FromFile(path).WithEncoding(encoding).Enumerate(options))
             {
                 records.Add(record.ToArray());
             }
@@ -195,8 +201,8 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         if (isAsync)
         {
             await foreach (
-                var record in CsvReader
-                    .EnumerateFromFile(_fixture.FilePath, options)
+                var record in Csv.FromFile(_fixture.FilePath)
+                    .EnumerateAsync(options)
                     .WithCancellation(TestContext.Current.CancellationToken)
             )
             {
@@ -205,7 +211,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         }
         else
         {
-            foreach (var record in CsvReader.EnumerateFromFile(_fixture.FilePath, options))
+            foreach (var record in Csv.FromFile(_fixture.FilePath).Enumerate(options))
             {
                 records.Add(record.ToArray());
             }
@@ -228,7 +234,10 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
         var ioOptions = new CsvIOOptions { BufferSize = 1024, MinimumReadSize = 512 };
 
-        var results = CsvReader.ReadFromFile<Obj>(_fixture.FilePath, options, Encoding.UTF8, ioOptions).ToList();
+        var results = Csv.FromFile(_fixture.FilePath, ioOptions)
+            .WithEncoding(Encoding.UTF8)
+            .Read<Obj>(options)
+            .ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -241,7 +250,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
 
         // null encoding should use the UTF8 code path
-        var results = CsvReader.ReadFromFile<Obj>(_fixture.FilePath, options, encoding: null).ToList();
+        var results = Csv.FromFile(_fixture.FilePath).WithUtf8Encoding().Read<Obj>(options).ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -254,7 +263,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
 
         // ASCII encoding should use the UTF8 code path
-        var results = CsvReader.ReadFromFile<Obj>(_fixture.FilePath, options, Encoding.ASCII).ToList();
+        var results = Csv.FromFile(_fixture.FilePath).WithEncoding(Encoding.ASCII).Read<Obj>(options).ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -270,7 +279,10 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         var options = new CsvOptions<char> { Formats = { { typeof(DateTimeOffset), "O" } } };
         var ioOptions = new CsvIOOptions { BufferSize = bufferSize };
 
-        var results = CsvReader.ReadFromFile<Obj>(_fixture.FilePath, options, Encoding.UTF8, ioOptions).ToList();
+        var results = Csv.FromFile(_fixture.FilePath, ioOptions)
+            .WithEncoding(Encoding.UTF8)
+            .Read<Obj>(options)
+            .ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -285,7 +297,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
 
         Assert.Throws<FileNotFoundException>(() =>
         {
-            CsvReader.ReadFromFile<Obj>(nonExistentPath, options).ToList();
+            Csv.FromFile(nonExistentPath).WithUtf8Encoding().Read<Obj>(options).ToList();
         });
     }
 
@@ -296,7 +308,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
 
         Assert.Throws<ArgumentException>(() =>
         {
-            CsvReader.ReadFromFile<Obj>("", options).ToList();
+            Csv.FromFile("").WithUtf8Encoding().Read<Obj>(options).ToList();
         });
     }
 
@@ -307,7 +319,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
 
         Assert.Throws<ArgumentNullException>(() =>
         {
-            CsvReader.ReadFromFile<Obj>(null!, options).ToList();
+            Csv.FromFile(null!).WithUtf8Encoding().Read<Obj>(options).ToList();
         });
     }
 }

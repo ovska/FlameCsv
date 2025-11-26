@@ -17,6 +17,9 @@ public sealed class ReturnTrackingBufferPool : IBufferPool, IDisposable
     {
         _bytePool = ReturnTrackingMemoryPool<byte>.Create(guardedFromEnd);
         _charPool = ReturnTrackingMemoryPool<char>.Create(guardedFromEnd);
+
+        _bytePool.TrackStackTraces = true;
+        _charPool.TrackStackTraces = true;
     }
 
     public IMemoryOwner<byte> GetBytes(int length) => _bytePool.Rent(length);

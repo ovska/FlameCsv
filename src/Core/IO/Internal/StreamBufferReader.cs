@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-
-namespace FlameCsv.IO.Internal;
+﻿namespace FlameCsv.IO.Internal;
 
 internal sealed class StreamBufferReader : CsvBufferReader<byte>
 {

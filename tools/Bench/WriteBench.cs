@@ -177,19 +177,19 @@ public partial class WriteBench
     // [Benchmark(Baseline = true)]
     public void Generic()
     {
-        CsvWriter.Write(TextWriter.Null, _data);
+        Csv.To(TextWriter.Null).Write(_data);
     }
 
     // [Benchmark]
     public void Generic_TypeMap()
     {
-        CsvWriter.Write(TextWriter.Null, _data, ObjTypeMap.Default);
+        Csv.To(TextWriter.Null).Write(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]
     public Task Async_Generic()
     {
-        return CsvWriter.WriteAsync(TextWriter.Null, _data);
+        return Csv.To(TextWriter.Null).WriteAsync(_data);
     }
 
     [Benchmark]
@@ -218,7 +218,7 @@ public partial class WriteBench
     // [Benchmark]
     public Task Async_Generic_TypeMap()
     {
-        return CsvWriter.WriteAsync(TextWriter.Null, _data, ObjTypeMap.Default);
+        return Csv.To(TextWriter.Null).WriteAsync(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]

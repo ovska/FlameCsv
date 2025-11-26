@@ -11,11 +11,12 @@ public class LargeFieldCountTests
     {
         const string csv = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24";
         var options = new CsvOptions<char> { HasHeader = false };
-        Obj obj = CsvReader.Read<Obj>(csv, options).Single();
+        Obj obj = Csv.From(csv).Read<Obj>(options).Single();
 
         Assert.Equal(Enumerable.Range(1, 24), MemoryMarshal.CreateSpan(ref obj.Field0, 24).ToArray());
 
-        StringBuilder sb = CsvWriter.WriteToString([obj], options);
+        StringBuilder sb = new();
+        Csv.To(new StringWriter(sb)).Write([obj], options);
         Assert.Equal(csv, sb.ToString().Trim());
     }
 

@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -6,7 +5,6 @@ using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Enums;
 using FlameCsv.Extensions;
-using FlameCsv.IO.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 

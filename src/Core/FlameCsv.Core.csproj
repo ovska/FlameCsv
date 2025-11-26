@@ -71,17 +71,9 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>Materializer.Generated.cs</LastGenOutput>
         </None>
-        <None Update="CsvReader.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>CsvReader.Generated.cs</LastGenOutput>
-        </None>
         <None Update="Writing\Dematerializer.Generated.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>Dematerializer.Generated.cs</LastGenOutput>
-        </None>
-        <None Update="CsvWriter.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>CsvWriter.Generated.cs</LastGenOutput>
         </None>
         <None Update="CsvParallel.Generated.tt">
             <Generator>TextTemplatingFileGenerator</Generator>
@@ -138,20 +130,10 @@
             <DependentUpon>Materializer.Generated.tt</DependentUpon>
             <DesignTime>True</DesignTime>
         </Compile>
-        <Compile Update="CsvReader.Generated.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>CsvReader.Generated.tt</DependentUpon>
-        </Compile>
         <Compile Update="Writing\Dematerializer.Generated.cs">
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
             <DependentUpon>Dematerializer.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="CsvWriter.Generated.cs">
-            <AutoGen>True</AutoGen>
-            <DesignTime>True</DesignTime>
-            <DependentUpon>CsvWriter.Generated.tt</DependentUpon>
         </Compile>
         <Compile Update="CsvParallel.Generated.cs">
             <AutoGen>True</AutoGen>

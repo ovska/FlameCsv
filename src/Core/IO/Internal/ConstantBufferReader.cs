@@ -6,7 +6,7 @@ namespace FlameCsv.IO.Internal;
 /// Performance optimization for reading from a constant data source to avoid unnecessary copying.
 /// </summary>
 internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     private ReadOnlyMemory<T> _data;
     private ReadOnlyMemory<T> _originalData;

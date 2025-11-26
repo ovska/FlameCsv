@@ -41,22 +41,13 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            CsvWriter.Write(
-                output,
-                TestDataGenerator.Objects.Value,
-                ObjByteTypeMap.Default,
-                options,
-                new() { BufferSize = bufferSize, BufferPool = pool }
-            );
+            Csv.To(output, new() { BufferSize = bufferSize, BufferPool = pool })
+                .Write(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
         }
         else
         {
-            CsvWriter.Write(
-                output,
-                TestDataGenerator.Objects.Value,
-                options,
-                new() { BufferSize = bufferSize, BufferPool = pool }
-            );
+            Csv.To(output, new() { BufferSize = bufferSize, BufferPool = pool })
+                .Write(TestDataGenerator.Objects.Value, options);
         }
 
         Validate(writer.WrittenMemory, newline.IsCRLF(), header, quoting);
@@ -90,46 +81,36 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         {
             if (outputType)
             {
-                await CsvWriter.WriteAsync(
-                    PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)),
-                    TestDataGenerator.Objects.Value,
-                    ObjByteTypeMap.Default,
-                    options,
-                    TestContext.Current.CancellationToken
-                );
+                await Csv.To(PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)), pool)
+                    .WriteAsync(
+                        ObjByteTypeMap.Default,
+                        TestDataGenerator.Objects.Value,
+                        options,
+                        TestContext.Current.CancellationToken
+                    );
             }
             else
             {
-                await CsvWriter.WriteAsync(
-                    output,
-                    TestDataGenerator.Objects.Value,
-                    ObjByteTypeMap.Default,
-                    options,
-                    new() { BufferSize = bufferSize, BufferPool = pool },
-                    TestContext.Current.CancellationToken
-                );
+                await Csv.To(output, new() { BufferSize = bufferSize, BufferPool = pool })
+                    .WriteAsync(
+                        ObjByteTypeMap.Default,
+                        TestDataGenerator.Objects.Value,
+                        options,
+                        TestContext.Current.CancellationToken
+                    );
             }
         }
         else
         {
             if (outputType)
             {
-                await CsvWriter.WriteAsync(
-                    PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)),
-                    TestDataGenerator.Objects.Value,
-                    options,
-                    TestContext.Current.CancellationToken
-                );
+                await Csv.To(PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)), pool)
+                    .WriteAsync(TestDataGenerator.Objects.Value, options, TestContext.Current.CancellationToken);
             }
             else
             {
-                await CsvWriter.WriteAsync(
-                    output,
-                    TestDataGenerator.Objects.Value,
-                    options,
-                    new() { BufferSize = bufferSize, BufferPool = pool },
-                    TestContext.Current.CancellationToken
-                );
+                await Csv.To(output, new() { BufferSize = bufferSize, BufferPool = pool })
+                    .WriteAsync(TestDataGenerator.Objects.Value, options, TestContext.Current.CancellationToken);
             }
         }
 

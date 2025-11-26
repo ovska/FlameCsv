@@ -1,7 +1,5 @@
 ﻿using System.Globalization;
 using System.Text;
-using FlameCsv.Enumeration;
-using FlameCsv.IO;
 using Sylvan.Data;
 using Sylvan.Data.Csv;
 
@@ -38,9 +36,9 @@ public class ReadObjectsAsync
     [Benchmark(Baseline = true)]
     public async Task _FlameCsv()
     {
-        using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        await using var pipe = CsvBufferReader.Create(reader);
-        await foreach (var entry in new CsvValueEnumerable<char, Entry>(pipe, _flameCsvOptions).ConfigureAwait(false))
+        await foreach (
+            var entry in Csv.From(new MemoryStream(_data)).WithUtf8Encoding().ReadAsync<Entry>().ConfigureAwait(false)
+        )
         {
             _ = entry;
         }
@@ -49,14 +47,11 @@ public class ReadObjectsAsync
     [Benchmark]
     public async Task _Flame_SrcGen()
     {
-        using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        await using var pipe = CsvBufferReader.Create(reader);
         await foreach (
-            var entry in new CsvTypeMapEnumerable<char, Entry>(
-                pipe,
-                _flameCsvOptions,
-                EntryTypeMap.Default
-            ).ConfigureAwait(false)
+            var entry in Csv.From(new MemoryStream(_data))
+                .WithUtf8Encoding()
+                .ReadAsync(EntryTypeMap.Default, _flameCsvOptions)
+                .ConfigureAwait(false)
         )
         {
             _ = entry;

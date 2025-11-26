@@ -59,14 +59,14 @@ public static class WriterEdgeCaseTests
     {
         await using (StringWriter sw = new())
         {
-            Assert.Throws<InvalidDataException>(() => CsvWriter.Write(sw, InvalidData()));
+            Assert.Throws<InvalidDataException>(() => Csv.To(sw).Write(InvalidData()));
             Assert.Empty(sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
             await Assert.ThrowsAsync<InvalidDataException>(() =>
-                CsvWriter.WriteAsync(sw, InvalidData(), cancellationToken: TestContext.Current.CancellationToken)
+                Csv.To(sw).WriteAsync(InvalidData(), cancellationToken: TestContext.Current.CancellationToken)
             );
             Assert.Empty(sw.ToString());
         }
@@ -74,7 +74,7 @@ public static class WriterEdgeCaseTests
         await using (StringWriter sw = new())
         {
             await Assert.ThrowsAsync<InvalidDataException>(() =>
-                CsvWriter.WriteAsync(sw, InvalidDataAsync(), cancellationToken: TestContext.Current.CancellationToken)
+                Csv.To(sw).WriteAsync(InvalidDataAsync(), cancellationToken: TestContext.Current.CancellationToken)
             );
             Assert.Empty(sw.ToString());
         }
@@ -102,37 +102,37 @@ public static class WriterEdgeCaseTests
         await using (StringWriter sw = new())
         {
             // ReSharper disable once MethodHasAsyncOverload
-            CsvWriter.Write(sw, Array.Empty<Obj>(), options);
+            Csv.To(sw).Write(Array.Empty<Obj>(), options);
             Assert.Equal(header, sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
             // ReSharper disable once MethodHasAsyncOverload
-            CsvWriter.Write(sw, Empty(), options);
+            Csv.To(sw).Write(Empty(), options);
             Assert.Equal(header, sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync<Obj>(sw, [], options, cancellationToken: TestContext.Current.CancellationToken);
+            await Csv.To(sw).WriteAsync<Obj>([], options, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(header, sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync(sw, Empty(), options, cancellationToken: TestContext.Current.CancellationToken);
+            await Csv.To(sw).WriteAsync(Empty(), options, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(header, sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync(
-                sw,
-                SyncAsyncEnumerable.Create(Empty()),
-                options,
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+            await Csv.To(sw)
+                .WriteAsync(
+                    SyncAsyncEnumerable.Create(Empty()),
+                    options,
+                    cancellationToken: TestContext.Current.CancellationToken
+                );
             Assert.Equal(header, sw.ToString());
         }
     }
@@ -145,37 +145,37 @@ public static class WriterEdgeCaseTests
         await using (StringWriter sw = new())
         {
             // ReSharper disable once MethodHasAsyncOverload
-            CsvWriter.Write(sw, Array.Empty<Obj>(), options);
+            Csv.To(sw).Write(Array.Empty<Obj>(), options);
             Assert.Equal("\r\n", sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
             // ReSharper disable once MethodHasAsyncOverload
-            CsvWriter.Write(sw, Empty(), options);
+            Csv.To(sw).Write(Empty(), options);
             Assert.Equal("\r\n", sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync<Obj>(sw, [], options, cancellationToken: TestContext.Current.CancellationToken);
+            await Csv.To(sw).WriteAsync<Obj>([], options, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal("\r\n", sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync(sw, Empty(), options, cancellationToken: TestContext.Current.CancellationToken);
+            await Csv.To(sw).WriteAsync(Empty(), options, cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal("\r\n", sw.ToString());
         }
 
         await using (StringWriter sw = new())
         {
-            await CsvWriter.WriteAsync(
-                sw,
-                SyncAsyncEnumerable.Create(Empty()),
-                options,
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+            await Csv.To(sw)
+                .WriteAsync(
+                    SyncAsyncEnumerable.Create(Empty()),
+                    options,
+                    cancellationToken: TestContext.Current.CancellationToken
+                );
             Assert.Equal("\r\n", sw.ToString());
         }
     }

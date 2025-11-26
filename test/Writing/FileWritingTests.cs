@@ -28,17 +28,11 @@ public class FileWritingTests : IDisposable
 
         if (isAsync)
         {
-            await CsvWriter.WriteToFileAsync(
-                Path,
-                Data(),
-                options,
-                encoding: encoding,
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+            await Csv.ToFile(Path, encoding).WriteAsync(Data(), options, TestContext.Current.CancellationToken);
         }
         else
         {
-            CsvWriter.WriteToFile(Path, Data(), options, encoding: encoding);
+            Csv.ToFile(Path, encoding).Write(Data(), options);
         }
 
         Assert.Equal(Expected, await File.ReadAllTextAsync(Path, encoding, TestContext.Current.CancellationToken));
@@ -51,16 +45,11 @@ public class FileWritingTests : IDisposable
 
         if (isAsync)
         {
-            await CsvWriter.WriteToFileAsync(
-                Path,
-                Data(),
-                options,
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+            await Csv.ToFile(Path).WriteAsync(Data(), options, TestContext.Current.CancellationToken);
         }
         else
         {
-            CsvWriter.WriteToFile(Path, Data(), options);
+            Csv.ToFile(Path).Write(Data(), options);
         }
 
         Assert.Equal(Expected, await File.ReadAllTextAsync(Path, Encoding.UTF8, TestContext.Current.CancellationToken));

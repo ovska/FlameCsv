@@ -33,7 +33,7 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
         string name = new('x', 512);
         string data = $"0,{name},true,{DateTime.UnixEpoch:o},{Guid.Empty}{Environment.NewLine}";
 
-        List<Obj> objs = [.. CsvReader.Read<Obj>(data, new CsvOptions<char> { HasHeader = false })];
+        List<Obj> objs = [.. Csv.From(data).Read<Obj>(new CsvOptions<char> { HasHeader = false })];
 
         Assert.Single(objs);
         var obj = objs[0];

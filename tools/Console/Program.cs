@@ -119,13 +119,8 @@ namespace FlameCsv.Console
 
 #pragma warning disable IL2026
         private static Lazy<Entry[]> _entries = new(() =>
-            CsvReader
-                .Read<Entry>(
-                    File.ReadAllBytes(
-                        "C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv"
-                    ),
-                    new() { HasHeader = false }
-                )
+            Csv.FromFile("C:/Users/Sipi/source/repos/FlameCsv/FlameCsv.Tests/TestData/SampleCSVFile_556kb.csv")
+                .Read<Entry>(new() { HasHeader = false })
                 .ToArray()
         );
 #pragma warning restore IL2026

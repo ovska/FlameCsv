@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Attributes;
-using FlameCsv.Enumeration;
 
 namespace FlameCsv.Tests;
 
@@ -13,8 +12,8 @@ public static partial class CsvPreservedRecordTests
         CsvRecord<char>.Enumerator secondRecordEnumerator;
 
         await using (
-            var enumerator = CsvReader
-                .Enumerate(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
+            var enumerator = Csv.From(new StringReader("A,B,C\r\n1,2,3\r\n4,5,6\r\n"))
+                .EnumerateAsync()
                 .GetAsyncEnumerator(TestContext.Current.CancellationToken)
         )
         {
@@ -62,7 +61,7 @@ public static partial class CsvPreservedRecordTests
     {
         CsvRecord<char>.Enumerator secondRecordEnumerator;
 
-        using (var enumerator = CsvReader.Enumerate("A,B,C\r\n1,2,3\r\n4,5,6\r\n").GetEnumerator())
+        using (var enumerator = Csv.From("A,B,C\r\n1,2,3\r\n4,5,6\r\n").Enumerate().GetEnumerator())
         {
             Assert.Equal(0, enumerator.Line);
             Assert.Equal(0, enumerator.Position);
@@ -106,7 +105,7 @@ public static partial class CsvPreservedRecordTests
     [Fact]
     public static void Should_Parse_Fields_And_Records()
     {
-        var enumerable = new CsvRecordEnumerable<char>("A,B,C\r\n1,2,3\r\n".AsMemory(), CsvOptions<char>.Default);
+        var enumerable = Csv.From("A,B,C\r\n1,2,3\r\n").Enumerate();
 
         using IEnumerator<CsvRecord<char>> enumerator = enumerable.GetEnumerator();
 

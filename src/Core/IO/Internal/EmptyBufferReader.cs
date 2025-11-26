@@ -1,7 +1,7 @@
 ﻿namespace FlameCsv.IO.Internal;
 
 internal sealed class EmptyBufferReader<T> : ICsvBufferReader<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     public static EmptyBufferReader<T> Instance { get; } = new();
 

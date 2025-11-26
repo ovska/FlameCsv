@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 namespace FlameCsv.IO.Internal;
 
 internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Attempts to reset the inner data source to the beginning.

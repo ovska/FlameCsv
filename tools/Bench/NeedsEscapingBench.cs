@@ -65,7 +65,7 @@ public class NeedsQuotingBench
     {
         List<string> data = [];
 
-        foreach (var record in CsvReader.EnumerateFromFile(Path))
+        foreach (var record in Csv.FromFile(Path).Enumerate())
         {
             for (int i = 0; i < record.FieldCount; i++)
             {

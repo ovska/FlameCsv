@@ -8,7 +8,7 @@ public sealed class InvalidFormatTests
     public void Should_Throw_On_Invalid_Format()
     {
         const string data = "Id,Name,Age\n1,\"B\"o\"b\",30\n2,Alice,45\n3,Charlie,25,true\n";
-        Assert.Throws<CsvFormatException>(() => CsvReader.Read<User>(data).ToList());
+        Assert.Throws<CsvFormatException>(() => Csv.From(data).Read<User>().ToList());
     }
 }
 

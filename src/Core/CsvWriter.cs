@@ -1,8 +1,4 @@
-﻿using System.Buffers;
-using System.Text;
-using FlameCsv.Extensions;
-using FlameCsv.IO;
-using FlameCsv.IO.Internal;
+﻿using FlameCsv.Extensions;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
 
@@ -14,55 +10,17 @@ namespace FlameCsv;
 [PublicAPI]
 public static partial class CsvWriter
 {
-    private static FileStream GetFileStream(string path, bool isAsync, in CsvIOOptions ioOptions)
-    {
-        return new FileStream(
-            path,
-            FileMode.Create,
-            FileAccess.Write,
-            FileShare.None,
-            ioOptions.BufferSize,
-            FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
-        );
-    }
-
-    private static ICsvBufferWriter<char> GetFileBufferWriter(
-        string path,
-        Encoding? encoding,
-        bool isAsync,
-        in CsvIOOptions ioOptions
-    )
-    {
-        FileStream stream = GetFileStream(path, isAsync, in ioOptions);
-
-        try
-        {
-            if (encoding?.Equals(Encoding.UTF8) != false)
-            {
-                return new Utf8StreamWriter(stream, in ioOptions);
-            }
-
-            return new TextBufferWriter(
-                new StreamWriter(stream, encoding, ioOptions.BufferSize, leaveOpen: false),
-                in ioOptions
-            );
-        }
-        catch
-        {
-            // exception before we returned control to the caller
-            stream.Dispose();
-            throw;
-        }
-    }
-
-    private static void WriteCore<T, TValue>(
+    internal static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
-        CsvFieldWriter<T> writer,
+        Csv.IWriteBuilderBase<T> builder,
+        CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer
     )
         where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;
+
+        using CsvFieldWriter<T> writer = new(builder.CreateWriter(isAsync: false), options);
 
         try
         {
@@ -100,25 +58,24 @@ public static partial class CsvWriter
         }
         finally
         {
-            using (writer)
-            {
-                writer.Writer.Complete(exception);
-            }
+            writer.Writer.Complete(exception);
         }
 
         exception?.Rethrow();
     }
 
-    private static async Task WriteAsyncCore<T, TValue>(
+    internal static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        ValueTask<CsvFieldWriter<T>> writerTask,
+        Csv.IWriteBuilderBase<T> builder,
+        CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        using CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
         Exception? exception = null;
+
+        using CsvFieldWriter<T> writer = new(builder.CreateWriter(isAsync: true), options);
 
         try
         {
@@ -158,27 +115,25 @@ public static partial class CsvWriter
         }
         finally
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                exception ??= new OperationCanceledException(cancellationToken);
-            }
-
+            exception ??= cancellationToken.GetExceptionIfCanceled();
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
 
         exception?.Rethrow();
     }
 
-    private static async Task WriteAsyncCore<T, TValue>(
+    internal static async Task WriteAsyncCore<T, TValue>(
         IAsyncEnumerable<TValue> values,
-        ValueTask<CsvFieldWriter<T>> writerTask,
+        Csv.IWriteBuilderBase<T> builder,
+        CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        using CsvFieldWriter<T> writer = await writerTask.ConfigureAwait(false);
         Exception? exception = null;
+
+        using CsvFieldWriter<T> writer = new(builder.CreateWriter(isAsync: true), options);
 
         try
         {
@@ -213,11 +168,7 @@ public static partial class CsvWriter
         }
         finally
         {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                exception ??= new OperationCanceledException(cancellationToken);
-            }
-
+            exception ??= cancellationToken.GetExceptionIfCanceled();
             await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
 

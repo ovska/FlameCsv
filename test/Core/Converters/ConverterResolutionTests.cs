@@ -51,8 +51,8 @@ public static partial class ConverterResolutionTests
         var o1 = new CsvOptions<char>();
         var o2 = new CsvOptions<char>();
 
-        var r1 = CsvReader.Read<ShimOR>(Data, o1).ToList();
-        var r2 = CsvReader.Read(Data, TypeMapOR.Default, o2).ToList();
+        var r1 = Csv.From(Data).Read<ShimOR>(o1).ToList();
+        var r2 = Csv.From(Data).Read(TypeMapOR.Default, o2).ToList();
 
         Assert.Equal(123, r1[0].Id);
         Assert.Equal(123, r2[0].Id);
@@ -72,8 +72,8 @@ public static partial class ConverterResolutionTests
         var o1 = new CsvOptions<char> { Converters = { new IdConverter() } };
         var o2 = new CsvOptions<char> { Converters = { new IdConverter() } };
 
-        var r1 = CsvReader.Read<ShimNR>(Data, o1).ToList();
-        var r2 = CsvReader.Read(Data, TypeMapNR.Default, o2).ToList();
+        var r1 = Csv.From(Data).Read<ShimNR>(o1).ToList();
+        var r2 = Csv.From(Data).Read(TypeMapNR.Default, o2).ToList();
 
         Assert.Equal(123, r1[0].Id);
         Assert.Equal(123, r2[0].Id);

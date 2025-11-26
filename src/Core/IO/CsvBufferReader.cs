@@ -24,14 +24,15 @@ public static class CsvBufferReader
     /// The <see cref="StringBuilder"/> must not be modified while the reader is in use.
     /// </remarks>
     /// <param name="csv">String builder containing the CSV</param>
-    public static ICsvBufferReader<char> Create(StringBuilder? csv)
+    /// <param name="options">Options to configure the reader</param>
+    public static ICsvBufferReader<char> Create(StringBuilder? csv, in CsvIOOptions options = default)
     {
         if (csv is null || csv.Length == 0)
         {
             return EmptyBufferReader<char>.Instance;
         }
 
-        return Create(StringBuilderSegment.Create(csv));
+        return Create(StringBuilderSegment.Create(csv), in options);
     }
 
     /// <summary>
@@ -63,7 +64,7 @@ public static class CsvBufferReader
     [OverloadResolutionPriority(-1)]
     [ExcludeFromCodeCoverage]
     public static ICsvBufferReader<T> Create<T>(ReadOnlyMemory<T> csv)
-        where T : unmanaged
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (csv.IsEmpty)
         {
@@ -109,7 +110,7 @@ public static class CsvBufferReader
     /// <inheritdoc cref="Create(string?)"/>
     [OverloadResolutionPriority(-1)]
     public static ICsvBufferReader<T> Create<T>(in ReadOnlySequence<T> csv, in CsvIOOptions options = default)
-        where T : unmanaged
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (csv.IsSingleSegment || csv.IsEmpty)
         {
@@ -216,7 +217,7 @@ public static class CsvBufferReader
         ArgumentNullException.ThrowIfNull(stream);
         Throw.IfNotReadable(stream);
 
-        if (encoding is null || Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8))
+        if (encoding?.Equals(Encoding.UTF8) != false)
         {
             return new Utf8StreamReader(stream, in options);
         }

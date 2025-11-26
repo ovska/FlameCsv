@@ -293,6 +293,9 @@ public class CsvReaderTests
         mo.Span[^1] = '\n';
         var options = new CsvOptions<char> { Newline = CsvNewline.LF };
 
-        Assert.Throws<NotSupportedException>(() => CsvReader.Enumerate(mo.Memory).ToList());
+        Assert.Throws<NotSupportedException>(() =>
+        {
+            foreach (var _ in Csv.From(mo.Memory).Enumerate(options)) { }
+        });
     }
 }

@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Text;
 using FlameCsv.IO.Internal;
 

@@ -113,7 +113,7 @@ public partial class CsvReadBench
     // [Benchmark]
     public void FlameText()
     {
-        foreach (var record in CsvReader.Read<Entry>(Header ? _charsHeader : _chars, OptionsInstance))
+        foreach (var record in Csv.From(Header ? _charsHeader : _chars).Read<Entry>(OptionsInstance))
         {
             _ = record;
         }
@@ -122,7 +122,7 @@ public partial class CsvReadBench
     // [Benchmark]
     public void FlameUtf8()
     {
-        foreach (var record in CsvReader.Read<Entry>(Header ? _bytesHeader : _bytes, OptionsInstanceB))
+        foreach (var record in Csv.From(Header ? _bytesHeader : _bytes).Read<Entry>(OptionsInstanceB))
         {
             _ = record;
         }
@@ -132,7 +132,7 @@ public partial class CsvReadBench
     public void FlameText_SG()
     {
         foreach (
-            var record in CsvReader.Read(Header ? _charsHeader : _chars, EntryTypeMap_Text.Default, OptionsInstance)
+            var record in Csv.From(Header ? _charsHeader : _chars).Read(EntryTypeMap_Text.Default, OptionsInstance)
         )
         {
             _ = record;
@@ -143,7 +143,7 @@ public partial class CsvReadBench
     public void FlameUtf8_SG()
     {
         foreach (
-            var record in CsvReader.Read(Header ? _bytesHeader : _bytes, EntryTypeMap_Utf8.Default, OptionsInstanceB)
+            var record in Csv.From(Header ? _bytesHeader : _bytes).Read(EntryTypeMap_Utf8.Default, OptionsInstanceB)
         )
         {
             _ = record;

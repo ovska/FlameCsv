@@ -36,7 +36,8 @@ public class WriteReflectionTests
         };
 
         var opts = new CsvOptions<char> { HasHeader = header };
-        var sb = CsvWriter.WriteToString(data, opts);
+        var sb = new System.Text.StringBuilder();
+        Csv.To(new StringWriter(sb)).Write(data, opts);
 
         var expected = (header ? "Id,Name,IsEnabled\r\n" : "") + "1,Bob,true\r\n2,Alice,false\r\n";
         Assert.Equal(expected, sb.ToString());
@@ -47,7 +48,8 @@ public class WriteReflectionTests
     {
         var data = new[] { (1, "Bob", true), (2, "Alice", false) };
         var opts = new CsvOptions<char> { HasHeader = false };
-        var sb = CsvWriter.WriteToString(data, opts);
+        var sb = new System.Text.StringBuilder();
+        Csv.To(new StringWriter(sb)).Write(data, opts);
         Assert.Equal("1,Bob,true\r\n2,Alice,false\r\n", sb.ToString());
     }
 }

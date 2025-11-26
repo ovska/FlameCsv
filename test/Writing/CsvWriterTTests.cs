@@ -351,7 +351,7 @@ public partial class CsvWriterTTests
             chars,
             Impl<char>(writer =>
             {
-                foreach (var record in CsvReader.Enumerate(chars))
+                foreach (var record in Csv.From(chars).Enumerate())
                 {
                     if (!writer.HeaderWritten)
                     {
@@ -370,7 +370,7 @@ public partial class CsvWriterTTests
             chars,
             Impl<byte>(writer =>
             {
-                foreach (var record in CsvReader.Enumerate(bytes))
+                foreach (var record in Csv.From(bytes).Enumerate())
                 {
                     if (!writer.HeaderWritten)
                     {
@@ -391,7 +391,7 @@ public partial class CsvWriterTTests
             trimmedChars,
             Impl<char>(writer =>
             {
-                foreach (var record in CsvReader.Enumerate(chars))
+                foreach (var record in Csv.From(chars).Enumerate())
                 {
                     if (!writer.HeaderWritten)
                     {
@@ -414,7 +414,7 @@ public partial class CsvWriterTTests
             trimmedChars,
             Impl<byte>(writer =>
             {
-                foreach (var record in CsvReader.Enumerate(bytes))
+                foreach (var record in Csv.From(bytes).Enumerate())
                 {
                     if (!writer.HeaderWritten)
                     {
@@ -437,7 +437,7 @@ public partial class CsvWriterTTests
             trimmedChars,
             Impl<char>(writer =>
             {
-                foreach (var record in CsvReader.Enumerate(chars))
+                foreach (var record in Csv.From(chars).Enumerate())
                 {
                     if (!writer.HeaderWritten)
                     {
@@ -456,7 +456,7 @@ public partial class CsvWriterTTests
             trimmedChars,
             Impl<byte>(writer =>
             {
-                foreach (var record in CsvReader.Enumerate(bytes))
+                foreach (var record in Csv.From(bytes).Enumerate())
                 {
                     if (!writer.HeaderWritten)
                     {
@@ -477,10 +477,10 @@ public partial class CsvWriterTTests
             Impl<char>(writer =>
             {
                 foreach (
-                    var record in CsvReader.Enumerate(
-                        chars,
-                        new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
-                    )
+                    var record in Csv.From(chars)
+                        .Enumerate(
+                            new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
+                        )
                 )
                 {
                     if (!writer.HeaderWritten)
@@ -502,10 +502,10 @@ public partial class CsvWriterTTests
             Impl<char>(writer =>
             {
                 foreach (
-                    var record in CsvReader.Enumerate(
-                        chars,
-                        new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
-                    )
+                    var record in Csv.From(chars)
+                        .Enumerate(
+                            new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
+                        )
                 )
                 {
                     if (!writer.HeaderWritten)
@@ -530,7 +530,7 @@ public partial class CsvWriterTTests
         Assert.Throws<NotSupportedException>(() =>
             Impl<char>(writer =>
             {
-                foreach (ref readonly var record in CsvReader.Enumerate("1,2,3", options))
+                foreach (ref readonly var record in Csv.From("1,2,3").Enumerate(options))
                 {
                     writer.WriteHeader(in record);
                 }
@@ -581,7 +581,7 @@ public partial class CsvWriterTTests
 
         Impl<char>(writer =>
         {
-            foreach (var record in CsvReader.Enumerate(data, new CsvOptions<char> { Trimming = CsvFieldTrimming.Both }))
+            foreach (var record in Csv.From(data).Enumerate(new CsvOptions<char> { Trimming = CsvFieldTrimming.Both }))
             {
                 // "D" field does not exist
                 Assert.Throws<ArgumentException>(() => writer.WriteRecord(in record, ["A", "D"]));
@@ -591,10 +591,8 @@ public partial class CsvWriterTTests
         Impl<char>(writer =>
         {
             foreach (
-                var record in CsvReader.Enumerate(
-                    data,
-                    new CsvOptions<char> { Trimming = CsvFieldTrimming.Both, HasHeader = false }
-                )
+                var record in Csv.From(data)
+                    .Enumerate(new CsvOptions<char> { Trimming = CsvFieldTrimming.Both, HasHeader = false })
             )
             {
                 // no header configured

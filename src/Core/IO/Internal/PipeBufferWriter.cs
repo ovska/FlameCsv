@@ -25,7 +25,7 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
     {
         ArgumentNullException.ThrowIfNull(pipeWriter);
         _pipeWriter = pipeWriter;
-        BufferPool = bufferPool ?? DefaultBufferPool.Instance; 
+        BufferPool = bufferPool ?? DefaultBufferPool.Instance;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

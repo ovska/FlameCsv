@@ -144,4 +144,14 @@ internal static class UtilityExtensions
             pool.Return(local);
         }
     }
+
+    public static OperationCanceledException? GetExceptionIfCanceled(this CancellationToken token)
+    {
+        if (token.IsCancellationRequested)
+        {
+            return new OperationCanceledException(token);
+        }
+
+        return null;
+    }
 }

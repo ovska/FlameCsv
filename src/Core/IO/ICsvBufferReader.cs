@@ -4,7 +4,7 @@ namespace FlameCsv.IO;
 /// Buffer reader interface for reading CSV data.
 /// </summary>
 public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
     /// Number of <typeparamref name="T"/> that have been read from the underlying data source.

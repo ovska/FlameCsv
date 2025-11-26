@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
@@ -17,7 +16,7 @@ public class ParallelReaderTests
 
         ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, Escaping.None);
 
-        Assert.Equal(CsvReader.Read<Obj>(data), ReadSequential());
+        Assert.Equal(Csv.From(data).Read<Obj>(), ReadSequential());
 
         IEnumerable<Obj> ReadSequential()
         {
@@ -73,7 +72,7 @@ public class ParallelReaderTests
 
         list.Sort();
 
-        Assert.Equal(CsvReader.Read<Obj>(data), list);
+        Assert.Equal(Csv.From(data).Read<Obj>(), list);
     }
 
     [Fact]
@@ -99,7 +98,7 @@ public class ParallelReaderTests
 
         list.Sort();
 
-        Assert.Equal(CsvReader.Read<Obj>(data), list);
+        Assert.Equal(Csv.From(data).Read<Obj>(), list);
     }
 
     [Fact]
@@ -134,7 +133,7 @@ public class ParallelReaderTests
 
         List<Obj> list = bag.OrderBy(o => o.Id).ToList();
 
-        var expected = CsvReader.Read<Obj>(data).ToList();
+        var expected = Csv.From(data).Read<Obj>().ToList();
 
         Assert.Empty(expected.Except(list).Reverse());
     }

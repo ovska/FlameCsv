@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -23,8 +22,7 @@ namespace FlameCsv.Enumeration;
 public sealed partial class CsvRecordEnumerator<T>
     : CsvEnumeratorBase<T>,
         IEnumerator<CsvRecord<T>>,
-        IAsyncEnumerator<CsvRecord<T>>,
-        IRecordOwner
+        IAsyncEnumerator<CsvRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -33,7 +31,6 @@ public sealed partial class CsvRecordEnumerator<T>
     /// <remarks>
     /// The value should not be held onto after the enumeration continues or ends, as the records wrap
     /// shared and/or pooled memory.
-    /// If you must, convert the record to <see cref="CsvPreservedRecord{T}"/>.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">Thrown when the enumerator has been disposed.</exception>
     /// <exception cref="InvalidOperationException">Thrown when enumeration has not yet started.</exception>
@@ -100,7 +97,7 @@ public sealed partial class CsvRecordEnumerator<T>
     private int? _expectedFieldCount;
     private CsvHeader? _header;
 
-    IDictionary<object, object> IRecordOwner.MaterializerCache =>
+    internal Dictionary<object, object> MaterializerCache =>
         _materializerCache ??= new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
@@ -166,7 +163,7 @@ public sealed partial class CsvRecordEnumerator<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IRecordOwner.EnsureVersion(int version)
+    internal void EnsureVersion(int version)
     {
         if (_version == -1)
             Throw.ObjectDisposed_Enumeration(this);

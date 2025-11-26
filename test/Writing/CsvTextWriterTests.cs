@@ -37,33 +37,25 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (outputType)
             {
-                CsvWriter.Write(
-                    new StringWriter(output),
-                    TestDataGenerator.Objects.Value,
-                    ObjCharTypeMap.Default,
-                    options,
-                    new() { BufferSize = bufferSize, BufferPool = pool }
-                );
+                Csv.To(new StringWriter(output), new() { BufferSize = bufferSize, BufferPool = pool })
+                    .Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
-                CsvWriter.WriteToString(TestDataGenerator.Objects.Value, ObjCharTypeMap.Default, options, output);
+                Csv.To(new StringWriter(output))
+                    .Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
         }
         else
         {
             if (outputType)
             {
-                CsvWriter.Write(
-                    new StringWriter(output),
-                    TestDataGenerator.Objects.Value,
-                    options,
-                    new() { BufferSize = bufferSize }
-                );
+                Csv.To(new StringWriter(output), new() { BufferSize = bufferSize })
+                    .Write(TestDataGenerator.Objects.Value, options);
             }
             else
             {
-                CsvWriter.WriteToString(TestDataGenerator.Objects.Value, options, output);
+                Csv.To(new StringWriter(output)).Write(TestDataGenerator.Objects.Value, options);
             }
         }
 
@@ -99,24 +91,18 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            await CsvWriter.WriteAsync(
-                new StringWriter(output),
-                TestDataGenerator.Objects.Value,
-                ObjCharTypeMap.Default,
-                options,
-                new() { BufferSize = bufferSize, BufferPool = pool },
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+            await Csv.To(new StringWriter(output), new() { BufferSize = bufferSize, BufferPool = pool })
+                .WriteAsync(
+                    ObjCharTypeMap.Default,
+                    TestDataGenerator.Objects.Value,
+                    options,
+                    TestContext.Current.CancellationToken
+                );
         }
         else
         {
-            await CsvWriter.WriteAsync(
-                new StringWriter(output),
-                TestDataGenerator.Objects.Value,
-                options,
-                new() { BufferSize = bufferSize, BufferPool = pool },
-                cancellationToken: TestContext.Current.CancellationToken
-            );
+            await Csv.To(new StringWriter(output), new() { BufferSize = bufferSize, BufferPool = pool })
+                .WriteAsync(TestDataGenerator.Objects.Value, options, TestContext.Current.CancellationToken);
         }
 
         Validate(output, newline.IsCRLF(), header, quoting);
@@ -127,18 +113,18 @@ public class CsvTextWriterTests : CsvWriterTestsBase
     public static async Task Should_Write_Async_Enumerable()
     {
         await using StringWriter sw = new();
-        await CsvWriter.WriteAsync(
-            sw,
-            SyncAsyncEnumerable.Create(
-                new
-                {
-                    Id = 1,
-                    Name = "Bob",
-                    IsEnabled = true,
-                }
-            ),
-            cancellationToken: TestContext.Current.CancellationToken
-        );
+        await Csv.To(sw)
+            .WriteAsync(
+                SyncAsyncEnumerable.Create(
+                    new
+                    {
+                        Id = 1,
+                        Name = "Bob",
+                        IsEnabled = true,
+                    }
+                ),
+                cancellationToken: TestContext.Current.CancellationToken
+            );
 
         Assert.Equal("Id,Name,IsEnabled\r\n1,Bob,true\r\n", sw.ToString());
     }

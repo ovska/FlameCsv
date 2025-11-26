@@ -1,5 +1,4 @@
-using System.Buffers;
-using System.Collections.Concurrent;
+using System.Diagnostics;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
@@ -57,8 +56,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
         {
             IEnumerable<Obj> enumerable = sourceGen
-                ? new CsvTypeMapEnumerable<T, Obj>(in sequence, options, TypeMap)
-                : new CsvValueEnumerable<T, Obj>(in sequence, options);
+                ? Csv.From(in sequence).Read<Obj>(TypeMap, options)
+                : Csv.From(in sequence).Read<Obj>(options);
 
             await Validate(SyncAsyncEnumerable.Create(enumerable), escaping);
         }
@@ -119,8 +118,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             await using var reader = GetReader(stream, options, bufferSize, pool);
 
             IAsyncEnumerable<Obj> source = sourceGen
-                ? new CsvTypeMapEnumerable<T, Obj>(reader, options, TypeMap)
-                : new CsvValueEnumerable<T, Obj>(reader, options);
+                ? new CsvTypeMapEnumerable<T, Obj>(new ReaderWrapper(reader), options, TypeMap)
+                : new CsvValueEnumerable<T, Obj>(new ReaderWrapper(reader), options);
 
             await foreach (var obj in source.WithTestContext())
             {
@@ -198,18 +197,18 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         List<Obj> items = [];
 
-        var enumerable = new CsvRecordEnumerable<T>(reader, options);
-
         if (isAsync)
         {
-            await foreach (var record in enumerable.WithTestContext())
+            await foreach (
+                var record in new CsvRecordAsyncEnumerable<T>(new ReaderWrapper(reader), options).WithTestContext()
+            )
             {
                 items.Add(Core(in record));
             }
         }
         else
         {
-            foreach (var record in enumerable)
+            foreach (var record in new CsvRecordEnumerable<T>(new ReaderWrapper(reader), options))
             {
                 items.Add(Core(in record));
             }
@@ -265,5 +264,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             },
 #endif
         };
+    }
+
+    private sealed class ReaderWrapper(ICsvBufferReader<T> reader) : Csv.IReadBuilderBase<T>
+    {
+        public IBufferPool? BufferPool => throw new UnreachableException();
+
+        public ICsvBufferReader<T> CreateReader(bool isAsync) => reader;
     }
 }

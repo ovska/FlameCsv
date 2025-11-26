@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-using System.Collections;
-using FlameCsv.IO;
+﻿using System.Collections;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
@@ -10,42 +8,23 @@ namespace FlameCsv.Enumeration;
 /// </summary>
 [PublicAPI]
 [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue>
+internal sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue>
     : IEnumerable<TValue>,
         IAsyncEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
+    private readonly Csv.IReadBuilderBase<T> _builder;
     private readonly CsvOptions<T> _options;
-    private readonly ReaderFactory<T> _reader;
     private CsvExceptionHandler<T>? _exceptionHandler;
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
-    public CsvValueEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options)
-        : this(CsvBufferReader.Create(csv), options) { }
-
-    /// <summary>
-    /// Creates a new instance that can be used to read CSV records.
-    /// </summary>
-    public CsvValueEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options)
-        : this(CsvBufferReader.Create(in csv), options) { }
-
-    /// <summary>
-    /// Creates a new instance that can be used to read CSV records.
-    /// </summary>
-    public CsvValueEnumerable(ICsvBufferReader<T> reader, CsvOptions<T> options)
+    public CsvValueEnumerable(Csv.IReadBuilderBase<T> builder, CsvOptions<T> options)
     {
-        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(options);
-        _reader = new(reader);
-        _options = options;
-    }
-
-    internal CsvValueEnumerable(ReaderFactory<T> factory, CsvOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        _reader = factory;
+        _builder = builder;
         _options = options;
     }
 
@@ -58,7 +37,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(_options, _reader.Create(false))
+        return new CsvValueEnumerator<T, TValue>(_options, _builder.CreateReader(false))
         {
             ExceptionHandler = _exceptionHandler,
         };
@@ -68,7 +47,7 @@ public sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TValue
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new CsvValueEnumerator<T, TValue>(_options, _reader.Create(true), cancellationToken)
+        return new CsvValueEnumerator<T, TValue>(_options, _builder.CreateReader(true), cancellationToken)
         {
             ExceptionHandler = _exceptionHandler,
         };

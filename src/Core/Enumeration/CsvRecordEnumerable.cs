@@ -1,86 +1,81 @@
-﻿using System.Buffers;
-using System.Collections;
-using System.Runtime.CompilerServices;
-using FlameCsv.IO;
-using JetBrains.Annotations;
+﻿using System.Collections;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.Enumeration;
 
 /// <summary>
-/// Enumerates known data into CSV records.
+/// Enumerates data into CSV records.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 /// <remarks>
-/// As only one <see cref="CsvRecord{T}"/> can be used at a time,
-/// this type does not support <see cref="Parallel"/> or most LINQ operators.
+/// This type is only intended to be used directly within a <c>foreach</c> loop.
 /// </remarks>
-[PublicAPI]
-public sealed class CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>, IAsyncEnumerable<CsvRecord<T>>
+public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly ReaderFactory<T> _reader;
+    private readonly Csv.IReadBuilderBase<T> _builder;
     private readonly CsvOptions<T> _options;
 
-    /// <summary>
-    /// Creates a new instance that can be used to read CSV records.
-    /// </summary>
-    public CsvRecordEnumerable(ReadOnlyMemory<T> csv, CsvOptions<T> options)
+    internal CsvRecordEnumerable(Csv.IReadBuilderBase<T> builder, CsvOptions<T> options)
     {
+        ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(options);
-        _reader = new(CsvBufferReader.Create(csv));
-        _options = options;
-    }
-
-    /// <summary>
-    /// Creates a new instance that can be used to read CSV records.
-    /// </summary>
-    public CsvRecordEnumerable(in ReadOnlySequence<T> csv, CsvOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        _reader = new(CsvBufferReader.Create(in csv));
-        _options = options;
-    }
-
-    /// <summary>
-    /// Creates a new instance that can be used to read CSV records.
-    /// </summary>
-    public CsvRecordEnumerable(ICsvBufferReader<T> reader, CsvOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(reader);
-        ArgumentNullException.ThrowIfNull(options);
-        _reader = new(reader);
-        _options = options;
-    }
-
-    internal CsvRecordEnumerable(ReaderFactory<T> factory, CsvOptions<T> options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        _reader = factory;
+        _builder = builder;
         _options = options;
     }
 
     /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
-    [MustDisposeResource]
     public CsvRecordEnumerator<T> GetEnumerator()
     {
-        return new CsvRecordEnumerator<T>(_options, _reader.Create(false));
+        if (_builder is null)
+        {
+            Throw.InvalidOp_DefaultStruct(GetType());
+        }
+
+        return new CsvRecordEnumerator<T>(_options, _builder.CreateReader(isAsync: false));
     }
 
-    /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
-    [MustDisposeResource]
-    public CsvRecordEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
-    {
-        return new CsvRecordEnumerator<T>(_options, _reader.Create(true), cancellationToken);
-    }
-
-    [MustDisposeResource]
     IEnumerator<CsvRecord<T>> IEnumerable<CsvRecord<T>>.GetEnumerator() => GetEnumerator();
 
-    [MustDisposeResource]
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+}
 
-    [MustDisposeResource]
+/// <summary>
+/// Enumerates data asynchronously into CSV records.
+/// </summary>
+/// <typeparam name="T">Token type</typeparam>
+/// <remarks>
+/// This type is only intended to be used directly within a <c>await foreach</c> loop.
+/// </remarks>
+public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvRecord<T>>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    private readonly Csv.IReadBuilderBase<T> _builder;
+    private readonly CsvOptions<T> _options;
+
+    internal CsvRecordAsyncEnumerable(Csv.IReadBuilderBase<T> builder, CsvOptions<T> options)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(options);
+        _builder = builder;
+        _options = options;
+    }
+
+    /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
+    public CsvRecordEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+    {
+        if (_builder is null)
+        {
+            Throw.InvalidOp_DefaultStruct(GetType());
+        }
+
+        return new CsvRecordEnumerator<T>(_options, _builder.CreateReader(isAsync: true), cancellationToken);
+    }
+
     IAsyncEnumerator<CsvRecord<T>> IAsyncEnumerable<CsvRecord<T>>.GetAsyncEnumerator(
         CancellationToken cancellationToken
-    ) => GetAsyncEnumerator(cancellationToken);
+    )
+    {
+        return GetAsyncEnumerator(cancellationToken);
+    }
 }

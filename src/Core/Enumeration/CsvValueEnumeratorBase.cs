@@ -52,8 +52,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     private IMaterializer<T, TValue>? _materializer;
 
     /// <summary>
-    /// Returns the headers in the CSV. If headers have not been read, or <see cref="CsvOptions{T}.HasHeader"/>
-    /// is <c>false</c>, returns <see langword="default"/>.
+    /// Returns the headers in the CSV.
     /// </summary>
     /// <exception cref="NotSupportedException">
     /// A non-null value is set when <see cref="CsvOptions{T}.HasHeader"/> is <c>false</c>.

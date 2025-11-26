@@ -65,7 +65,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Include_Name_In_Exception_Message()
     {
-        var ex = Record.Exception(() => CsvReader.Read<Shim>("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").ToList());
+        var ex = Record.Exception(() => Csv.From("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").Read<Shim>().ToList());
 
         Assert.IsType<CsvParseException>(ex);
         Assert.Contains("Targeted", ex.Message, StringComparison.Ordinal);
@@ -92,7 +92,8 @@ public static partial class HeaderBindingTests
     {
         Assert.SkipWhen(sourceGen, "Source generator for type proxies is not supported yet");
 
-        var sb = CsvWriter.WriteToString<ISomething>([]);
+        var sb = new System.Text.StringBuilder();
+        Csv.To(new StringWriter(sb)).Write<ISomething>([]);
         Assert.Equal("_name,_isenabled,_targeted\r\n", sb.ToString());
     }
 

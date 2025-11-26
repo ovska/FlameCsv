@@ -1,5 +1,3 @@
-using System.Buffers;
-
 namespace FlameCsv.IO.Internal;
 
 internal sealed class TextBufferReader : CsvBufferReader<char>

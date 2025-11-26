@@ -29,13 +29,13 @@ public partial class BindingBench
     [Benchmark(Baseline = true)]
     public void _FlameCsv_SrcGen()
     {
-        foreach (var _ in CsvReader.Read(CSV, TestTypeMap.Default, CsvOptions<char>.Default)) { }
+        foreach (var _ in Csv.From(CSV).Read(TestTypeMap.Default, CsvOptions<char>.Default)) { }
     }
 
     [Benchmark]
     public void _FlameCsv_Reflect()
     {
-        foreach (var _ in CsvReader.Read<Obj>(CSV, CsvOptions<char>.Default)) { }
+        foreach (var _ in Csv.From(CSV).Read<Obj>(CsvOptions<char>.Default)) { }
     }
 
     [Benchmark]

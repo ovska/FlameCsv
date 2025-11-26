@@ -3,7 +3,7 @@
 namespace FlameCsv.IO.Internal;
 
 internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
-    where T : unmanaged
+    where T : unmanaged, IBinaryInteger<T>
 {
     private ReadOnlySequence<T> _data;
     private ReadOnlySequence<T> _originalData;

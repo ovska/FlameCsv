@@ -40,8 +40,8 @@ public static partial class ConverterOverrideTests
         const string data = "Dollars\n\"$ 8,042.15\"\n$ 123.45\n";
         var options = new CsvOptions<char> { HasHeader = true, Newline = CsvNewline.LF };
         var objs = sourceGen
-            ? CsvReader.Read(data, CharTypeMap.Default, options).ToList()
-            : CsvReader.Read<TestObj>(data, options).ToList();
+            ? Csv.From(data).Read(CharTypeMap.Default, options).ToList()
+            : Csv.From(data).Read<TestObj>(options).ToList();
         Assert.Equal(2, objs.Count);
         Assert.Equal(8042.15, objs[0].Dollars);
         Assert.Equal(123.45, objs[1].Dollars);
@@ -52,8 +52,8 @@ public static partial class ConverterOverrideTests
     {
         byte[] data = "Pooled\nabc\n\nabc\n"u8.ToArray();
         var objs = sourceGen
-            ? CsvReader.Read(data, ByteTypeMap.Default).ToList()
-            : CsvReader.Read<TestObj>(data).ToList();
+            ? Csv.From(data).Read(ByteTypeMap.Default).ToList()
+            : Csv.From(data).Read<TestObj>().ToList();
         Assert.Equal(3, objs.Count);
         Assert.Same(objs[0].Pooled, objs[2].Pooled);
 
@@ -61,11 +61,11 @@ public static partial class ConverterOverrideTests
 
         if (sourceGen)
         {
-            CsvWriter.Write(ms, objs, ByteTypeMap.Default);
+            Csv.To(ms).Write(ByteTypeMap.Default, objs);
         }
         else
         {
-            CsvWriter.Write(ms, objs);
+            Csv.To(ms).Write(objs);
         }
 
         Assert.Equal("Dollars,Pooled\r\n0,abc\r\n0,\r\n0,abc\r\n", Encoding.UTF8.GetString(ms.ToArray()));

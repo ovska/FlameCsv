@@ -501,11 +501,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             IsCompleted = true;
             HotReloadService.UnregisterForHotReload(this);
 
-            if (cancellationToken.IsCancellationRequested)
-            {
-                exception ??= new OperationCanceledException(cancellationToken);
-            }
-
+            exception ??= cancellationToken.GetExceptionIfCanceled();
             WriteTrailingNewlineIfNeeded(exception);
 
             try

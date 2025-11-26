@@ -1,5 +1,4 @@
-﻿using System.Buffers;
-using System.Collections;
+﻿using System.Collections;
 using System.Globalization;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
@@ -25,7 +24,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Reset()
     {
-        using var resetable = CsvReader.Enumerate("1,2,3\n", new() { HasHeader = false }).GetEnumerator();
+        using var resetable = Csv.From("1,2,3\n").Enumerate(new() { HasHeader = false }).GetEnumerator();
 
         Assert.True(resetable.MoveNext());
         Assert.Equal("1,2,3", resetable.Current.Raw.ToString());
@@ -46,7 +45,7 @@ public sealed class CsvEnumerationTests : IDisposable
         // StreamReader cannot be reset/rewound
         Assert.Throws<NotSupportedException>(() =>
         {
-            using var enumerator = CsvReader.Enumerate(new StreamReader(Stream.Null)).GetEnumerator();
+            using var enumerator = Csv.From(new StreamReader(Stream.Null)).Enumerate().GetEnumerator();
             (enumerator as IEnumerator).Reset();
         });
     }
@@ -131,9 +130,7 @@ public sealed class CsvEnumerationTests : IDisposable
 
         int index = 0;
 
-        foreach (
-            var record in new CsvRecordEnumerable<char>(data.AsMemory(), new CsvOptions<char> { HasHeader = false })
-        )
+        foreach (var record in Csv.From(data.AsMemory()).Enumerate(new CsvOptions<char> { HasHeader = false }))
         {
             var shim = record.ParseRecord<Shim>();
             Assert.Equal(index + 1, shim.Id);
@@ -145,9 +142,8 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Verify_Parameters()
     {
-        Assert.Throws<ArgumentNullException>(() =>
-            new CsvRecordEnumerable<char>(default(ReadOnlySequence<char>), null!)
-        );
+        Assert.Throws<ArgumentNullException>(() => new CsvRecordEnumerable<char>(null!, null!));
+        Assert.Throws<ArgumentNullException>(() => new CsvRecordEnumerable<char>(Csv.From(""), null!));
     }
 
     [Fact]
@@ -212,10 +208,9 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Return_Fields_By_Name()
     {
-        using var enumerator = new CsvRecordEnumerable<char>(
-            "A,B,C\r\n1,2,3".AsMemory(),
-            new CsvOptions<char> { HasHeader = true }
-        ).GetEnumerator();
+        using var enumerator = Csv.From("A,B,C\r\n1,2,3")
+            .Enumerate(new CsvOptions<char> { HasHeader = true })
+            .GetEnumerator();
 
         Assert.True(enumerator.MoveNext());
         CsvRecord<char> record = enumerator.Current;
@@ -250,7 +245,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Not_Contain_Header_If_Headerless()
     {
-        foreach (var record in CsvReader.Enumerate("1,2,3\r\n4,5,6", new CsvOptions<char> { HasHeader = false }))
+        foreach (var record in Csv.From("1,2,3\r\n4,5,6").Enumerate(new CsvOptions<char> { HasHeader = false }))
         {
             Assert.Null(record.Header);
             Assert.False(record.Contains("A"));
@@ -265,10 +260,9 @@ public sealed class CsvEnumerationTests : IDisposable
 
         Assert.Throws<NotSupportedException>(() =>
         {
-            using var enumerator = new CsvRecordEnumerable<char>(
-                "1,2,3".AsMemory(),
-                new CsvOptions<char> { HasHeader = false }
-            ).GetEnumerator();
+            using var enumerator = Csv.From("1,2,3")
+                .Enumerate(new CsvOptions<char> { HasHeader = false })
+                .GetEnumerator();
 
             enumerator.MoveNext();
             enumerator.Header = new(StringComparer.Ordinal, ["A", "B", "C"]);
@@ -278,7 +272,7 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Reset_On_Invalid_Access()
     {
-        using var enumerator = CsvReader.Enumerate("1,Test,true\r\n2,Asd,false\r\n").GetEnumerator();
+        using var enumerator = Csv.From("1,Test,true\r\n2,Asd,false\r\n").Enumerate().GetEnumerator();
 
         Assert.Throws<InvalidOperationException>(() => enumerator.Current);
         Assert.Throws<InvalidOperationException>(() => ((IEnumerator)enumerator).Current);

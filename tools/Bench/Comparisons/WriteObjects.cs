@@ -31,11 +31,11 @@ public class WriteObjects
     {
         if (Async)
         {
-            await CsvWriter.WriteAsync(_destination, Data, EntryTypeMap.Default);
+            await Csv.To(_destination).WriteAsync(EntryTypeMap.Default, Data);
         }
         else
         {
-            CsvWriter.Write(_destination, Data, EntryTypeMap.Default);
+            Csv.To(_destination).Write(EntryTypeMap.Default, Data);
         }
     }
 
@@ -44,11 +44,11 @@ public class WriteObjects
     {
         if (Async)
         {
-            await CsvWriter.WriteAsync(_destination, Data);
+            await Csv.To(_destination).WriteAsync(Data);
         }
         else
         {
-            CsvWriter.Write(_destination, Data);
+            Csv.To(_destination).Write(Data);
         }
     }
 
@@ -155,8 +155,8 @@ public class WriteObjects
     [GlobalSetup]
     public void Setup()
     {
-        _data5000 = CsvReader.Read<Entry>(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb.csv")).ToArray();
-        _data20000 = CsvReader.Read<Entry>(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb_4x.csv")).ToArray();
+        _data5000 = Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb.csv").Read<Entry>().ToArray();
+        _data20000 = Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb_4x.csv").Read<Entry>().ToArray();
     }
 
     private Entry[] _data5000 = null!;

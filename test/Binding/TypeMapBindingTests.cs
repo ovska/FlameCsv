@@ -27,8 +27,8 @@ public static partial class TypeMapBindingTests
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            _ = CsvReader
-                .Read("a,b,c\r\n", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
+            _ = Csv.From("a,b,c\r\n")
+                .Read(TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
                 .ToList();
         });
     }
@@ -38,17 +38,13 @@ public static partial class TypeMapBindingTests
     {
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            _ = CsvReader
-                .Read("id,name,_id\r\n", TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = false })
+            _ = Csv.From("id,name,_id\r\n")
+                .Read(TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = false })
                 .ToList();
         });
 
-        var valid = CsvReader
-            .Read(
-                "id,name,_id\r\n!unparsable!,test,6",
-                TypeMap.Default,
-                new CsvOptions<char> { IgnoreDuplicateHeaders = true }
-            )
+        var valid = Csv.From("id,name,_id\r\n!unparsable!,test,6")
+            .Read(TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
             .ToList();
 
         Assert.Single(valid);
@@ -62,8 +58,8 @@ public static partial class TypeMapBindingTests
         const string data =
             "id,name,test,isenabled\r\n" + "1,Bob,This value is ignored,true\r\n" + "2,Alice,This as well!,false\r\n";
 
-        var items = CsvReader
-            .Read(data, TypeMap.Default, new CsvOptions<char> { IgnoreUnmatchedHeaders = true })
+        var items = Csv.From(data)
+            .Read(TypeMap.Default, new CsvOptions<char> { IgnoreUnmatchedHeaders = true })
             .ToList();
         AssertItems(items);
     }
@@ -76,7 +72,7 @@ public static partial class TypeMapBindingTests
 
         Assert.ThrowsAny<CsvBindingException>(() =>
         {
-            _ = CsvReader.Read(data, TypeMap.Default, new CsvOptions<char> { IgnoreUnmatchedHeaders = false }).ToList();
+            _ = Csv.From(data).Read(TypeMap.Default, new CsvOptions<char> { IgnoreUnmatchedHeaders = false }).ToList();
         });
     }
 
@@ -85,7 +81,7 @@ public static partial class TypeMapBindingTests
     {
         const string data = "id,name,isenabled\r\n" + "1,Bob,true\r\n" + "2,Alice,false\r\n";
 
-        var items = CsvReader.Read(data, TypeMap.Default, CsvOptions<char>.Default).ToList();
+        var items = Csv.From(data).Read(TypeMap.Default, CsvOptions<char>.Default).ToList();
         AssertItems(items);
     }
 

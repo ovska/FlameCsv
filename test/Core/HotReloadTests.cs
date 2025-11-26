@@ -4,7 +4,6 @@ using System.Reflection.Metadata;
 using FlameCsv.Attributes;
 using FlameCsv.Enumeration;
 using FlameCsv.IO.Internal;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Utilities;
 
@@ -39,7 +38,7 @@ public static partial class HotReloadTests
 
         // record
         using var state = new CsvRecordEnumerator<char>(CsvOptions<char>.Default, EmptyBufferReader<char>.Instance);
-        ((IRecordOwner)state).MaterializerCache.Add(new object(), new object());
+        state.MaterializerCache.Add(new object(), new object());
 
         // trimming caches
         using var cache = new TrimmingCache<object, object>();
@@ -66,7 +65,7 @@ public static partial class HotReloadTests
         Assert.NotSame(mh, TestTypeMap.Default.GetMaterializer(["a", "b", "c"], CsvOptions<char>.Default));
 
         // record
-        Assert.Empty(((IRecordOwner)state).MaterializerCache);
+        Assert.Empty(state.MaterializerCache);
 
         // trimming caches
         Assert.Empty(cache);
