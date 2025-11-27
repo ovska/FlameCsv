@@ -78,8 +78,6 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
     {
         return new CsvFieldWriter<T>(new MemoryPoolBufferWriter<T>(_sink, _asyncSink, in _ioOptions), _options);
     }
-
-    void IDisposable.Dispose() { }
 }
 
 internal static class CsvWriterProducer<T>
@@ -87,22 +85,24 @@ internal static class CsvWriterProducer<T>
 {
     public static readonly CsvParallel.Consume<CsvFieldWriter<T>> Consume = (in state, ex) =>
     {
-        try
+        using (state)
         {
-            if (ex is null)
+            try
             {
-                state.Writer.Flush();
+                if (ex is null)
+                {
+                    state.Writer.Flush();
+                }
             }
-        }
-        catch (Exception e)
-        {
-            ex ??= e;
-            throw;
-        }
-        finally
-        {
-            state.Writer.Complete(ex);
-            state.Dispose();
+            catch (Exception e)
+            {
+                ex ??= e;
+                throw;
+            }
+            finally
+            {
+                state.Writer.Complete(ex);
+            }
         }
     };
 
@@ -112,22 +112,24 @@ internal static class CsvWriterProducer<T>
         cancellationToken
     ) =>
     {
-        try
+        using (state)
         {
-            if (ex is null)
+            try
             {
-                await state.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                if (ex is null)
+                {
+                    await state.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                }
             }
-        }
-        catch (Exception e)
-        {
-            ex ??= e;
-            throw;
-        }
-        finally
-        {
-            await state.Writer.CompleteAsync(ex, cancellationToken).ConfigureAwait(false);
-            state.Dispose();
+            catch (Exception e)
+            {
+                ex ??= e;
+                throw;
+            }
+            finally
+            {
+                await state.Writer.CompleteAsync(ex, cancellationToken).ConfigureAwait(false);
+            }
         }
     };
 }

@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.IO.Pipelines;
-using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Utilities;

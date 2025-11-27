@@ -36,7 +36,7 @@ static partial class Csv
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public IEnumerable<ReadOnlySpan<TValue>> Read<[DAM(Messages.ReflectionBound)] TValue>(
+        public IEnumerable<ArraySegment<TValue>> Read<[DAM(Messages.ReflectionBound)] TValue>(
             CsvOptions<T>? options = null
         )
         {
@@ -58,7 +58,7 @@ static partial class Csv
         /// The batches returned by the enumerator <strong>must not</strong> be held onto after the next iteration,
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
-        public IEnumerable<ReadOnlySpan<TValue>> Read<TValue>(
+        public IEnumerable<ArraySegment<TValue>> Read<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             CsvOptions<T>? options = null
         )
@@ -83,7 +83,7 @@ static partial class Csv
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public IAsyncEnumerable<ReadOnlyMemory<TValue>> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public IAsyncEnumerable<ArraySegment<TValue>> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
             CsvOptions<T>? options = null
         )
         {
@@ -105,7 +105,7 @@ static partial class Csv
         /// The batches returned by the enumerator <strong>must not</strong> be held onto after the next iteration,
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
-        public IAsyncEnumerable<ReadOnlyMemory<TValue>> ReadAsync<TValue>(
+        public IAsyncEnumerable<ArraySegment<TValue>> ReadAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             CsvOptions<T>? options = null
         )
@@ -125,13 +125,9 @@ static partial class Csv
         /// </summary>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <remarks>
-        /// The batches <strong>must not</strong> be held onto after the delegate returns.
-        /// Process the data in-place, or copy it to another buffer.
-        /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
         public void ForEach<[DAM(Messages.ReflectionBound)] TValue>(
-            Action<ReadOnlySpan<TValue>> action,
+            Action<ArraySegment<TValue>> action,
             CsvOptions<T>? options = null
         )
         {
@@ -150,13 +146,9 @@ static partial class Csv
         /// </summary>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <remarks>
-        /// The batches <strong>must not</strong> be held onto after the delegate returns.
-        /// Process the data in-place, or copy it to another buffer.
-        /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
         public Task ForEachAsync<[DAM(Messages.ReflectionBound)] TValue>(
-            Func<ReadOnlyMemory<TValue>, CancellationToken, ValueTask> action,
+            Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
             CsvOptions<T>? options = null
         )
         {
@@ -176,13 +168,9 @@ static partial class Csv
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <remarks>
-        /// The batches <strong>must not</strong> be held onto after the delegate returns.
-        /// Process the data in-place, or copy it to another buffer.
-        /// </remarks>
         public void ForEach<TValue>(
             CsvTypeMap<T, TValue> typeMap,
-            Action<ReadOnlySpan<TValue>> action,
+            Action<ArraySegment<TValue>> action,
             CsvOptions<T>? options = null
         )
         {
@@ -202,13 +190,9 @@ static partial class Csv
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <remarks>
-        /// The batches <strong>must not</strong> be held onto after the delegate returns.
-        /// Process the data in-place, or copy it to another buffer.
-        /// </remarks>
         public Task ForEachAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
-            Func<ReadOnlyMemory<TValue>, CancellationToken, ValueTask> action,
+            Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
             CsvOptions<T>? options = null
         )
         {
@@ -259,7 +243,7 @@ static partial class Csv
 
 file static class Util
 {
-    public static IEnumerable<ReadOnlySpan<TValue>> AsEnumerableCore<T, TValue>(
+    public static IEnumerable<ArraySegment<TValue>> AsEnumerableCore<T, TValue>(
         CsvOptions<T>? options,
         Csv.IParallelReadBuilder<T> builder,
         ValueProducer<T, TValue> producer
@@ -271,23 +255,22 @@ file static class Util
         return new CsvParallel.ParallelEnumerable<TValue>(
             (consume, innerToken) =>
             {
-                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken))
-                using (producer)
-                {
-                    CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                        builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false),
-                        producer,
-                        consume,
-                        cts,
-                        parallelOptions.ReadingMaxDegreeOfParallelism
-                    );
-                }
+                using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
+                using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
+
+                CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+                    reader.AsEnumerable(),
+                    producer,
+                    consume,
+                    cts,
+                    parallelOptions.ReadingMaxDegreeOfParallelism
+                );
             },
             parallelOptions.CancellationToken
         );
     }
 
-    public static IAsyncEnumerable<ReadOnlyMemory<TValue>> AsAsyncEnumerableCore<T, TValue>(
+    public static IAsyncEnumerable<ArraySegment<TValue>> AsAsyncEnumerableCore<T, TValue>(
         CsvOptions<T>? options,
         Csv.IParallelReadBuilder<T> builder,
         ValueProducer<T, TValue> producer
@@ -299,12 +282,14 @@ file static class Util
         return new CsvParallel.ParallelAsyncEnumerable<TValue>(
             async (consumeAsync, innerToken) =>
             {
+                var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: true);
+
+                await using (reader.ConfigureAwait(false))
                 using (var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken))
-                using (producer)
                 {
                     await CsvParallel
-                        .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                            builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: true),
+                        .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+                            reader.AsAsyncEnumerable(),
                             producer,
                             consumeAsync,
                             cts,
@@ -320,50 +305,50 @@ file static class Util
     public static void ForEachCore<T, TValue>(
         CsvOptions<T>? options,
         Csv.IParallelReadBuilder<T> builder,
-        Action<ReadOnlySpan<TValue>> action,
+        Action<ArraySegment<TValue>> action,
         ValueProducer<T, TValue> producer
     )
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
 
-        using (var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken))
-        using (producer)
-        {
-            CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false),
-                producer,
-                (in chunk, ex) =>
+        using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
+        CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+            reader.AsEnumerable(),
+            producer,
+            (in chunk, ex) =>
+            {
+                if (ex is null)
                 {
-                    if (ex is null)
-                    {
-                        action(chunk.GetSpan());
-                    }
-                },
-                cts,
-                parallelOptions.ReadingMaxDegreeOfParallelism
-            );
-        }
+                    action(chunk.AsArraySegment());
+                }
+            },
+            cts,
+            parallelOptions.ReadingMaxDegreeOfParallelism
+        );
     }
 
     public static async Task ForEachAsyncCore<T, TValue>(
         CsvOptions<T>? options,
         Csv.IParallelReadBuilder<T> builder,
-        Func<ReadOnlyMemory<TValue>, CancellationToken, ValueTask> action,
+        Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
         ValueProducer<T, TValue> producer
     )
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
 
+        var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: true);
+
+        await using (reader.ConfigureAwait(false))
         using (var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken))
-        using (producer)
         {
             await CsvParallel
-                .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                    builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: true),
+                .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+                    reader.AsAsyncEnumerable(),
                     producer,
-                    (chunk, ex, ct) => ex is null ? action(chunk.Memory, ct) : ValueTask.CompletedTask,
+                    (chunk, ex, ct) => ex is null ? action(chunk.AsArraySegment(), ct) : ValueTask.CompletedTask,
                     cts,
                     parallelOptions.ReadingMaxDegreeOfParallelism
                 )

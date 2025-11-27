@@ -8,19 +8,19 @@ namespace FlameCsv;
 internal static partial class CsvParallel
 {
     internal sealed class ParallelEnumerable<T>(
-        Action<Consume<ChunkManager<T>>, CancellationToken> runParallel,
+        Action<Consume<Accumulator<T>>, CancellationToken> runParallel,
         CancellationToken userToken
-    ) : IEnumerable<ReadOnlySpan<T>>
+    ) : IEnumerable<ArraySegment<T>>
     {
-        public IEnumerator<ReadOnlySpan<T>> GetEnumerator() => new ParallelEnumerator<T>(runParallel, userToken);
+        public IEnumerator<ArraySegment<T>> GetEnumerator() => new ParallelEnumerator<T>(runParallel, userToken);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
-    private sealed class ParallelEnumerator<T> : IEnumerator<ReadOnlySpan<T>>
+    private sealed class ParallelEnumerator<T> : IEnumerator<ArraySegment<T>>
     {
-        private readonly BlockingCollection<ChunkManager<T>> _blockingCollection;
-        private ChunkManager<T>? _current;
+        private readonly BlockingCollection<Accumulator<T>> _blockingCollection;
+        private Accumulator<T>? _current;
 
         private readonly CancellationTokenSource _enumeratorCts;
         private readonly CancellationTokenSource _pipelineCts; // user + enumerator
@@ -30,7 +30,7 @@ internal static partial class CsvParallel
         private bool _done;
 
         public ParallelEnumerator(
-            Action<Consume<ChunkManager<T>>, CancellationToken> parallelForEach,
+            Action<Consume<Accumulator<T>>, CancellationToken> parallelForEach,
             CancellationToken userToken
         )
         {
@@ -48,11 +48,11 @@ internal static partial class CsvParallel
                     try
                     {
                         parallelForEach(
-                            (in cm, ex) =>
+                            (in list, ex) =>
                             {
                                 if (ex is null)
                                 {
-                                    _blockingCollection.Add(cm, _pipelineToken);
+                                    _blockingCollection.Add(list, _pipelineToken);
                                 }
                             },
                             _pipelineToken
@@ -68,12 +68,11 @@ internal static partial class CsvParallel
             );
         }
 
-        public ReadOnlySpan<T> Current => _current!.GetSpan();
-        object? IEnumerator.Current => throw new NotSupportedException();
+        public ArraySegment<T> Current => _current!.AsArraySegment();
+        object? IEnumerator.Current => Current;
 
         public bool MoveNext()
         {
-            (_current as IDisposable)?.Dispose(); // return to pool
             return _blockingCollection.TryTake(out _current, Timeout.Infinite, _pipelineToken);
         }
 
@@ -107,19 +106,19 @@ internal static partial class CsvParallel
     }
 
     internal sealed class ParallelAsyncEnumerable<T>(
-        Func<ConsumeAsync<ChunkManager<T>>, CancellationToken, Task> runParallel,
+        Func<ConsumeAsync<Accumulator<T>>, CancellationToken, Task> runParallel,
         CancellationToken userToken
-    ) : IAsyncEnumerable<ReadOnlyMemory<T>>
+    ) : IAsyncEnumerable<ArraySegment<T>>
     {
-        public IAsyncEnumerator<ReadOnlyMemory<T>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
+        public IAsyncEnumerator<ArraySegment<T>> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             return new ParallelAsyncEnumerator<T>(runParallel, userToken, cancellationToken);
         }
     }
 
-    private sealed class ParallelAsyncEnumerator<T> : IAsyncEnumerator<ReadOnlyMemory<T>>
+    private sealed class ParallelAsyncEnumerator<T> : IAsyncEnumerator<ArraySegment<T>>
     {
-        private readonly Channel<ChunkManager<T>> _channel;
+        private readonly Channel<Accumulator<T>> _channel;
 
         private readonly CancellationTokenSource _enumeratorCts;
         private readonly CancellationTokenSource _pipelineCts; // user + enumerator
@@ -127,12 +126,12 @@ internal static partial class CsvParallel
 
         private readonly Task _parallelTask;
 
-        public ReadOnlyMemory<T> Current => _current!.Memory;
+        public ArraySegment<T> Current => _current!.AsArraySegment();
 
-        private ChunkManager<T>? _current;
+        private Accumulator<T>? _current;
 
         public ParallelAsyncEnumerator(
-            Func<ConsumeAsync<ChunkManager<T>>, CancellationToken, Task> parallelForEachAsync,
+            Func<ConsumeAsync<Accumulator<T>>, CancellationToken, Task> parallelForEachAsync,
             CancellationToken userToken,
             CancellationToken getEnumeratorToken
         )
@@ -141,12 +140,12 @@ internal static partial class CsvParallel
             _pipelineCts = CancellationTokenSource.CreateLinked(userToken, getEnumeratorToken, _enumeratorCts.Token);
             _pipelineToken = _pipelineCts.Token;
 
-            _channel = Channel.CreateUnbounded<ChunkManager<T>>(
+            _channel = Channel.CreateUnbounded<Accumulator<T>>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,
                     SingleWriter = true,
-                    AllowSynchronousContinuations = true,
+                    AllowSynchronousContinuations = false,
                 }
             );
 
@@ -156,8 +155,8 @@ internal static partial class CsvParallel
                     try
                     {
                         await parallelForEachAsync(
-                                (cm, ex, ct) =>
-                                    ex is null ? _channel.Writer.WriteAsync(cm, ct)
+                                (list, ex, ct) =>
+                                    ex is null ? _channel.Writer.WriteAsync(list, ct)
                                     : ct.IsCancellationRequested ? ValueTask.FromCanceled(ct)
                                     : ValueTask.CompletedTask,
                                 _pipelineToken
@@ -175,8 +174,6 @@ internal static partial class CsvParallel
 
         public ValueTask<bool> MoveNextAsync()
         {
-            (_current as IDisposable)?.Dispose(); // return to pool
-
             if (_channel.Reader.TryRead(out _current))
             {
                 return ValueTask.FromResult(true);
@@ -195,6 +192,7 @@ internal static partial class CsvParallel
                 }
             }
 
+            _current = null;
             return false;
         }
 

@@ -6,6 +6,8 @@ using JetBrains.Annotations;
 
 namespace FlameCsv;
 
+#pragma warning disable RCS1085 // Use auto-implemented property
+
 /// <summary>
 /// Identifier for a CSV field, pointing to a specific field by index, or by header name.
 /// Can be implicitly created from an integer or a string.<br/>
@@ -40,14 +42,6 @@ public readonly struct CsvFieldIdentifier
     public CsvFieldIdentifier(string name)
     {
         ArgumentNullException.ThrowIfNull(name);
-        _name = name;
-    }
-
-    internal CsvFieldIdentifier(int index, string name)
-    {
-        ArgumentOutOfRangeException.ThrowIfNegative(index);
-        ArgumentNullException.ThrowIfNull(name);
-        _index = index;
         _name = name;
     }
 
@@ -90,7 +84,7 @@ public readonly struct CsvFieldIdentifier
     /// Returns the raw index value.
     /// </summary>
     /// <remarks>
-    /// May not represent the actual field if the identifier is created from a <see cref="string"/>.
+    /// Will always be 0 if the identifier is created from a <see cref="string"/>.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public int UnsafeIndex => _index;

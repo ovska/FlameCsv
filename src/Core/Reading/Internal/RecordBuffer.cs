@@ -138,6 +138,11 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public int SetFieldsRead(int count)
     {
+        if (count == 0)
+        {
+            return 0;
+        }
+
         Debug.Assert(count >= 0);
         Debug.Assert((_fieldCount + count) < _fields.Length);
 

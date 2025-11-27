@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
@@ -10,17 +11,24 @@ namespace FlameCsv.Tests.Reading;
 
 public abstract class CsvReaderTestsBase
 {
+    private static IEnumerable<(CsvNewline, bool, int, Escaping, bool, bool?)> BaseData =>
+        from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
+        from writeHeader in GlobalData.Booleans
+        from bufferSize in _bufferSizes
+        from escaping in GlobalData.Enum<Escaping>()
+        from sourceGen in GlobalData.Booleans
+        from guarded in GlobalData.GuardedMemory
+        select (crlf, writeHeader, bufferSize, escaping, sourceGen, guarded);
+
     protected static readonly int[] _bufferSizes = [-1, 256, 1024];
 
-    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool?> Data =>
+    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool?> RecordData => [.. BaseData];
+
+    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool, bool?> ObjectData =>
         [
-            .. from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
-            from writeHeader in GlobalData.Booleans
-            from bufferSize in _bufferSizes
-            from escaping in GlobalData.Enum<Escaping>()
-            from sourceGen in GlobalData.Booleans
-            from guarded in GlobalData.GuardedMemory
-            select (crlf, writeHeader, bufferSize, escaping, sourceGen, guarded),
+            .. from tuple in BaseData
+            from parallel in GlobalData.Booleans
+            select (tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, parallel, tuple.Item6),
         ];
 }
 
@@ -32,20 +40,21 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 {
     protected abstract CsvTypeMap<T, Obj> TypeMap { get; }
 
-    protected abstract ICsvBufferReader<T> GetReader(
+    protected abstract Csv.IReadBuilder<T> GetBuilder(
         Stream stream,
         CsvOptions<T> options,
         int bufferSize,
         IBufferPool pool
     );
 
-    [Theory, MemberData(nameof(Data))]
+    [Theory, MemberData(nameof(ObjectData))]
     public async Task Objects_Sync(
         CsvNewline newline,
         bool header,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
+        bool parallel,
         bool? guarded
     )
     {
@@ -55,15 +64,25 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
         {
-            IEnumerable<Obj> enumerable = sourceGen
-                ? Csv.From(in sequence).Read<Obj>(TypeMap, options)
-                : Csv.From(in sequence).Read<Obj>(options);
+            IEnumerable<Obj> enumerable;
 
-            await Validate(SyncAsyncEnumerable.Create(enumerable), escaping);
+            if (parallel)
+            {
+                Assert.Skip("Parallel reading is not supported yet with sequences.");
+                return;
+            }
+            else
+            {
+                enumerable = sourceGen
+                    ? Csv.From(in sequence).Read<Obj>(TypeMap, options)
+                    : Csv.From(in sequence).Read<Obj>(options);
+            }
+
+            await Validate(SyncAsyncEnumerable.Create(enumerable), escaping, parallel);
         }
     }
 
-    [Theory, MemberData(nameof(Data))]
+    [Theory, MemberData(nameof(RecordData))]
     public async Task Records_Sync(
         CsvNewline newline,
         bool header,
@@ -83,9 +102,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
             using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
             {
-                await using var reader = CsvBufferReader.Create(in sequence);
+                var builder = Csv.From(in sequence);
 
-                var items = await GetItems(reader, options, sourceGen, header, newline, isAsync: false);
+                var items = await GetItems(builder, options, sourceGen, header, newline, isAsync: false);
 
                 foreach (var item in items)
                 {
@@ -95,18 +114,19 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    [Theory, MemberData(nameof(Data))]
+    [Theory, MemberData(nameof(ObjectData))]
     public async Task Objects_Async(
         CsvNewline newline,
         bool header,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
+        bool parallel,
         bool? guarded
     )
     {
         using var pool = new ReturnTrackingBufferPool(guarded);
-        await Validate(Enumerate(), escaping);
+        await Validate(Enumerate(), escaping, parallel);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
@@ -115,11 +135,38 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
 
             await using var stream = data.AsStream();
-            await using var reader = GetReader(stream, options, bufferSize, pool);
+            var builder = GetBuilder(stream, options, bufferSize, pool);
 
-            IAsyncEnumerable<Obj> source = sourceGen
-                ? new CsvTypeMapEnumerable<T, Obj>(new ReaderWrapper(reader), options, TypeMap)
-                : new CsvValueEnumerable<T, Obj>(new ReaderWrapper(reader), options);
+            IAsyncEnumerable<Obj> source;
+
+            if (parallel)
+            {
+                source = ParallelCore();
+
+                async IAsyncEnumerable<Obj> ParallelCore()
+                {
+                    var parallelBuilder = builder.AsParallel(GetParallelOptions());
+                    var enumerable = sourceGen
+                        ? parallelBuilder.ReadAsync<Obj>(TypeMap, options)
+                        : parallelBuilder.ReadAsync<Obj>(options);
+
+                    await foreach (var segment in enumerable.WithTestContext())
+                    {
+                        await Task.Yield();
+
+                        foreach (var item in segment)
+                        {
+                            yield return item;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                source = sourceGen
+                    ? new CsvTypeMapEnumerable<T, Obj>(builder, options, TypeMap)
+                    : new CsvValueEnumerable<T, Obj>(builder, options);
+            }
 
             await foreach (var obj in source.WithTestContext())
             {
@@ -128,7 +175,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    [Theory, MemberData(nameof(Data))]
+    [Theory, MemberData(nameof(RecordData))]
     public async Task Records_Async(
         CsvNewline newline,
         bool header,
@@ -147,9 +194,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
             var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
             await using var stream = data.AsStream();
-            await using var reader = GetReader(stream, options, bufferSize, pool);
+            var builder = GetBuilder(stream, options, bufferSize, pool);
 
-            var items = await GetItems(reader, options, sourceGen, header, newline, isAsync: true);
+            var items = await GetItems(builder, options, sourceGen, header, newline, isAsync: true);
 
             foreach (var item in items)
             {
@@ -158,9 +205,16 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    protected static async Task Validate(IAsyncEnumerable<Obj> enumerable, Escaping escaping)
+    protected static async Task Validate(IAsyncEnumerable<Obj> enumerable, Escaping escaping, bool parallel = false)
     {
         int i = 0;
+
+        if (parallel)
+        {
+            List<Obj> list = await SyncAsyncEnumerable.ToListAsync(enumerable);
+            list.Sort();
+            enumerable = SyncAsyncEnumerable.Create(list);
+        }
 
         await foreach (var obj in enumerable.WithTestContext())
         {
@@ -177,7 +231,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     }
 
     protected async Task<List<Obj>> GetItems(
-        ICsvBufferReader<T> reader,
+        Csv.IReadBuilder<T> builder,
         CsvOptions<T> options,
         bool sourceGen,
         bool hasHeader,
@@ -199,16 +253,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         if (isAsync)
         {
-            await foreach (
-                var record in new CsvRecordAsyncEnumerable<T>(new ReaderWrapper(reader), options).WithTestContext()
-            )
+            await foreach (var record in new CsvRecordAsyncEnumerable<T>(builder, options).WithTestContext())
             {
                 items.Add(Core(in record));
             }
         }
         else
         {
-            foreach (var record in new CsvRecordEnumerable<T>(new ReaderWrapper(reader), options))
+            foreach (var record in new CsvRecordEnumerable<T>(builder, options))
             {
                 items.Add(Core(in record));
             }
@@ -229,11 +281,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
             Obj obj = new()
             {
-                Id = record.ParseField<int>(0),
-                Name = record.ParseField<string?>(1),
-                IsEnabled = record.ParseField<bool>(2),
-                LastLogin = record.ParseField<DateTimeOffset>(3),
-                Token = record.ParseField<Guid>(4),
+                Id = record.ParseField<int>(hasHeader ? "Id" : 0),
+                Name = record.ParseField<string?>(hasHeader ? "Name" : 1),
+                IsEnabled = record.ParseField<bool>(hasHeader ? "IsEnabled" : 2),
+                LastLogin = record.ParseField<DateTimeOffset>(hasHeader ? "LastLogin" : 3),
+                Token = record.ParseField<Guid>(hasHeader ? "Token" : 4),
             };
 
             Obj parsed = sourceGen ? record.ParseRecord(TypeMap) : record.ParseRecord<Obj>();
@@ -252,24 +304,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             Formats = { [typeof(DateTime)] = "O" },
             Newline = newline,
             HasHeader = header,
-#if false
-            ExceptionHandler = static (in CsvExceptionHandlerArgs<T> args) =>
-            {
-                if (System.Diagnostics.Debugger.IsAttached)
-                {
-                    var str = args.Options.GetAsString(args.Record.Span);
-                }
-
-                return false;
-            },
-#endif
         };
     }
 
-    private sealed class ReaderWrapper(ICsvBufferReader<T> reader) : Csv.IReadBuilder<T>
+    private static CsvParallelOptions GetParallelOptions()
     {
-        public IBufferPool? BufferPool => throw new UnreachableException();
-
-        public ICsvBufferReader<T> CreateReader(bool isAsync) => reader;
+        return new CsvParallelOptions { };
     }
 }

@@ -1,3 +1,6 @@
+using System.Collections;
+using FlameCsv.Utilities;
+
 namespace FlameCsv.ParallelUtils;
 
 internal static class ParallelChunker
@@ -8,7 +11,7 @@ internal static class ParallelChunker
 
         public IEnumerator<T> GetEnumerator() => inner.GetEnumerator();
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     public static IEnumerable<HasOrderEnumerable<T>> Chunk<T>(IEnumerable<T> items, int chunkSize)
@@ -22,6 +25,48 @@ internal static class ParallelChunker
             IList<T> list => ChunkList(list, chunkSize),
             _ => ChunkEnumerable(items, chunkSize),
         };
+    }
+
+    public static IAsyncEnumerable<HasOrderEnumerable<T>> ChunkAsync<T>(IEnumerable<T> items, int chunkSize)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);
+        return new SyncToAsyncEnumerable<HasOrderEnumerable<T>>(Chunk(items, chunkSize));
+    }
+
+    public static IAsyncEnumerable<HasOrderEnumerable<T>> ChunkAsync<T>(IAsyncEnumerable<T> items, int chunkSize)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);
+
+        if (items is IEnumerable<T> syncItems)
+        {
+            return new SyncToAsyncEnumerable<HasOrderEnumerable<T>>(Chunk(syncItems, chunkSize));
+        }
+
+        return Core();
+
+        async IAsyncEnumerable<HasOrderEnumerable<T>> Core()
+        {
+            int order = 0;
+            List<T> buffer = new(chunkSize);
+
+            await foreach (var item in items.ConfigureAwait(false))
+            {
+                buffer.Add(item);
+
+                if (buffer.Count >= chunkSize)
+                {
+                    yield return new HasOrderEnumerable<T>(order++, buffer);
+                    buffer = new(chunkSize);
+                }
+            }
+
+            if (buffer.Count > 0)
+            {
+                yield return new HasOrderEnumerable<T>(order++, buffer);
+            }
+        }
     }
 
     private static IEnumerable<HasOrderEnumerable<T>> ChunkArray<T>(T[] array, int chunkSize)
@@ -77,6 +122,6 @@ internal static class ParallelChunker
             }
         }
 
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

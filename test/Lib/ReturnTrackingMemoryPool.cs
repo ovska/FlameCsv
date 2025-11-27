@@ -17,9 +17,8 @@ public sealed class ReturnTrackingBufferPool : IBufferPool, IDisposable
     {
         _bytePool = ReturnTrackingMemoryPool<byte>.Create(guardedFromEnd);
         _charPool = ReturnTrackingMemoryPool<char>.Create(guardedFromEnd);
-
-        _bytePool.TrackStackTraces = true;
-        _charPool.TrackStackTraces = true;
+        // _bytePool.TrackStackTraces = true;
+        // _charPool.TrackStackTraces = true;
     }
 
     public IMemoryOwner<byte> GetBytes(int length) => _bytePool.Rent(length);
@@ -112,7 +111,9 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
 
     public bool TrackStackTraces { get; set; }
 
-    private readonly ConcurrentDictionary<Owner, StackTrace?> _values = new(ReferenceEqualityComparer.Instance);
+    private readonly ConcurrentDictionary<Owner, (int index, StackTrace? stackTrace)> _values = new(
+        ReferenceEqualityComparer.Instance
+    );
     private int _rentedCount;
     private int _returnedCount;
 
@@ -156,8 +157,8 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
         ArgumentOutOfRangeException.ThrowIfNegative(minBufferSize);
 
         var owner = new Owner(this, minBufferSize);
-        _values.TryAdd(owner, TrackStackTraces ? new StackTrace(fNeedFileInfo: true) : null);
-        Interlocked.Increment(ref _rentedCount);
+        int index = Interlocked.Increment(ref _rentedCount);
+        _values.TryAdd(owner, (index, TrackStackTraces ? new StackTrace(fNeedFileInfo: true) : null));
         return owner;
     }
 
@@ -166,9 +167,12 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
         if (!_values.IsEmpty)
         {
             throw new InvalidOperationException(
-                $"{_values.Count} rented memory not disposed, {_returnedCount} out of {_rentedCount}. "
+                $"{_values.Count} rented memory not disposed out of {_rentedCount}. "
                     + Environment.NewLine
-                    + string.Join(Environment.NewLine + Environment.NewLine, _values.Select(kvp => kvp.Value))
+                    + string.Join(
+                        Environment.NewLine + Environment.NewLine,
+                        _values.Select(kvp => $"IDX: {kvp.Value.index}{Environment.NewLine}{kvp.Value.stackTrace}")
+                    )
             );
         }
     }

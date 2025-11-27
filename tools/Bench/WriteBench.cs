@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using CommunityToolkit.HighPerformance.Buffers;
+using FastExpressionCompiler.LightExpression;
 using FlameCsv.Attributes;
 using FlameCsv.Writing;
 using nietras.SeparatedValues;
@@ -195,24 +196,13 @@ public partial class WriteBench
     [Benchmark]
     public void Parallel()
     {
-        throw new NotImplementedException();
-        // CsvParallel.WriteUnordered(
-        //     _data,
-        //     CsvOptions<char>.Default,
-        //     CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
-        //     TextWriter.Null.Write
-        // );
+        Csv.To(TextWriter.Null).AsParallel().Write(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]
     public Task ParallelAsync()
     {
-        return CsvParallel.WriteUnorderedAsync(
-            _data,
-            CsvOptions<char>.Default,
-            CsvOptions<char>.Default.GetDematerializer(ObjTypeMap.Default.GetDematerializer),
-            (m, ct) => new ValueTask(TextWriter.Null.WriteAsync(m, ct))
-        );
+        return Csv.To(TextWriter.Null).AsParallel().WriteAsync(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]
@@ -411,7 +401,7 @@ public partial class WriteBench
     [GlobalSetup]
     public void Setup()
     {
-        const string Path = @"/Users/sipi/Code/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb_4x.csv";
+        const string Path = @"/Users/sipi/Code/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb.csv";
 
         // _data = CsvReader.ReadFromFile<Obj>(Path, CsvOptions<byte>.Default).ToArray();
         using var r = new CsvHelper.CsvReader(

@@ -1,9 +1,11 @@
-﻿using JetBrains.Annotations;
+﻿using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Tests;
 
 public static class SyncAsyncEnumerable
 {
+    [OverloadResolutionPriority(-1)]
     public static SyncAsyncEnumerable<T> Create<T>(params T[] inner) => new(inner);
 
     public static SyncAsyncEnumerable<T> Create<T>(IEnumerable<T> inner) => new(inner);

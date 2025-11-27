@@ -62,7 +62,7 @@ public class ParallelReaderTests
 
         List<Obj> list = [];
 
-        foreach (var span in CsvParallel.Read<Obj>(data, ObjCharTypeMap.Default))
+        foreach (var span in Csv.From(data).AsParallel().Read(ObjCharTypeMap.Default))
         {
             foreach (var item in span)
             {
@@ -85,12 +85,13 @@ public class ParallelReaderTests
         List<Obj> list = [];
 
         await foreach (
-            var obj in CsvParallel
-                .ReadAsync<Obj>(data, ObjCharTypeMap.Default)
+            var obj in Csv.From(data)
+                .AsParallel()
+                .ReadAsync<Obj>(ObjCharTypeMap.Default)
                 .WithCancellation(TestContext.Current.CancellationToken)
         )
         {
-            foreach (var item in obj.Span)
+            foreach (var item in obj)
             {
                 list.Add(item);
             }
@@ -111,25 +112,19 @@ public class ParallelReaderTests
 
         ConcurrentBag<Obj> bag = new();
 
-        await CsvParallel.ForEachAsync(
-            ParallelReader.Create(data, CsvOptions<char>.Default, null),
-            ValueProducer<char, Obj>.Create(
+        await Csv.From(data)
+            .AsParallel()
+            .ForEachAsync(
                 ObjCharTypeMap.Default,
-                options: CsvOptions<char>.Default,
-                new CsvParallelOptions { CancellationToken = TestContext.Current.CancellationToken }
-            ),
-            (obj, ex, ct) =>
-            {
-                foreach (var item in obj.GetSpan())
+                (values, ct) =>
                 {
-                    bag.Add(item);
+                    foreach (var item in values)
+                    {
+                        bag.Add(item);
+                    }
+                    return ValueTask.CompletedTask;
                 }
-
-                return ValueTask.CompletedTask;
-            },
-            cts,
-            null
-        );
+            );
 
         List<Obj> list = bag.OrderBy(o => o.Id).ToList();
 

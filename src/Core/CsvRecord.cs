@@ -118,8 +118,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
                 Throw.Argument_HeaderNameNotFound(name, header.Values);
             }
         }
-
-        if ((uint)index >= (uint)_slice.FieldCount)
+        else if ((uint)index >= (uint)_slice.FieldCount)
         {
             Throw.Argument_FieldIndex(index, _slice.FieldCount, id.UnsafeName);
         }

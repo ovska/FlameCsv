@@ -61,28 +61,13 @@ public partial class ReadObjects
     [Benchmark]
     public async Task _Parallel()
     {
-        using var reader = new ParallelMemoryReader<char>(_string2.AsMemory(), _flameCsvOptions, null);
-        using CancellationTokenSource cts = new();
-
         if (Async)
         {
-            await CsvParallel.ForEachAsync(
-                reader,
-                ValueProducer<char, Entry>.Create(EntryTypeMap.Default, _flameCsvOptions, default),
-                (_, _, _) => ValueTask.CompletedTask,
-                cts,
-                null
-            );
+            await Csv.From(_string2).AsParallel().ForEachAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
         }
         else
         {
-            CsvParallel.ForEach(
-                reader,
-                ValueProducer<char, Entry>.Create(EntryTypeMap.Default, _flameCsvOptions, default),
-                (in _, _) => { },
-                cts,
-                null
-            );
+            Csv.From(_string2).AsParallel().ForEach(EntryTypeMap.Default, _ => { });
         }
     }
 

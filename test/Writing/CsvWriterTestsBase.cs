@@ -2,7 +2,7 @@
 
 public abstract class CsvWriterTestsBase
 {
-    public static TheoryData<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, bool?> Args()
+    public static TheoryData<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, bool, bool?> Args()
     {
         return
         [
@@ -12,8 +12,9 @@ public abstract class CsvWriterTestsBase
             from sourceGen in GlobalData.Booleans
             from bufferSize in (int[])[-1, 256]
             from outputType in GlobalData.Booleans
+            from parallel in GlobalData.Booleans
             from guarded in GlobalData.GuardedMemory
-            select (newline, header, quoting, sourceGen, bufferSize, outputType, guarded),
+            select (newline, header, quoting, sourceGen, bufferSize, outputType, parallel, guarded),
         ];
     }
 }

@@ -5,7 +5,7 @@ using FlameCsv.Reading;
 
 namespace FlameCsv.ParallelUtils;
 
-internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, ChunkManager<TValue>>
+internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accumulator<TValue>>
     where T : unmanaged, IBinaryInteger<T>
 {
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -75,15 +75,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Chun
         return ValueTask.CompletedTask;
     }
 
-    public ChunkManager<TValue> CreateState()
-    {
-        if (!_pool.TryPop(out TValue[]? array))
-        {
-            array = new TValue[_chunkSize];
-        }
-
-        return new ChunkManager<TValue>(array, _release);
-    }
+    public Accumulator<TValue> CreateState() => new(_chunkSize);
 
     public void Dispose()
     {
@@ -91,7 +83,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Chun
         _headerRead?.Dispose();
     }
 
-    public void Produce(int order, CsvRecordRef<T> input, ref ChunkManager<TValue> state)
+    public void Produce(int order, CsvRecordRef<T> input, ref Accumulator<TValue> state)
     {
         if (_materializer is null)
         {

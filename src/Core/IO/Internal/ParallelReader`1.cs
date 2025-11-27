@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading.Internal;
 
@@ -75,6 +74,49 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
                 return chunk;
             }
+
+            // keep leftover for next read
+            memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
+            _previousRead = totalRead;
+
+            // ownership not passed to Chunk, dispose
+            owner.Dispose();
+        }
+
+        return null;
+    }
+
+    public async ValueTask<Chunk<T>?> ReadAsync(CancellationToken cancellationToken = default)
+    {
+        while (!_isCompleted || _previousRead > 0)
+        {
+            IMemoryOwner<T> owner = GetBufferForReading(out int startIndex);
+            Memory<T> memory = owner.Memory;
+            int read = await ReadAsyncCore(memory.Slice(startIndex), cancellationToken).ConfigureAwait(false);
+            int totalRead = read + startIndex;
+
+            if (read == 0)
+            {
+                _isCompleted = true;
+            }
+
+            if (TryAdvance(owner, memory.Slice(0, totalRead), out Chunk<T>? chunk))
+            {
+                int leftover = totalRead - chunk.RecordBuffer.BufferedRecordLength;
+                _pool.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
+
+                memory.Slice(chunk.RecordBuffer.BufferedRecordLength, leftover).CopyTo(_previousData.Memory);
+                _previousRead = leftover;
+
+                return chunk;
+            }
+
+            // keep leftover for next read
+            memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
+            _previousRead = totalRead;
+
+            // ownership not passed to Chunk, dispose
+            owner.Dispose();
         }
 
         return null;
@@ -82,7 +124,15 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     private IMemoryOwner<T> GetBufferForReading(out int startIndex)
     {
-        IMemoryOwner<T> memory = _pool.Rent<T>(_bufferSize);
+        int bufferSize = _bufferSize;
+
+        // over half of the buffer is full but there is no fully formed record there?
+        if (_previousRead >= bufferSize / 2)
+        {
+            bufferSize *= 2;
+        }
+
+        IMemoryOwner<T> memory = _pool.Rent<T>(bufferSize);
         startIndex = _previousRead;
 
         _previousData.Memory.Slice(0, _previousRead).CopyTo(memory.Memory);
@@ -102,39 +152,37 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
         ReadOnlySpan<T> data = memory.Span;
 
-        int count = _tokenizer is null
+        int fieldsRead = _tokenizer is null
             ? _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: _isCompleted)
             : _tokenizer.Tokenize(destination, startIndex, data);
 
+        int recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
+
         // read tail if there is no more data and the SIMD path can't read it
-        if (count == 0 && _tokenizer is not null && _isCompleted)
+        if (recordsRead == 0 && _tokenizer is not null && _isCompleted)
         {
-            count = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: true);
+            fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: true);
+            recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
         }
 
-        if (count > 0)
+        if (recordsRead > 0)
         {
-            int recordsRead = recordBuffer.SetFieldsRead(count);
+            // Adjust the next buffer's size based on utilization
 
-            if (recordsRead > 0)
+            // If we're using more than 75% of the buffer capacity, grow it
+            if (fieldsRead > (_recordBufferSize * 3 / 4))
             {
-                // Adjust the next buffer's size based on utilization
-
-                // If we're using more than 75% of the buffer capacity, grow it
-                if (count > (_recordBufferSize * 3 / 4))
-                {
-                    _recordBufferSize = Math.Min(_recordBufferSize * 2, 4096 * 16);
-                }
-                // If we're using less than 25% of the buffer capacity, shrink it
-                else if (count < (_recordBufferSize / 4))
-                {
-                    _recordBufferSize = Math.Max(_recordBufferSize / 2, 256);
-                }
-
-                chunk = new Chunk<T>(_index++, _options, memory, _pool, owner, recordBuffer);
-                _position += recordBuffer.BufferedRecordLength;
-                return true;
+                _recordBufferSize = Math.Min(_recordBufferSize * 2, 4096 * 16);
             }
+            // If we're using less than 25% of the buffer capacity, shrink it
+            else if (fieldsRead < (_recordBufferSize / 4))
+            {
+                _recordBufferSize = Math.Max(_recordBufferSize / 2, 256);
+            }
+
+            chunk = new Chunk<T>(_index++, _options, memory, _pool, owner, recordBuffer);
+            _position += recordBuffer.BufferedRecordLength;
+            return true;
         }
 
         chunk = default;
@@ -161,22 +209,5 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
         _previousData.Dispose();
         await DisposeAsyncCore().ConfigureAwait(false);
-    }
-
-    public IEnumerator<Chunk<T>> GetEnumerator() => new Enumerator(this);
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-    private sealed class Enumerator(ParallelReader<T> reader) : IEnumerator<Chunk<T>>
-    {
-        public Chunk<T> Current { get; private set; } = null!;
-
-        public bool MoveNext() => (Current = reader.Read()!) is not null;
-
-        object IEnumerator.Current => Current;
-
-        void IEnumerator.Reset() => throw new NotSupportedException();
-
-        void IDisposable.Dispose() { }
     }
 }

@@ -20,11 +20,5 @@ public static class GlobalData
             : [null];
 
     public static T[] Enum<T>()
-        where T : struct, Enum => EnumValues<T>.Values;
-
-    private static class EnumValues<T>
-        where T : struct, Enum
-    {
-        public static T[] Values { get; } = System.Enum.GetValues<T>();
-    }
+        where T : struct, Enum => System.Enum.GetValues<T>();
 }

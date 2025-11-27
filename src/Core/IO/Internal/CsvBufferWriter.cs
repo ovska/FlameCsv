@@ -117,22 +117,20 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         if (IsDisposed)
             return;
 
-        using (_memoryOwner)
+        try
         {
-            try
+            if (exception is null && !cancellationToken.IsCancellationRequested)
             {
-                if (exception is null && !cancellationToken.IsCancellationRequested)
-                {
-                    await FlushAsync(cancellationToken).ConfigureAwait(false);
-                }
+                await FlushAsync(cancellationToken).ConfigureAwait(false);
             }
-            finally
-            {
-                _unflushed = -1;
-                _memoryOwner = HeapMemoryOwner<T>.Empty;
-                _buffer = default;
-                await DisposeCoreAsync().ConfigureAwait(false);
-            }
+        }
+        finally
+        {
+            _unflushed = -1;
+            _memoryOwner.Dispose();
+            _memoryOwner = HeapMemoryOwner<T>.Empty;
+            _buffer = default;
+            await DisposeCoreAsync().ConfigureAwait(false);
         }
     }
 
@@ -141,22 +139,20 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         if (IsDisposed)
             return;
 
-        using (_memoryOwner)
+        try
         {
-            try
+            if (exception is null)
             {
-                if (exception is null)
-                {
-                    Flush();
-                }
+                Flush();
             }
-            finally
-            {
-                _unflushed = -1;
-                _memoryOwner = HeapMemoryOwner<T>.Empty;
-                _buffer = default;
-                DisposeCore();
-            }
+        }
+        finally
+        {
+            _unflushed = -1;
+            _memoryOwner.Dispose();
+            _memoryOwner = HeapMemoryOwner<T>.Empty;
+            _buffer = default;
+            DisposeCore();
         }
     }
 

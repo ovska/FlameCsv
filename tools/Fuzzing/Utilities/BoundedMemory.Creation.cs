@@ -70,18 +70,7 @@ public static unsafe partial class BoundedMemory
         return AllocateFromExistingData(new ReadOnlySpan<T>(data), placement);
     }
 
-    private static void FillRandom(Span<byte> buffer)
-    {
-        // Loop over a Random instance manually since Random.NextBytes(Span<byte>) doesn't
-        // exist on all platforms we target.
-
-        Random random = new Random(); // doesn't need to be cryptographically strong
-
-        for (int i = 0; i < buffer.Length; i++)
-        {
-            buffer[i] = (byte)random.Next();
-        }
-    }
+    private static void FillRandom(Span<byte> buffer) => Random.Shared.NextBytes(buffer);
 
     private static BoundedMemory<T> AllocateWithoutDataPopulation<T>(int elementCount, PoisonPagePlacement placement) where T : unmanaged
     {

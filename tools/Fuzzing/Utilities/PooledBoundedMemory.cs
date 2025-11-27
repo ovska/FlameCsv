@@ -7,23 +7,6 @@ using System.Buffers;
 namespace FlameCsv.Fuzzing.Utilities;
 
 #nullable enable
-internal sealed class BoundedMemoryPool<T>(PoisonPagePlacement placement = PoisonPagePlacement.After)
-    : MemoryPool<T> where T : unmanaged
-{
-    public override int MaxBufferSize => 4096 * 2;
-
-    public override IMemoryOwner<T> Rent(int minBufferSize = -1)
-    {
-        if (minBufferSize == -1) minBufferSize = 256;
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(minBufferSize);
-        return PooledBoundedMemory<T>.Rent((int)BitOperations.RoundUpToPowerOf2((uint)minBufferSize), placement);
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-    }
-}
-
 internal sealed class PooledBoundedMemory<T> : IMemoryOwner<T> where T : unmanaged
 {
     // Default libFuzzer max_len for inputs is 4096.

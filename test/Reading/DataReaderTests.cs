@@ -192,7 +192,9 @@ public class DataReaderTests
                 Assert.Equal("John".Length, obj.GetChars(1, 0, buffer, 0, 4));
                 Assert.Equal("John", new string(buffer, 0, "John".Length));
 
-                Assert.Throws<ArgumentException>(() => obj.GetValues(new object[5]));
+                object[] arr2 = new object[5];
+                Assert.Equal(5, obj.GetValues(arr2));
+                Assert.Equal(arr[..5], arr2);
 
                 // should return strings for object overloads
                 Assert.Equal("1", obj.GetValue(0));

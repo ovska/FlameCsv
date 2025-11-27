@@ -121,6 +121,6 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
 
         public void Reset() => throw new NotSupportedException();
 
-        public void Dispose() { }
+        public void Dispose() => _chunk.Dispose();
     }
 }

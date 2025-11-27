@@ -5,7 +5,7 @@ namespace FlameCsv.ParallelUtils;
 /// </summary>
 /// <typeparam name="TInput">Data type for the input</typeparam>
 /// <typeparam name="TState">State that accumulates the inputs</typeparam>
-internal interface IProducer<TInput, TState> : IDisposable
+internal interface IProducer<TInput, TState>
     where TInput : allows ref struct
 {
     /// <summary>

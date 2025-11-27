@@ -1,7 +1,11 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Utilities;
 using Xunit.Sdk;
@@ -18,10 +22,13 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize,
         bool outputType,
+        bool parallel,
         bool? guarded
     )
     {
         using var pool = new ReturnTrackingBufferPool(guarded);
+        CsvIOOptions ioOptions = new() { BufferSize = bufferSize, BufferPool = pool };
+
         var options = new CsvOptions<char>
         {
             Newline = newline,
@@ -31,36 +38,64 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
         };
 
-        StringBuilder output = StringBuilderPool.Value.Get();
+        Csv.IWriteBuilder<char> builder = GetBuilder(
+            outputType,
+            ioOptions,
+            out StringBuilder? sb,
+            out ArrayPoolBufferWriter<byte>? bufferWriter
+        );
 
         if (sourceGen)
         {
-            if (outputType)
+            if (parallel)
             {
-                Csv.To(new StringWriter(output), new() { BufferSize = bufferSize, BufferPool = pool })
-                    .Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                builder.AsParallel().Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
-                Csv.To(new StringWriter(output))
-                    .Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                builder.Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
         }
         else
         {
-            if (outputType)
+            if (parallel)
             {
-                Csv.To(new StringWriter(output), new() { BufferSize = bufferSize })
-                    .Write(TestDataGenerator.Objects.Value, options);
+                builder.AsParallel().Write(TestDataGenerator.Objects.Value, options);
             }
             else
             {
-                Csv.To(new StringWriter(output)).Write(TestDataGenerator.Objects.Value, options);
+                builder.Write(TestDataGenerator.Objects.Value, options);
             }
         }
 
-        Validate(output, newline.IsCRLF(), header, quoting);
-        StringBuilderPool.Value.Return(output);
+        if (sb is not null)
+        {
+            Validate(FromStringBuilder(sb), header, newline.IsCRLF(), quoting);
+            StringBuilderPool.Value.Return(sb);
+            return;
+        }
+
+        Assert.NotNull(bufferWriter);
+        Validate(FromArrayPoolBufferWriter(bufferWriter), header, newline.IsCRLF(), quoting);
+        bufferWriter.Dispose();
+    }
+
+    private static Csv.IWriteBuilder<char> GetBuilder(
+        bool outputType,
+        CsvIOOptions ioOptions,
+        out StringBuilder? sb,
+        out ArrayPoolBufferWriter<byte>? bufferWriter
+    )
+    {
+        sb = null;
+        bufferWriter = null;
+        return outputType
+            ? Csv.To(
+                (bufferWriter = new ArrayPoolBufferWriter<byte>(initialCapacity: short.MaxValue * 4)).AsStream(),
+                Encoding.UTF8,
+                ioOptions
+            )
+            : Csv.To(new StringWriter(sb = StringBuilderPool.Value.Get()), ioOptions);
     }
 
     [Theory, MemberData(nameof(Args))]
@@ -71,13 +106,13 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize,
         bool outputType,
+        bool parallel,
         bool? guarded
     )
     {
-        if (outputType)
-            return;
-
         using var pool = new ReturnTrackingBufferPool(guarded);
+        CsvIOOptions ioOptions = new() { BufferSize = bufferSize, BufferPool = pool };
+
         var options = new CsvOptions<char>
         {
             Newline = newline,
@@ -87,26 +122,59 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
         };
 
-        StringBuilder output = StringBuilderPool.Value.Get();
+        Csv.IWriteBuilder<char> builder = GetBuilder(
+            outputType,
+            ioOptions,
+            out StringBuilder? sb,
+            out ArrayPoolBufferWriter<byte>? bufferWriter
+        );
 
-        if (sourceGen)
+        if (parallel)
         {
-            await Csv.To(new StringWriter(output), new() { BufferSize = bufferSize, BufferPool = pool })
-                .WriteAsync(
+            if (sourceGen)
+            {
+                await builder
+                    .AsParallel(TestContext.Current.CancellationToken)
+                    .WriteAsync(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+            }
+            else
+            {
+                await builder
+                    .AsParallel(TestContext.Current.CancellationToken)
+                    .WriteAsync(TestDataGenerator.Objects.Value, options);
+            }
+        }
+        else
+        {
+            if (sourceGen)
+            {
+                await builder.WriteAsync(
                     ObjCharTypeMap.Default,
                     TestDataGenerator.Objects.Value,
                     options,
                     TestContext.Current.CancellationToken
                 );
-        }
-        else
-        {
-            await Csv.To(new StringWriter(output), new() { BufferSize = bufferSize, BufferPool = pool })
-                .WriteAsync(TestDataGenerator.Objects.Value, options, TestContext.Current.CancellationToken);
+            }
+            else
+            {
+                await builder.WriteAsync(
+                    TestDataGenerator.Objects.Value,
+                    options,
+                    TestContext.Current.CancellationToken
+                );
+            }
         }
 
-        Validate(output, newline.IsCRLF(), header, quoting);
-        StringBuilderPool.Value.Return(output);
+        if (sb is not null)
+        {
+            Validate(FromStringBuilder(sb), header, newline.IsCRLF(), quoting);
+            StringBuilderPool.Value.Return(sb);
+            return;
+        }
+
+        Assert.NotNull(bufferWriter);
+        Validate(FromArrayPoolBufferWriter(bufferWriter), header, newline.IsCRLF(), quoting);
+        bufferWriter.Dispose();
     }
 
     [Fact]
@@ -129,85 +197,44 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         Assert.Equal("Id,Name,IsEnabled\r\n1,Bob,true\r\n", sw.ToString());
     }
 
-    private static void Validate(StringBuilder sb, bool crlf, bool header, CsvFieldQuoting quoting)
+    private static void Validate(TextReader source, bool header, bool crlf, CsvFieldQuoting quoting)
     {
-        ReadOnlySequence<char> sequence = StringBuilderSegment.Create(sb);
-        Assert.True(sequence.IsSingleSegment);
+        char quote = quoting is CsvFieldQuoting.Never ? '\0' : '\'';
 
-        bool headerRead = false;
-        int index = 0;
-
-        const string date = "1970-01-01T00:00:00.0000000+00:00";
-        const string dateQuoted = $"'{date}'";
-
-        foreach (var current in sequence.First.Span.Tokenize('\n'))
+        var cfg = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
-
-            var line = current;
-
-            if (crlf && !line.IsEmpty)
+            HasHeaderRecord = header,
+            Quote = quote,
+            Escape = quote,
+            NewLine = crlf ? "\r\n" : "\n",
+            BadDataFound = args =>
             {
-                Assert.Equal('\r', line[^1]);
-                line = line[..^1];
-            }
+                Assert.Fail($"Bad data found. Field: '{args.Field}', RawRecord: '{args.RawRecord}'");
+            },
+        };
 
-            if (header && !headerRead)
-            {
-                Assert.Equal(0, index);
-                Assert.Equal(
-                    quoting == CsvFieldQuoting.Always ? TestDataGenerator.HeaderQuoted : TestDataGenerator.Header,
-                    line
-                );
-                headerRead = true;
-                continue;
-            }
+        using var reader = new CsvHelper.CsvReader(source, cfg);
 
-            if (line.IsEmpty)
-            {
-                Assert.Equal(1000, index);
-                continue;
-            }
+        List<Obj> actual = new(1024);
+        actual.AddRange(reader.GetRecords<Obj>());
+        actual.Sort();
 
-            int columnIndex = 0;
+        Assert.Equal(TestDataGenerator.Objects.Value, actual);
+    }
 
-            foreach (var column in line.Tokenize(','))
-            {
-                switch (columnIndex++)
-                {
-                    case 0:
-                        Assert.Equal(quoting == CsvFieldQuoting.Always ? $"'{index}'" : $"{index}", column);
-                        break;
-                    case 1:
-                        if (quoting == CsvFieldQuoting.Never)
-                        {
-                            Assert.Equal($" Name'{index}", column);
-                        }
-                        else
-                        {
-                            Assert.Equal($"' Name''{index}'", column);
-                        }
+    private static StringReader FromStringBuilder(StringBuilder sb)
+    {
+        var chunks = sb.GetChunks();
+        Assert.True(chunks.MoveNext());
+        var reader = new StringReader(StringPool.Shared.GetOrAdd(chunks.Current.Span));
+        Assert.False(chunks.MoveNext());
+        return reader;
+    }
 
-                        break;
-                    case 2:
-                        string val = index % 2 == 0 ? "true" : "false";
-                        Assert.Equal(quoting == CsvFieldQuoting.Always ? $"'{val}'" : $"{val}", column);
-                        break;
-                    case 3:
-                        Assert.Equal(quoting == CsvFieldQuoting.Always ? dateQuoted : date, column);
-                        break;
-                    case 4:
-                        var guid = new Guid(index, 0, 0, TestDataGenerator.GuidBytes);
-                        Assert.Equal(quoting == CsvFieldQuoting.Always ? $"'{guid}'" : $"{guid}", column);
-                        break;
-                    default:
-                        throw new XunitException($"Invalid column count on line {index}: {line}");
-                }
-            }
-
-            index++;
-        }
-
-        Assert.Equal(1_000, index);
+    private static StreamReader FromArrayPoolBufferWriter(ArrayPoolBufferWriter<byte> bufferWriter)
+    {
+        ArraySegment<byte> written = bufferWriter.DangerousGetArray();
+        MemoryStream ms = new(written.Array!, written.Offset, written.Count, writable: false, publiclyVisible: false);
+        return new StreamReader(ms, Encoding.UTF8);
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Text.Unicode;
 using FlameCsv.Extensions;
 
@@ -35,40 +34,17 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
             _stream.Write(bytes.Span);
         } while (moreData);
+
+        _stream.Flush();
     }
 
-    protected override ValueTask FlushAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
+    protected override async ValueTask FlushAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
     {
-        ReadOnlyMemory<byte> bytes = Transcode(ref memory, out bool moreData);
-
-        if (bytes.IsEmpty)
-        {
-            return default;
-        }
-
-        // if this is the only chunk, write it directly
-        if (!moreData)
-        {
-            return _stream.WriteAsync(bytes, cancellationToken);
-        }
-
-        return FlushAsyncAwaited(bytes, memory, cancellationToken);
-    }
-
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-    private async ValueTask FlushAsyncAwaited(
-        ReadOnlyMemory<byte> bytes,
-        ReadOnlyMemory<char> chars,
-        CancellationToken cancellationToken = default
-    )
-    {
-        await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
-
         bool moreData;
 
         do
         {
-            bytes = Transcode(ref chars, out moreData);
+            ReadOnlyMemory<byte> bytes = Transcode(ref memory, out moreData);
 
             if (bytes.IsEmpty)
             {
@@ -77,6 +53,8 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
             await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         } while (moreData);
+
+        await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private ReadOnlyMemory<byte> Transcode(ref ReadOnlyMemory<char> memory, out bool moreData)

@@ -4,6 +4,7 @@ using BenchmarkDotNet.Exporters.Csv;
 using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
+using FlameCsv.Benchmark;
 using Perfolizer.Horology;
 
 // BenchmarkRunner.Run(
@@ -17,7 +18,7 @@ using Perfolizer.Horology;
 //     args
 // );
 
-BenchmarkRunner.Run<ReadObjects>(new Config(), args);
+BenchmarkRunner.Run<WriteBench>(new Config(), args);
 
 file class Config : ManualConfig
 {

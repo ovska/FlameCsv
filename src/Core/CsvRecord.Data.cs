@@ -16,9 +16,6 @@ public readonly partial struct CsvRecord<T> : IDataRecord
 
     long IDataRecord.GetBytes(int i, long fieldOffset, byte[]? buffer, int bufferoffset, int length)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        // AsSpan validates the args, null check must be separate in case both bufferOffset and length are 0
         Span<byte> destination = buffer.AsSpan(bufferoffset, length);
 
         ReadOnlySpan<T> value = GetField(i).Slice((int)fieldOffset);
@@ -63,9 +60,6 @@ public readonly partial struct CsvRecord<T> : IDataRecord
 
     long IDataRecord.GetChars(int i, long fieldoffset, char[]? buffer, int bufferoffset, int length)
     {
-        ArgumentNullException.ThrowIfNull(buffer);
-
-        // AsSpan validates the args
         Span<char> destination = buffer.AsSpan(bufferoffset, length);
         ReadOnlySpan<T> field = GetField(i).Slice((int)fieldoffset);
 
@@ -168,18 +162,12 @@ public readonly partial struct CsvRecord<T> : IDataRecord
     {
         ArgumentNullException.ThrowIfNull(values);
 
-        int i = 0;
-
         var record = new CsvRecordRef<T>(in _slice);
 
-        if (values.Length < record.FieldCount)
-        {
-            throw new ArgumentException(
-                $"The array is too small to hold the values. Expected {FieldCount} but got {values.Length}."
-            );
-        }
+        int i = 0;
+        int end = Math.Min(values.Length, record.FieldCount);
 
-        for (; i < record.FieldCount; i++)
+        for (; i < end; i++)
         {
             values[i] = Transcode.ToString(record[i]);
         }

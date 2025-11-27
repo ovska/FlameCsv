@@ -9,20 +9,21 @@ public sealed class CsvReaderTestsText : CsvReaderTestsBase<char>
 {
     protected override CsvTypeMap<char, Obj> TypeMap => ObjCharTypeMap.Default;
 
-    protected override ICsvBufferReader<char> GetReader(
+    protected override Csv.IReadBuilder<char> GetBuilder(
         Stream stream,
         CsvOptions<char> options,
         int bufferSize,
         IBufferPool pool
     )
     {
-        return CsvBufferReader.Create(
-            new StreamReader(stream, Encoding.UTF8, bufferSize: bufferSize),
-            new CsvIOOptions
+        return Csv.From(
+            stream,
+            Encoding.UTF8,
+            new()
             {
+                BufferPool = pool,
                 BufferSize = bufferSize,
                 MinimumReadSize = bufferSize == -1 ? -1 : bufferSize / 2,
-                BufferPool = pool,
             }
         );
     }
