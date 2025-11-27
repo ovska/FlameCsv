@@ -13,14 +13,14 @@ internal sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TVal
         IAsyncEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Csv.IReadBuilderBase<T> _builder;
+    private readonly Csv.IReadBuilder<T> _builder;
     private readonly CsvOptions<T> _options;
     private CsvExceptionHandler<T>? _exceptionHandler;
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
     /// </summary>
-    public CsvValueEnumerable(Csv.IReadBuilderBase<T> builder, CsvOptions<T> options)
+    public CsvValueEnumerable(Csv.IReadBuilder<T> builder, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(options);

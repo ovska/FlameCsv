@@ -11,12 +11,12 @@ namespace FlameCsv.Enumeration;
 public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyncEnumerable<TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Csv.IReadBuilderBase<T> _builder;
+    private readonly Csv.IReadBuilder<T> _builder;
     private readonly CsvOptions<T> _options;
     private readonly CsvTypeMap<T, TValue> _typeMap;
     private CsvExceptionHandler<T>? _exceptionHandler;
 
-    internal CsvTypeMapEnumerable(Csv.IReadBuilderBase<T> factory, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
+    internal CsvTypeMapEnumerable(Csv.IReadBuilder<T> factory, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(typeMap);

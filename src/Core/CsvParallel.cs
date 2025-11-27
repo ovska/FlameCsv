@@ -3,69 +3,18 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using FlameCsv.IO;
-using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
-using FlameCsv.Reading;
 using FlameCsv.Writing;
 
 namespace FlameCsv;
 
-/// <summary>
-/// Provides static methods for reading and writing CSV data in parallel.<br/>
-/// <strong>This API is experimental and may change or be removed in future releases.</strong>
-/// </summary>
-/// <remarks>
-/// All operations are currently <strong>unordered</strong>, and the record order is not guaranteed.
-/// </remarks>
-public static partial class CsvParallel
+internal static partial class CsvParallel
 {
     internal delegate void Consume<T>(in T value, Exception? exception)
         where T : IConsumable;
 
     internal delegate ValueTask ConsumeAsync<T>(T value, Exception? exception, CancellationToken cancellationToken)
         where T : IConsumable;
-
-    /// <summary>
-    /// Default chunk size for parallel CSV processing.
-    /// </summary>
-    public const int DefaultChunkSize = 128;
-
-    internal static void ForEach<T, TValue>(
-        IParallelReader<T> reader,
-        ValueProducer<T, TValue> producer,
-        Consume<ChunkManager<TValue>> consume,
-        CancellationTokenSource cts,
-        int? maxDegreeOfParallelism
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        ParallelCore<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-            reader,
-            producer,
-            consume,
-            cts,
-            maxDegreeOfParallelism
-        );
-    }
-
-    internal static async Task ForEachAsync<T, TValue>(
-        IParallelReader<T> reader,
-        ValueProducer<T, TValue> producer,
-        ConsumeAsync<ChunkManager<TValue>> consumeAsync,
-        CancellationTokenSource cts,
-        int? maxDegreeOfParallelism
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        await ParallelAsyncCore<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                reader,
-                producer,
-                consumeAsync,
-                cts,
-                maxDegreeOfParallelism
-            )
-            .ConfigureAwait(false);
-    }
 
     internal static void WriteUnordered<T, TValue>(
         IEnumerable<TValue> source,
@@ -77,17 +26,10 @@ public static partial class CsvParallel
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        parallelOptions = parallelOptions.Validated();
-
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
-        ParallelCore<
-            TValue,
-            ParallelChunker.HasOrderEnumerable<TValue>,
-            CsvWriterProducer<T, TValue>,
-            CsvFieldWriter<T>
-        >(
-            ParallelChunker.Chunk(source, parallelOptions.ChunkSize ?? DefaultChunkSize),
+        ForEach<TValue, ParallelChunker.HasOrderEnumerable<TValue>, CsvWriterProducer<T, TValue>, CsvFieldWriter<T>>(
+            ParallelChunker.Chunk(source, parallelOptions.EffectiveChunkSize),
             new CsvWriterProducer<T, TValue>(options, ioOptions, dematerializer, sink),
             CsvWriterProducer<T>.Consume,
             cts,
@@ -104,17 +46,15 @@ public static partial class CsvParallel
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        parallelOptions = parallelOptions.Validated();
-
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
-        await ParallelAsyncCore<
+        await ForEachAsync<
             TValue,
             ParallelChunker.HasOrderEnumerable<TValue>,
             CsvWriterProducer<T, TValue>,
             CsvFieldWriter<T>
         >(
-                ParallelChunker.Chunk(source, parallelOptions.ChunkSize ?? DefaultChunkSize),
+                ParallelChunker.Chunk(source, parallelOptions.EffectiveChunkSize),
                 new CsvWriterProducer<T, TValue>(options, dematerializer, sink),
                 CsvWriterProducer<T>.ConsumeAsync,
                 cts,
@@ -124,7 +64,7 @@ public static partial class CsvParallel
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static void ParallelCore<T, TElement, TProducer, TState>(
+    internal static void ForEach<T, TElement, TProducer, TState>(
         IEnumerable<TElement> source,
         TProducer producer,
         Consume<TState> consumer,
@@ -261,13 +201,11 @@ public static partial class CsvParallel
 
                 consumer(in state, producerException ?? consumerException);
             }
-
-            producer.Dispose();
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static async Task ParallelAsyncCore<T, TElement, TProducer, TState>(
+    internal static async Task ForEachAsync<T, TElement, TProducer, TState>(
         IEnumerable<TElement> source,
         TProducer producer,
         ConsumeAsync<TState> consumer,
@@ -404,14 +342,7 @@ public static partial class CsvParallel
             }
         }
 
-        try
-        {
-            channel.Writer.Complete(exception);
-            await consumerTask.ConfigureAwait(false);
-        }
-        finally
-        {
-            producer.Dispose();
-        }
+        channel.Writer.Complete(exception);
+        await consumerTask.ConfigureAwait(false);
     }
 }

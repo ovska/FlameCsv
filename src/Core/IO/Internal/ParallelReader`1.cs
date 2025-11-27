@@ -28,6 +28,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     protected ParallelReader(CsvOptions<T> options, CsvIOOptions ioOptions)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         options.MakeReadOnly();
 
         _options = options;

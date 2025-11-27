@@ -13,10 +13,10 @@ namespace FlameCsv.Enumeration;
 public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Csv.IReadBuilderBase<T> _builder;
+    private readonly Csv.IReadBuilder<T> _builder;
     private readonly CsvOptions<T> _options;
 
-    internal CsvRecordEnumerable(Csv.IReadBuilderBase<T> builder, CsvOptions<T> options)
+    internal CsvRecordEnumerable(Csv.IReadBuilder<T> builder, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(options);
@@ -50,10 +50,10 @@ public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
 public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Csv.IReadBuilderBase<T> _builder;
+    private readonly Csv.IReadBuilder<T> _builder;
     private readonly CsvOptions<T> _options;
 
-    internal CsvRecordAsyncEnumerable(Csv.IReadBuilderBase<T> builder, CsvOptions<T> options)
+    internal CsvRecordAsyncEnumerable(Csv.IReadBuilder<T> builder, CsvOptions<T> options)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(options);

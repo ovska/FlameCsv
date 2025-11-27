@@ -9,11 +9,11 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Chun
     where T : unmanaged, IBinaryInteger<T>
 {
     [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-    public static ValueProducer<T, TValue> Create(CsvOptions<T>? options, CsvParallelOptions parallelOptions)
+    public static ValueProducer<T, TValue> Create(CsvOptions<T> options, CsvParallelOptions parallelOptions)
     {
         return new(
-            parallelOptions.ChunkSize ?? CsvParallel.DefaultChunkSize,
-            options ?? CsvOptions<T>.Default,
+            parallelOptions.EffectiveChunkSize,
+            options,
             static (h, o) => o.TypeBinder.GetMaterializer<TValue>(h),
             static o => o.TypeBinder.GetMaterializer<TValue>()
         );
@@ -25,7 +25,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Chun
         CsvParallelOptions parallelOptions
     ) =>
         new(
-            parallelOptions.ChunkSize ?? CsvParallel.DefaultChunkSize,
+            parallelOptions.EffectiveChunkSize,
             options ?? CsvOptions<T>.Default,
             typeMap.GetMaterializer,
             typeMap.GetMaterializer
@@ -60,8 +60,9 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Chun
             _headerRead = new ManualResetEventSlim();
         }
 
-        _pool = [];
-        _release = arr => _pool.Push(arr);
+        ConcurrentStack<TValue[]> pool = new();
+        _pool = pool;
+        _release = pool.Push;
     }
 
     private readonly ConcurrentStack<TValue[]> _pool;

@@ -75,10 +75,6 @@
             <Generator>TextTemplatingFileGenerator</Generator>
             <LastGenOutput>Dematerializer.Generated.cs</LastGenOutput>
         </None>
-        <None Update="CsvParallel.Generated.tt">
-            <Generator>TextTemplatingFileGenerator</Generator>
-            <LastGenOutput>CsvParallel.Generated.cs</LastGenOutput>
-        </None>
     </ItemGroup>
     <!-- Nuget -->
     <!-- Templates -->
@@ -134,11 +130,6 @@
             <DesignTime>True</DesignTime>
             <AutoGen>True</AutoGen>
             <DependentUpon>Dematerializer.Generated.tt</DependentUpon>
-        </Compile>
-        <Compile Update="CsvParallel.Generated.cs">
-            <AutoGen>True</AutoGen>
-            <DesignTime>True</DesignTime>
-            <DependentUpon>CsvParallel.Generated.tt</DependentUpon>
         </Compile>
     </ItemGroup>
     <ItemGroup>

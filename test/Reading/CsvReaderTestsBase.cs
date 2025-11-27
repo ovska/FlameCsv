@@ -266,7 +266,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         };
     }
 
-    private sealed class ReaderWrapper(ICsvBufferReader<T> reader) : Csv.IReadBuilderBase<T>
+    private sealed class ReaderWrapper(ICsvBufferReader<T> reader) : Csv.IReadBuilder<T>
     {
         public IBufferPool? BufferPool => throw new UnreachableException();
 

@@ -39,7 +39,9 @@ public readonly record struct CsvIOOptions
     private readonly int? _minimumReadSize;
 
     /// <summary>
-    /// Gets or sets the buffer size. If set to -1, the default buffer size is used.<br/>
+    /// Gets or sets the buffer size to use when working with streaming I/O. This value may be ignored when reading
+    /// constant data such as <see cref="ReadOnlyMemory{T}"/>.<br/>
+    /// If set to -1, the default buffer size is used.<br/>
     /// This value will be clamped to be at minimum <see cref="MinimumBufferSize"/>.
     /// </summary>
     /// <remarks>
@@ -66,7 +68,8 @@ public readonly record struct CsvIOOptions
     }
 
     /// <summary>
-    /// Gets or sets the minimum available data size when reading.
+    /// Gets or sets the minimum available data size when reading from streaming sources. This value may be ignored when reading
+    /// constant data such as <see cref="ReadOnlyMemory{T}"/>.<br/>
     /// If unset or set to -1, the smaller of <see cref="DefaultMinimumReadSize"/>
     /// and <see cref="BufferSize"/> / 2 will be used.
     /// </summary>

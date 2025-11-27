@@ -12,7 +12,7 @@ public static partial class CsvWriter
 {
     internal static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,
-        Csv.IWriteBuilderBase<T> builder,
+        Csv.IWriteBuilder<T> builder,
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer
     )
@@ -66,7 +66,7 @@ public static partial class CsvWriter
 
     internal static async Task WriteAsyncCore<T, TValue>(
         IEnumerable<TValue> values,
-        Csv.IWriteBuilderBase<T> builder,
+        Csv.IWriteBuilder<T> builder,
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken
@@ -124,7 +124,7 @@ public static partial class CsvWriter
 
     internal static async Task WriteAsyncCore<T, TValue>(
         IAsyncEnumerable<TValue> values,
-        Csv.IWriteBuilderBase<T> builder,
+        Csv.IWriteBuilder<T> builder,
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         CancellationToken cancellationToken

@@ -11,9 +11,9 @@ namespace FlameCsv;
 static partial class Csv
 {
     /// <summary>
-    /// Base builder to create a synchronous CSV writing pipeline from.
+    /// Base builder to create a CSV writing pipeline from.
     /// </summary>
-    public interface IWriteBuilderBase<T>
+    public interface IWriteBuilder<T>
         where T : unmanaged, IBinaryInteger<T>
     {
         /// <summary>
@@ -24,6 +24,52 @@ static partial class Csv
         /// The builder is free to ignore this parameter.
         /// </param>
         ICsvBufferWriter<T> CreateWriter(bool isAsync);
+
+        /// <summary>
+        /// Options to configure I/O for the CSV reader, such as buffer size and buffer pool.
+        /// </summary>
+        public CsvIOOptions IOOptions { get; }
+
+        /// <summary>
+        /// Configures the builder to use the given I/O options.
+        /// </summary>
+        /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
+        IWriteBuilder<T> WithIOOptions(in CsvIOOptions ioOptions);
+
+        /// <summary>
+        /// Writes CSV records to the target, binding them using reflection.
+        /// </summary>
+        /// <param name="values">Values to write</param>
+        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <remarks>
+        /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
+        /// </remarks>
+        [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
+        void Write<[DAM(Messages.ReflectionBound)] TValue>(IEnumerable<TValue> values, CsvOptions<T>? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(values);
+            options ??= CsvOptions<T>.Default;
+
+            CsvWriter.WriteCore(values, this, options, options.TypeBinder.GetDematerializer<TValue>());
+        }
+
+        /// <summary>
+        /// Writes CSV records to the target, binding them using reflection.
+        /// </summary>
+        /// <param name="typeMap">Type map used to bind the CSV data</param>
+        /// <param name="values">Values to write</param>
+        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <remarks>
+        /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
+        /// </remarks>
+        void Write<TValue>(CsvTypeMap<T, TValue> typeMap, IEnumerable<TValue> values, CsvOptions<T>? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(typeMap);
+            ArgumentNullException.ThrowIfNull(values);
+            options ??= CsvOptions<T>.Default;
+
+            CsvWriter.WriteCore(values, this, options, typeMap.GetDematerializer(options));
+        }
 
         /// <summary>
         /// Writes CSV records to the target, binding them using reflection.
@@ -129,60 +175,8 @@ static partial class Csv
     }
 
     /// <summary>
-    /// Base builder to create a CSV writing pipeline from.
-    /// </summary>
-    public interface IWriteBuilder<T> : IWriteBuilderBase<T>
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        /// <summary>
-        /// Options to configure I/O for the CSV reader, such as buffer size and buffer pool.
-        /// </summary>
-        public CsvIOOptions IOOptions { get; }
-
-        /// <summary>
-        /// Configures the builder to use the given I/O options.
-        /// </summary>
-        /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
-        IWriteBuilder<T> WithIOOptions(in CsvIOOptions ioOptions);
-
-        /// <summary>
-        /// Writes CSV records to the target, binding them using reflection.
-        /// </summary>
-        /// <param name="values">Values to write</param>
-        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <remarks>
-        /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
-        /// </remarks>
-        [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        void Write<[DAM(Messages.ReflectionBound)] TValue>(IEnumerable<TValue> values, CsvOptions<T>? options = null)
-        {
-            ArgumentNullException.ThrowIfNull(values);
-            options ??= CsvOptions<T>.Default;
-
-            CsvWriter.WriteCore(values, this, options, options.TypeBinder.GetDematerializer<TValue>());
-        }
-
-        /// <summary>
-        /// Writes CSV records to the target, binding them using reflection.
-        /// </summary>
-        /// <param name="typeMap">Type map used to bind the CSV data</param>
-        /// <param name="values">Values to write</param>
-        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <remarks>
-        /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
-        /// </remarks>
-        void Write<TValue>(CsvTypeMap<T, TValue> typeMap, IEnumerable<TValue> values, CsvOptions<T>? options = null)
-        {
-            ArgumentNullException.ThrowIfNull(typeMap);
-            ArgumentNullException.ThrowIfNull(values);
-            options ??= CsvOptions<T>.Default;
-
-            CsvWriter.WriteCore(values, this, options, typeMap.GetDematerializer(options));
-        }
-    }
-
-    /// <summary>
-    /// Builder to create a CSV writing pipeline to a stream.
+    /// Builder to create a CSV writing pipeline to a stream.<br/>
+    /// You can either write raw UTF8 directly as <c>byte</c>, or specify an encoding to use <c>char</c>.
     /// </summary>
     public interface IWriteStreamBuilder : IWriteBuilder<byte>
     {
@@ -266,7 +260,7 @@ static partial class Csv
         }
     }
 
-    private sealed class WritePipeBuilder : IWriteBuilderBase<byte>
+    private sealed class WritePipeBuilder : IWriteBuilder<byte>
     {
         private readonly PipeWriter _pipeWriter;
         private readonly IBufferPool? _bufferPool;
@@ -286,6 +280,13 @@ static partial class Csv
             }
 
             return new PipeBufferWriter(_pipeWriter, _bufferPool);
+        }
+
+        public CsvIOOptions IOOptions => throw new NotSupportedException();
+
+        public IWriteBuilder<byte> WithIOOptions(in CsvIOOptions ioOptions)
+        {
+            throw new NotSupportedException();
         }
     }
 
@@ -321,7 +322,7 @@ static partial class Csv
             return new WriteStreamBuilder(_stream, in ioOptions);
         }
 
-        ICsvBufferWriter<char> IWriteBuilderBase<char>.CreateWriter(bool isAsync)
+        ICsvBufferWriter<char> IWriteBuilder<char>.CreateWriter(bool isAsync)
         {
             return new Utf8StreamWriter(_stream, in _ioOptions);
         }
@@ -342,7 +343,7 @@ static partial class Csv
 
         public WriteFileBuilder(string path, Encoding? encoding, in CsvIOOptions ioOptions = default)
         {
-            ArgumentNullException.ThrowIfNull(path);
+            ArgumentException.ThrowIfNullOrEmpty(path);
             _path = path;
             _encoding = encoding;
             _ioOptions = ioOptions.ForFileIO();
@@ -383,7 +384,7 @@ static partial class Csv
             return new WriteFileBuilder(_path, encoding, in _ioOptions);
         }
 
-        ICsvBufferWriter<byte> IWriteBuilderBase<byte>.CreateWriter(bool isAsync)
+        ICsvBufferWriter<byte> IWriteBuilder<byte>.CreateWriter(bool isAsync)
         {
             return new StreamBufferWriter(GetFileStream(isAsync), in _ioOptions);
         }

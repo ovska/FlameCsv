@@ -1,67 +1,13 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
-using FlameCsv.Reading;
 
 namespace FlameCsv;
 
-public static partial class CsvParallel
+internal static partial class CsvParallel
 {
-    private static ParallelEnumerable<TValue> AsEnumerableCore<T, TValue>(
-        IParallelReader<T> reader,
-        ValueProducer<T, TValue> producer,
-        CsvParallelOptions parallelOptions
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        parallelOptions = parallelOptions.ValidatedForReading();
-
-        return new ParallelEnumerable<TValue>(
-            (consume, innerToken) =>
-            {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
-                ParallelCore<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                    reader,
-                    producer,
-                    consume,
-                    cts,
-                    parallelOptions.MaxDegreeOfParallelism
-                );
-            },
-            parallelOptions.CancellationToken
-        );
-    }
-
-    private static ParallelAsyncEnumerable<TValue> AsAsyncEnumerableCore<T, TValue>(
-        IParallelReader<T> reader,
-        ValueProducer<T, TValue> producer,
-        CsvParallelOptions parallelOptions
-    )
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        parallelOptions = parallelOptions.ValidatedForReading();
-
-        return new ParallelAsyncEnumerable<TValue>(
-            async (consumeAsync, innerToken) =>
-            {
-                using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
-
-                await ParallelAsyncCore<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, ChunkManager<TValue>>(
-                        reader,
-                        producer,
-                        consumeAsync,
-                        cts,
-                        parallelOptions.MaxDegreeOfParallelism
-                    )
-                    .ConfigureAwait(false);
-            },
-            parallelOptions.CancellationToken
-        );
-    }
-
-    private sealed class ParallelEnumerable<T>(
+    internal sealed class ParallelEnumerable<T>(
         Action<Consume<ChunkManager<T>>, CancellationToken> runParallel,
         CancellationToken userToken
     ) : IEnumerable<ReadOnlySpan<T>>
@@ -160,7 +106,7 @@ public static partial class CsvParallel
         public void Reset() => throw new NotSupportedException();
     }
 
-    private sealed class ParallelAsyncEnumerable<T>(
+    internal sealed class ParallelAsyncEnumerable<T>(
         Func<ConsumeAsync<ChunkManager<T>>, CancellationToken, Task> runParallel,
         CancellationToken userToken
     ) : IAsyncEnumerable<ReadOnlyMemory<T>>

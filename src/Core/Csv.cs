@@ -21,13 +21,13 @@ public static partial class Csv
     /// </summary>
     /// <param name="csv">CSV data</param>
     /// <returns>Builder to create a CSV reading pipeline from</returns>
-    public static IReadBuilderBase<char> From(string? csv) => new ReadMemoryBuilder<char>(csv.AsMemory());
+    public static IReadBuilder<char> From(string? csv) => new ReadMemoryBuilder<char>(csv.AsMemory());
 
     /// <inheritdoc cref="From(string?)"/>
-    public static IReadBuilderBase<char> From(ReadOnlyMemory<char> csv) => new ReadMemoryBuilder<char>(csv);
+    public static IReadBuilder<char> From(ReadOnlyMemory<char> csv) => new ReadMemoryBuilder<char>(csv);
 
     /// <inheritdoc cref="From(string?)"/>
-    public static IReadBuilderBase<byte> From(ReadOnlyMemory<byte> csv) => new ReadMemoryBuilder<byte>(csv);
+    public static IReadBuilder<byte> From(ReadOnlyMemory<byte> csv) => new ReadMemoryBuilder<byte>(csv);
 
     /// <summary>
     /// Creates a reader builder from the given CSV data.
@@ -35,19 +35,18 @@ public static partial class Csv
     /// <param name="csv">CSV data</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <returns>Builder to create a CSV reading pipeline from</returns>
-    public static IReadBuilder<char> From(in ReadOnlySequence<char> csv, CsvIOOptions ioOptions = default) =>
-        new ReadSequenceBuilder<char>(in csv, in ioOptions);
-
-    /// <inheritdoc cref="From(in ReadOnlySequence{char}, CsvIOOptions)"/>
-    public static IReadBuilder<byte> From(in ReadOnlySequence<byte> csv, CsvIOOptions ioOptions = default) =>
-        new ReadSequenceBuilder<byte>(in csv, in ioOptions);
-
-    [OverloadResolutionPriority(-1)]
-    internal static IReadBuilder<T> From<T>(in ReadOnlySequence<T> csv, CsvIOOptions ioOptions = default)
+    /// <remarks>Parallel reading from a sequence is not yet supported.</remarks>
+    public static IReadBuilder<T> From<T>(in ReadOnlySequence<T> csv, CsvIOOptions ioOptions = default)
         where T : unmanaged, IBinaryInteger<T> => new ReadSequenceBuilder<T>(in csv, in ioOptions);
 
-    /// <inheritdoc cref="From(in ReadOnlySequence{char}, CsvIOOptions)"/>
+    /// <summary>
+    /// Creates a reader builder from the given CSV data.
+    /// </summary>
+    /// <param name="csv">CSV data</param>
+    /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
+    /// <returns>Builder to create a CSV reading pipeline from</returns>
     /// <remarks>
+    /// Parallel reading from a StringBuilder is not yet supported.<br/>
     /// The <see cref="StringBuilder"/> must not be modified while the reader is in use.
     /// </remarks>
     public static IReadBuilder<char> From(StringBuilder csv, CsvIOOptions ioOptions = default) =>
@@ -118,11 +117,8 @@ public static partial class Csv
     /// <param name="stringBuilder">StringBuilder to write the CSV data to</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <returns>Builder to create a CSV writing pipeline from</returns>
-    public static IWriteBuilder<char> To(StringBuilder stringBuilder, CsvIOOptions ioOptions = default)
-    {
-        ArgumentNullException.ThrowIfNull(stringBuilder);
-        return new WriteTextBuilder(new StringWriter(stringBuilder), in ioOptions);
-    }
+    public static IWriteBuilder<char> To(StringBuilder stringBuilder, CsvIOOptions ioOptions = default) =>
+        new WriteTextBuilder(new StringWriter(stringBuilder), in ioOptions);
 
     /// <summary>
     /// Creates a writer builder from the given CSV data.
@@ -161,8 +157,11 @@ public static partial class Csv
     /// </summary>
     /// <param name="pipeWriter">PipeWriter to write the CSV data to</param>
     /// <param name="bufferPool">Buffer pool to get temporary buffers from, defaults to <see cref="MemoryPool{T}.Shared"/></param>
+    /// <remarks>
+    /// PipeWriter does not support synchronous flushing.
+    /// </remarks>
     /// <returns>Builder to create a CSV writing pipeline from</returns>
-    public static IWriteBuilderBase<byte> To(PipeWriter pipeWriter, IBufferPool? bufferPool = null) =>
+    public static IWriteBuilder<byte> To(PipeWriter pipeWriter, IBufferPool? bufferPool = null) =>
         new WritePipeBuilder(pipeWriter, bufferPool);
 
     /// <summary>

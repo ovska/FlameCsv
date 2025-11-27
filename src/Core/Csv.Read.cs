@@ -12,11 +12,23 @@ namespace FlameCsv;
 static partial class Csv
 {
     /// <summary>
-    /// Base builder to create a synchronous CSV reading pipeline from.
+    /// Base builder to create a CSV reading pipeline from.
     /// </summary>
-    public interface IReadBuilderBase<T>
+    public interface IReadBuilderBase<T, TSelf>
         where T : unmanaged, IBinaryInteger<T>
+        where TSelf : IReadBuilderBase<T, TSelf>
     {
+        /// <summary>
+        /// Options to configure I/O for the CSV reader, such as buffer size and buffer pool.
+        /// </summary>
+        public CsvIOOptions IOOptions { get; }
+
+        /// <summary>
+        /// Configures the builder to use the given I/O options.
+        /// </summary>
+        /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
+        TSelf WithIOOptions(in CsvIOOptions ioOptions);
+
         /// <summary>
         /// Creates a CSV buffer reader from the builder.
         /// </summary>
@@ -26,13 +38,25 @@ static partial class Csv
         /// </param>
         ICsvBufferReader<T> CreateReader(bool isAsync);
 
-        /// <summary>
-        /// Buffer pool to use for renting temporary buffers.<br/>
-        /// If not set, <see cref="MemoryPool{T}.Shared"/> will be used.
-        /// </summary>
-        /// <seealso cref="IReadBuilder{T}.IOOptions"/>
-        IBufferPool? BufferPool { get; }
+        internal IParallelReader<T> CreateParallelReader(CsvOptions<T> options, bool isAsync) =>
+            throw new NotSupportedException(GetType().FullName + " does not support parallel reading.");
 
+        /// <summary>
+        /// Configures the builder to read CSV data in parallel.
+        /// </summary>
+        /// <param name="parallelOptions">Options to use for parallel reading</param>
+        public IParallelReadBuilder<T> AsParallel(CsvParallelOptions parallelOptions = default)
+        {
+            return new ReadParallelBuilder<T, TSelf>((TSelf)this, parallelOptions);
+        }
+    }
+
+    /// <summary>
+    /// Builder to create a CSV reading pipeline from.
+    /// </summary>
+    public interface IReadBuilder<T> : IReadBuilderBase<T, IReadBuilder<T>>
+        where T : unmanaged, IBinaryInteger<T>
+    {
         /// <summary>
         /// Reads CSV records as <typeparamref name="TValue"/>, binding them using reflection.
         /// </summary>
@@ -44,7 +68,7 @@ static partial class Csv
         /// The enumerator cannot be reused.<br/>
         /// The returned enumerable must be disposed after use, either explicitly or using <c>foreach</c>.
         /// </remarks>
-        /// <seealso cref="IReadBuilderBase{T}.Read{TValue}(CsvTypeMap{T, TValue}, CsvOptions{T}?)"/>
+        /// <seealso cref="IReadBuilder{T}.Read{TValue}(CsvTypeMap{T, TValue}, CsvOptions{T}?)"/>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
         IEnumerable<TValue> Read<[DAM(Messages.ReflectionBound)] TValue>(CsvOptions<T>? options = null)
         {
@@ -62,7 +86,7 @@ static partial class Csv
         /// <remarks>
         /// The returned enumerable must be disposed after use, either explicitly or using <c>foreach</c>.
         /// </remarks>
-        /// <seealso cref="IReadBuilderBase{T}.Read{TValue}(CsvOptions{T}?)"/>
+        /// <seealso cref="IReadBuilder{T}.Read{TValue}(CsvOptions{T}?)"/>
         IEnumerable<TValue> Read<TValue>(CsvTypeMap<T, TValue> typeMap, CsvOptions<T>? options = null)
         {
             ArgumentNullException.ThrowIfNull(typeMap);
@@ -84,26 +108,6 @@ static partial class Csv
         {
             return new CsvRecordEnumerable<T>(this, options ?? CsvOptions<T>.Default);
         }
-    }
-
-    /// <summary>
-    /// Builder to create a CSV reading pipeline from.
-    /// </summary>
-    public interface IReadBuilder<T> : IReadBuilderBase<T>
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        /// <summary>
-        /// Options to configure I/O for the CSV reader, such as buffer size and buffer pool.
-        /// </summary>
-        public CsvIOOptions IOOptions { get; }
-
-        /// <summary>
-        /// Configures the builder to use the given I/O options.
-        /// </summary>
-        /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
-        IReadBuilder<T> WithIOOptions(in CsvIOOptions ioOptions);
-
-        IBufferPool? IReadBuilderBase<T>.BufferPool => IOOptions.BufferPool;
 
         /// <summary>
         /// Reads CSV records as <typeparamref name="TValue"/>, binding them using reflection.
@@ -158,7 +162,8 @@ static partial class Csv
     }
 
     /// <summary>
-    /// Builder to create a CSV reading pipeline from a stream of bytes.
+    /// Builder to create a CSV reading pipeline from a stream of bytes.<br/>
+    /// You can either read raw UTF8 directly as <c>byte</c>, or specify an encoding to use <c>char</c>.
     /// </summary>
     public interface IReadStreamBuilder : IReadBuilder<byte>
     {
@@ -182,14 +187,31 @@ static partial class Csv
         IReadBuilder<char> WithUtf8Encoding() => WithEncoding(Encoding.UTF8);
     }
 
-    private sealed class ReadMemoryBuilder<T>(ReadOnlyMemory<T> memory) : IReadBuilderBase<T>
+    private sealed class ReadMemoryBuilder<T>(ReadOnlyMemory<T> memory, in CsvIOOptions ioOptions = default)
+        : IReadBuilder<T>
         where T : unmanaged, IBinaryInteger<T>
     {
-        public IBufferPool? BufferPool => null;
+        public CsvIOOptions IOOptions => _ioOptions;
 
-        ICsvBufferReader<T> IReadBuilderBase<T>.CreateReader(bool isAsync)
+        private readonly ReadOnlyMemory<T> _memory = memory;
+        private readonly CsvIOOptions _ioOptions = ioOptions;
+
+        ICsvBufferReader<T> IReadBuilderBase<T, IReadBuilder<T>>.CreateReader(bool isAsync)
         {
-            return CsvBufferReader.Create(memory);
+            return CsvBufferReader.Create(_memory);
+        }
+
+        IParallelReader<T> IReadBuilderBase<T, IReadBuilder<T>>.CreateParallelReader(
+            CsvOptions<T> options,
+            bool isAsync
+        )
+        {
+            return new ParallelMemoryReader<T>(_memory, options, _ioOptions.EffectiveBufferPool);
+        }
+
+        public IReadBuilder<T> WithIOOptions(in CsvIOOptions ioOptions)
+        {
+            return new ReadMemoryBuilder<T>(_memory, in _ioOptions);
         }
     }
 
@@ -209,6 +231,14 @@ static partial class Csv
         public ICsvBufferReader<T> CreateReader(bool isAsync)
         {
             return CsvBufferReader.Create(in _sequence, in _ioOptions);
+        }
+
+        IParallelReader<T> IReadBuilderBase<T, IReadBuilder<T>>.CreateParallelReader(
+            CsvOptions<T> options,
+            bool isAsync
+        )
+        {
+            throw new NotSupportedException($"Parallel reading of ReadOnlySequence<{Token<T>.Name}> is not supported.");
         }
     }
 
@@ -250,7 +280,7 @@ static partial class Csv
         public IReadBuilder<char> WithIOOptions(in CsvIOOptions ioOptions) =>
             new ReadTextBuilder(_reader, _stream, _encoding, in ioOptions);
 
-        ICsvBufferReader<char> IReadBuilderBase<char>.CreateReader(bool isAsync)
+        ICsvBufferReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateReader(bool isAsync)
         {
             if (_reader is null)
             {
@@ -259,6 +289,15 @@ static partial class Csv
             }
 
             return CsvBufferReader.Create(_reader, in _ioOptions);
+        }
+
+        IParallelReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateParallelReader(
+            CsvOptions<char> options,
+            bool isAsync
+        )
+        {
+            TextReader? reader = _reader ?? Util.ToTextReader(_stream!, _encoding, in _ioOptions);
+            return new ParallelTextReader(reader, options, _ioOptions);
         }
     }
 
@@ -278,22 +317,22 @@ static partial class Csv
             _ioOptions = ioOptions;
         }
 
-        IReadBuilder<char> IReadBuilder<char>.WithIOOptions(in CsvIOOptions ioOptions)
+        IReadBuilder<char> IReadBuilderBase<char, IReadBuilder<char>>.WithIOOptions(in CsvIOOptions ioOptions)
         {
             return new ReadStreamBuilder(_stream, in ioOptions);
         }
 
-        IReadBuilder<byte> IReadBuilder<byte>.WithIOOptions(in CsvIOOptions ioOptions)
+        IReadBuilder<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.WithIOOptions(in CsvIOOptions ioOptions)
         {
             return new ReadStreamBuilder(_stream, in ioOptions);
         }
 
-        ICsvBufferReader<char> IReadBuilderBase<char>.CreateReader(bool isAsync)
+        ICsvBufferReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateReader(bool isAsync)
         {
             return CsvBufferReader.Create(_stream, null, in _ioOptions);
         }
 
-        ICsvBufferReader<byte> IReadBuilderBase<byte>.CreateReader(bool isAsync)
+        ICsvBufferReader<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.CreateReader(bool isAsync)
         {
             return CsvBufferReader.Create(_stream, in _ioOptions);
         }
@@ -302,6 +341,22 @@ static partial class Csv
         {
             ArgumentNullException.ThrowIfNull(encoding);
             return new ReadTextBuilder(null, _stream, encoding, in _ioOptions);
+        }
+
+        IParallelReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateParallelReader(
+            CsvOptions<char> options,
+            bool isAsync
+        )
+        {
+            return new ParallelTextReader(Util.ToTextReader(_stream, null, in _ioOptions), options, _ioOptions);
+        }
+
+        IParallelReader<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.CreateParallelReader(
+            CsvOptions<byte> options,
+            bool isAsync
+        )
+        {
+            return new ParallelStreamReader(_stream, options, _ioOptions);
         }
     }
 
@@ -324,27 +379,14 @@ static partial class Csv
 
         public IReadBuilder<char> WithEncoding(Encoding encoding) => new FileReaderBuilder(_path, _ioOptions, encoding);
 
-        ICsvBufferReader<char> IReadBuilderBase<char>.CreateReader(bool isAsync)
+        ICsvBufferReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateReader(bool isAsync)
         {
+            Debug.Assert(!_ioOptions.LeaveOpen);
             FileStream stream = GetFileStream(isAsync);
 
             try
             {
-                if (_encoding?.Equals(Encoding.UTF8) != false)
-                {
-                    return new Utf8StreamReader(stream, in _ioOptions);
-                }
-
-                return CsvBufferReader.Create(
-                    new StreamReader(
-                        stream,
-                        _encoding,
-                        detectEncodingFromByteOrderMarks: true,
-                        _ioOptions.BufferSize,
-                        leaveOpen: false
-                    ),
-                    in _ioOptions
-                );
+                return CsvBufferReader.Create(stream, _encoding, in _ioOptions);
             }
             catch
             {
@@ -354,10 +396,31 @@ static partial class Csv
             }
         }
 
-        ICsvBufferReader<byte> IReadBuilderBase<byte>.CreateReader(bool isAsync)
+        ICsvBufferReader<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.CreateReader(bool isAsync)
         {
             Debug.Assert(_encoding is null);
             return new StreamBufferReader(GetFileStream(isAsync), in _ioOptions);
+        }
+
+        IParallelReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateParallelReader(
+            CsvOptions<char> options,
+            bool isAsync
+        )
+        {
+            return new ParallelTextReader(
+                Util.ToTextReader(GetFileStream(isAsync), _encoding, in _ioOptions),
+                options,
+                _ioOptions
+            );
+        }
+
+        IParallelReader<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.CreateParallelReader(
+            CsvOptions<byte> options,
+            bool isAsync
+        )
+        {
+            Debug.Assert(_encoding is null);
+            return new ParallelStreamReader(GetFileStream(isAsync), options, _ioOptions);
         }
 
         public IReadBuilder<char> WithIOOptions(in CsvIOOptions ioOptions)
@@ -365,7 +428,7 @@ static partial class Csv
             return new FileReaderBuilder(_path, in ioOptions, _encoding);
         }
 
-        IReadBuilder<byte> IReadBuilder<byte>.WithIOOptions(in CsvIOOptions ioOptions)
+        IReadBuilder<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.WithIOOptions(in CsvIOOptions ioOptions)
         {
             return new FileReaderBuilder(_path, in ioOptions, _encoding);
         }
@@ -381,5 +444,19 @@ static partial class Csv
                 FileOptions.SequentialScan | (isAsync ? FileOptions.Asynchronous : FileOptions.None)
             );
         }
+    }
+}
+
+file static class Util
+{
+    public static TextReader ToTextReader(Stream stream, Encoding? encoding, in CsvIOOptions ioOptions)
+    {
+        return new StreamReader(
+            stream,
+            encoding ?? Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize: ioOptions.BufferSize,
+            leaveOpen: ioOptions.LeaveOpen
+        );
     }
 }
