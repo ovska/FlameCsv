@@ -2,13 +2,15 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text.Unicode;
+using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
 internal sealed class Utf8StreamReader : CsvBufferReader<char>
 {
     private readonly Stream _stream;
-    private readonly byte[] _buffer; // TODO: refactor to use IBufferPool
+    private readonly bool _leaveOpen;
+    private readonly IMemoryOwner<byte> _bufferOwner;
     private int _count;
     private int _offset;
     private bool _endOfStream;
@@ -17,20 +19,23 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     public Utf8StreamReader(Stream stream, in CsvIOOptions options)
         : base(in options)
     {
+        Throw.IfNotReadable(stream);
         _stream = stream;
-        _buffer = ArrayPool<byte>.Shared.Rent(options.BufferSize);
+        _leaveOpen = options.LeaveOpen;
+        _bufferOwner = options.EffectiveBufferPool.Rent<byte>(options.BufferSize);
     }
 
     protected override int ReadCore(Span<char> buffer)
     {
         int totalCharsWritten = 0;
 
+        Span<byte> localBuffer = _bufferOwner.Memory.Span;
+
         while (true)
         {
             if (_offset >= _count && !_endOfStream)
             {
-                // use array overload here in case the stream hasn't overridden the span version
-                _count = _stream.Read(_buffer, 0, _buffer.Length);
+                _count = _stream.Read(localBuffer);
                 _offset = 0;
 
                 if (_count == 0)
@@ -40,7 +45,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 }
             }
 
-            ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
+            ReadOnlySpan<byte> byteSpan = localBuffer.Slice(_offset, _count - _offset);
             Span<char> charSpan = buffer.Slice(totalCharsWritten);
 
             if (!_preambleRead)
@@ -73,7 +78,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 int remaining = _count - _offset;
                 if (remaining > 0)
                 {
-                    _buffer.AsSpan(_offset, remaining).CopyTo(_buffer);
+                    localBuffer.Slice(_offset, remaining).CopyTo(localBuffer);
                     _count = remaining;
                 }
                 else
@@ -86,7 +91,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 if (_endOfStream)
                     break;
 
-                int bytesRead = _stream.Read(_buffer, _count, _buffer.Length - _count);
+                int bytesRead = _stream.Read(localBuffer.Slice(_count, localBuffer.Length - _count));
 
                 if (bytesRead == 0)
                 {
@@ -106,12 +111,13 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     {
         int totalCharsWritten = 0;
 
+        Memory<byte> localBuffer = _bufferOwner.Memory;
+
         while (true)
         {
             if (_offset >= _count && !_endOfStream)
             {
-                // use memory overload there to use ValueTask and avoid older callback based async
-                _count = await _stream.ReadAsync(_buffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+                _count = await _stream.ReadAsync(localBuffer, cancellationToken).ConfigureAwait(false);
                 _offset = 0;
 
                 if (_count == 0)
@@ -121,7 +127,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 }
             }
 
-            ReadOnlySpan<byte> byteSpan = new(_buffer, _offset, _count - _offset);
+            ReadOnlySpan<byte> byteSpan = localBuffer.Slice(_offset, _count - _offset).Span;
             Span<char> charSpan = buffer.Span.Slice(totalCharsWritten);
 
             if (!_preambleRead)
@@ -154,7 +160,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 int remaining = _count - _offset;
                 if (remaining > 0)
                 {
-                    _buffer.AsSpan(_offset, remaining).CopyTo(_buffer);
+                    localBuffer.Slice(_offset, remaining).CopyTo(localBuffer);
                     _count = remaining;
                 }
                 else
@@ -168,7 +174,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                     break;
 
                 int bytesRead = await _stream
-                    .ReadAsync(_buffer.AsMemory(_count), cancellationToken)
+                    .ReadAsync(localBuffer.Slice(_count), cancellationToken)
                     .ConfigureAwait(false);
 
                 if (bytesRead == 0)
@@ -214,13 +220,13 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
 
     protected override void DisposeCore()
     {
-        ArrayPool<byte>.Shared.Return(_buffer);
+        _bufferOwner.Dispose();
         _stream.Dispose();
     }
 
     protected override ValueTask DisposeAsyncCore()
     {
-        ArrayPool<byte>.Shared.Return(_buffer);
-        return _stream.DisposeAsync();
+        _bufferOwner.Dispose();
+        return _leaveOpen ? default : _stream.DisposeAsync();
     }
 }
