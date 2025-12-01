@@ -147,8 +147,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                 {
                     var parallelBuilder = builder.AsParallel(GetParallelOptions());
                     var enumerable = sourceGen
-                        ? parallelBuilder.ReadAsync<Obj>(TypeMap, options)
-                        : parallelBuilder.ReadAsync<Obj>(options);
+                        ? parallelBuilder.ReadUnorderedAsync<Obj>(TypeMap, options)
+                        : parallelBuilder.ReadUnorderedAsync<Obj>(options);
 
                     await foreach (var segment in enumerable.WithTestContext())
                     {

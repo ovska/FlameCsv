@@ -13,7 +13,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 {
     public static IEnumerable<TheoryDataRow<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, bool, bool?>> SyncArgs
     {
-        get => Args().Where(data => !data.Data.Item6);
+        get => Args().Where(data => !data.Data.Item6); // can't sync write into pipewriter
     }
 
     [Theory, MemberData(nameof(SyncArgs))]
@@ -51,7 +51,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 builder
                     .AsParallel(TestContext.Current.CancellationToken)
-                    .Write(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                    .WriteUnordered(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -64,7 +64,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 builder
                     .AsParallel(TestContext.Current.CancellationToken)
-                    .Write(TestDataGenerator.Objects.Value, options);
+                    .WriteUnordered(TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -110,7 +110,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 await builder
                     .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteAsync(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                    .WriteUnorderedAsync(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -128,7 +128,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             {
                 await builder
                     .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteAsync(TestDataGenerator.Objects.Value, options);
+                    .WriteUnorderedAsync(TestDataGenerator.Objects.Value, options);
             }
             else
             {

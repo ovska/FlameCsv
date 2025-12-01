@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using CommunityToolkit.HighPerformance.Buffers;
-using FastExpressionCompiler.LightExpression;
 using FlameCsv.Attributes;
+using FlameCsv.ParallelUtils;
 using FlameCsv.Writing;
 using nietras.SeparatedValues;
 
@@ -193,16 +193,16 @@ public partial class WriteBench
         return Csv.To(TextWriter.Null).WriteAsync(_data);
     }
 
-    [Benchmark]
+    // [Benchmark]
     public void Parallel()
     {
-        Csv.To(TextWriter.Null).AsParallel().Write(ObjTypeMap.Default, _data);
+        Csv.To(TextWriter.Null).AsParallel().WriteUnordered(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]
     public Task ParallelAsync()
     {
-        return Csv.To(TextWriter.Null).AsParallel().WriteAsync(ObjTypeMap.Default, _data);
+        return Csv.To(TextWriter.Null).AsParallel().WriteUnorderedAsync(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]

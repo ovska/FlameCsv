@@ -49,7 +49,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (parallel)
             {
-                builder.AsParallel().Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                builder.AsParallel().WriteUnordered(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -60,7 +60,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         {
             if (parallel)
             {
-                builder.AsParallel().Write(TestDataGenerator.Objects.Value, options);
+                builder.AsParallel().WriteUnordered(TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -135,13 +135,13 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             {
                 await builder
                     .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteAsync(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                    .WriteUnorderedAsync(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
                 await builder
                     .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteAsync(TestDataGenerator.Objects.Value, options);
+                    .WriteUnorderedAsync(TestDataGenerator.Objects.Value, options);
             }
         }
         else

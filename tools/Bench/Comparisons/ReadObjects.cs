@@ -13,9 +13,8 @@ public partial class ReadObjects
 {
     public int Records { get; set; } = 20000;
 
-    [Params(false, true)]
+    [Params(true)]
     public bool Async { get; set; }
-
     private static readonly CsvOptions<char> _flameCsvOptions = new()
     {
         HasHeader = true,
@@ -58,17 +57,23 @@ public partial class ReadObjects
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task _Parallel()
     {
         if (Async)
         {
-            await Csv.From(_string2).AsParallel().ForEachAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
+            await Csv.From(_string2).AsParallel().ForEachUnorderedAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
         }
         else
         {
-            Csv.From(_string2).AsParallel().ForEach(EntryTypeMap.Default, _ => { });
+            Csv.From(_string2).AsParallel().ForEachUnordered(EntryTypeMap.Default, _ => { });
         }
+    }
+
+    [Benchmark]
+    public async Task AsyncEnumerable1()
+    {
+        await foreach (var _ in Csv.From(_string2).AsParallel().ReadUnorderedAsync<Entry>(EntryTypeMap.Default)) { }
     }
 
     // [Benchmark(Baseline = true)]

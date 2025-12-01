@@ -354,11 +354,11 @@ static partial class Csv
             return new PipeBufferWriter(_pipeWriter, _bufferPool);
         }
 
-        public CsvIOOptions IOOptions => throw new NotSupportedException();
+        public CsvIOOptions IOOptions => new() { BufferPool = _bufferPool };
 
         public IWriteBuilder<byte> WithIOOptions(in CsvIOOptions ioOptions)
         {
-            throw new NotSupportedException();
+            return new WritePipeBuilder(_pipeWriter, ioOptions.BufferPool);
         }
 
         public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>> flushAction)

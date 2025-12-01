@@ -158,6 +158,7 @@ public static partial class Csv
     /// <param name="bufferPool">Buffer pool to get temporary buffers from, defaults to <see cref="MemoryPool{T}.Shared"/></param>
     /// <remarks>
     /// PipeWriter does not support synchronous flushing.
+    /// Only buffer pool is configurable via <see cref="CsvIOOptions"/>, buffer sizes should be configured to the pipe itself.
     /// </remarks>
     /// <returns>Builder to create a CSV writing pipeline from</returns>
     public static IWriteBuilder<byte> To(PipeWriter pipeWriter, IBufferPool? bufferPool = null) =>

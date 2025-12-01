@@ -33,11 +33,13 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
 
     public CsvWriterProducer(
         CsvOptions<T> options,
+        CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
         Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> asyncSink
     )
     {
         _options = options;
+        _ioOptions = ioOptions;
         _dematerializer = dematerializer;
         _asyncSink = asyncSink;
     }

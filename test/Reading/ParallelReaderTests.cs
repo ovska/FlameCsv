@@ -62,7 +62,7 @@ public class ParallelReaderTests
 
         List<Obj> list = [];
 
-        foreach (var span in Csv.From(data).AsParallel().Read(ObjCharTypeMap.Default))
+        foreach (var span in Csv.From(data).AsParallel().ReadUnordered(ObjCharTypeMap.Default))
         {
             foreach (var item in span)
             {
@@ -87,7 +87,7 @@ public class ParallelReaderTests
         await foreach (
             var obj in Csv.From(data)
                 .AsParallel()
-                .ReadAsync<Obj>(ObjCharTypeMap.Default)
+                .ReadUnorderedAsync<Obj>(ObjCharTypeMap.Default)
                 .WithCancellation(TestContext.Current.CancellationToken)
         )
         {
@@ -114,7 +114,7 @@ public class ParallelReaderTests
 
         await Csv.From(data)
             .AsParallel()
-            .ForEachAsync(
+            .ForEachUnorderedAsync(
                 ObjCharTypeMap.Default,
                 (values, ct) =>
                 {

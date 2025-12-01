@@ -7,6 +7,7 @@ internal sealed class Accumulator<T>(int chunkSize) : IConsumable
 {
     private readonly T[] _array = new T[chunkSize];
 
+    public bool IsEmpty => _index == 0;
     public bool ShouldConsume => _index >= _array.Length;
 
     private int _index;

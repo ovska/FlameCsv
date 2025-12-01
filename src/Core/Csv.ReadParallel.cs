@@ -36,7 +36,7 @@ static partial class Csv
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public IEnumerable<ArraySegment<TValue>> Read<[DAM(Messages.ReflectionBound)] TValue>(
+        public IEnumerable<ArraySegment<TValue>> ReadUnordered<[DAM(Messages.ReflectionBound)] TValue>(
             CsvOptions<T>? options = null
         )
         {
@@ -58,7 +58,7 @@ static partial class Csv
         /// The batches returned by the enumerator <strong>must not</strong> be held onto after the next iteration,
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
-        public IEnumerable<ArraySegment<TValue>> Read<TValue>(
+        public IEnumerable<ArraySegment<TValue>> ReadUnordered<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             CsvOptions<T>? options = null
         )
@@ -83,7 +83,7 @@ static partial class Csv
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public IAsyncEnumerable<ArraySegment<TValue>> ReadAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public IAsyncEnumerable<ArraySegment<TValue>> ReadUnorderedAsync<[DAM(Messages.ReflectionBound)] TValue>(
             CsvOptions<T>? options = null
         )
         {
@@ -105,7 +105,7 @@ static partial class Csv
         /// The batches returned by the enumerator <strong>must not</strong> be held onto after the next iteration,
         /// or after the enumerator is disposed. Process the data in-place, or copy it to another buffer.
         /// </remarks>
-        public IAsyncEnumerable<ArraySegment<TValue>> ReadAsync<TValue>(
+        public IAsyncEnumerable<ArraySegment<TValue>> ReadUnorderedAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             CsvOptions<T>? options = null
         )
@@ -126,7 +126,7 @@ static partial class Csv
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public void ForEach<[DAM(Messages.ReflectionBound)] TValue>(
+        public void ForEachUnordered<[DAM(Messages.ReflectionBound)] TValue>(
             Action<ArraySegment<TValue>> action,
             CsvOptions<T>? options = null
         )
@@ -147,7 +147,7 @@ static partial class Csv
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task ForEachAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task ForEachUnorderedAsync<[DAM(Messages.ReflectionBound)] TValue>(
             Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
             CsvOptions<T>? options = null
         )
@@ -168,7 +168,7 @@ static partial class Csv
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        public void ForEach<TValue>(
+        public void ForEachUnordered<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             Action<ArraySegment<TValue>> action,
             CsvOptions<T>? options = null
@@ -190,12 +190,13 @@ static partial class Csv
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        public Task ForEachAsync<TValue>(
+        public Task ForEachUnorderedAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
             CsvOptions<T>? options = null
         )
         {
+            ArgumentNullException.ThrowIfNull(typeMap);
             ArgumentNullException.ThrowIfNull(action);
             return Util.ForEachAsyncCore(
                 options,
