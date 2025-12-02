@@ -9,6 +9,7 @@ namespace FlameCsv.Enumeration;
 /// <typeparam name="T">Token type</typeparam>
 /// <remarks>
 /// This type is only intended to be used directly within a <c>foreach</c> loop.
+/// Using it with LINQ methods may lead to unexpected behavior and runtime errors.
 /// </remarks>
 public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
     where T : unmanaged, IBinaryInteger<T>
@@ -46,6 +47,7 @@ public readonly struct CsvRecordEnumerable<T> : IEnumerable<CsvRecord<T>>
 /// <typeparam name="T">Token type</typeparam>
 /// <remarks>
 /// This type is only intended to be used directly within a <c>await foreach</c> loop.
+/// Using it with async LINQ methods may lead to unexpected behavior and runtime errors.
 /// </remarks>
 public readonly struct CsvRecordAsyncEnumerable<T> : IAsyncEnumerable<CsvRecord<T>>
     where T : unmanaged, IBinaryInteger<T>

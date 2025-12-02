@@ -12,7 +12,7 @@ For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.Csv
 
 ## Default Options
 
-The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property provides access to default configuration. This is used when `null` options are passed to @"FlameCsv.CsvReader" or @"FlameCsv.CsvWriter". The default options are read-only and have identical configuration to a new instance created with `new()`.
+The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" property provides access to default configuration. This is used when `null` options are passed to @"FlameCsv.Csv". The default options are read-only and have identical configuration to a new instance created with `new()`.
 
 Default options are only available for @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8).
 
@@ -58,7 +58,7 @@ The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is 
 ```cs
 const string csv = "id,name\n1,Bob\n2,Alice\n";
 
-List<User> users = CsvReader.Read(csv, new CsvOptions<char> { HasHeader = true });
+List<User> users = Csv.From(csv).Read<User>(new CsvOptions<char> { HasHeader = true });
 ```
 
 ## Parsing and formatting fields
@@ -71,12 +71,7 @@ The @"FlameCsv.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuo
 
 ```cs
 // quote all fields, e.g., for noncompliant 3rd party libraries
-StringBuilder result = CsvWriter.WriteToString(
-    [new User(1, "Bob", true)],
-    new CsvOptions<char>() { FieldQuoting = CsvFieldQuoting.Always });
-
-// "id","name","isadmin"
-// "1","Bob","true"
+return new CsvOptions<char>() { FieldQuoting = CsvFieldQuoting.Always };
 ```
 
 If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvFieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
@@ -120,7 +115,7 @@ CsvOptions<char> options = new()
 When reading @"FlameCsv.CsvRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
 The expected field count is reset if you [reset the headers with a callback](#skipping-records-or-resetting-headers).
 
-This property also ensures that all records written with @"FlameCsv.CsvWriter`1" have the same field count.
+This property also ensures that all records written with `Csv.To().Write/Async()` have the same field count.
 Alternatively, you can use the @"FlameCsv.CsvWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
 for example when writing multiple CSV documents into one output.
 

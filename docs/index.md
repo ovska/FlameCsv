@@ -17,30 +17,30 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
 
 # Features
 
-- 💡 **[Ease of Use](docs/examples.md)**
+- **[Ease of Use](docs/examples.md)**
   - Simple API for reading and writing CSV
   - Built-in support for common CLR types
   - Supports both synchronous and asynchronous operations
   - Flexible; read or write almost any data source
   - UTF-8/ASCII support to read/write bytes directly without additional transcoding
   - Supports hot reload
-- 🚀 **[High Performance](docs/benchmarks.md)**
+- **[High Performance](docs/benchmarks.md)**
   - Optimized for speed and low memory usage
   - Specialized SIMD-accelerated parsing and unescaping
   - Batteries-included internal caching and memory pooling for near-zero allocations
   - Reflection code paths that rival and exceed manually written code in performance
-- 🛠️ **[Deep Customization](docs/configuration.md)**
+- **[Deep Customization](docs/configuration.md)**
   - Read or write either .NET objects, or raw CSV records and fields
   - Attribute configuration for header names, constructors, field order, and more
   - Support for custom converters and converter factories
   - Read or write multiple CSV documents from/to a single data stream
-- ✍️ **[Source Generator](docs/source-generator.md)**
+- **[Source Generator](docs/source-generator.md)**
   - Fully annotated and compatible with NativeAOT
   - Supports trimming to reduce application size
   - Debuggable source code instead of compiled expressions
   - Compile-time diagnostics instead of runtime errors
   - Feature parity with reflection-based code paths
-  - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting
+  - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting (than Enum.TryParse/Format)
 
 # Example
 
@@ -59,14 +59,13 @@ const string data =
 List<User> users = [];
 
 // read users from utf16 string
-foreach (var user in CsvReader.Read<User>(data))
+foreach (var user in Csv.From(data).Read<User>())
 {
     users.Add(user);
 }
 
 // write users to a stream as tab-separated fields
-await CsvWriter.WriteAsync(
-    new StreamWriter(stream, Encoding.UTF8),
+await Csv.To(stream, Encoding.UTF8).WriteAsync(
     users,
     new CsvOptions<char> { Delimiter = '\t' },
     cancellationToken);
@@ -87,16 +86,15 @@ byte[] data =
 List<User> users = [];
 
 // read users from utf8 bytes
-foreach (var user in CsvReader.Read<User>(data))
+foreach (var user in Csv.From(data).Read<User>())
 {
     users.Add(user);
 }
 
 // write users to a stream as tab-separated fields
-await CsvWriter.WriteAsync(
-    stream,
+await Csv.To(stream).WriteAsync(
     users,
-    new CsvOptions<byte> { Delimiter = '\t' },
+    new CsvOptions<char> { Delimiter = '\t' },
     cancellationToken);
 ```
 ---

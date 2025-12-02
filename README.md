@@ -20,7 +20,7 @@
 
 # Features
 - **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
-- 💡 **Ease of Use**
+- **Ease of Use**
   - Simple API for reading and writing CSV
   - Built-in support for common CLR types
   - Supports both synchronous and asynchronous operations
@@ -28,17 +28,17 @@
   - Automatic newline detection
   - UTF-8/ASCII support to read/write bytes directly without additional transcoding
   - Supports hot reload
-- 🚀 **High Performance**
+- **High Performance**
   - Optimized for speed and low memory usage
   - SIMD-accelerated parsing routines with hardware intrinsics
   - Batteries-included internal caching and memory pooling for near-zero allocations
   - Reflection code paths that rival manually written code in performance
-- 🛠️ **Deep Customization**
+- **Deep Customization**
   - Read or write either .NET objects, or raw CSV records and fields
   - Attribute configuration for header names, constructors, field order, and more
   - Support for custom converters and converter factories
   - Read or write multiple CSV documents from/to a single data stream
-- ✍️ **Source Generator**
+- **Source Generator**
   - Fully annotated and compatible with NativeAOT
   - Supports trimming to reduce application size
   - View and debug the code instead of opaque reflection
@@ -52,7 +52,7 @@ record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 
 string data = "id,name,lastlogin\n1,Bob,2010-01-01\n2,Alice,2024-05-22";
 
-foreach (var user in CsvReader.Read<User>(data))
+foreach (var user in Csv.From(data).Read<User>())
 {
     Console.WriteLine(user);
 }
@@ -65,7 +65,7 @@ record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 [CsvTypeMap<char, User>]
 partial class UserTypeMap;
 
-foreach (var user in CsvReader.Read<User>(data, UserTypeMap.Default))
+foreach (var user in Csv.From(data).Read<User>(UserTypeMap.Default))
 {
     Console.WriteLine(user);
 }
@@ -82,7 +82,7 @@ CsvOptions<char> options = new()
     Converters = { new CustomDateTimeConverter() },
 };
 
-foreach (CsvRecord<char> record in CsvReader.Enumerate(data, options))
+foreach (CsvRecord<char> record in Csv.From(data).Enumerate(options))
 {
     // get fields by index or header name
     var u1 = new User(
@@ -112,7 +112,7 @@ string data = "1,Bob,2010-01-01\n2,Alice,2024-05-22";
 
 var options = new CsvOptions<char> { HasHeader = false };
 
-foreach (var user in CsvReader.Read<User>(data, options))
+foreach (var user in Csv.From(data).Read<User>(options))
 {
     Console.WriteLine(user);
 }
@@ -121,8 +121,9 @@ foreach (var user in CsvReader.Read<User>(data, options))
 ## Writing records
 ```csharp
 User[] data = [new(1, "Bob", DateTime.Now, 42), new(2, "Alice", DateTime.UnixEpoch, null)];
-StringBuilder result = CsvWriter.WriteToString(data);
-Console.WriteLine(result);
+StringBuilder builder = new StringBuilder();
+Csv.To(builder).Write(data);
+Console.WriteLine(builder);
 ```
 
 ## Writing manually

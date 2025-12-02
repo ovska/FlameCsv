@@ -12,24 +12,24 @@ See the [documentation](https://ovska.github.io/FlameCsv) for more information a
 
 # Features
 
-- 💡 **Ease of Use**
+- **Ease of Use**
     - Simple API for reading and writing CSV
     - Built-in support for common CLR types
     - Supports both synchronous and asynchronous operations
     - Flexible; read or write almost any data source
     - UTF-8/ASCII support to read/write bytes directly without additional transcoding
     - Supports hot reload
-- 🚀 **High Performance**
+- **High Performance**
     - Optimized for speed and low memory usage
     - Specialized SIMD-accelerated parsing and unescaping
     - Batteries-included internal caching and memory pooling for near-zero allocations
     - Reflection code paths that rival and exceed manually written code in performance
-- 🛠️ **Deep Customization**
+- **Deep Customization**
     - Read or write either .NET objects, or raw CSV records and fields
     - Attribute configuration for header names, constructors, field order, and more
     - Support for custom converters and converter factories
     - Read or write multiple CSV documents from/to a single data stream
-- ✍️ **Source Generator**
+- **Source Generator**
     - Fully annotated and compatible with NativeAOT
     - Supports trimming to reduce application size
     - Debuggable source code instead of compiled expressions
@@ -52,22 +52,24 @@ const string data =
 List<User> users = [];
 
 // read objects from the string
-foreach (var user in CsvReader.Read<User>(data))
+foreach (var user in Csv.From(data).Read<User>())
 {
     users.Add(user);
 }
 
 // write to stream using a different delimiter
-await CsvWriter.WriteAsync(
-    new StreamWriter(Stream.Null, Encoding.UTF8),
-    users,
-    new CsvOptions<char> { Delimiter = '\t' },
-    cancellationToken);
+await Csv
+    .To(Stream.Null, Encoding.UTF8)
+    .WriteAsync(
+        users,
+        new CsvOptions<char> { Delimiter = '\t' },
+        cancellationToken);
 ```
 
 # Changelog
 
 ## 1.0.0
+- *Breaking:* Changed public API from `CsvReader` and `CsvWriter` to `Csv.From(...)` and `Csv.To(...)` for improved discoverability and reduced overload count explosion
 - *Breaking:* Unix-style backslash escaping support removed
 - *Breaking:* Only ASCII tokens are now supported in the dialect (delimiter, quote, newline, etc.)
 - *Breaking:* Replaced `Whitespace` with `Trimming` for simplicity and consistency with other libraries.
@@ -83,6 +85,7 @@ await CsvWriter.WriteAsync(
 - *Breaking:* Calling `Complete` or `CompleteAsync` on `ICsvBufferWriter<T>` no longer throws the passed exception
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios. This is only an issue if you've inherited the I/O types
 - *Breaking:* The record parameter to `IMaterializer<T>` is now `ref readonly` instead of `ref`
+- Added support for NET10 and new AVX512 mask instructions
 - Added support for headerless CSV with the source generator
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding

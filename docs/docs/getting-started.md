@@ -18,10 +18,10 @@ Reading CSV data is as simple as:
 
 ```cs
 // Reading from a string
-IEnumerable<User> users = CsvReader.Read<User>("id,name\n1,John\n2,Jane");
+IEnumerable<User> users = Csv.From("id,name\n1,John\n2,Jane").Read<User>();
 
 // Reading from a file
-await foreach (User user in CsvReader.ReadFromFile<User>("users.csv").WithCancellation(cancellationToken))
+await foreach (User user in Csv.FromFile("users.csv").ReadAsync<User>(cancellationToken))
 {
     Console.WriteLine(user.Name);
 }
@@ -32,7 +32,7 @@ double sum = 0;
 foreach (CsvRecordRef<byte> record in new CsvReader<byte>(options, (ReadOnlyMemory<byte>)csv).ParseRecords())
 {
     ReadOnlySpan<byte> field = record[3];
-        
+
     if (double.TryParse(field, out double value))
     {
         sum += value;
@@ -50,10 +50,12 @@ var users = new[]
 };
 
 // Writing to a string
-StringBuilder csv = CsvWriter.WriteToString(users);
+StringBuilder destination = new();
+Csv.To(destination).Write(users);
+return destination.ToString();
 
 // Writing to a file
-await CsvWriter.WriteToFileAsync("users.csv", users, cancellationToken);
+await Csv.ToFile("users.csv").WriteAsync(users, cancellationToken);
 ```
 
 ## Configuration
@@ -85,16 +87,3 @@ Only differences are the converters, which are separate for `char` and `byte`.
 - Learn about configuring types in @"attributes"
 - Browse available configuration options in @"configuration"
 - Check out the performance @"benchmarks"
-- Understand the internals and design philosophy in @"architecture"
-
-## Comparisons to other libraries
-
-|                     | FlameCsv    | CsvHelper          | Sylvan     | Sep        | RecordParser |
-| ------------------- | ----------- | ------------------ | ---------- | ---------- | ------------ |
-| License             | Apache 2.0  | MS-PL / Apache 2.0 | MIT        | MIT        | MIT          |
-| Performance         | 🐇 Fast      | 🐌 Slow             | 🐇 Fast     | 🐇 Fast     | 🐟 Moderate   |
-| Memory use          | 😎 Near-zero | 🤯 High             | 🤐 Moderate | 😌 Low      | 🤯 High       |
-| Async support       | ✔️ Yes       | ✔️ Yes              | ✔️ Yes      | 〽️ Partial | ❌ No         |
-| Type binding        | ✔️ Yes       | ✔️ Yes              | ✔️ Yes      | ❌ No       | ❌ No         |
-| AOT compatible      | ✔️ Yes       | ❌ No               | ❌ No       | ✔️ Yes      | ❌ No         |
-| Broken data support | ❌ No        | ✔️ Yes              | ✔️ Yes      | ✔️ Yes      | ❔ Unknown    |

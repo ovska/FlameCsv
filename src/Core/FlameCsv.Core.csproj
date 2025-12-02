@@ -79,15 +79,6 @@
     <!-- Nuget -->
     <!-- Templates -->
     <ItemGroup>
-        <Compile Update="CsvReader.Records.cs">
-            <DependentUpon>CsvReader.cs</DependentUpon>
-        </Compile>
-        <Compile Update="CsvReader.TypeMap.cs">
-            <DependentUpon>CsvReader.cs</DependentUpon>
-        </Compile>
-        <Compile Update="CsvReader.Value.cs">
-            <DependentUpon>CsvReader.cs</DependentUpon>
-        </Compile>
         <Compile Update="CsvOptions.Converters.cs">
             <DependentUpon>CsvOptions.cs</DependentUpon>
         </Compile>

@@ -6,7 +6,7 @@ uid: examples
 
 ## TL;DR
 
-Use @"FlameCsv.CsvReader" to read CSV records or .NET objects, and @"FlameCsv.CsvWriter" to write them.
+Use @"FlameCsv.Csv" class to create builders to create writing and reading pipelines.
 
 Here's the example class used throughout this documentation:
 
@@ -46,24 +46,31 @@ For more details, see @"configuration#dialect". The configuration is identical b
 
 ### .NET types
 
-Use the static @"FlameCsv.CsvReader" class for reading CSV data. The `Read`-methods accept various data sources and return an object that can be used with `foreach`, `await foreach`, or LINQ. When `options` is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
+Use the static @"FlameCsv.Csv" class for reading CSV data. The `From`-methods accept various data sources and can be used with `foreach`, `await foreach`, or LINQ. When `options` is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
 
 The library supports both @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8) data through C# generics. For bytes, the library expects UTF-8 encoded text (which includes ASCII).
 
-CSV can be read from numerous data sources: @"System.String", @"System.ReadOnlyMemory`1", and @"System.Buffers.ReadOnlySequence`1".
+FlameCSV supports reading from a wide range of sources:
 
-CSV can also be streamed synchronously or asynchronously from @"System.IO.TextReader" and @"System.IO.Stream".
-When streaming, individual fields are tokenized from the input stream. Individual records and fields (including escaping)
-are not materialized until accessed, and the library will not buffer the entire CSV data in memory.
+- Files
+- @"System.ReadOnlyMemory`1" (arrays, strings)
+- @"System.Buffers.ReadOnlySequence`1"
+- @"System.Text.StringBuilder"
+- @"System.IO.TextReader"
+- @"System.IO.Stream"
+- @"System.IO.Pipelines.PipeReader" (async only)
+
+When using streaming sources such as `Stream`, `TextReader`, or `PipeReader`, data is read lazily as the enumerator is advanced, allowing processing of large files without loading everything into memory.
+Buffer sizes, memory pools, and other I/O options can be configured using @"FlameCsv.IO.CSVIOOptions".
 
 # [UTF-16](#tab/utf16)
 ```cs
 // sync
 string csv = "id,name,isadmin\r\n1,Bob,true\r\n2,Alice,false\r\n";
-List<User> users = CsvReader.Read<User>(csv).ToList();
+List<User> users = Csv.From(csv).Read<User>().ToList();
 
 // async
-await foreach (var user in CsvReader.Read<User>(csv))
+await foreach (var user in Csv.From(csv).Read<User>())
 {
     ProcessUser(user);
 }
@@ -73,10 +80,10 @@ await foreach (var user in CsvReader.Read<User>(csv))
 ```cs
 // sync
 byte[] csv = "id,name,isadmin\r\n1,Bob,true\r\n2,Alice,false\r\n"u8.ToArray();
-List<User> users = CsvReader.Read<User>(csv).ToList();
+List<User> users = Csv.From(csv).Read<User>().ToList();
 
 // async
-await foreach (var user in CsvReader.Read<User>(csv))
+await foreach (var user in Csv.From(csv).Read<User>())
 {
     ProcessUser(user);
 }
@@ -89,7 +96,7 @@ await foreach (var user in CsvReader.Read<User>(csv))
 
 ### CSV records and fields
 
-The @"FlameCsv.CsvReader" class contains the `Enumerate`-methods to read @"FlameCsv.CsvRecord`1" that wraps the CSV data, and can be used to inspect details about the records, such has field counts, unescaped record or field, line numbers, and exact character/byte offsets in the file.
+The `Enumerate`-methods in @"FlameCsv.Csv.IReadBuilder`1" can be used to read CSV records without creating class instances from them, and inspect details such has field counts, raw unescaped data, line numbers, and exact character/byte offsets in the file.
 
 Fields can be accessed directly using the @"FlameCsv.CsvFieldIdentifier"-struct, which is implicitly convertible from @"System.String" and @"System.Int32". In the example below, passing `"id"` and `0` to `ParseField` are functionally equivalent. The string-overload however includes and additional array/dictionary-lookup. The @"FlameCsv.CsvRecord`1.Header" and @"FlameCsv.CsvRecord`1.FieldCount" properties can be used to determine if a specific field can be accessed, along with @"FlameCsv.CsvRecord`1.Contains(FlameCsv.CsvFieldIdentifier)".
 
@@ -97,7 +104,7 @@ The @"FlameCsv.CsvRecord`1" struct can also be used in a `foreach`-statement to 
 
 # [Type binding](#tab/example-types)
 ```cs
-foreach (ref readonly CsvRecord<char> record in CsvReader.Enumerate(csv))
+foreach (ref readonly CsvRecord<char> record in Csv.From(csv).Enumerate())
 {
     Console.WriteLine("Fields: {0}",         record.FieldCount);
     Console.WriteLine("Line in file: {0}",   record.Line);
@@ -109,7 +116,7 @@ foreach (ref readonly CsvRecord<char> record in CsvReader.Enumerate(csv))
 
 # [Manual](#tab/example-manual)
 ```cs
-foreach (ref readonly CsvRecord<char> record in CsvReader.Enumerate(csv))
+foreach (ref readonly CsvRecord<char> record in Csv.From(csv).Enumerate())
 {
     Console.WriteLine("Fields: {0}",         record.FieldCount);
     Console.WriteLine("Line in file: {0}",   record.Line);
@@ -174,7 +181,7 @@ Fields that don't need escaping or are fetched with `GetRawSpan` can be handled 
 
 ### .NET types
 
-The @"FlameCsv.CsvWriter" class provides methods to write .NET objects as CSV records. Supported outputs include:
+The @"FlameCsv.Csv" class provides methods to write .NET objects as CSV records. Supported outputs include:
 - Files
 - @"System.IO.Stream"
 - @"System.IO.TextWriter"
@@ -190,12 +197,12 @@ User[] users =
     new User { Id = 2, Name = "Alice", IsAdmin = false },
 ];
 
-CsvWriter.Write(TextWriter.Null, users);
+Csv.To(TextWriter.Null).Write(users);
 ```
 
 ### CSV records and fields
 
-@"FlameCsv.CsvWriter" includes a `Create` method that can be used to create an
+Use the `Create`-method in @"FlameCsv.CsvWriter" to create an
 instance of @"FlameCsv.CsvWriter`1" that allows you to write fields, records,
 or unescaped raw data directly into your output, while taking care of field
 quoting, delimiters, and escaping. The writer can be flushed manually, or
@@ -237,9 +244,23 @@ After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.
 > [!NOTE]
 > The @"System.Exception" parameter is used to suppress flushing any remaining data if the write operation errored. A `using`-statement or `Dispose` can be used to clean up the writer instance similarly, but you lose the aforementioned benefit by only disposing. You can safely wrap a manually completed writer in a `using` block, since multiple completions are harmless.
 
+## Parallel reading and writing
+
+For CPU bound workloads, you can read and write CSV data in parallel by adding `AsParallel()` to the reading or writing pipeline.
+Parallel operations have higher memory use and overhead, but can provide significant speedups on multi-core systems where
+parsing and formatting the records is the bottleneck.
+
+When reading in parallel, you can either use `ReadUnordered` to get an enumerable to loop over the parsed record batches,
+or `ForEachUnordered` to process the batches directly with a callback (the callback can be invoked concurrently by multiple threads!)
+
+> [!WARNING]
+> Parallel operations are inherently **unordered**, and record batches may be written or read out of order.
+
+
 ## CSV without a header
 
 To read or write headerless CSV:
+
 1. Annotate types with @"FlameCsv.Attributes.CsvIndexAttribute"
 2. Set @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" to `false`
 
@@ -260,7 +281,7 @@ const string csv =
     2,Alice,false
     """;
 
-foreach (User user in CsvReader.Read<User>(csv, options))
+foreach (User user in Csv.From(csv).Read<User>(options))
 {
     ProcessUser(user);
 }
@@ -348,7 +369,7 @@ class YesNoConverter : CsvConverter<byte, bool>
 ### Converter factory
 
 This example implements a factory that creates a generic @"System.Collections.Generic.IEnumerable`1" converter
-that reads the item values separated by `;` (semicolon).
+that reads the item values separated by `;`.
 
 Thanks to the @"System.Numerics.IBinaryInteger`1"-constraint,
 we can create the separator for both token without having to resort to `typeof`-checks and/or casts/unsafe.
@@ -370,6 +391,11 @@ class EnumerableConverterFactory<T> : CsvConverterFactory<T>
 
     public override CsvConverter<byte> Create(Type type, CsvOptions<T> options)
     {
+        if (options.Delimiter == ';' || options.Quote == ';')
+        {
+            throw new NotSupportedException("EnumerableConverterFactory cannot be used when the delimiter or quote is ';'");
+        }
+        
         var elementType = type.GetInterfaces().First(IsIEnumerable).GetGenericArguments()[0];
         return (CsvConverter<T>)Activator.CreateInstance(
             typeof(EnumerableConverterFactory<,>).MakeGenericType(typeof(T), elementType),
