@@ -62,6 +62,7 @@ internal static partial class CsvParallel
                         {
                             consumerException = e;
                             cts.Cancel();
+                            break;
                         }
                         finally
                         {
@@ -149,7 +150,7 @@ internal static partial class CsvParallel
             {
                 Debug.Assert(
                     producerException is not null || consumerException is not null,
-                    "There should be an exception if there are remaining items in the consumer queue"
+                    $"There should be an exception if there are remaining items in the consumer queue: {producerException} / {consumerException}"
                 );
 
                 consumer(in state, producerException ?? consumerException);
@@ -383,90 +384,6 @@ internal static partial class CsvParallel
                         await channel
                             .Writer.WriteAsync(remaining.AsArraySegment(), cancellationToken)
                             .ConfigureAwait(false);
-                    }
-                }
-                catch (Exception e)
-                {
-                    ex = e;
-                }
-                finally
-                {
-                    channel.Writer.Complete(ex);
-                }
-            },
-            CancellationToken.None
-        );
-
-        return channel.Reader;
-    }
-
-    internal static ChannelReader<TState> CreateChannel<T, TElement, TProducer, TState>(
-        IEnumerable<TElement> source,
-        TProducer producer,
-        CsvParallelOptions parallelOptions
-    )
-        where T : allows ref struct
-        where TElement : IEnumerable<T>, IHasOrder
-        where TProducer : IProducer<T, TState>
-        where TState : IConsumable
-    {
-        CancellationToken cancellationToken = parallelOptions.CancellationToken;
-        int maxDegreeOfParallelism = parallelOptions.ReadingMaxDegreeOfParallelism;
-        int chunkSize = parallelOptions.EffectiveChunkSize;
-
-        Channel<TState> channel = Channel.CreateBounded<TState>(
-            new BoundedChannelOptions(maxDegreeOfParallelism)
-            {
-                SingleReader = true,
-                SingleWriter = false,
-                FullMode = BoundedChannelFullMode.Wait,
-            }
-        );
-
-        _ = Task.Run(
-            async () =>
-            {
-                Exception? ex = null;
-                ConcurrentStack<TState> unconsumed = [];
-
-                try
-                {
-                    await Parallel
-                        .ForEachAsync(
-                            source,
-                            parallelOptions: new()
-                            {
-                                CancellationToken = cancellationToken,
-                                MaxDegreeOfParallelism = maxDegreeOfParallelism,
-                            },
-                            async (chunk, innerToken) =>
-                            {
-                                if (!unconsumed.TryPop(out TState? state))
-                                {
-                                    state = producer.CreateState();
-                                }
-
-                                using var enumerator = chunk.GetEnumerator();
-
-                                while (enumerator.MoveNext())
-                                {
-                                    if (state.ShouldConsume)
-                                    {
-                                        await channel.Writer.WriteAsync(state, innerToken).ConfigureAwait(false);
-                                        state = producer.CreateState();
-                                    }
-
-                                    producer.Produce(chunk.Order, enumerator.Current, ref state);
-                                }
-
-                                unconsumed.Push(state);
-                            }
-                        )
-                        .ConfigureAwait(false);
-
-                    while (unconsumed.TryPop(out TState? remaining))
-                    {
-                        await channel.Writer.WriteAsync(remaining, cancellationToken).ConfigureAwait(false);
                     }
                 }
                 catch (Exception e)

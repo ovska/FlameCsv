@@ -114,7 +114,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
 
     public TResult Parse<TRecord>(scoped ref readonly TRecord record) where TRecord : ICsvRecord<T>, allows ref struct
     {
-        if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, record.FieldCount);
+        if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount<T, TRecord>(<#= current #>, record.FieldCount, in record);
 <#
         for (var i = 0; i < current; i++)
         {

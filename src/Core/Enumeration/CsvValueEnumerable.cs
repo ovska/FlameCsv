@@ -15,7 +15,6 @@ internal sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TVal
 {
     private readonly Csv.IReadBuilder<T> _builder;
     private readonly CsvOptions<T> _options;
-    private CsvExceptionHandler<T>? _exceptionHandler;
 
     /// <summary>
     /// Creates a new instance that can be used to read CSV records.
@@ -37,32 +36,14 @@ internal sealed class CsvValueEnumerable<T, [DAM(Messages.ReflectionBound)] TVal
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvValueEnumerator<T, TValue>(_options, _builder.CreateReader(false))
-        {
-            ExceptionHandler = _exceptionHandler,
-        };
+        return new CsvValueEnumerator<T, TValue>(_options, _builder.CreateReader(false));
     }
 
     /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
     [MustDisposeResource]
     public CsvValueEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new CsvValueEnumerator<T, TValue>(_options, _builder.CreateReader(true), cancellationToken)
-        {
-            ExceptionHandler = _exceptionHandler,
-        };
-    }
-
-    /// <summary>
-    /// Sets the exception handler for the enumerator.
-    /// If the handler returns <c>true</c>, the exception is considered handled and the record is skipped.
-    /// </summary>
-    /// <param name="handler">Exception handler. Set to null to remove an existing handler</param>
-    /// <returns>The same enumerable instance</returns>
-    public CsvValueEnumerable<T, TValue> WithExceptionHandler(CsvExceptionHandler<T>? handler)
-    {
-        _exceptionHandler = handler;
-        return this;
+        return new CsvValueEnumerator<T, TValue>(_options, _builder.CreateReader(true), cancellationToken);
     }
 
     [MustDisposeResource]

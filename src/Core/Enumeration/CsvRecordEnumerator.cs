@@ -79,7 +79,6 @@ public sealed partial class CsvRecordEnumerator<T>
         ArgumentNullException.ThrowIfNull(reader);
 
         _hasHeader = options.HasHeader;
-        _validateFieldCount = options.ValidateFieldCount;
 
         // clear the materializer cache on hot reload
         HotReloadService.RegisterForHotReload(
@@ -92,7 +91,6 @@ public sealed partial class CsvRecordEnumerator<T>
 
     private CsvRecord<T> _current;
     internal readonly bool _hasHeader;
-    private readonly bool _validateFieldCount;
     private Dictionary<object, object>? _materializerCache;
     private int? _expectedFieldCount;
     private CsvHeader? _header;
@@ -145,19 +143,6 @@ public sealed partial class CsvRecordEnumerator<T>
         }
 
         _version++;
-
-        if (_validateFieldCount)
-        {
-            if (_expectedFieldCount is null)
-            {
-                _expectedFieldCount = slice.FieldCount;
-            }
-            else if (slice.FieldCount != _expectedFieldCount.Value)
-            {
-                Throw.InvalidData_FieldCount(_expectedFieldCount.Value, slice.FieldCount);
-            }
-        }
-
         _current = new CsvRecord<T>(_version, Position, Line, slice, this);
         return true;
     }

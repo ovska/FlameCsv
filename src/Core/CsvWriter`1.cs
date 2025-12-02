@@ -54,16 +54,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public bool HeaderWritten { get; private set; }
 
     /// <summary>
-    /// Field count required for each record, if set. Terminating a record (with <see cref="NextRecord"/> or completion)
-    /// will throw a <see cref="CsvWriteException"/> if the record is not empty, and the field count does not match.
-    /// </summary>
-    /// <remarks>
-    /// If not <c>null</c>, set to the field count of the first non-empty record written if <see cref="CsvOptions{T}.ValidateFieldCount"/>
-    /// is <c>true</c>. You can set this property to <c>null</c> to reset the field count validation in this case.
-    /// </remarks>
-    public int? ExpectedFieldCount { get; set; }
-
-    /// <summary>
     /// Dematerializers indexed either by the type (reflection), or the typemap instance (sourcegen).
     /// </summary>
     private readonly IDictionary<object, object> _dematerializerCache;
@@ -97,7 +87,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public bool IsCompleted { get; private set; }
 
     private readonly CsvFieldWriter<T> _inner;
-    private readonly bool _validateFieldCount;
 
     /// <summary>
     /// Returns a read-only reference to the inner writer.
@@ -115,7 +104,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             Throw.Argument_DefaultStruct(typeof(CsvFieldWriter<T>), nameof(inner));
 
         _inner = inner;
-        _validateFieldCount = inner.Options.ValidateFieldCount;
         LineIndex = 1;
 
         AutoFlush = true;
@@ -222,8 +210,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
 
-        ValidateFieldCount();
-
         _inner.WriteNewline();
         FieldIndex = 0;
         LineIndex++;
@@ -244,8 +230,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
 
         if (cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled(cancellationToken);
-
-        ValidateFieldCount();
 
         _inner.WriteNewline();
         FieldIndex = 0;
@@ -639,26 +623,6 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             _inner.WriteDelimiter();
     }
 
-    /// <summary>
-    /// Validates the current record's field count if <see cref="CsvOptions{T}.ValidateFieldCount"/>
-    /// is <c>true</c>. Called when moving to the next record.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ValidateFieldCount()
-    {
-        if (FieldIndex > 0 && (_validateFieldCount || ExpectedFieldCount.HasValue))
-        {
-            if (ExpectedFieldCount is null)
-            {
-                ExpectedFieldCount = FieldIndex;
-            }
-            else if (ExpectedFieldCount.GetValueOrDefault() != FieldIndex)
-            {
-                ThrowHelper.InvalidFieldCount(LineIndex, ExpectedFieldCount.GetValueOrDefault(), FieldIndex);
-            }
-        }
-    }
-
     /// <inheritdoc/>
     void IDisposable.Dispose()
     {
@@ -669,19 +633,5 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     ValueTask IAsyncDisposable.DisposeAsync()
     {
         return CompleteAsync();
-    }
-}
-
-file static class ThrowHelper
-{
-    [DoesNotReturn]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [StackTraceHidden]
-    public static void InvalidFieldCount(int lineIndex, int expected, int actual)
-    {
-        throw new CsvWriteException($"Invalid field count at line {lineIndex}. Expected {expected}, got {actual}.")
-        {
-            LineNumber = lineIndex,
-        };
     }
 }

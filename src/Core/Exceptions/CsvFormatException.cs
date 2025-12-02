@@ -6,13 +6,13 @@ namespace FlameCsv.Exceptions;
 
 /// <summary>
 /// Represents unrecoverable format errors in the CSV, such as invalid quotes within a field.<br/>
-/// This exception is <b>not</b> handled by <see cref="CsvValueEnumeratorBase{T,TValue}.ExceptionHandler"/>.
+/// This exception is <b>not</b> handled by <see cref="CsvValueEnumeratorBase{T,TValue}._exceptionHandler"/>.
 /// </summary>
 /// <remarks>
 /// Initializes an exception representing invalid CSV format.
 /// </remarks>
 public sealed class CsvFormatException(string? message = null, Exception? innerException = null)
-    : Exception(message, innerException)
+    : CsvReadExceptionBase(message, innerException)
 {
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -20,19 +20,4 @@ public sealed class CsvFormatException(string? message = null, Exception? innerE
     {
         throw new CsvFormatException(message, innerException);
     }
-
-    /// <summary>
-    /// 1-based line index of where the invalid data was found, if available.
-    /// </summary>
-    public int? Line { get; set; }
-
-    /// <summary>
-    /// Approximate 0-based index where the invalid data was found, if available.
-    /// </summary>
-    public long? Position { get; set; }
-
-    /// <summary>
-    /// The CSV record that caused the exception, if available.
-    /// </summary>
-    public string? Record { get; set; }
 }

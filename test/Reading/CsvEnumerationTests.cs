@@ -51,21 +51,6 @@ public sealed class CsvEnumerationTests : IDisposable
     }
 
     [Fact]
-    public void Should_Validate_Field_Count()
-    {
-        const string data = "id,name,age\n1,Bob,30\n2,Alice,45\n3,Charlie,25,true\n";
-
-        using var enumerator = new CsvRecordEnumerator<char>(
-            new CsvOptions<char> { ValidateFieldCount = true },
-            CsvBufferReader.Create(data)
-        );
-
-        Assert.True(enumerator.MoveNext());
-        Assert.True(enumerator.MoveNext());
-        Assert.Throws<CsvReadException>(() => enumerator.MoveNext());
-    }
-
-    [Fact]
     public void Should_Reset_Header()
     {
         const string data = "id,name\r\n" + "1,Bob\r\n" + "\r\n" + "name,id\r\n" + "Alice,2\r\n";

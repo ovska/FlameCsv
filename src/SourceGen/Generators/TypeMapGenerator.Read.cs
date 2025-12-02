@@ -148,8 +148,10 @@ partial class TypeMapGenerator
 
                 using (writer.WriteBlock())
                 {
+                    writer.Write("global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount<");
+                    writer.Write(typeMap.TokenName);
                     writer.WriteLine(
-                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expected: targets.Length, actual: record.FieldCount);"
+                        " , TRecord>(expected: targets.Length, actual: record.FieldCount, record: in record);"
                     );
                 }
 

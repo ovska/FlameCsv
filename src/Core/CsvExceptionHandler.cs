@@ -18,12 +18,10 @@ public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args)
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
-public readonly struct CsvExceptionHandlerArgs<T>
+public readonly ref struct CsvExceptionHandlerArgs<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly bool _useSlice;
     private readonly CsvSlice<T> _slice;
-    private readonly CsvRecord<T> _record;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
@@ -33,7 +31,8 @@ public readonly struct CsvExceptionHandlerArgs<T>
         ImmutableArray<string> header,
         Exception exception,
         int lineIndex,
-        long position
+        long position,
+        int? expectedFieldCount
     )
     {
         _slice = slice;
@@ -41,28 +40,7 @@ public readonly struct CsvExceptionHandlerArgs<T>
         Line = lineIndex;
         Position = position;
         Exception = exception;
-
-        _useSlice = true;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
-    /// </summary>
-    /// <remarks>
-    /// This constructor is included for testing only.
-    /// </remarks>
-    public CsvExceptionHandlerArgs(in CsvRecord<T> record, Exception exception)
-    {
-        record.EnsureValid();
-        ArgumentNullException.ThrowIfNull(exception);
-
-        Header = record.Header?.Values ?? [];
-        Line = record.Line;
-        Position = record.Position;
-        Exception = exception;
-
-        _record = record;
-        _useSlice = false;
+        ExpectedFieldCount = expectedFieldCount;
     }
 
     /// <summary>
@@ -71,7 +49,12 @@ public readonly struct CsvExceptionHandlerArgs<T>
     public ImmutableArray<string> Header { get; }
 
     /// <inheritdoc cref="ICsvRecord{T}.FieldCount"/>
-    public int FieldCount => _useSlice ? _slice.FieldCount : _record.FieldCount;
+    public int FieldCount => _slice.FieldCount;
+
+    /// <summary>
+    /// Expected number of fields, if known.
+    /// </summary>
+    public int? ExpectedFieldCount { get; }
 
     /// <summary>
     /// Exception thrown.
@@ -84,7 +67,7 @@ public readonly struct CsvExceptionHandlerArgs<T>
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> RawRecord => _useSlice ? _slice.RawValue : _record.Raw;
+    public ReadOnlySpan<T> RawRecord => _slice.RawValue;
 
     /// <summary>
     /// Options instance.
@@ -109,9 +92,7 @@ public readonly struct CsvExceptionHandlerArgs<T>
     /// <returns>Value of the field</returns>
     public ReadOnlySpan<T> GetField(int index, bool raw = false)
     {
-        ref readonly CsvSlice<T> slice = ref _useSlice ? ref _slice : ref _record._slice;
-
-        CsvRecordRef<T> recordRef = new(in slice);
+        CsvRecordRef<T> recordRef = new(in _slice);
         return raw ? recordRef.GetRawSpan(index) : recordRef[index];
     }
 }

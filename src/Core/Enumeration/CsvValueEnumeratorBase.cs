@@ -40,15 +40,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         Headers = default;
     }
 
-    /// <summary>
-    /// Delegate that is called when an exception is thrown while parsing class records.
-    /// If the delegate returns <c>true</c>, the faulty record is skipped.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="CsvFormatException"/> is not handled as it represents structurally invalid CSV.
-    /// </remarks>
-    public CsvExceptionHandler<T>? ExceptionHandler { get; init; }
-
+    private readonly CsvExceptionHandler<T>? _exceptionHandler;
     private IMaterializer<T, TValue>? _materializer;
 
     /// <summary>
@@ -96,6 +88,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     {
         ArgumentNullException.ThrowIfNull(options);
         Current = default!;
+        _exceptionHandler = options.ExceptionHandler;
     }
 
     /// <summary>
@@ -111,36 +104,49 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <inheritdoc/>
     internal override bool MoveNextCore(ref readonly CsvSlice<T> slice)
     {
-        if (_materializer is null && TryReadHeader(in slice))
+        if (_materializer is null && InitializeMaterializerAndTryConsume(in slice))
         {
             return false;
         }
 
+        CsvRecordRef<T> record = new(in slice);
+
         try
         {
-            CsvRecordRef<T> record = new(in slice);
             Current = _materializer.Parse(in record);
-            return true;
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            cfe.Line ??= Line;
-            cfe.Position ??= Position;
-            cfe.Record = slice.RawValue.AsPrintableString();
+            cfe.Enrich(Line, Position, in slice);
             throw;
         }
         catch (Exception ex)
         {
-            (ex as CsvParseException)?.Enrich(Line, Position, in slice);
+            (ex as CsvReadExceptionBase)?.Enrich(Line, Position, in slice);
 
-            if (ExceptionHandler?.Invoke(new CsvExceptionHandlerArgs<T>(in slice, Headers, ex, Line, Position)) == true)
+            CsvExceptionHandler<T>? handler = _exceptionHandler;
+
+            if (
+                _exceptionHandler?.Invoke(
+                    new CsvExceptionHandlerArgs<T>(
+                        in slice,
+                        Headers,
+                        ex,
+                        Line,
+                        Position,
+                        (ex as CsvReadException)?.ExpectedFieldCount
+                    )
+                ) == true
+            )
             {
-                // try again
+                // exception handled; try again
                 return false;
             }
 
             throw;
         }
+
+        return true;
     }
 
     /// <summary>
@@ -150,7 +156,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <c>true</c> if the record was consumed, <c>false</c> otherwise.
     /// </returns>
     [MemberNotNull(nameof(_materializer))]
-    private bool TryReadHeader(ref readonly CsvSlice<T> slice)
+    private bool InitializeMaterializerAndTryConsume(ref readonly CsvSlice<T> slice)
     {
         if (!Options.HasHeader)
         {

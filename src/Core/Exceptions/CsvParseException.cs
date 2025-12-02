@@ -17,7 +17,7 @@ namespace FlameCsv.Exceptions;
 /// </remarks>
 [PublicAPI]
 public sealed class CsvParseException(string? message = null, Exception? innerException = null)
-    : Exception(message, innerException)
+    : CsvReadExceptionBase(message, innerException)
 {
     /// <summary>
     /// Converter instance.
@@ -40,24 +40,9 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
     public Type? TargetType { get; set; }
 
     /// <summary>
-    /// Line of the record where the exception occurred.
-    /// </summary>
-    public int? Line { get; set; }
-
-    /// <summary>
-    /// Start position of the record where the exception occurred.
-    /// </summary>
-    public long? RecordPosition { get; set; }
-
-    /// <summary>
     /// Start position of the field where the exception occurred.
     /// </summary>
     public long? FieldPosition { get; set; }
-
-    /// <summary>
-    /// Raw value of the record as a <see cref="string"/>.
-    /// </summary>
-    public string? RecordValue { get; set; }
 
     /// <summary>
     /// Raw value of the field as a <see cref="string"/>.
@@ -152,12 +137,9 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         }
     }
 
-    internal void Enrich<T>(int line, long position, ref readonly CsvSlice<T> record)
-        where T : unmanaged, IBinaryInteger<T>
+    internal override void Enrich<T>(int line, long position, ref readonly CsvSlice<T> record)
     {
-        Line ??= line;
-        RecordPosition ??= position;
-        RecordValue ??= record.RawValue.AsPrintableString();
+        base.Enrich(line, position, in record);
 
         if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {

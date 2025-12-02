@@ -14,7 +14,6 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyn
     private readonly Csv.IReadBuilder<T> _builder;
     private readonly CsvOptions<T> _options;
     private readonly CsvTypeMap<T, TValue> _typeMap;
-    private CsvExceptionHandler<T>? _exceptionHandler;
 
     internal CsvTypeMapEnumerable(Csv.IReadBuilder<T> factory, CsvOptions<T> options, CsvTypeMap<T, TValue> typeMap)
     {
@@ -34,27 +33,14 @@ public sealed class CsvTypeMapEnumerable<T, TValue> : IEnumerable<TValue>, IAsyn
     [MustDisposeResource]
     public CsvTypeMapEnumerator<T, TValue> GetEnumerator()
     {
-        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _builder.CreateReader(false))
-        {
-            ExceptionHandler = _exceptionHandler,
-        };
+        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _builder.CreateReader(false));
     }
 
     /// <inheritdoc cref="IAsyncEnumerable{T}.GetAsyncEnumerator"/>
     [MustDisposeResource]
     public CsvTypeMapEnumerator<T, TValue> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
-        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _builder.CreateReader(true), cancellationToken)
-        {
-            ExceptionHandler = _exceptionHandler,
-        };
-    }
-
-    /// <inheritdoc cref="CsvValueEnumerable{T,TValue}.WithExceptionHandler"/>
-    public CsvTypeMapEnumerable<T, TValue> WithExceptionHandler(CsvExceptionHandler<T>? handler)
-    {
-        _exceptionHandler = handler;
-        return this;
+        return new CsvTypeMapEnumerator<T, TValue>(_options, _typeMap, _builder.CreateReader(true), cancellationToken);
     }
 
     [MustDisposeResource]

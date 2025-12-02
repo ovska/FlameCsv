@@ -208,6 +208,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     private Config _config = Config.HasHeader | Config.UseDefaultConverters | Config.IgnoreEnumCase;
 
     private CsvRecordCallback<T>? _recordCallback;
+    private CsvExceptionHandler<T>? _exceptionHandler;
+
     private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
     private SealableList<(string, bool)>? _booleanValues;
     private ICsvTypeBinder<T>? _typeBinder;
@@ -309,6 +311,16 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
+    /// Delegate that is called when an exception is thrown when parsing a record.<br/>
+    /// Not used with `Enumerate()` or `AsParallel()`.
+    /// </summary>
+    public CsvExceptionHandler<T>? ExceptionHandler
+    {
+        get => _exceptionHandler;
+        set => this.SetValue(ref _exceptionHandler, value);
+    }
+
+    /// <summary>
     /// Whether to read/write a header record. The default is <c>true</c>.
     /// </summary>
     public bool HasHeader
@@ -332,21 +344,6 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     {
         get => _fieldQuoting;
         set => this.SetValue(ref _fieldQuoting, value);
-    }
-
-    /// <summary>
-    /// If <c>true</c>, validates that all records have the same number of fields
-    /// when reading <see cref="CsvRecord{T}"/> or writing with <see cref="CsvWriter{T}"/>.
-    /// Default is <c>false</c>.
-    /// </summary>
-    public bool ValidateFieldCount
-    {
-        get => _config.GetFlag(Config.ValidateFieldCount);
-        set
-        {
-            this.ThrowIfReadOnly();
-            _config.SetFlag(Config.ValidateFieldCount, value);
-        }
     }
 
     /// <summary>
@@ -434,12 +431,11 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     {
         Default = 0,
         HasHeader = 1 << 0,
-        ValidateFieldCount = 1 << 1,
-        UseDefaultConverters = 1 << 2,
-        IgnoreEnumCase = 1 << 3,
-        AllowUndefinedEnums = 1 << 4,
-        IgnoreUnmatchedHeaders = 1 << 5,
-        IgnoreDuplicateHeaders = 1 << 6,
+        UseDefaultConverters = 1 << 1,
+        IgnoreEnumCase = 1 << 2,
+        AllowUndefinedEnums = 1 << 3,
+        IgnoreUnmatchedHeaders = 1 << 4,
+        IgnoreDuplicateHeaders = 1 << 5,
     }
 }
 

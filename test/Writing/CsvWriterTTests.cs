@@ -111,41 +111,6 @@ public partial class CsvWriterTTests
     }
 
     [Fact]
-    public static void Should_Validate_Field_Count()
-    {
-        Assert.ThrowsAny<CsvWriteException>(() =>
-        {
-            Impl(
-                writer =>
-                {
-                    writer.ExpectedFieldCount = null;
-                    writer.WriteField("1");
-                    writer.WriteField("2");
-                    writer.WriteField("3");
-                    writer.NextRecord();
-                    writer.NextRecord(); // empty records don't throw
-                    writer.WriteField("1");
-                    writer.WriteField("2");
-                    writer.NextRecord();
-                },
-                new CsvOptions<char> { ValidateFieldCount = true }
-            );
-        });
-
-        Assert.ThrowsAny<CsvWriteException>(() =>
-        {
-            Impl<char>(writer =>
-            {
-                writer.ExpectedFieldCount = 4;
-                writer.WriteField("1");
-                writer.WriteField("2");
-                writer.WriteField("3");
-                writer.NextRecord();
-            });
-        });
-    }
-
-    [Fact]
     public static async Task Should_Advance_To_Next_Record()
     {
         Assert.Equal(
@@ -478,9 +443,7 @@ public partial class CsvWriterTTests
             {
                 foreach (
                     var record in Csv.From(chars)
-                        .Enumerate(
-                            new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
-                        )
+                        .Enumerate(new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading })
                 )
                 {
                     if (!writer.HeaderWritten)
@@ -503,9 +466,7 @@ public partial class CsvWriterTTests
             {
                 foreach (
                     var record in Csv.From(chars)
-                        .Enumerate(
-                            new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading, ValidateFieldCount = false }
-                        )
+                        .Enumerate(new CsvOptions<char> { Trimming = CsvFieldTrimming.Leading })
                 )
                 {
                     if (!writer.HeaderWritten)
