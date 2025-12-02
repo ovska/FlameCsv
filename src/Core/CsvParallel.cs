@@ -90,8 +90,8 @@ internal static partial class CsvParallel
                 },
                 localInit: () =>
                 {
-                    producerSignal.Release(MaxQueuedConsumers); // make space for writers
                     Interlocked.Increment(ref activeProducers);
+                    producerSignal.Release(MaxQueuedConsumers); // make space for writers
                     return producer.CreateState();
                 },
                 body: (chunk, loopState, _, state) =>
@@ -107,6 +107,7 @@ internal static partial class CsvParallel
                                 consumerQueue.Enqueue(state);
                                 consumerSignal.Release(); // signal that consumer should work
                                 producerSignal.Wait(cancellationToken); // wait until there's space for another producer
+
                                 state = producer.CreateState();
                             }
 
@@ -145,14 +146,8 @@ internal static partial class CsvParallel
         }
         finally
         {
-            // this should only contain items on exception
             while (consumerQueue.TryDequeue(out TState? state))
             {
-                Debug.Assert(
-                    producerException is not null || consumerException is not null,
-                    $"There should be an exception if there are remaining items in the consumer queue: {producerException} / {consumerException}"
-                );
-
                 consumer(in state, producerException ?? consumerException);
             }
         }

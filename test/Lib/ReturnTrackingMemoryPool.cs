@@ -128,10 +128,10 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
 
         public void Dispose()
         {
-            if (_disposed)
-                return;
-
-            _disposed = true;
+            if (Interlocked.Exchange(ref _disposed, true))
+            {
+                throw new Exception("Memory disposed twice");
+            }
 
             try
             {
@@ -164,10 +164,26 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
 
     protected override void Dispose(bool disposing)
     {
-        if (!_values.IsEmpty)
+        var sw = new SpinWait();
+
+        for (int i = 0; i < 100; i++)
+        {
+            if (Volatile.Read(ref _rentedCount) == Volatile.Read(ref _returnedCount) && _values.IsEmpty)
+            {
+                break;
+            }
+
+            sw.SpinOnce();
+        }
+
+        int rented = Volatile.Read(ref _rentedCount);
+        int returned = Volatile.Read(ref _returnedCount);
+
+        if (!_values.IsEmpty || rented != returned)
         {
             throw new InvalidOperationException(
-                $"{_values.Count} rented memory not disposed out of {_rentedCount}. "
+                $"{_values.Count} rented memory not disposed out of {rented}. "
+                    + $"Returned: {returned}."
                     + Environment.NewLine
                     + string.Join(
                         Environment.NewLine + Environment.NewLine,
@@ -179,14 +195,11 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
 
     internal void Return(Owner instance)
     {
-        if (instance.Memory.Length == 0)
+        if (instance.Memory.Length == 0 || !_values.TryRemove(instance, out _))
         {
-            return;
-        }
-
-        if (!_values.TryRemove(instance, out _))
-        {
-            throw new InvalidOperationException("The returned memory was not rented from the pool.");
+            throw new InvalidOperationException(
+                $"The returned memory was not rented from the pool (length: {instance.Memory.Length})."
+            );
         }
 
         Interlocked.Increment(ref _returnedCount);
