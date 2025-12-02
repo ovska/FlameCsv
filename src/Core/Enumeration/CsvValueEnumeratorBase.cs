@@ -123,6 +123,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         catch (Exception ex)
         {
             (ex as CsvReadExceptionBase)?.Enrich(Line, Position, in slice);
+            (ex as CsvParseException)?.WithHeader(Headers);
 
             CsvExceptionHandler<T>? handler = _exceptionHandler;
 

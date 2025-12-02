@@ -461,6 +461,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         };
 
         ex.Enrich(Line, Position, in _slice);
+        ex.HeaderValue = id.UnsafeName;
         throw ex;
     }
 

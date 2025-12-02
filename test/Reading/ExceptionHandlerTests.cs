@@ -36,8 +36,6 @@ public class ExceptionHandlerTests
     [Fact]
     public void Should_Handle()
     {
-        var exceptions = new List<CsvParseException>();
-
         var list = Run(args =>
         {
             Assert.Equal(["Id", "Name"], args.Header);
@@ -57,10 +55,10 @@ public class ExceptionHandlerTests
                 Assert.Equal(0, pe.FieldIndex);
                 Assert.Equal("X", pe.FieldValue);
                 Assert.Equal(19, pe.FieldPosition);
-
+                Assert.Equal(typeof(int), pe.TargetType);
+                Assert.Contains("Id", pe.Target);
+                Assert.Equal("Id", pe.HeaderValue);
                 Assert.IsType<NumberTextConverter<int>>(pe.Converter);
-
-                exceptions.Add(pe);
                 return true;
             }
 
@@ -69,9 +67,6 @@ public class ExceptionHandlerTests
 
         Assert.Equal(3, list.Count);
         Assert.Equal([(0, "A"), (1, "B"), (3, "D")], list.Select(o => (o.Id, o.Name)));
-
-        Assert.Single(exceptions);
-        Assert.IsType<NumberTextConverter<int>>(exceptions[0].Converter);
     }
 
     [Fact]

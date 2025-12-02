@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -50,6 +51,11 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
     public string? FieldValue { get; set; }
 
     /// <summary>
+    /// Header of the field where the exception occurred.
+    /// </summary>
+    public string? HeaderValue { get; set; }
+
+    /// <summary>
     /// Throws an exception for a field that could not be parsed.
     /// </summary>
     /// <param name="fieldIndex">Index of the field in the record</param>
@@ -67,6 +73,7 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
             Converter = converter,
             FieldIndex = fieldIndex,
             Target = target,
+            TargetType = parsedType,
         };
     }
 
@@ -102,6 +109,15 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
                 comma = true;
             }
 
+            if (HeaderValue is { } header)
+            {
+                vsb.Append(comma ? ", " : " ");
+                vsb.Append("Header: [");
+                vsb.Append(header);
+                vsb.Append(']');
+                comma = true;
+            }
+
             if (RecordValue is { Length: > 0 } recordValue)
             {
                 vsb.Append(comma ? ", " : " ");
@@ -134,6 +150,14 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
             }
 
             return vsb.ToString();
+        }
+    }
+
+    internal void WithHeader(ImmutableArray<string> headers)
+    {
+        if (!headers.IsDefault && FieldIndex is { } index && (uint)index < (uint)headers.Length)
+        {
+            HeaderValue = headers[index];
         }
     }
 
