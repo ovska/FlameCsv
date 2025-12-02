@@ -18,7 +18,7 @@ using Perfolizer.Horology;
 //     args
 // );
 
-BenchmarkRunner.Run<WriteBench>(new Config(), args);
+BenchmarkRunner.Run<ReadObjects>(new Config(), args);
 
 file class Config : ManualConfig
 {

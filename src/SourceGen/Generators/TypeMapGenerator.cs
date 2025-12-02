@@ -106,7 +106,7 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
         using (writer.WriteBlock())
         {
             WriteDefaultInstance(writer, typeMap);
-            WriteIndexes(writer, typeMap);
+            WriteOverrideGuids(writer, typeMap);
             GetReadCode(writer, typeMap, cancellationToken);
             GetWriteCode(writer, typeMap, cancellationToken);
         }
@@ -133,26 +133,16 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
         writer.WriteLine();
     }
 
-    private static void WriteIndexes(IndentedTextWriter writer, TypeMapModel typeMap)
+    private static void WriteOverrideGuids(IndentedTextWriter writer, TypeMapModel typeMap)
     {
-        // start from 1 so uninitialized members are zero and fail as expected
-        int index = 1;
-
-        foreach (var member in typeMap.AllMembers.Readable())
-        {
-            writer.Write("private const int ");
-            member.WriteId(writer);
-            writer.WriteLine($" = {index++};");
-        }
-
-        writer.WriteLine();
-
         bool anyGuid = false;
 
         foreach (var member in typeMap.AllMembers)
         {
             if (member.OverriddenConverter is null)
                 continue;
+
+            anyGuid = true;
 
             Guid guid = Guid.NewGuid();
             byte[] bytes = guid.ToByteArray();
@@ -174,8 +164,6 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 
             writer.Write("); // ");
             writer.WriteLine(guid.ToString());
-
-            anyGuid = true;
         }
 
         if (anyGuid)

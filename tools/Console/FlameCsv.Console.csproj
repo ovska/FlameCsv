@@ -2,6 +2,7 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <NoWarn>$(NoWarn);CS1591</NoWarn>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <!--<ItemGroup>
     <EditorConfigFiles Include=".editorconfig" />

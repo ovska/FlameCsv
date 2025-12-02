@@ -43,14 +43,7 @@ partial class TypeMapGenerator
                 WriteMatchers(writer, typeMap, cancellationToken);
                 writer.WriteLine();
 
-                writer.WriteLine("if (options.IgnoreUnmatchedHeaders)");
-                using (writer.WriteBlock())
-                {
-                    writer.WriteLine("materializer.Targets[index] = -1;");
-                }
-
-                writer.WriteLine("else");
-                using (writer.WriteBlock())
+                writer.WriteLine("if (!options.IgnoreUnmatchedHeaders)");
                 {
                     writer.WriteLine("base.ThrowUnmatched(name, index, headers);");
                 }
@@ -95,6 +88,8 @@ partial class TypeMapGenerator
         WriteMissingRequiredFields(typeMap, writer);
 
         writer.WriteLine();
+
+        writer.WriteLineIf(typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
         writer.WriteLine("private struct ParseState");
         using (writer.WriteBlock())
         {
@@ -110,11 +105,14 @@ partial class TypeMapGenerator
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
         writer.WriteLine(GlobalConstants.EditorBrowsableAttr);
         writer.WriteLine(
-            $"internal sealed partial class TypeMapMaterializer : global::FlameCsv.Reading.IMaterializer<{typeMap.TokenName}, {typeMap.Type.FullyQualifiedName}>"
+            $"internal sealed partial class TypeMapMaterializer(int expectedFieldCount) : global::FlameCsv.Reading.IMaterializer<{typeMap.TokenName}, {typeMap.Type.FullyQualifiedName}>"
         );
 
         using (writer.WriteBlock())
         {
+            writer.WriteLine("public int ExpectedFieldCount => expectedFieldCount;");
+            writer.WriteLine();
+
             foreach (var member in typeMap.AllMembers.Readable())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -126,32 +124,32 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine();
-            writer.WriteLine("public readonly int[] Targets;");
-            writer.WriteLine();
-            writer.WriteLine("public TypeMapMaterializer(int length)");
-            using (writer.WriteBlock())
+
+            foreach (var member in typeMap.AllMembers.Readable())
             {
-                writer.WriteLine("Targets = new int[length];");
+                cancellationToken.ThrowIfCancellationRequested();
+                writer.Write("public int ");
+                member.WriteId(writer);
+                writer.WriteLine(";");
             }
 
             writer.WriteLine();
 
+            writer.WriteLineIf(typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
             writer.WriteLine(
                 $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(scoped ref readonly TRecord record) where TRecord : global::FlameCsv.Reading.ICsvRecord<{typeMap.TokenName}>, allows ref struct"
             );
 
             using (writer.WriteBlock())
             {
-                writer.WriteLine("int[] targets = Targets;");
-                writer.WriteLine();
-                writer.WriteLine("if (targets.Length != record.FieldCount)");
+                writer.WriteLine("if (record.FieldCount != ExpectedFieldCount)");
 
                 using (writer.WriteBlock())
                 {
                     writer.Write("global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount<");
                     writer.Write(typeMap.TokenName);
                     writer.WriteLine(
-                        " , TRecord>(expected: targets.Length, actual: record.FieldCount, record: in record);"
+                        " , TRecord>(expected: ExpectedFieldCount, actual: record.FieldCount, record: in record);"
                     );
                 }
 
@@ -169,44 +167,39 @@ partial class TypeMapGenerator
 
                 WriteDefaultParameterValues(writer, typeMap, cancellationToken, out bool hasOptionalParameters);
 
-                writer.WriteLine("for (int target = 0; target < targets.Length; target++)");
-                using (writer.WriteBlock())
+                writer.WriteLine();
+
+                foreach (var member in typeMap.AllMembers.Readable())
                 {
-                    writer.WriteLine(
-                        $"scoped global::System.ReadOnlySpan<{typeMap.TokenName}> currentField = record[target];"
-                    );
-                    writer.WriteLine("bool result = targets[target] switch");
-                    writer.WriteLine("{");
-                    writer.IncreaseIndent();
+                    cancellationToken.ThrowIfCancellationRequested();
 
-                    foreach (var member in typeMap.AllMembers.Readable())
+                    writer.Write("if (");
+
+                    if (!member.IsRequired)
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-
-                        member.WriteId(writer);
-                        writer.Write(" => ");
                         member.WriteConverterName(writer);
-                        writer.Write(".TryParse(currentField, out state.");
-                        writer.Write(member.Identifier);
-                        writer.WriteLine("),");
+                        writer.Write(" is not null && ");
                     }
 
-                    writer.WriteLine("0 => false, // Should never happen");
-                    writer.WriteLine("_ => true, // Ignored fields have target set to -1");
+                    writer.Write("!");
+                    member.WriteConverterName(writer);
+                    writer.Write(".TryParse(record[");
+                    member.WriteId(writer);
+                    writer.Write("], out state.");
+                    writer.Write(member.Identifier);
+                    writer.WriteLine("))");
 
-                    writer.DecreaseIndent();
-                    writer.WriteLine("};");
-
-                    writer.WriteLine();
-
-                    writer.WriteLine("if (!result)");
                     using (writer.WriteBlock())
                     {
-                        writer.WriteLine("ThrowForFailedParse(target);");
+                        writer.Write("ThrowForFailedParse(");
+                        member.WriteId(writer);
+                        writer.WriteLine(");");
                     }
+
+                    writer.WriteLine();
                 }
 
-                writer.WriteLine();
+#if false
                 writer.WriteLine("// Required fields are guaranteed to be non-null.");
                 writer.WriteLine("// Optional fields are null-checked to only write a value when one was read.");
 
@@ -214,6 +207,7 @@ partial class TypeMapGenerator
                     hasOptionalParameters,
                     "// Optional parameters are always passed, their default value is used when not read (see above)"
                 );
+#endif
 
                 string typeToWrite = typeMap.Proxy?.FullyQualifiedName ?? typeMap.Type.FullyQualifiedName;
 
@@ -226,7 +220,7 @@ partial class TypeMapGenerator
 
             writer.WriteLine();
             writer.WriteLine(GlobalConstants.NoInliningAttr);
-            writer.WriteLine("private void ThrowForFailedParse(int target)");
+            writer.WriteLine("private void ThrowForFailedParse(int index)");
 
             using (writer.WriteBlock())
             {
@@ -234,17 +228,17 @@ partial class TypeMapGenerator
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    writer.Write("if (target == ");
+                    writer.Write("if (index == ");
                     member.WriteId(writer);
                     writer.Write(
-                        $") global::FlameCsv.Exceptions.CsvParseException.Throw(target, typeof({member.Type.FullyQualifiedName}), "
+                        $") global::FlameCsv.Exceptions.CsvParseException.Throw(index, typeof({member.Type.FullyQualifiedName}), "
                     );
                     member.WriteConverterName(writer);
                     writer.WriteLine($", {member.HeaderName.ToStringLiteral()});");
                 }
 
                 writer.WriteLine(
-                    "throw new global::System.Diagnostics.UnreachableException(\"Invalid target: \" + target.ToString());"
+                    "throw new global::System.Diagnostics.UnreachableException(\"Invalid target index: \" + index.ToString());"
                 );
             }
         }
@@ -471,7 +465,6 @@ partial class TypeMapGenerator
 
             using (writer.WriteBlock())
             {
-                writer.WriteLine("materializer.Targets[index] = -1;");
                 writer.WriteLine("continue;");
             }
         }
@@ -506,22 +499,14 @@ partial class TypeMapGenerator
 
             using (writer.WriteBlock())
             {
-                writer.Write("if (materializer.");
+                writer.Write("if (!options.IgnoreDuplicateHeaders && materializer.");
                 member.WriteConverterName(writer);
                 writer.WriteLine(" is not null)");
                 using (writer.WriteBlock())
                 {
-                    writer.WriteLine("if (!options.IgnoreDuplicateHeaders)");
-                    using (writer.WriteBlock())
-                    {
-                        writer.Write("base.ThrowDuplicate(");
-                        writer.Write(member.HeaderName.ToStringLiteral());
-                        writer.WriteLine(", name, headers);");
-                    }
-                    writer.WriteLine();
-                    writer.Write("global::FlameCsv.Binding.CsvTypeMap.IgnoreSetId(materializer.Targets, ");
-                    member.WriteId(writer);
-                    writer.WriteLine(");");
+                    writer.Write("base.ThrowDuplicate(");
+                    writer.Write(member.HeaderName.ToStringLiteral());
+                    writer.WriteLine(", name, headers, comparer);");
                 }
 
                 writer.WriteLine();
@@ -530,9 +515,9 @@ partial class TypeMapGenerator
                 writer.Write(" = ");
                 WriteConverter(writer, typeMap.TokenName, member);
                 writer.WriteLine(";");
-                writer.Write("materializer.Targets[index] = ");
+                writer.Write("materializer.");
                 member.WriteId(writer);
-                writer.WriteLine(";");
+                writer.WriteLine(" = index;");
                 writer.WriteLine("anyBound = true;");
                 writer.WriteLine("continue;");
             }
@@ -567,9 +552,9 @@ partial class TypeMapGenerator
         for (int index = 0; index < typeMap.IndexesForReading.Length; index++)
         {
             IMemberModel? member = typeMap.IndexesForReading[index];
-            writer.Write("materializer.Targets[");
-            writer.Write(index.ToString());
-            writer.Write("] = ");
+            writer.Write("materializer.");
+            member.WriteId(writer);
+            writer.Write(" = ");
 
             if (member is null)
             {
@@ -577,7 +562,7 @@ partial class TypeMapGenerator
                 continue;
             }
 
-            member.WriteId(writer);
+            writer.Write(index.ToString());
             writer.WriteLine(";");
         }
 

@@ -19,33 +19,21 @@ public abstract class CsvTypeMap
     protected abstract Type TargetType { get; }
 
     /// <summary>
-    /// Resets an existing ID to ignore it. Used when a header field is bound to multiple members/parameters (last wins).
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    protected static void IgnoreSetId(int[] targets, int id)
-    {
-        for (int i = 0; i < targets.Length; i++)
-        {
-            if (targets[i] == id)
-            {
-                targets[i] = -1; // reset the id
-                return;
-            }
-        }
-    }
-
-    /// <summary>
     /// Throws an exception for header field being bound multiple times.
     /// </summary>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected void ThrowDuplicate(string member, string field, ImmutableArray<string> headers)
+    protected void ThrowDuplicate(
+        string member,
+        string field,
+        ImmutableArray<string> headers,
+        IEqualityComparer<string> comparer
+    )
     {
         throw new CsvBindingException(
             TargetType,
-            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}."
+            $"\"{member}\" matched to multiple headers, including '{field}' using {comparer} in {JoinValues(headers)}."
         );
     }
 

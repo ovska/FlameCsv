@@ -25,6 +25,8 @@ internal static class GlobalConstants
     public const string EditorBrowsableAttr =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
+    public const string SkipLocalsInitAttribute = "[global::System.Runtime.CompilerServices.SkipLocalsInit]";
+
     public static string GetFileName(string typeName, EquatableArray<NestedType> wrappingTypes)
     {
         using var builder = new ImmutableArrayBuilder<char>();

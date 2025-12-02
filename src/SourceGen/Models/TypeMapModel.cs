@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen.Models;
 
@@ -87,6 +88,11 @@ internal sealed record TypeMapModel
     /// </summary>
     public bool HasRequiredMembers => AllMembers.AsImmutableArray().Any(static m => m.IsRequired);
 
+    /// <summary>
+    /// Whether unsafe code is allowed in the generated code.
+    /// </summary>
+    public bool UnsafeCodeAllowed { get; }
+
     public TypeMapModel(
         Compilation compilation,
         INamedTypeSymbol containingClass,
@@ -95,6 +101,8 @@ internal sealed record TypeMapModel
         out EquatableArray<Diagnostic> diagnostics
     )
     {
+        UnsafeCodeAllowed = compilation.Options is CSharpCompilationOptions { AllowUnsafe: true };
+
         TypeMap = new TypeRef(containingClass);
 
         ITypeSymbol tokenSymbol = attribute.AttributeClass!.TypeArguments[0];
