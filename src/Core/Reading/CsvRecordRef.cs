@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
@@ -15,12 +14,13 @@ namespace FlameCsv.Reading;
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [PublicAPI]
+[DebuggerTypeProxy(typeof(CsvRecordRef<>.DebugProxy))]
 public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly bool _isFirst;
     private readonly ref T _data;
-    private readonly ReadOnlySpan<uint> _fields;
+    private readonly ReadOnlySpan<int> _starts;
+    private readonly ref int _ends;
     private readonly ref byte _quotes;
     internal readonly RecordOwner<T> _owner;
 
@@ -32,28 +32,35 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(RecordOwner<T> reader, RecordBuffer recordBuffer, ref T data, RecordView view)
     {
-        _isFirst = view.IsFirst;
         _owner = reader;
         _data = ref data;
 
-        int start = view.Start + 1;
-        int length = view.Count - 1;
-
-        // skip the first which points to the start of the record
-
-        _fields = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._fields), start),
-            length
+        _starts = MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._starts), view.Start),
+            view.Count - 1
         );
 
-        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._quotes), start);
+        _ends = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._ends), view.Start + 1);
+        _quotes = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(recordBuffer._quotes), view.Start + 1);
+
+#if DEBUG
+#pragma warning disable IDE0052 // Remove unread private members
+        _view = view;
+        _recordBuffer = recordBuffer;
     }
+
+    private readonly RecordView _view;
+    private readonly RecordBuffer _recordBuffer;
+#pragma warning restore IDE0052 // Remove unread private members
+#else
+    }
+#endif
 
     /// <inheritdoc/>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _fields.Length;
+        get => _starts.Length;
     }
 
     /// <inheritdoc/>
@@ -62,33 +69,25 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            // always access this first to ensure index is within bounds
-            ref readonly uint current = ref _fields[index];
+            // bounds-check w/ Span indexer's builtin throwhelper is faster than a custom ThrowHelper (less codegen)
+            int start = _starts[index];
+            int end = Unsafe.Add(ref _ends, (uint)index);
             byte quote = Unsafe.Add(ref _quotes, (uint)index);
-
-            // very important to access the previous field in this manner for the CPU to optimize it with offset access
-            int start = Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in current), -1));
-            int end = Field.End(current);
-
-            // very branch predictor friendly
-            if (_isFirst && index == 0)
-            {
-                start = 0;
-            }
 
             Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
 
+            ref T startRef = ref Unsafe.Add(ref _data, (uint)start);
             int length = end - start;
 
             if ((((int)_owner._dialect.Trimming) | quote) != 0)
             {
-                return Field.GetValue(start, current, quote, ref _data, _owner);
+                return Field.GetValue(start, end, quote, ref _data, _owner);
             }
 
-            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), length);
+            return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
         }
     }
-
+    
     /// <summary>
     /// Returns the raw unescaped span of the field at the specified index.
     /// </summary>
@@ -99,16 +98,12 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        // always access this first to ensure index is within bounds
-        ref readonly uint current = ref _fields[index];
-        int start = Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in current), -1));
-
-        if (_isFirst && index == 0)
-        {
-            start = 0;
-        }
-
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), Field.End(current) - start);
+        // bounds-check w/ Span indexer's builtin throwhelper is faster than a custom ThrowHelper (less codegen)
+        int start = _starts[index];
+        int end = Unsafe.Add(ref _ends, (uint)index);
+        int length = end - start;
+        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), length);
     }
 
     /// <summary>
@@ -118,10 +113,19 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     {
         get
         {
-            ReadOnlySpan<uint> fields = _fields;
-            int end = Field.End(fields[^1]); // ensures the span is not empty
-            int start = _isFirst ? 0 : Field.NextStart(Unsafe.Add(ref MemoryMarshal.GetReference(fields), -1));
-            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), end - start);
+            ReadOnlySpan<int> starts = _starts;
+
+            if (starts.IsEmpty)
+            {
+                return [];
+            }
+
+            // bounds-check w/ Span indexer's builtin throwhelper is faster than a custom ThrowHelper (less codegen)
+            int start = starts[0];
+            int end = Unsafe.Add(ref _ends, (uint)starts.Length - 1u);
+            int length = end - start;
+            Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+            return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), length);
         }
     }
 
@@ -130,22 +134,17 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     /// </summary>
     public int GetRecordLength()
     {
-        ReadOnlySpan<uint> fields = _fields;
+        ReadOnlySpan<int> starts = _starts;
 
-        // ensure default(CsvRecordRef<T>) is handled correctly
-        if (fields.IsEmpty)
+        if (starts.IsEmpty)
         {
             return 0;
         }
 
-        ref uint firstField = ref MemoryMarshal.GetReference(fields);
-
-        return ReadExtensions.GetRecordLength(
-            Unsafe.Add(ref firstField, -1),
-            Unsafe.Add(ref firstField, fields.Length - 1),
-            _isFirst,
-            includeTrailingNewline: false
-        );
+        int start = starts[0];
+        int end = Unsafe.Add(ref _ends, (uint)FieldCount - 1u);
+        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        return end - start;
     }
 
     /// <summary>
@@ -167,5 +166,27 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         }
 
         return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Raw.ToString()}\" }}";
+    }
+
+    private class DebugProxy
+    {
+        public string Raw { get; }
+        public string[] Fields { get; }
+
+        public DebugProxy(CsvRecordRef<T> record)
+        {
+            Raw = Transcode.ToString(record.Raw);
+            Fields = new string[record.FieldCount];
+
+            for (int i = 0; i < record.FieldCount; i++)
+            {
+                Fields[i] = Transcode.ToString(record[i]);
+            }
+        }
+
+        public override string ToString()
+        {
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{Fields.Length}] \"{Raw}\" }}";
+        }
     }
 }

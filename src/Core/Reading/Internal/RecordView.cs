@@ -57,4 +57,20 @@ internal readonly struct RecordView
             Count
         );
     }
+
+    public readonly ReadOnlySpan<int> GetStarts(RecordBuffer buffer)
+    {
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._starts), Start),
+            Count - 1
+        );
+    }
+
+    public readonly ReadOnlySpan<int> GetEnds(RecordBuffer buffer)
+    {
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._ends), Start + 1),
+            Count - 1
+        );
+    }
 }

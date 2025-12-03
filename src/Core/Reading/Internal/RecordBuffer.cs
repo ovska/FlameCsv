@@ -48,6 +48,9 @@ internal sealed class RecordBuffer : IDisposable
     /// </summary>
     internal int _fieldCount;
 
+    internal int[] _starts;
+    internal int[] _ends;
+
     public RecordBuffer(int bufferSize = DefaultFieldBufferSize)
     {
         Initialize(bufferSize);
@@ -68,6 +71,8 @@ internal sealed class RecordBuffer : IDisposable
             ArrayPool<uint>.Shared.Resize(ref _fields, newLength);
             ArrayPool<byte>.Shared.Resize(ref _quotes, newLength);
             ArrayPool<ushort>.Shared.Resize(ref _eols, newLength);
+            ArrayPool<int>.Shared.Resize(ref _starts, newLength);
+            ArrayPool<int>.Shared.Resize(ref _ends, newLength);
         }
 
         startIndex = _fieldCount == 0 ? 0 : NextStart(_fields[_fieldCount]);
@@ -150,6 +155,8 @@ internal sealed class RecordBuffer : IDisposable
 
         ref ushort eol = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex + 1u);
         ref uint field = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), (uint)_fieldIndex + 1u);
+        ref int startRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_starts), (uint)_fieldIndex + 1u);
+        ref int endRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_ends), (uint)_fieldIndex + 1u);
 
         nint end = _fieldCount - _fieldIndex;
         nint pos = 0;
@@ -160,12 +167,86 @@ internal sealed class RecordBuffer : IDisposable
         if (AdvSimd.IsSupported)
         {
             nint unrolledEnd = end - Vector256<byte>.Count;
+            Vector128<uint> endMask = Vector128.Create(EndMask);
+            Vector128<uint> one = Vector128<uint>.One;
 
             while (pos <= unrolledEnd)
             {
-                uint mask = AsciiVector
-                    .LoadInt32SignsToByteMasksARM(ref Unsafe.As<uint, int>(ref field), (nuint)pos)
-                    .MoveMask();
+                nuint width = (nuint)Vector128<uint>.Count;
+
+                ref uint localField = ref Unsafe.Add(ref field, (nuint)pos);
+                ref int localStart = ref Unsafe.Add(ref startRef, (nuint)pos);
+                ref int localEnd = ref Unsafe.Add(ref endRef, (nuint)pos);
+
+                // jagged order to improve instruction-level parallelism
+
+                Vector128<uint> a0 = Vector128.LoadUnsafe(ref localField, 0 * width);
+                Vector128<uint> a2 = Vector128.LoadUnsafe(ref localField, 2 * width);
+                Vector128<uint> a4 = Vector128.LoadUnsafe(ref localField, 4 * width);
+                Vector128<uint> a6 = Vector128.LoadUnsafe(ref localField, 6 * width);
+
+                // store starts and ends
+                Vector128<uint> x0 = a0 & endMask;
+                Vector128<uint> x2 = a2 & endMask;
+                Vector128<uint> x4 = a4 & endMask;
+                Vector128<uint> x6 = a6 & endMask;
+
+                x0.AsInt32().StoreUnsafe(ref localEnd, 0 * width);
+                x2.AsInt32().StoreUnsafe(ref localEnd, 2 * width);
+                x4.AsInt32().StoreUnsafe(ref localEnd, 4 * width);
+                x6.AsInt32().StoreUnsafe(ref localEnd, 6 * width);
+
+                (x0 + ((a0 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 0 * width);
+                (x2 + ((a2 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 2 * width);
+                (x4 + ((a4 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 4 * width);
+                (x6 + ((a6 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 6 * width);
+
+                // narrow even
+                Vector64<short> b0 = AdvSimd.ExtractNarrowingSaturateLower(a0.AsInt32());
+                Vector64<short> b2 = AdvSimd.ExtractNarrowingSaturateLower(a2.AsInt32());
+                Vector64<short> b4 = AdvSimd.ExtractNarrowingSaturateLower(a4.AsInt32());
+                Vector64<short> b6 = AdvSimd.ExtractNarrowingSaturateLower(a6.AsInt32());
+
+                Vector128<uint> a1 = Vector128.LoadUnsafe(ref localField, 1 * width);
+                Vector128<uint> a3 = Vector128.LoadUnsafe(ref localField, 3 * width);
+                Vector128<uint> a5 = Vector128.LoadUnsafe(ref localField, 5 * width);
+                Vector128<uint> a7 = Vector128.LoadUnsafe(ref localField, 7 * width);
+
+                Vector128<uint> x1 = a1 & endMask;
+                Vector128<uint> x3 = a3 & endMask;
+                Vector128<uint> x5 = a5 & endMask;
+                Vector128<uint> x7 = a7 & endMask;
+
+                x1.AsInt32().StoreUnsafe(ref localEnd, 1 * width);
+                x3.AsInt32().StoreUnsafe(ref localEnd, 3 * width);
+                x5.AsInt32().StoreUnsafe(ref localEnd, 5 * width);
+                x7.AsInt32().StoreUnsafe(ref localEnd, 7 * width);
+
+                Vector128<short> c0 = AdvSimd.ExtractNarrowingSaturateUpper(b0, a1.AsInt32());
+                Vector128<short> c2 = AdvSimd.ExtractNarrowingSaturateUpper(b4, a5.AsInt32());
+                Vector128<short> c1 = AdvSimd.ExtractNarrowingSaturateUpper(b2, a3.AsInt32());
+                Vector128<short> c3 = AdvSimd.ExtractNarrowingSaturateUpper(b6, a7.AsInt32());
+
+                (x1 + ((a1 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 1 * width);
+                (x3 + ((a3 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 3 * width);
+                (x5 + ((a5 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 5 * width);
+                (x7 + ((a7 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 7 * width);
+
+                // compute movemask
+
+                // narrow even
+                Vector64<sbyte> d0 = AdvSimd.ExtractNarrowingSaturateLower(c0);
+                Vector64<sbyte> d1 = AdvSimd.ExtractNarrowingSaturateLower(c2);
+
+                // narrow odd
+                Vector128<sbyte> e0 = AdvSimd.ExtractNarrowingSaturateUpper(d0, c1);
+                Vector128<sbyte> e1 = AdvSimd.ExtractNarrowingSaturateUpper(d1, c3);
+
+                // convert to 0xFF or 0x00 (required by movemask emulation)
+                Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(e0, 7).AsByte();
+                Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(e1, 7).AsByte();
+
+                uint mask = Vector256.Create(r0, r1).MoveMask();
 
                 while (mask != 0)
                 {
@@ -182,10 +263,17 @@ internal sealed class RecordBuffer : IDisposable
         {
             nint unrolledEnd = end - (2 * Vector<int>.Count);
 
+            Vector<uint> vecEndMask = new(EndMask);
+
             Vector<uint> vector = Vector.LoadUnsafe(ref field, (nuint)pos);
 
             while (pos <= unrolledEnd)
             {
+                Vector<uint> endVec = vector & vecEndMask;
+                Vector<uint> startVec = ((vector >> 30) & Vector<uint>.One) + Vector<uint>.One + endVec;
+                endVec.As<uint, int>().StoreUnsafe(ref endRef, (nuint)pos);
+                startVec.As<uint, int>().StoreUnsafe(ref startRef, (nuint)pos);
+
                 // eol is stored in the MSB so we only need to load and extract
                 nuint positions = vector.MoveMask();
 
@@ -204,8 +292,15 @@ internal sealed class RecordBuffer : IDisposable
 
         while (pos < end)
         {
+            uint current = Unsafe.Add(ref field, pos);
+
+            Unsafe.Add(ref startRef, pos) = NextStart(current);
+            Unsafe.Add(ref endRef, pos) = End(current);
+
+            pos++;
+
             // if msb is set, int32 is negative
-            if (unchecked((int)Unsafe.Add(ref field, pos++)) < 0)
+            if (unchecked((int)current) < 0)
             {
                 Unsafe.Add(ref eol, idx++) = (ushort)pos;
             }
@@ -237,6 +332,8 @@ internal sealed class RecordBuffer : IDisposable
 
             ArrayPool<uint>.Shared.Resize(ref _fields, _fields.Length * 2);
             ArrayPool<byte>.Shared.Resize(ref _quotes, _quotes.Length * 2);
+            ArrayPool<int>.Shared.Resize(ref _starts, _starts.Length * 2);
+            ArrayPool<int>.Shared.Resize(ref _ends, _ends.Length * 2);
             ArrayPool<ushort>.Shared.Resize(ref _eols, _eols.Length * 2);
             return true;
         }
@@ -271,28 +368,23 @@ internal sealed class RecordBuffer : IDisposable
             int length = _fieldCount - _fieldIndex;
             int start = _fieldIndex + 1;
 
-            Span<uint> buffer = _fields.AsSpan(start, length);
-
-            // Preserve the EOL flags while shifting only the end position
-            foreach (ref uint value in buffer)
+            for (int i = 0; i < length; i++)
             {
-                uint flags = value & ~EndMask;
-                uint shiftedEnd = (value & EndMask) - (uint)offset;
-                value = shiftedEnd | flags;
+                int pos = start + i;
+                _fields[pos] -= (uint)offset;
+                _starts[pos] -= offset;
+                _ends[pos] -= offset;
             }
 
-            buffer.CopyTo(_fields.AsSpan(1));
-            _fields[0] = 0; // reset start of data
-#if DEBUG
-            // for debugging
-            _fields.AsSpan(buffer.Length + 1).Fill(~0u);
-#endif
-
+            _fields.AsSpan(start, length).CopyTo(_fields.AsSpan(1));
+            _starts.AsSpan(start, length).CopyTo(_starts.AsSpan(1));
+            _ends.AsSpan(start, length).CopyTo(_ends.AsSpan(1));
             _quotes.AsSpan(start, length).CopyTo(_quotes.AsSpan(1));
 
-            // Clear stale quote data beyond the copied fields
-            _quotes.AsSpan(1 + length, _fieldCount - length).Clear();
-
+            _fields[0] = 0; // reset start of data
+            _starts[0] = 0;
+            _ends[0] = 0;
+            _quotes.AsSpan(1 + length, _fieldCount - length).Clear(); // Clear stale quote data beyond the copied fields
 #if DEBUG
             if (_quotes.AsSpan(1 + length).IndexOfAnyExcept<byte>(0) is int idx && idx >= 0)
             {
@@ -306,6 +398,8 @@ internal sealed class RecordBuffer : IDisposable
 
             // no unread fields
             _fields[0] = 0;
+            _starts[0] = 0;
+            _ends[0] = 0;
             _quotes.AsSpan(1, _fieldCount).Clear();
         }
 
@@ -348,14 +442,21 @@ internal sealed class RecordBuffer : IDisposable
         return false;
     }
 
-    [MemberNotNull(nameof(_fields)), MemberNotNull(nameof(_quotes)), MemberNotNull(nameof(_eols))]
+    [MemberNotNull(nameof(_fields))]
+    [MemberNotNull(nameof(_quotes))]
+    [MemberNotNull(nameof(_eols))]
+    [MemberNotNull(nameof(_starts))]
+    [MemberNotNull(nameof(_ends))]
     public void Initialize(int bufferSize = DefaultFieldBufferSize)
     {
         ArrayPool<uint>.Shared.EnsureCapacity(ref _fields, bufferSize);
         ArrayPool<byte>.Shared.EnsureCapacity(ref _quotes, bufferSize);
         ArrayPool<ushort>.Shared.EnsureCapacity(ref _eols, bufferSize);
+        ArrayPool<int>.Shared.EnsureCapacity(ref _starts, bufferSize);
+        ArrayPool<int>.Shared.EnsureCapacity(ref _ends, bufferSize);
 
         _fields[0] = 0;
+        _starts[0] = 0;
         _eols[0] = 0;
 
         _quotes.AsSpan().Clear();
@@ -377,6 +478,8 @@ internal sealed class RecordBuffer : IDisposable
         ArrayPool<uint>.Shared.EnsureReturned(ref _fields);
         ArrayPool<byte>.Shared.EnsureReturned(ref _quotes);
         ArrayPool<ushort>.Shared.EnsureReturned(ref _eols);
+        ArrayPool<int>.Shared.EnsureReturned(ref _starts);
+        ArrayPool<int>.Shared.EnsureReturned(ref _ends);
     }
 
     public override string ToString() =>

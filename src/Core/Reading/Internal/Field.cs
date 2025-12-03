@@ -51,11 +51,9 @@ internal static class Field
     public static int End(uint field) => (int)(field & EndMask);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> GetValue<T>(int start, uint field, byte quote, ref T data, RecordOwner<T> owner)
+    public static ReadOnlySpan<T> GetValue<T>(int start, int end, byte quote, ref T data, RecordOwner<T> owner)
         where T : unmanaged, IBinaryInteger<T>
     {
-        int end = End(field);
-
         // trim before unquoting to preserve spaces in strings
         owner._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
 
@@ -116,22 +114,17 @@ internal static class Field
         return retVal;
 
         InvalidField:
-        return Invalid(start, field, quote, ref data);
+        return Invalid(start, end, quote, ref data);
     }
 
-    private static ReadOnlySpan<T> Invalid<T>(int start, uint field, byte quote, ref T data)
+    private static ReadOnlySpan<T> Invalid<T>(int start, int end, byte quote, ref T data)
         where T : unmanaged, IBinaryInteger<T>
     {
-        ReadOnlySpan<T> value = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref data, (uint)start),
-            End(field) - start
-        );
+        ReadOnlySpan<T> value = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), end - start);
 
         string asString = value.AsPrintableString();
 
-        throw new CsvFormatException(
-            $"Invalid quoted field {start}..{End(field)} ({field:X8} - {quote}) with value: {asString}"
-        );
+        throw new CsvFormatException($"Invalid quoted field {start}..{end} ({quote}) with value: {asString}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

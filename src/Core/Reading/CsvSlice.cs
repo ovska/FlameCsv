@@ -42,7 +42,7 @@ internal readonly struct CsvSlice<T>
         ReadOnlySpan<T> data = Data.Span;
         ReadOnlySpan<uint> fields = Record.GetFields(Reader._recordBuffer);
         int start = Field.NextStart(fields[index]);
-        uint field = fields[index + 1];
+        int end = Field.End(fields[index + 1]);
 
         if (Record.IsFirst && index == 0)
         {
@@ -51,12 +51,12 @@ internal readonly struct CsvSlice<T>
 
         if (raw)
         {
-            return data[start..Field.End(field)];
+            return data[start..end];
         }
 
         return Field.GetValue(
             start,
-            field,
+            end,
             Record.GetQuotes(Reader._recordBuffer)[index + 1],
             ref MemoryMarshal.GetReference(data),
             Reader
