@@ -18,7 +18,7 @@ namespace FlameCsv.Reading;
 public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    internal readonly bool _isFirst;
+    private readonly bool _isFirst;
     private readonly ref T _data;
     private readonly ReadOnlySpan<uint> _fields;
     private readonly ref byte _quotes;
@@ -102,6 +102,12 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
         // always access this first to ensure index is within bounds
         ref readonly uint current = ref _fields[index];
         int start = Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in current), -1));
+
+        if (_isFirst && index == 0)
+        {
+            start = 0;
+        }
+
         return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, (uint)start), Field.End(current) - start);
     }
 
