@@ -21,7 +21,7 @@ internal sealed class RecordBuffer : IDisposable
     public const int DefaultFieldBufferSize = 4096;
 
     /// <summary>
-    /// Storage for the field metadata.
+    /// Storage for the raw field metadata.
     /// </summary>
     internal uint[] _fields;
 
@@ -29,6 +29,16 @@ internal sealed class RecordBuffer : IDisposable
     /// Storage for quote counts.
     /// </summary>
     internal byte[] _quotes;
+
+    /// <summary>
+    /// Storage for field start indices (<see cref="NextStart"/> called on the same index in <see cref="_fields"/>).
+    /// </summary>
+    internal int[] _starts;
+
+    /// <summary>
+    /// Storage for field end indices (<see cref="End"/> called on the same index in <see cref="_fields"/>).
+    /// </summary>
+    internal int[] _ends;
 
     /// <summary>
     /// Storage for EOL field indices.
@@ -47,9 +57,6 @@ internal sealed class RecordBuffer : IDisposable
     /// Number of fields that have been parsed to the buffer.
     /// </summary>
     internal int _fieldCount;
-
-    internal int[] _starts;
-    internal int[] _ends;
 
     public RecordBuffer(int bufferSize = DefaultFieldBufferSize)
     {
@@ -422,14 +429,13 @@ internal sealed class RecordBuffer : IDisposable
     public bool TryPop(out RecordView record)
     {
         ref ushort previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex);
-        int flag = _eolIndex == 0 ? int.MinValue : 0;
 
         if (_eolIndex < _eolCount)
         {
             ushort eol = Unsafe.Add(ref previous, 1);
             int count = eol - previous + 1;
 
-            record = new RecordView((uint)(previous | flag), count);
+            record = new RecordView(previous, count);
             _fieldIndex = eol;
             _eolIndex++;
             return true;

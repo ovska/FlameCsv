@@ -72,19 +72,17 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool CallMoveNextAndIncrementPosition(ref readonly CsvSlice<T> record)
+    private bool CallMoveNextAndIncrementPosition(ref readonly CsvSlice<T> slice)
     {
         Line++;
         bool result = false;
 
-        if (_callback is null || !TrySkipRecord(in record))
+        if (_callback is null || !TrySkipRecord(in slice))
         {
-            result = MoveNextCore(in record);
+            result = MoveNextCore(in slice);
         }
 
-        _position += record
-            .Record.GetFields(Reader._recordBuffer)
-            .GetRecordLength(record.Record.IsFirst, includeTrailingNewline: true);
+        _position += slice.Record.GetLengthWithNewline(slice.Reader._recordBuffer);
         return result;
     }
 

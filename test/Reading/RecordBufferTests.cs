@@ -22,7 +22,9 @@ public class RecordBufferTests
         Assert.Equal(9, buffer.BufferedRecordLength); // 7+2 (crlf)
 
         Assert.True(buffer.TryPop(out var view));
-        Assert.Equal(array[..5].AsSpan(), view.GetFields(buffer));
+        Assert.Equal(0, view.Start);
+        Assert.Equal(5, view.Count);
+        Assert.Equal(9, view.GetLengthWithNewline(buffer)); // 7 + CRLF
 
         // first 8 (+ 0 at start) were read
         Assert.Equal(bufferSize - 9, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
@@ -37,6 +39,8 @@ public class RecordBufferTests
         buffer.GetUnreadBuffer(0, out startIndex).Fields[0] = 41u | Field.IsCRLF;
         buffer.SetFieldsRead(1);
         Assert.True(buffer.TryPop(out view));
-        Assert.Equal(array[..6].AsSpan(), view.GetFields(buffer));
+        Assert.Equal(0, view.Start);
+        Assert.Equal(6, view.Count);
+        Assert.Equal(43, view.GetLengthWithNewline(buffer)); // 41 + CRLF
     }
 }

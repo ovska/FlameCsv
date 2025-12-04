@@ -167,8 +167,9 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
 
         if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {
-            var fields = record.Record.GetFields(record.Reader._recordBuffer);
-            int offset = Field.NextStart(fields[index]) - Field.NextStart(fields[0]);
+            (int recordStart, _) = record.Record.GetRecord(record.Reader._recordBuffer);
+            (int start, _) = record.Record.GetField(record.Reader._recordBuffer, index);
+            int offset = start - recordStart;
 
             FieldPosition ??= position + offset;
             FieldValue ??= record.GetField(index, raw: true).AsPrintableString();

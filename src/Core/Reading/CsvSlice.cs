@@ -21,17 +21,8 @@ internal readonly struct CsvSlice<T>
     {
         get
         {
-            ReadOnlySpan<uint> fields = Record.GetFields(Reader._recordBuffer);
-
-            uint last = fields[^1];
-            int start = Field.NextStart(fields[0]);
-
-            if (Record.IsFirst)
-            {
-                start = 0;
-            }
-
-            return Data[start..Field.End(last)].Span;
+            (int start, int length) = Record.GetRecord(Reader._recordBuffer);
+            return Data.Span.Slice(start, length);
         }
     }
 
@@ -40,27 +31,15 @@ internal readonly struct CsvSlice<T>
     public ReadOnlySpan<T> GetField(int index, bool raw = false)
     {
         ReadOnlySpan<T> data = Data.Span;
-        ReadOnlySpan<uint> fields = Record.GetFields(Reader._recordBuffer);
-        int start = Field.NextStart(fields[index]);
-        int end = Field.End(fields[index + 1]);
+        (int start, int length) = Record.GetField(Reader._recordBuffer, index);
+        byte quote = Record.GetQuote(Reader._recordBuffer, index);
 
-        if (Record.IsFirst && index == 0)
+        if (raw || quote == 0)
         {
-            start = 0;
+            return data.Slice(start, length);
         }
 
-        if (raw)
-        {
-            return data[start..end];
-        }
-
-        return Field.GetValue(
-            start,
-            end,
-            Record.GetQuotes(Reader._recordBuffer)[index + 1],
-            ref MemoryMarshal.GetReference(data),
-            Reader
-        );
+        return Field.GetValue(start, start + length, quote, ref MemoryMarshal.GetReference(data), Reader);
     }
 
     [ExcludeFromCodeCoverage]

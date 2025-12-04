@@ -1,76 +1,49 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlameCsv.Extensions;
 
 namespace FlameCsv.Reading.Internal;
 
 internal readonly struct RecordView
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public RecordView(uint index, int count)
+    public RecordView(int start, int count)
     {
-        _index = index;
+        Start = start;
         Count = count;
     }
 
-    // contains msb for "is first"
-    private readonly uint _index;
-
-    private const uint Mask = 0x7FFFFFFFu;
-
-    public bool IsFirst
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => unchecked((int)_index) < 0;
-    }
-
-    public int Start
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (int)(_index & Mask);
-    }
-
+    public int Start { get; }
     public int Count { get; }
 
     public int FieldCount => Count - 1;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetLength(RecordBuffer buffer, bool includeTrailingNewline = false)
+    public int GetLengthWithNewline(RecordBuffer buffer)
     {
-        return GetFields(buffer).GetRecordLength(IsFirst, includeTrailingNewline);
+        // only the original field metadata knows if this is a CRLF or not
+        int end = Field.NextStart(buffer._fields[Start + Count - 1]);
+        int start = buffer._starts[Start];
+
+        return end - start;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ReadOnlySpan<uint> GetFields(RecordBuffer buffer)
+    public (int start, int length) GetRecord(RecordBuffer buffer)
     {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._fields), Start),
-            Count
-        );
+        int start = buffer._starts[Start];
+        int end = buffer._ends[Start + Count - 1];
+        return (start, end - start);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public readonly ReadOnlySpan<byte> GetQuotes(RecordBuffer buffer)
+    public (int start, int length) GetField(RecordBuffer buffer, int index)
     {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._quotes), Start),
-            Count
-        );
+        int start = buffer._starts[Start + index];
+        int end = buffer._ends[Start + index + 1];
+        return (start, end - start);
     }
 
-    public readonly ReadOnlySpan<int> GetStarts(RecordBuffer buffer)
+    public byte GetQuote(RecordBuffer buffer, int index)
     {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._starts), Start),
-            Count - 1
-        );
-    }
-
-    public readonly ReadOnlySpan<int> GetEnds(RecordBuffer buffer)
-    {
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(buffer._ends), Start + 1),
-            Count - 1
-        );
+        return buffer._quotes[Start + index + 1];
     }
 }

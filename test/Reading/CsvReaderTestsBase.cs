@@ -274,9 +274,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            int length = record
-                ._slice.Record.GetFields(record._slice.Reader._recordBuffer)
-                .GetRecordLength(record._slice.Record.IsFirst, includeTrailingNewline: true);
+            int length = record._slice.Record.GetLengthWithNewline(record._slice.Reader._recordBuffer);
             tokenPosition += length;
 
             Obj obj = new()

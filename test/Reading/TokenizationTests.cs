@@ -153,7 +153,7 @@ public class TokenizationTests
 
         recordBuffer._fields = fieldSegment.Array!;
         recordBuffer._quotes = quoteSegment.Array!;
-        return new RecordView(1u << 31, fields.WrittenCount);
+        return new RecordView(0, fields.WrittenCount);
 
         uint GetEOLFlag()
         {
