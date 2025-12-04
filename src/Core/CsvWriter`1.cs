@@ -1,11 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
