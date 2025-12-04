@@ -89,6 +89,9 @@ partial class CsvReader<T>
     /// <summary>
     /// Enumerator for raw CSV record fields.
     /// </summary>
+    /// <remarks>
+    /// While the enumerator in use, the underlying <see cref="CsvReader{T}"/> must not be used directly.
+    /// </remarks>
     [PublicAPI]
     [SkipLocalsInit]
     public ref struct Enumerator : IEnumerator<CsvRecordRef<T>>
@@ -130,20 +133,20 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool MoveNextSlow()
         {
-            if (_reader.TryFillBuffer(out CsvSlice<T> slice))
+            if (_reader.TryFillBuffer(out _view))
             {
                 goto ConstructValue;
             }
 
             while (_reader.TryAdvanceReader())
             {
-                if (_reader.TryReadLine(out slice))
+                if (_reader.TryReadLine(out _view))
                 {
                     goto ConstructValue;
                 }
             }
 
-            if (!_reader.TryReadLine(out slice))
+            if (!_reader.TryReadLine(out _view))
             {
                 _data = ref Unsafe.NullRef<T>();
                 _view = default;
@@ -151,8 +154,7 @@ partial class CsvReader<T>
             }
 
             ConstructValue:
-            _data = ref MemoryMarshal.GetReference(slice.Data.Span);
-            _view = slice.Record;
+            _data = ref MemoryMarshal.GetReference(_reader._buffer.Span);
             return true;
         }
 
@@ -186,7 +188,7 @@ partial class CsvReader<T>
     {
         private readonly CsvReader<T> _reader;
         private readonly CancellationToken _cancellationToken;
-        private CsvSlice<T> _slice;
+        private RecordView _view;
 
         internal AsyncEnumerator(CsvReader<T> reader, CancellationToken cancellationToken)
         {
@@ -198,7 +200,7 @@ partial class CsvReader<T>
         public CsvRecordRef<T> Current
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => new(in _slice);
+            get => new(_reader, _view);
         }
 
         /// <inheritdoc cref="Enumerator.MoveNext"/>
@@ -210,7 +212,7 @@ partial class CsvReader<T>
                 return ValueTask.FromCanceled<bool>(_cancellationToken);
             }
 
-            if (!_reader.TryGetBuffered(out _slice))
+            if (!_reader._recordBuffer.TryPop(out _view))
             {
                 return MoveNextSlowAsync();
             }
@@ -221,26 +223,26 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<bool> MoveNextSlowAsync()
         {
-            if (_reader.TryFillBuffer(out _slice))
+            if (_reader.TryFillBuffer(out _view))
             {
                 return true;
             }
 
             while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
             {
-                if (_reader.TryReadLine(out _slice))
+                if (_reader.TryReadLine(out _view))
                 {
                     return true;
                 }
             }
 
-            return _reader.TryReadLine(out _slice);
+            return _reader.TryReadLine(out _view);
         }
 
         /// <inheritdoc cref="Enumerator.Dispose"/>
         public ValueTask DisposeAsync()
         {
-            _slice = default; // don't hold on to data
+            _view = default; // don't hold on to data
             return _reader.DisposeAsync();
         }
     }

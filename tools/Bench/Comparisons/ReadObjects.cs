@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using FlameCsv.IO.Internal;
-using FlameCsv.ParallelUtils;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;

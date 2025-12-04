@@ -36,16 +36,18 @@ public static partial class CsvPreservedRecordTests
             Assert.Equal(["1", "2", "3"], fields);
 
             var firstRecordEnumerator = firstRecord.GetEnumerator();
+            firstRecordEnumerator.MoveNext();
 
             Assert.True(await enumerator.MoveNextAsync());
 
             Assert.Equal(3, enumerator.Line);
             Assert.Equal(21, enumerator.Position);
 
-            Assert.ThrowsAny<InvalidOperationException>(() => firstRecordEnumerator.MoveNext());
+            Assert.ThrowsAny<InvalidOperationException>(() => _ = firstRecordEnumerator.Current);
             Assert.ThrowsAny<InvalidOperationException>(() => firstRecord.GetEnumerator());
 
             secondRecordEnumerator = enumerator.Current.GetEnumerator();
+            secondRecordEnumerator.MoveNext();
 
             Assert.False(await enumerator.MoveNextAsync());
 
@@ -53,7 +55,7 @@ public static partial class CsvPreservedRecordTests
             Assert.Equal(21, enumerator.Position);
         }
 
-        Assert.ThrowsAny<ObjectDisposedException>(() => secondRecordEnumerator.MoveNext());
+        Assert.ThrowsAny<ObjectDisposedException>(() => _ = secondRecordEnumerator.Current);
     }
 
     [Fact]
@@ -82,16 +84,18 @@ public static partial class CsvPreservedRecordTests
             Assert.Equal(["1", "2", "3"], fields);
 
             var firstRecordEnumerator = firstRecord.GetEnumerator();
+            firstRecordEnumerator.MoveNext();
 
             Assert.True(enumerator.MoveNext());
 
             Assert.Equal(3, enumerator.Line);
             Assert.Equal(21, enumerator.Position);
 
-            Assert.ThrowsAny<InvalidOperationException>(() => firstRecordEnumerator.MoveNext());
+            Assert.ThrowsAny<InvalidOperationException>(() => _ = firstRecordEnumerator.Current);
             Assert.ThrowsAny<InvalidOperationException>(() => firstRecord.GetEnumerator());
 
             secondRecordEnumerator = enumerator.Current.GetEnumerator();
+            secondRecordEnumerator.MoveNext();
 
             Assert.False(enumerator.MoveNext());
 
@@ -99,7 +103,7 @@ public static partial class CsvPreservedRecordTests
             Assert.Equal(21, enumerator.Position);
         }
 
-        Assert.ThrowsAny<ObjectDisposedException>(() => secondRecordEnumerator.MoveNext());
+        Assert.ThrowsAny<ObjectDisposedException>(() => _ = secondRecordEnumerator.Current);
     }
 
     [Fact]

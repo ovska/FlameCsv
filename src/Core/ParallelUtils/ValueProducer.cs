@@ -89,7 +89,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
         {
             if (order == 0)
             {
-                ImmutableArray<string> headers = CsvHeader.Parse<T, CsvRecordRef<T>>(ref input);
+                ImmutableArray<string> headers = CsvHeader.Parse(ref input);
                 _materializer = _materializerFactory(headers, _options);
                 _headerRead!.Set();
                 return;

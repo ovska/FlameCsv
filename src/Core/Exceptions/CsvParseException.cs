@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -160,18 +161,18 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         }
     }
 
-    internal override void Enrich<T>(int line, long position, ref readonly CsvSlice<T> record)
+    internal override void Enrich<T>(int line, long position, RecordView view, CsvReader<T> reader)
     {
-        base.Enrich(line, position, in record);
+        base.Enrich(line, position, view, reader);
 
-        if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
+        if (FieldIndex is { } index && (uint)index < (uint)view.FieldCount)
         {
-            (int recordStart, _) = record.Record.GetRecord(record.Reader._recordBuffer);
-            (int start, _) = record.Record.GetField(record.Reader._recordBuffer, index);
-            int offset = start - recordStart;
+            (int recordStart, _) = view.GetRecordBounds(reader._recordBuffer);
+            (int fieldStart, _) = view.GetFieldBounds(reader._recordBuffer, index);
+            int offset = fieldStart - recordStart;
 
             FieldPosition ??= position + offset;
-            FieldValue ??= record.GetField(index, raw: true).AsPrintableString();
+            FieldValue ??= view.GetField(reader, index).AsPrintableString();
         }
     }
 }

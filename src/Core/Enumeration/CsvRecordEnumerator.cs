@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -130,7 +131,7 @@ public sealed partial class CsvRecordEnumerator<T>
     protected override void ResetHeader() => Header = null;
 
     /// <inheritdoc/>
-    internal override bool MoveNextCore(ref readonly CsvSlice<T> slice)
+    internal override bool MoveNextCore(RecordView view)
     {
         if (_version is -1)
             Throw.ObjectDisposed_Enumeration(this);
@@ -138,12 +139,12 @@ public sealed partial class CsvRecordEnumerator<T>
         // header needs to be read
         if (_hasHeader && _header is null)
         {
-            CreateHeader(in slice);
+            CreateHeader(view);
             return false;
         }
 
         _version++;
-        _current = new CsvRecord<T>(_version, Position, Line, slice, this);
+        _current = new CsvRecord<T>(_version, Position, Line, view, this);
         return true;
     }
 
@@ -179,10 +180,10 @@ public sealed partial class CsvRecordEnumerator<T>
 
     [MemberNotNull(nameof(Header))]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void CreateHeader(ref readonly CsvSlice<T> slice)
+    private void CreateHeader(RecordView view)
     {
-        ImmutableArray<string> values = CsvHeader.Parse(in slice);
-        Header = new CsvHeader(Options.Comparer, values);
+        CsvRecordRef<T> record = new(_reader, view);
+        Header = new CsvHeader(Options.Comparer, CsvHeader.Parse(in record));
     }
 
     [DoesNotReturn]

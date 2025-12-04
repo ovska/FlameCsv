@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Converters.Formattable;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
 namespace FlameCsv.Tests.Writing;

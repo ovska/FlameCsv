@@ -327,14 +327,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <returns>Number of fields written</returns>
     public int WriteRecord(in CsvRecord<T> record, scoped ReadOnlySpan<CsvFieldIdentifier> fieldIds)
     {
-        record.EnsureValid();
+        var recordRef = (CsvRecordRef<T>)record;
 
         if (fieldIds.IsEmpty)
         {
             return 0;
         }
-
-        CsvRecordRef<T> recordRef = new(in record._slice);
 
         bool writeRaw = Options.DialectEqualsForWriting(record.Options);
 

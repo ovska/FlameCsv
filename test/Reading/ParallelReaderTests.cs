@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.IO.Internal;
-using FlameCsv.ParallelUtils;
 using FlameCsv.Reading;
 using FlameCsv.Tests.TestData;
 

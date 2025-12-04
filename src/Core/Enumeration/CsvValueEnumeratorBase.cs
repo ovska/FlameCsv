@@ -1,10 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -102,14 +104,20 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     protected abstract IMaterializer<T, TValue> BindToHeaderless();
 
     /// <inheritdoc/>
-    internal override bool MoveNextCore(ref readonly CsvSlice<T> slice)
+    internal override bool MoveNextCore(RecordView view)
     {
-        if (_materializer is null && InitializeMaterializerAndTryConsume(in slice))
+        CsvReader<T> reader = _reader;
+        CsvRecordRef<T> record = new(
+            reader,
+            reader._recordBuffer,
+            ref MemoryMarshal.GetReference(_reader._buffer.Span),
+            view
+        );
+
+        if (_materializer is null && InitializeMaterializerAndTryConsume(in record))
         {
             return false;
         }
-
-        CsvRecordRef<T> record = new(in slice);
 
         try
         {
@@ -117,12 +125,12 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            cfe.Enrich(Line, Position, in slice);
+            cfe.Enrich(Line, Position, view, reader);
             throw;
         }
         catch (Exception ex)
         {
-            (ex as CsvReadExceptionBase)?.Enrich(Line, Position, in slice);
+            (ex as CsvReadExceptionBase)?.Enrich(Line, Position, view, reader);
             (ex as CsvParseException)?.WithHeader(Headers);
 
             CsvExceptionHandler<T>? handler = _exceptionHandler;
@@ -130,7 +138,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             if (
                 _exceptionHandler?.Invoke(
                     new CsvExceptionHandlerArgs<T>(
-                        in slice,
+                        in record,
                         Headers,
                         ex,
                         Line,
@@ -157,7 +165,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <c>true</c> if the record was consumed, <c>false</c> otherwise.
     /// </returns>
     [MemberNotNull(nameof(_materializer))]
-    private bool InitializeMaterializerAndTryConsume(ref readonly CsvSlice<T> slice)
+    private bool InitializeMaterializerAndTryConsume(ref readonly CsvRecordRef<T> record)
     {
         if (!Options.HasHeader)
         {
@@ -168,7 +176,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
 
-        Headers = CsvHeader.Parse(in slice);
+        Headers = CsvHeader.Parse(in record);
         _materializer = BindToHeaders(Headers);
         return true;
     }

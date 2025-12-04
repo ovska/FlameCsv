@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.IO;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Enumeration;
@@ -30,13 +31,13 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     private long _position;
 
     [HandlesResourceDisposal]
-    private readonly CsvReader<T> _reader;
+    private protected readonly CsvReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
 
     /// <summary>
     /// The CSV parser.
     /// </summary>
-    protected CsvReader<T> Reader => _reader;
+    internal protected CsvReader<T> Reader => _reader;
 
     /// <summary>
     /// The options used.
@@ -71,22 +72,22 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool CallMoveNextAndIncrementPosition(ref readonly CsvSlice<T> slice)
+    private bool CallMoveNextAndIncrementPosition(RecordView view)
     {
         Line++;
         bool result = false;
 
-        if (_callback is null || !TrySkipRecord(in slice))
+        if (_callback is null || !TrySkipRecord(view))
         {
-            result = MoveNextCore(in slice);
+            result = MoveNextCore(view);
         }
 
-        _position += slice.Record.GetLengthWithNewline(slice.Reader._recordBuffer);
+        _position += view.GetLengthWithNewline(_reader._recordBuffer);
         return result;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TrySkipRecord(in CsvSlice<T> slice)
+    private bool TrySkipRecord(RecordView view)
     {
         Debug.Assert(_callback is not null);
 
@@ -95,7 +96,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         bool headerRead = !header.IsEmpty;
 
         CsvRecordCallbackArgs<T> args = new(
-            new CsvRecordRef<T>(in slice),
+            new CsvRecordRef<T>(_reader, view),
             header,
             Line,
             Position,
@@ -116,9 +117,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <inheritdoc cref="System.Collections.IEnumerator.MoveNext"/>
     public bool MoveNext()
     {
-        while (_reader.TryReadLine(out CsvSlice<T> line))
+        while (_reader.TryReadLine(out RecordView view))
         {
-            if (CallMoveNextAndIncrementPosition(in line))
+            if (CallMoveNextAndIncrementPosition(view))
             {
                 return true;
             }
@@ -135,9 +136,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             return ValueTask.FromCanceled<bool>(_cancellationToken);
         }
 
-        while (_reader.TryReadLine(out CsvSlice<T> line))
+        while (_reader.TryReadLine(out RecordView view))
         {
-            if (CallMoveNextAndIncrementPosition(in line))
+            if (CallMoveNextAndIncrementPosition(view))
             {
                 return new ValueTask<bool>(true);
             }
@@ -149,7 +150,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <summary>
     /// Attempts to read the next CSV record from the inner parser.
     /// </summary>
-    /// <param name="slice">Current CSV record</param>
+    /// <param name="record">Current CSV record</param>
     /// <returns>
     /// <c>true</c> if the enumerator produced the next value,
     /// <c>false</c> if the record was a header record, or was skipped.
@@ -157,41 +158,41 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <remarks>
     /// When this method is called, <see cref="Position"/> points to the start of the record.
     /// </remarks>
-    internal abstract bool MoveNextCore(ref readonly CsvSlice<T> slice);
+    internal abstract bool MoveNextCore(RecordView record);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private protected bool AdvanceReaderAndMoveNext()
     {
-        CsvSlice<T> slice;
+        RecordView view;
 
         while (_reader.TryAdvanceReader())
         {
-            while (_reader.TryReadLine(out slice))
+            while (_reader.TryReadLine(out view))
             {
-                if (CallMoveNextAndIncrementPosition(in slice))
+                if (CallMoveNextAndIncrementPosition(view))
                     return true;
             }
         }
 
-        return _reader.TryReadLine(out slice) && CallMoveNextAndIncrementPosition(in slice);
+        return _reader.TryReadLine(out view) && CallMoveNextAndIncrementPosition(view);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))] // TODO PERF: profile
     private protected async ValueTask<bool> AdvanceReaderAndMoveNextAsync()
     {
-        CsvSlice<T> slice;
+        RecordView view;
 
         while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
         {
-            while (_reader.TryReadLine(out slice))
+            while (_reader.TryReadLine(out view))
             {
-                if (CallMoveNextAndIncrementPosition(in slice))
+                if (CallMoveNextAndIncrementPosition(view))
                     return true;
             }
         }
 
-        return _reader.TryReadLine(out slice) && CallMoveNextAndIncrementPosition(in slice);
+        return _reader.TryReadLine(out view) && CallMoveNextAndIncrementPosition(view);
     }
 
     /// <summary>

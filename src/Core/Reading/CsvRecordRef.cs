@@ -25,9 +25,8 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     internal readonly RecordOwner<T> _owner;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecordRef(scoped ref readonly CsvSlice<T> slice)
-        : this(slice.Reader, slice.Reader._recordBuffer, ref MemoryMarshal.GetReference(slice.Data.Span), slice.Record)
-    { }
+    internal CsvRecordRef(CsvReader<T> reader, RecordView view)
+        : this(reader, reader._recordBuffer, ref MemoryMarshal.GetReference(reader._buffer.Span), view) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(RecordOwner<T> reader, RecordBuffer recordBuffer, ref T data, RecordView view)
@@ -87,7 +86,7 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
             return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
         }
     }
-    
+
     /// <summary>
     /// Returns the raw unescaped span of the field at the specified index.
     /// </summary>

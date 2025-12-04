@@ -25,16 +25,8 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     [CLSCompliant(false)]
     public static StringPool HeaderPool { get; } = new StringPool(minimumSize: 128);
 
-    internal static ImmutableArray<string> Parse<T>(ref readonly CsvSlice<T> slice)
+    internal static ImmutableArray<string> Parse<T>(ref readonly CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
-    {
-        CsvRecordRef<T> record = new(in slice);
-        return Parse<T, CsvRecordRef<T>>(ref record);
-    }
-
-    internal static ImmutableArray<string> Parse<T, TRecord>(ref readonly TRecord record)
-        where T : unmanaged, IBinaryInteger<T>
-        where TRecord : ICsvRecord<T>, allows ref struct
     {
         if (record.FieldCount == 0)
         {

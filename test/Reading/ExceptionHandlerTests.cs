@@ -39,12 +39,12 @@ public class ExceptionHandlerTests
         var list = Run(args =>
         {
             Assert.Equal(["Id", "Name"], args.Header);
-            Assert.Equal(2, args.FieldCount);
+            Assert.Equal(2, args.Record.FieldCount);
             Assert.Equal(4, args.Line);
             Assert.Equal(19, args.Position);
             Assert.Equal("X,C", args.RawRecord.ToString());
-            Assert.Equal("X", args.GetField(0));
-            Assert.Equal("C", args.GetField(1));
+            Assert.Equal("X", args.Record[0]);
+            Assert.Equal("C", args.Record[1]);
 
             if (args.Exception is CsvParseException pe)
             {

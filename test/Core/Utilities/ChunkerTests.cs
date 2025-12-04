@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using FlameCsv.ParallelUtils;
 
 namespace FlameCsv.Tests.Utilities;

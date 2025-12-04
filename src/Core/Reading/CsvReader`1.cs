@@ -42,7 +42,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     private EnumeratorStack _stackMemory; // don't make me readonly!
 
     internal readonly ICsvBufferReader<T> _reader;
-    private ReadOnlyMemory<T> _buffer;
+    internal ReadOnlyMemory<T> _buffer;
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
@@ -83,43 +83,16 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     }
 
     /// <summary>
-    /// Attempts to return a complete CSV record from the read-ahead buffer.
-    /// </summary>
-    /// <returns>
-    /// <c>true</c> if a record was read,
-    /// <c>false</c> if the read-ahead buffer is empty or the record is incomplete.
-    /// </returns>
-    [SkipLocalsInit]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryGetBuffered(out CsvSlice<T> slice)
-    {
-        if (_recordBuffer.TryPop(out RecordView record))
-        {
-            // we have a record in the buffer, return it
-            slice = new CsvSlice<T>
-            {
-                Reader = this,
-                Data = _buffer,
-                Record = record,
-            };
-            return true;
-        }
-
-        Unsafe.SkipInit(out slice);
-        return false;
-    }
-
-    /// <summary>
     /// Attempts to read the next CSV record from the buffered data or read-ahead buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryReadLine(out CsvSlice<T> slice)
+    internal bool TryReadLine(out RecordView record)
     {
-        return TryGetBuffered(out slice) || TryFillBuffer(out slice);
+        return _recordBuffer.TryPop(out record) || TryFillBuffer(out record);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryFillBuffer(out CsvSlice<T> slice)
+    private bool TryFillBuffer(out RecordView record)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
 
@@ -129,16 +102,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         if (_state is State.Reading or State.ReaderCompleted && !_buffer.IsEmpty)
         {
             if (
-                TryFillCore(out RecordView record)
-                || (_state == State.ReaderCompleted && TryFillCore(out record, readToEnd: true))
+                TryFillCore(out record) || (_state == State.ReaderCompleted && TryFillCore(out record, readToEnd: true))
             )
             {
-                slice = new()
-                {
-                    Reader = this,
-                    Data = _buffer,
-                    Record = record,
-                };
                 return true;
             }
 
@@ -154,7 +120,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             }
         }
 
-        Unsafe.SkipInit(out slice);
+        Unsafe.SkipInit(out record);
         return false;
     }
 

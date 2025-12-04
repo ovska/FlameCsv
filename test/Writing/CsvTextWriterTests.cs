@@ -1,14 +1,10 @@
-﻿using System.Buffers;
-using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.Tests.TestData;
-using FlameCsv.Utilities;
-using Xunit.Sdk;
 
 namespace FlameCsv.Tests.Writing;
 

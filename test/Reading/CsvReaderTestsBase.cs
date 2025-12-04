@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
@@ -274,7 +272,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            int length = record._slice.Record.GetLengthWithNewline(record._slice.Reader._recordBuffer);
+            int length = record._view.GetLengthWithNewline(record._owner.Reader._recordBuffer);
             tokenPosition += length;
 
             Obj obj = new()

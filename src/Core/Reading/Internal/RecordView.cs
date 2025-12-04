@@ -27,18 +27,37 @@ internal readonly struct RecordView
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public (int start, int length) GetRecord(RecordBuffer buffer)
+    public ReadOnlySpan<T> GetRecord<T>(CsvReader<T> reader)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        (int start, int length) = GetRecordBounds(reader._recordBuffer);
+        ReadOnlySpan<T> data = reader._buffer.Span;
+        return data.Slice(start, length);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public (int start, int length) GetRecordBounds(RecordBuffer buffer)
     {
         int start = buffer._starts[Start];
         int end = buffer._ends[Start + Count - 1];
         return (start, end - start);
     }
 
-    public (int start, int length) GetField(RecordBuffer buffer, int index)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public (int start, int length) GetFieldBounds(RecordBuffer buffer, int index)
     {
         int start = buffer._starts[Start + index];
         int end = buffer._ends[Start + index + 1];
         return (start, end - start);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ReadOnlySpan<T> GetField<T>(CsvReader<T> reader, int index)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        (int start, int length) = GetFieldBounds(reader._recordBuffer, index);
+        ReadOnlySpan<T> data = reader._buffer.Span;
+        return data.Slice(start, length);
     }
 
     public byte GetQuote(RecordBuffer buffer, int index)

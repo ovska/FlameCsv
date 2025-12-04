@@ -5,7 +5,6 @@ using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Tests.TestData;
-using Xunit.Sdk;
 
 namespace FlameCsv.Tests.Writing;
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
@@ -21,13 +22,13 @@ public delegate bool CsvExceptionHandler<T>(CsvExceptionHandlerArgs<T> args)
 public readonly ref struct CsvExceptionHandlerArgs<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly CsvSlice<T> _slice;
+    private readonly CsvRecordRef<T> _record;
 
     /// <summary>
     /// Initializes a new instance of <see cref="CsvExceptionHandlerArgs{T}"/>.
     /// </summary>
     internal CsvExceptionHandlerArgs(
-        in CsvSlice<T> slice,
+        in CsvRecordRef<T> record,
         ImmutableArray<string> header,
         Exception exception,
         int lineIndex,
@@ -35,7 +36,7 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
         int? expectedFieldCount
     )
     {
-        _slice = slice;
+        _record = record;
         Header = header;
         Line = lineIndex;
         Position = position;
@@ -48,8 +49,11 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
     /// </summary>
     public ImmutableArray<string> Header { get; }
 
-    /// <inheritdoc cref="ICsvRecord{T}.FieldCount"/>
-    public int FieldCount => _slice.FieldCount;
+    /// <summary>
+    /// The current CSV record.
+    /// </summary>
+    [UnscopedRef]
+    public ref readonly CsvRecordRef<T> Record => ref _record;
 
     /// <summary>
     /// Expected number of fields, if known.
@@ -67,12 +71,12 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
     /// <summary>
     /// The current CSV record (unescaped/untrimmed).
     /// </summary>
-    public ReadOnlySpan<T> RawRecord => _slice.RawValue;
+    public ReadOnlySpan<T> RawRecord => _record.Raw;
 
     /// <summary>
     /// Options instance.
     /// </summary>
-    public CsvOptions<T> Options => _slice.Reader.Options;
+    public CsvOptions<T> Options => _record._owner.Options;
 
     /// <summary>
     /// 1-based line number.
@@ -83,16 +87,4 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
     /// 0-based character position in the data, measured from the start of the record.
     /// </summary>
     public long Position { get; }
-
-    /// <summary>
-    /// Returns the value of a field.
-    /// </summary>
-    /// <param name="index">0-based field index</param>
-    /// <param name="raw">Don't unescape the value</param>
-    /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false)
-    {
-        CsvRecordRef<T> recordRef = new(in _slice);
-        return raw ? recordRef.GetRawSpan(index) : recordRef[index];
-    }
 }

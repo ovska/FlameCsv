@@ -2,11 +2,13 @@ using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -38,7 +40,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         get
         {
             _owner.EnsureVersion(_version);
-            return _slice.RawValue;
+            return _view.GetRecord(_owner.Reader);
         }
     }
 
@@ -66,13 +68,13 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
             return _owner.Header?.ContainsKey(name) ?? false;
         }
 
-        return (uint)index < (uint)_slice.FieldCount;
+        return (uint)index < (uint)_view.FieldCount;
     }
 
     /// <summary>
     /// The options-instance associated with the current CSV.
     /// </summary>
-    public CsvOptions<T> Options => _slice.Reader.Options;
+    public CsvOptions<T> Options => _owner.Options;
 
     /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
     public ReadOnlySpan<T> this[CsvFieldIdentifier id] => GetField(id);
@@ -82,22 +84,31 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         get
         {
             _owner.EnsureVersion(_version);
-            return _slice.GetField(index);
+            return _view.GetField(_owner.Reader, index);
         }
     }
 
     internal readonly CsvRecordEnumerator<T> _owner;
-    internal readonly CsvSlice<T> _slice;
+    internal readonly RecordView _view;
     private readonly int _version;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecord(int version, long position, int lineIndex, CsvSlice<T> slice, CsvRecordEnumerator<T> owner)
+    internal CsvRecord(int version, long position, int lineIndex, RecordView view, CsvRecordEnumerator<T> owner)
     {
         _version = version;
         Position = position;
         Line = lineIndex;
-        _slice = slice;
+        _view = view;
         _owner = owner;
+    }
+
+    /// <summary>
+    /// Converts to a <see cref="CsvRecordRef{T}"/>.
+    /// </summary>
+    public static explicit operator CsvRecordRef<T>(in CsvRecord<T> record)
+    {
+        record.EnsureValid();
+        return new CsvRecordRef<T>(record._owner.Reader, record._view);
     }
 
     private ReadOnlySpan<T> GetField(CsvFieldIdentifier id, out int index)
@@ -118,12 +129,24 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
                 Throw.Argument_HeaderNameNotFound(name, header.Values);
             }
         }
-        else if ((uint)index >= (uint)_slice.FieldCount)
+        else if ((uint)index >= (uint)_view.FieldCount)
         {
-            Throw.Argument_FieldIndex(index, _slice.FieldCount, id.UnsafeName);
+            Throw.Argument_FieldIndex(index, _view.FieldCount, id.UnsafeName);
         }
 
-        return _slice.GetField(index);
+        CsvReader<T> reader = _owner.Reader;
+        RecordBuffer buffer = reader._recordBuffer;
+        ReadOnlySpan<T> dataSpan = reader._buffer.Span;
+
+        (int start, int length) = _view.GetFieldBounds(buffer, index);
+        byte quote = _view.GetQuote(buffer, index);
+
+        if ((quote | (int)reader._dialect.Trimming) == 0)
+        {
+            return dataSpan.Slice(start, length);
+        }
+
+        return Field.GetValue(start, start + length, quote, ref MemoryMarshal.GetReference(dataSpan), _owner.Reader);
     }
 
     /// <summary>
@@ -142,11 +165,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            _owner.EnsureVersion(_version);
-            return _slice.FieldCount;
-        }
+        get => _view.FieldCount;
     }
 
     /// <summary>
@@ -241,7 +260,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     public Enumerator GetEnumerator()
     {
         EnsureValid();
-        return new(_version, _owner, in _slice);
+        return new(this);
     }
 
     /// <summary>
@@ -267,7 +286,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        CsvRecordRef<T> record = new(in _slice);
+        var record = (CsvRecordRef<T>)this;
         return materializer.Parse(in record);
     }
 
@@ -293,7 +312,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        CsvRecordRef<T> record = new(in _slice);
+        var record = (CsvRecordRef<T>)this;
         return materializer.Parse(in record);
     }
 
@@ -305,21 +324,20 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        return $"{{ CsvRecord[{_slice.FieldCount}] \"{Transcode.ToString(Raw)}\" }}";
+        return $"{{ CsvRecord[{_view.FieldCount}] \"{Transcode.ToString(Raw)}\" }}";
     }
 
     /// <summary>
     /// Copies the fields in the record to a new array.
     /// </summary>
-    /// <returns></returns>
     public string[] ToArray()
     {
         _owner.EnsureVersion(_version);
 
-        var fields = new string[_slice.FieldCount];
+        var fields = new string[_view.FieldCount];
         for (int i = 0; i < fields.Length; i++)
         {
-            fields[i] = Transcode.ToString(_slice.GetField(i));
+            fields[i] = Transcode.ToString(GetField(i, out _));
         }
 
         return fields;
@@ -351,9 +369,9 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
             }
         }
 
-        if ((uint)index >= (uint)_slice.FieldCount)
+        if ((uint)index >= (uint)_view.FieldCount)
         {
-            Throw.Argument_FieldIndex(index, _slice.FieldCount, paramName);
+            Throw.Argument_FieldIndex(index, _view.FieldCount, paramName);
         }
 
         return index;
@@ -367,35 +385,22 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
         /// <summary>
         /// Current field in the record.
         /// </summary>
-        public readonly ReadOnlySpan<T> Current
-        {
-            get
-            {
-                _owner.EnsureVersion(_version);
-                return _slice.GetField(_index - 1);
-            }
-        }
+        public readonly ReadOnlySpan<T> Current => _record.GetField(_index - 1);
 
-        private readonly int _version;
-        private readonly CsvRecordEnumerator<T> _owner;
-        private readonly CsvSlice<T> _slice;
+        private readonly CsvRecord<T> _record;
         private int _index;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Enumerator(int version, CsvRecordEnumerator<T> owner, scoped ref readonly CsvSlice<T> slice)
+        internal Enumerator(CsvRecord<T> record)
         {
-            _version = version;
-            _owner = owner;
-            _slice = slice;
+            _record = record;
         }
 
         /// <inheritdoc cref="IEnumerator.MoveNext"/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
-            _owner.EnsureVersion(_version);
-
-            if (_index < _slice.FieldCount)
+            if (_index < _record._view.FieldCount)
             {
                 _index++;
                 return true;
@@ -460,7 +465,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
             Target = target,
         };
 
-        ex.Enrich(Line, Position, in _slice);
+        ex.Enrich(Line, Position, _view, _owner.Reader);
         ex.HeaderValue = id.UnsafeName;
         throw ex;
     }
@@ -470,13 +475,7 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
     static CsvRecord()
     {
         int size = Unsafe.SizeOf<CsvRecord<T>>();
-
-        if (size > 64)
-        {
-            throw new UnreachableException(
-                $"CsvRecord<T> must be at most 64 bytes in size for performance reasons (actual size: {size})."
-            );
-        }
+        Debug.Assert(size <= 32, $"Unexpected size for CsvRecord<{typeof(T).Name}>: {size} bytes");
     }
 #endif
 }
