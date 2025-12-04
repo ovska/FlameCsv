@@ -25,20 +25,15 @@ public class CsvReadException(string? message = null, Exception? innerException 
     /// </summary>
     /// <exception cref="CsvReadException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowForInvalidFieldCount<T, TRecord>(
-        int expected,
-        int actual,
-        scoped ref readonly TRecord record
-    )
+    public static void ThrowForInvalidFieldCount<T>(int expected, scoped ref readonly CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
-        where TRecord : ICsvRecord<T>, allows ref struct
     {
         throw new CsvReadException(
-            $"Expected {expected} fields, but the record had {actual}: {Transcode.ToString(record.Raw)}"
+            $"Expected {expected} fields, but the record had {record.FieldCount}: {Transcode.ToString(record.Raw)}"
         )
         {
             ExpectedFieldCount = expected,
-            ActualFieldCount = actual,
+            ActualFieldCount = record.FieldCount,
         };
     }
 }

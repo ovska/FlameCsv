@@ -137,7 +137,7 @@ partial class TypeMapGenerator
 
             writer.WriteLineIf(typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
             writer.WriteLine(
-                $"public {typeMap.Type.FullyQualifiedName} Parse<TRecord>(scoped ref readonly TRecord record) where TRecord : global::FlameCsv.Reading.ICsvRecord<{typeMap.TokenName}>, allows ref struct"
+                $"public {typeMap.Type.FullyQualifiedName} Parse(scoped ref readonly global::FlameCsv.Reading.CsvRecordRef<{typeMap.TokenName}> record)"
             );
 
             using (writer.WriteBlock())
@@ -146,10 +146,8 @@ partial class TypeMapGenerator
 
                 using (writer.WriteBlock())
                 {
-                    writer.Write("global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount<");
-                    writer.Write(typeMap.TokenName);
                     writer.WriteLine(
-                        " , TRecord>(expected: ExpectedFieldCount, actual: record.FieldCount, record: in record);"
+                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(ExpectedFieldCount, in record);"
                     );
                 }
 

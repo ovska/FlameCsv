@@ -19,7 +19,7 @@ namespace FlameCsv;
 /// <typeparam name="T">Token type</typeparam>
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvRecord<>.CsvRecordDebugView))]
-public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnlySpan<T>>
+public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
@@ -78,15 +78,6 @@ public readonly partial struct CsvRecord<T> : ICsvRecord<T>, IEnumerable<ReadOnl
 
     /// <inheritdoc cref="GetField(CsvFieldIdentifier)"/>
     public ReadOnlySpan<T> this[CsvFieldIdentifier id] => GetField(id);
-
-    ReadOnlySpan<T> ICsvRecord<T>.this[int index]
-    {
-        get
-        {
-            _owner.EnsureVersion(_version);
-            return _view.GetField(_owner.Reader, index);
-        }
-    }
 
     internal readonly CsvRecordEnumerator<T> _owner;
     internal readonly RecordView _view;

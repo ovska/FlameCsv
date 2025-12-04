@@ -21,7 +21,7 @@ public static partial class HeaderBindingTests
         var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
         var materializer = binder.GetMaterializer<AssemblyScoped>(["_id", "_name"]);
 
-        var record = new ConstantRecord("5", "Test");
+        var record = ConstantRecord.Create("5", "Test");
         var result = materializer.Parse(ref record);
 
         Assert.Equal(5, result.Id);
@@ -33,7 +33,7 @@ public static partial class HeaderBindingTests
     {
         var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
         var materializer = binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]);
-        var record = new ConstantRecord("Test", "true");
+        var record = ConstantRecord.Create("Test", "true");
         var result = materializer.Parse(ref record);
 
         Assert.True(result.IsEnabled);
@@ -51,7 +51,7 @@ public static partial class HeaderBindingTests
         var materializer = binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]);
 
         // should require exactly 3 fields
-        var record = new ConstantRecord("true", "Test", "1");
+        var record = ConstantRecord.Create("true", "Test", "1");
         var result = materializer.Parse(ref record);
 
         Assert.True(result.IsEnabled);
@@ -78,7 +78,7 @@ public static partial class HeaderBindingTests
             ["IsEnabled", "Name", "Targeted"]
         );
 
-        var record = new ConstantRecord("true", "Test", "1");
+        var record = ConstantRecord.Create("true", "Test", "1");
         ISomething result = materializer.Parse(ref record);
 
         Assert.IsType<Something>(result);
@@ -106,7 +106,7 @@ public static partial class HeaderBindingTests
             ["Name", "IsEnabled", "Targeted"]
         );
 
-        var record = new ConstantRecord("Test", "true", "1");
+        var record = ConstantRecord.Create("Test", "true", "1");
         ISomething obj = bindings.Parse(ref record);
 
         Assert.IsType<Something>(obj);

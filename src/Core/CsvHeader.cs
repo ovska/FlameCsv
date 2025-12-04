@@ -1,6 +1,6 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
-using CommunityToolkit.HighPerformance;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -25,7 +25,10 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     [CLSCompliant(false)]
     public static StringPool HeaderPool { get; } = new StringPool(minimumSize: 128);
 
-    internal static ImmutableArray<string> Parse<T>(ref readonly CsvRecordRef<T> record)
+    /// <summary>
+    /// Parses fields as strings from the specified record.
+    /// </summary>
+    public static ImmutableArray<string> Parse<T>(ref readonly CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (record.FieldCount == 0)
@@ -36,7 +39,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
         EnumeratorStack stack = new();
-        Span<char> buffer = ((Span<byte>)stack).Cast<byte, char>();
+        Span<char> buffer = MemoryMarshal.Cast<byte, char>((Span<byte>)stack);
 
         for (int field = 0; field < record.FieldCount; field++)
         {
@@ -106,11 +109,12 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         ArgumentNullException.ThrowIfNull(key);
 
         int hash = Comparer.GetHashCode(key);
+        int[] hashCodes = _hashCodes;
         ReadOnlySpan<string> values = Values.AsSpan();
 
-        for (int index = 0; index < values.Length; index++)
+        for (int index = 0; index < hashCodes.Length; index++)
         {
-            if (_hashCodes[index] == hash && Comparer.Equals(values[index], key))
+            if (hashCodes[index] == hash && Comparer.Equals(values[index], key))
             {
                 return true;
             }
@@ -167,7 +171,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
 
         // we need to add the hash comparer as well; Ordinal and OrdinalIgnoreCase comparers return same hashes
         // for many inputs, which would break the equality contract
-        hash.Add(Comparer);
+        hash.Add(Comparer.GetHashCode());
 
         for (int i = 0; i < _hashCodes.Length; i++)
         {

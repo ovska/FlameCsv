@@ -15,7 +15,7 @@ namespace FlameCsv.Reading;
 [EditorBrowsable(EditorBrowsableState.Never)]
 [PublicAPI]
 [DebuggerTypeProxy(typeof(CsvRecordRef<>.DebugProxy))]
-public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
+public readonly ref struct CsvRecordRef<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly ref T _data;
@@ -55,14 +55,23 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     }
 #endif
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the number of fields in the record.
+    /// </summary>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _starts.Length;
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Returns the field at <paramref name="index"/>, unescaping and trimming it as per the current dialect settings.
+    /// </summary>
+    /// <param name="index">Zero-based index of the field to get.</param>
+    /// <remarks>
+    /// The returned span is only guaranteed to be valid until another field or the next record is read.
+    /// </remarks>
+    /// <exception cref="IndexOutOfRangeException"/>
     public ReadOnlySpan<T> this[int index]
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,12 +97,13 @@ public readonly ref struct CsvRecordRef<T> : ICsvRecord<T>
     }
 
     /// <summary>
-    /// Returns the raw unescaped span of the field at the specified index.
+    /// Returns the raw unescaped field at <paramref name="index"/>.
     /// </summary>
-    /// <param name="index">0-based field index</param>
-    /// <exception cref="IndexOutOfRangeException">
-    /// Thrown if <paramref name="index"/> is less than 0 or greater than or equal to <see cref="FieldCount"/>
-    /// </exception>
+    /// <param name="index">Zero-based index of the field to get.</param>
+    /// <remarks>
+    /// The returned span is only guaranteed to be valid until another field or the next record is read.
+    /// </remarks>
+    /// <exception cref="IndexOutOfRangeException"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {

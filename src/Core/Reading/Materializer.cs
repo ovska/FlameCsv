@@ -1,4 +1,7 @@
-﻿using FlameCsv.Binding;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using FlameCsv.Binding;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading;
 
@@ -26,5 +29,15 @@ internal abstract class Materializer<T, TValue>
         return binding.ResolveConverter<T, TConverted>(options) ?? options.GetConverter<TConverted>();
     }
 
-    protected string GetName(int index) => _bindings.Bindings[index].DisplayName;
+    protected virtual (Type type, object converter) GetExceptionMetadata(int index) => (typeof(void), new object());
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    [DoesNotReturn]
+    protected TValue ThrowParseException(int index)
+    {
+        string name = _bindings.Bindings[index].DisplayName;
+        (Type type, object converter) = GetExceptionMetadata(index);
+        CsvParseException.Throw(index, type, converter, name);
+        return default; // unreachable
+    }
 }
