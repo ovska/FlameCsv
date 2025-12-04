@@ -410,7 +410,7 @@ public class CsvOptionsTests
         {
             Assert.False(args.SkipRecord);
 
-            if (args.Line == 1 || args.RawRecord[0] == '#')
+            if (args.Line == 1 || args.Record.Raw[0] == '#')
             {
                 args.SkipRecord = true;
                 Assert.True(args.SkipRecord);
@@ -452,22 +452,22 @@ public class CsvOptionsTests
             void Callback(ref readonly CsvRecordCallbackArgs<char> args)
             {
                 Assert.Equal(args.Options.HasHeader, hasHeader);
-                Assert.Equal(3, args.FieldCount);
+                Assert.Equal(3, args.Record.FieldCount);
 
-                if (args.RawRecord[0] == 'A')
+                if (args.Record.Raw[0] == 'A')
                 {
                     Assert.Equal(1, args.Line);
                     Assert.False(args.HeaderRead);
                     Assert.Equal(0, args.Position);
                 }
 
-                if (args.RawRecord[0] == '1')
+                if (args.Record.Raw[0] == '1')
                 {
                     Assert.Equal(2, args.Line);
                     Assert.True(args.HeaderRead);
                 }
 
-                if (args.RawRecord[0] == 'X')
+                if (args.Record.Raw[0] == 'X')
                 {
                     Assert.InRange(args.Line, 1, 2);
                     Assert.False(args.HeaderRead);

@@ -71,15 +71,19 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// Returns true if the record has a length of 0.
     /// </summary>
     /// <remarks>
-    /// An empty record's <see cref="FieldCount"/> is not zero,
-    /// is considered to have exactly one field with length of 0.
+    /// An empty record's field count is always 1 (it contains a single empty field).
     /// </remarks>
     public bool IsEmpty => _record.GetRecordLength() == 0;
 
     /// <summary>
-    /// The current CSV record (unescaped/untrimmed).
+    /// The current CSV record.
     /// </summary>
-    public ReadOnlySpan<T> RawRecord => _record.Raw;
+    [UnscopedRef]
+    public ref readonly CsvRecordRef<T> Record
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => ref _record;
+    }
 
     /// <summary>
     /// Options instance.
@@ -123,19 +127,6 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// Returns the header record if <see cref="HeaderRead"/> is true, empty otherwise.
     /// </summary>
     public ReadOnlySpan<string> Header { get; }
-
-    /// <summary>
-    /// Number of fields in the record.
-    /// </summary>
-    public int FieldCount => _record.FieldCount;
-
-    /// <summary>
-    /// Returns the value of a field.
-    /// </summary>
-    /// <param name="index">0-based field index</param>
-    /// <param name="raw">Don't unescape the value</param>
-    /// <returns>Value of the field</returns>
-    public ReadOnlySpan<T> GetField(int index, bool raw = false) => raw ? _record.GetRawSpan(index) : _record[index];
 }
 
 /// <summary>
