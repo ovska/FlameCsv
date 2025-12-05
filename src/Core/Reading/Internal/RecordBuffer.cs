@@ -51,7 +51,7 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Number of fields that have been consumed from the buffer.
     /// </summary>
-    private int _fieldIndex;
+    private int FieldIndex => _eols[_eolIndex];
 
     /// <summary>
     /// Number of fields that have been parsed to the buffer.
@@ -99,7 +99,7 @@ internal sealed class RecordBuffer : IDisposable
         get
         {
             ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
-            return _fieldCount - _fieldIndex;
+            return _fieldCount - FieldIndex;
         }
     }
 
@@ -160,12 +160,15 @@ internal sealed class RecordBuffer : IDisposable
 
         _fieldCount += count;
 
-        ref ushort eol = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex + 1u);
-        ref uint field = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), (uint)_fieldIndex + 1u);
-        ref int startRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_starts), (uint)_fieldIndex + 1u);
-        ref int endRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_ends), (uint)_fieldIndex + 1u);
+        int fieldIndex = FieldIndex;
 
-        nint end = _fieldCount - _fieldIndex;
+        ref ushort eol = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex + 1u);
+
+        ref uint field = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_fields), (uint)fieldIndex + 1u);
+        ref int startRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_starts), (uint)fieldIndex + 1u);
+        ref int endRef = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_ends), (uint)fieldIndex + 1u);
+
+        nint end = _fieldCount - fieldIndex;
         nint pos = 0;
 
         nuint idx = 0;
@@ -239,17 +242,13 @@ internal sealed class RecordBuffer : IDisposable
                 (x5 + ((a5 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 5 * width);
                 (x7 + ((a7 >> 30) & one) + one).AsInt32().StoreUnsafe(ref localStart, 7 * width);
 
-                // compute movemask
-
-                // narrow even
                 Vector64<sbyte> d0 = AdvSimd.ExtractNarrowingSaturateLower(c0);
                 Vector64<sbyte> d1 = AdvSimd.ExtractNarrowingSaturateLower(c2);
 
-                // narrow odd
                 Vector128<sbyte> e0 = AdvSimd.ExtractNarrowingSaturateUpper(d0, c1);
                 Vector128<sbyte> e1 = AdvSimd.ExtractNarrowingSaturateUpper(d1, c3);
 
-                // convert to 0xFF or 0x00 (required by movemask emulation)
+                // convert to 0xFF or 0x00 with a sign-extending shift (required by movemask emulation)
                 Vector128<byte> r0 = AdvSimd.ShiftRightArithmetic(e0, 7).AsByte();
                 Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(e1, 7).AsByte();
 
@@ -351,12 +350,11 @@ internal sealed class RecordBuffer : IDisposable
     /// <summary>
     /// Resets the buffer, returning the number of characters consumed since the last reset.
     /// </summary>
-    /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Reset()
     {
-        // nothing yet
-        if (_fieldIndex == 0 || _fieldCount == 0)
+        // either we haven't read yet, or the buffered records haven't been consumed at all
+        if (_eolIndex == 0)
         {
             return 0;
         }
@@ -367,13 +365,14 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private int ResetCore()
     {
-        uint lastRead = _fields[_fieldIndex];
+        int fieldIndex = FieldIndex;
+        uint lastRead = _fields[fieldIndex];
         int offset = NextStart(lastRead);
 
-        if (_fieldCount > _fieldIndex)
+        if (_fieldCount > fieldIndex)
         {
-            int length = _fieldCount - _fieldIndex;
-            int start = _fieldIndex + 1;
+            int length = _fieldCount - fieldIndex;
+            int start = fieldIndex + 1;
 
             for (int i = 0; i < length; i++)
             {
@@ -410,8 +409,7 @@ internal sealed class RecordBuffer : IDisposable
             _quotes.AsSpan(1, _fieldCount).Clear();
         }
 
-        _fieldCount -= _fieldIndex;
-        _fieldIndex = 0;
+        _fieldCount -= fieldIndex;
         _eolCount = 0;
         _eolIndex = 0;
 
@@ -434,9 +432,7 @@ internal sealed class RecordBuffer : IDisposable
         {
             ushort eol = Unsafe.Add(ref previous, 1);
             int count = eol - previous + 1;
-
             record = new RecordView(previous, count);
-            _fieldIndex = eol;
             _eolIndex++;
             return true;
         }
@@ -467,7 +463,6 @@ internal sealed class RecordBuffer : IDisposable
 
         _quotes.AsSpan().Clear();
         _eols.AsSpan().Clear();
-        _fieldIndex = 0;
         _fieldCount = 0;
 
         _eolIndex = 0;
@@ -476,7 +471,6 @@ internal sealed class RecordBuffer : IDisposable
 
     public void Dispose()
     {
-        _fieldIndex = 0;
         _fieldCount = 0;
         _eolIndex = 0;
         _eolCount = 0;
@@ -491,7 +485,7 @@ internal sealed class RecordBuffer : IDisposable
     public override string ToString() =>
         _fields.Length == 0
             ? "{ Empty }"
-            : $"{{ {_fieldCount} read, {_fieldCount - _fieldIndex} available, range: [{NextStart(_fields[_fieldIndex])}..{NextStart(_fields[_fieldCount])}] }}";
+            : $"{{ {_fieldCount} read, {_fieldCount - FieldIndex} available, range: [{NextStart(_fields[FieldIndex])}..{NextStart(_fields[_fieldCount])}] }}";
 
     private class MetaBufferDebugView
     {
@@ -509,8 +503,8 @@ internal sealed class RecordBuffer : IDisposable
                 :
                 [
                     .. _buffer
-                        ._fields.Skip(Math.Max(1, _buffer._fieldIndex))
-                        .Take(_buffer._fieldIndex)
+                        ._fields.Skip(Math.Max(1, _buffer.FieldIndex))
+                        .Take(_buffer.FieldIndex)
                         .Select(f => $"End: {f & EndMask}, EOL: {(f & IsEOL) != 0}"),
                 ];
     }
@@ -518,7 +512,7 @@ internal sealed class RecordBuffer : IDisposable
 #if DEBUG
     internal IEnumerable<string> DebugFieldsAll => _fields.Select(FormatField);
     internal string[] DebugFieldsUnread =>
-        DebugFieldsAll.Skip(Math.Max(1, _fieldIndex)).Take(_fieldCount - _fieldIndex).ToArray();
+        DebugFieldsAll.Skip(Math.Max(1, FieldIndex)).Take(_fieldCount - FieldIndex).ToArray();
 
     private static string FormatField(uint f)
     {
