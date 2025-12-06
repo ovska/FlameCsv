@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
@@ -29,9 +30,14 @@ internal static class CsvTokenizer
                 : new Avx2Tokenizer<T, FalseConstant>(options);
         }
 
-        return options.Newline.IsCRLF()
-            ? new SimdTokenizer<T, TrueConstant>(options)
-            : new SimdTokenizer<T, FalseConstant>(options);
+        if (Vector128.IsHardwareAccelerated)
+        {
+            return options.Newline.IsCRLF()
+                ? new SimdTokenizer<T, TrueConstant>(options)
+                : new SimdTokenizer<T, FalseConstant>(options);
+        }
+
+        return null;
     }
 
     public static CsvScalarTokenizer<T> CreateScalar<T>(CsvOptions<T> options)

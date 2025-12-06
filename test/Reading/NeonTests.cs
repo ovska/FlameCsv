@@ -46,17 +46,20 @@ public static class NeonTests
     {
         Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
 
-        byte[] bytes = new byte[Vector256<byte>.Count];
+        byte[] bytes = new byte[Vector512<byte>.Count];
 
-        foreach (var _ in Enumerable.Range(0, 1000))
+        for (int i = 0; i < 1024; i++)
         {
             Random.Shared.NextBytes(bytes);
 
-            Vector256<byte> vec = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Vector256<byte> vec256 = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            string expected = vec256.ExtractMostSignificantBits().ToString("b32");
+            string actual = vec256.MoveMask().ToString("b32");
+            Assert.Equal(expected, actual);
 
-            string expected = vec.ExtractMostSignificantBits().ToString("b32");
-            string actual = vec.MoveMask().ToString("b32");
-
+            Vector512<byte> vec512 = Vector512.GreaterThan(Vector512.Create((byte)127), Vector512.Create(bytes, 0));
+            expected = vec512.ExtractMostSignificantBits().ToString("b64");
+            actual = vec512.MoveMask().ToString("b64");
             Assert.Equal(expected, actual);
         }
     }
