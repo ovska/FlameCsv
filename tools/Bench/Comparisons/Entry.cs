@@ -4,10 +4,10 @@ namespace FlameCsv.Benchmark.Comparisons;
 
 public sealed class Entry
 {
-    [CsvHelper.Configuration.Attributes.Index(0), CsvIndex(0)]
+    [CsvHelper.Configuration.Attributes.Index(0), CsvRequired, CsvIndex(0)]
     public int Index { get; set; }
 
-    [CsvHelper.Configuration.Attributes.Index(1), CsvIndex(1)]
+    [CsvHelper.Configuration.Attributes.Index(1), CsvRequired, CsvIndex(1)]
     public string? Name { get; set; }
 
     [CsvHelper.Configuration.Attributes.Index(2), CsvIndex(2)]

@@ -22,6 +22,17 @@ public static partial class TypeMapBindingTests
         public bool IsEnabled { get; set; }
     }
 
+    [CsvTypeMap<char, ObjWithRequired>]
+    private partial class RequiredTypeMap;
+
+    private sealed class ObjWithRequired(string name)
+    {
+        [CsvRequired]
+        public int Id { get; set; }
+        public string? Name { get; } = name;
+        public bool IsEnabled { get; set; }
+    }
+
     [Fact]
     public static void Should_Require_At_Least_One_Field()
     {
@@ -31,6 +42,32 @@ public static partial class TypeMapBindingTests
                 .Read(TypeMap.Default, new CsvOptions<char> { IgnoreDuplicateHeaders = true })
                 .ToList();
         });
+    }
+
+    [Fact]
+    public static void Should_Require_CsvRequired_Members()
+    {
+        Assert.ThrowsAny<CsvBindingException>(() =>
+        {
+            Csv.From("name,isenabled\r\nBob,true\r\nAlice,false\r\n")
+                .Read(RequiredTypeMap.Default, CsvOptions<char>.Default)
+                .ToList();
+        });
+
+        Assert.ThrowsAny<CsvBindingException>(() =>
+        {
+            Csv.From("isenabled\r\true\r\false\r\n").Read(RequiredTypeMap.Default, CsvOptions<char>.Default).ToList();
+        });
+
+        var items = Csv.From("id,name\r\n1,Bob\r\n2,Alice\r\n")
+            .Read(RequiredTypeMap.Default, CsvOptions<char>.Default)
+            .ToList();
+
+        Assert.Equal(2, items.Count);
+        Assert.Equal(1, items[0].Id);
+        Assert.Equal("Bob", items[0].Name);
+        Assert.Equal(2, items[1].Id);
+        Assert.Equal("Alice", items[1].Name);
     }
 
     [Fact]

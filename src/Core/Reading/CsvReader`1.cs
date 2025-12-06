@@ -31,11 +31,6 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </summary>
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
-    /// <summary>
-    /// Whether the instance has been disposed.
-    /// </summary>
-    private bool IsDisposed => _state == State.Disposed;
-
     internal readonly RecordBuffer _recordBuffer;
 
     internal readonly Allocator<T> _unescapeAllocator;
@@ -73,13 +68,17 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         _recordBuffer = new RecordBuffer();
         _reader = reader;
-        _skipBOM = typeof(T) == typeof(byte);
         _state = State.Initialized;
 
         _tokenizer = CsvTokenizer.Create(options);
         _scalarTokenizer = CsvTokenizer.CreateScalar(options);
 
         _unescapeAllocator = new Allocator<T>(ioOptions.EffectiveBufferPool);
+
+        if (typeof(T) == typeof(byte))
+        {
+            _skipBOM = true;
+        }
     }
 
     /// <summary>
@@ -94,7 +93,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryFillBuffer(out RecordView record)
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
 
         ResetBufferAndAdvanceReader();
 
@@ -184,7 +183,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </returns>
     public bool TryReset()
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
 
         if (_reader.TryReset())
         {
@@ -222,7 +221,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </remarks>
     internal bool TryAdvanceReader()
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
 
         if (_state < State.ReaderCompleted)
         {
@@ -238,7 +237,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <inheritdoc cref="TryAdvanceReader"/>
     internal async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
+        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (_state < State.ReaderCompleted)
@@ -272,19 +271,17 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SetReadResult(ref readonly CsvReadResult<T> result)
     {
-        (ReadOnlyMemory<T> buffer, bool isCompleted) = result;
+        _buffer = result.Buffer;
+        _state = result.IsCompleted ? State.ReaderCompleted : State.Reading;
 
-        // Check if the buffer length exceeds the maximum allowed length
-        // the field metadata cannot hold more than 30 bits of information, so split huge continous buffers
-        // into smaller chunks
-        if (buffer.Length > Field.MaxFieldEnd)
+        // Check if the buffer length exceeds the maximum allowed length. as the field metadata cannot
+        // hold more than 30 bits of information, split huge continous buffers into smaller chunks
+        if (_buffer.Length > Field.MaxFieldEnd)
         {
-            buffer = buffer.Slice(0, Field.MaxFieldEnd);
-            isCompleted = false;
+            _buffer = _buffer.Slice(0, Field.MaxFieldEnd);
+            _state = State.Reading;
         }
 
-        _buffer = buffer;
-        _state = isCompleted ? State.ReaderCompleted : State.Reading;
         if (typeof(T) == typeof(byte) && _skipBOM)
             TrySkipBOM();
     }
@@ -305,37 +302,29 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (IsDisposed)
+        if (_state is State.Disposed)
             return;
+
         _state = State.Disposed;
 
-        using (_reader)
-        {
-            DisposeCore();
-        }
+        _reader.Dispose();
+        _unescapeAllocator.Dispose();
+        _recordBuffer.Dispose();
+        _buffer = ReadOnlyMemory<T>.Empty; // don't hold on to data after disposing
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (IsDisposed)
+        if (_state is State.Disposed)
             return;
+
         _state = State.Disposed;
 
-        await using (_reader.ConfigureAwait(false))
-        {
-            DisposeCore();
-        }
-    }
-
-    private void DisposeCore()
-    {
-        using (_unescapeAllocator)
-        {
-            // don't hold on to data after disposing
-            _buffer = ReadOnlyMemory<T>.Empty;
-            _recordBuffer.Dispose();
-        }
+        await _reader.DisposeAsync().ConfigureAwait(false);
+        _unescapeAllocator.Dispose();
+        _recordBuffer.Dispose();
+        _buffer = ReadOnlyMemory<T>.Empty; // don't hold on to data after disposing
     }
 
     internal override Span<T> GetUnescapeBuffer(int length)

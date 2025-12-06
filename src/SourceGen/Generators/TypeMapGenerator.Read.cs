@@ -110,9 +110,7 @@ partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine("public int ExpectedFieldCount => expectedFieldCount;");
-            writer.WriteLine();
-
+            writer.WriteLine("// converters for each member/parameter");
             foreach (var member in typeMap.AllMembers.Readable())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -120,11 +118,14 @@ partial class TypeMapGenerator
                 WriteConverterType(writer, typeMap.TokenName, member);
                 writer.Write(' ');
                 member.WriteConverterName(writer);
-                writer.WriteLine(";");
+                writer.Write(";");
+                writer.WriteIf(member.IsRequired, " // required");
+                writer.WriteLine();
             }
 
             writer.WriteLine();
 
+            writer.WriteLine("// field indexes in the current CSV");
             foreach (var member in typeMap.AllMembers.Readable())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -142,12 +143,12 @@ partial class TypeMapGenerator
 
             using (writer.WriteBlock())
             {
-                writer.WriteLine("if (record.FieldCount != ExpectedFieldCount)");
+                writer.WriteLine("if (record.FieldCount != expectedFieldCount)");
 
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine(
-                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(ExpectedFieldCount, in record);"
+                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expectedFieldCount, in record);"
                     );
                 }
 
@@ -155,8 +156,10 @@ partial class TypeMapGenerator
                     """
 
                     #if RELEASE
+                                global::System.Runtime.CompilerServices.Unsafe.SkipInit(out int invalidIndex);
                                 global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
                     #else
+                                int invalidIndex = -1;
                                 ParseState state = default;
                     #endif
 
@@ -170,6 +173,11 @@ partial class TypeMapGenerator
                 foreach (var member in typeMap.AllMembers.Readable())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+
+                    if (!member.IsRequired && member is not ParameterModel)
+                    {
+                        continue;
+                    }
 
                     writer.Write("if (");
 
@@ -189,23 +197,14 @@ partial class TypeMapGenerator
 
                     using (writer.WriteBlock())
                     {
-                        writer.Write("ThrowForFailedParse(");
+                        writer.Write("invalidIndex = ");
                         member.WriteId(writer);
-                        writer.WriteLine(");");
+                        writer.WriteLine(";");
+                        writer.WriteLine("goto FailedParse;");
                     }
 
                     writer.WriteLine();
                 }
-
-#if false
-                writer.WriteLine("// Required fields are guaranteed to be non-null.");
-                writer.WriteLine("// Optional fields are null-checked to only write a value when one was read.");
-
-                writer.WriteLineIf(
-                    hasOptionalParameters,
-                    "// Optional parameters are always passed, their default value is used when not read (see above)"
-                );
-#endif
 
                 string typeToWrite = typeMap.Proxy?.FullyQualifiedName ?? typeMap.Type.FullyQualifiedName;
 
@@ -214,6 +213,11 @@ partial class TypeMapGenerator
                 WriteSetters(writer, typeMap, cancellationToken);
 
                 writer.WriteLine("return obj;");
+
+                writer.WriteLine();
+                writer.WriteLine("FailedParse:");
+                writer.WriteLine("ThrowForFailedParse(invalidIndex);");
+                writer.WriteLine("return default; // Unreachable");
             }
 
             writer.WriteLine();
@@ -351,11 +355,28 @@ partial class TypeMapGenerator
                 continue;
             }
 
-            if (!property.IsRequired)
+            writer.WriteLine();
+
+            writer.Write("if (");
+            property.WriteConverterName(writer);
+            writer.WriteLine(" is not null)");
+
+            using var _ = writer.WriteBlock();
+
+            writer.Write("if (!");
+            property.WriteConverterName(writer);
+            writer.Write(".TryParse(record[");
+            property.WriteId(writer);
+            writer.Write("], out state.");
+            writer.Write(property.Identifier);
+            writer.WriteLine("))");
+
+            using (writer.WriteBlock())
             {
-                writer.Write("if (");
-                property.WriteConverterName(writer);
-                writer.Write(" is not null) ");
+                writer.Write("invalidIndex = ");
+                property.WriteId(writer);
+                writer.WriteLine(";");
+                writer.WriteLine("goto FailedParse;");
             }
 
             if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
@@ -384,6 +405,7 @@ partial class TypeMapGenerator
         }
 
         writer.Write("if (");
+        writer.IncreaseIndent();
 
         bool first = true;
 
@@ -397,6 +419,7 @@ partial class TypeMapGenerator
         }
 
         writer.WriteLine(")");
+        writer.DecreaseIndent();
         using (writer.WriteBlock())
         {
             writer.WriteLine("base.ThrowRequiredNotRead(GetMissingRequiredFields(materializer), headers);");

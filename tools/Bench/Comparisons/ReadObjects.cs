@@ -37,7 +37,7 @@ public partial class ReadObjects
         HeaderComparer = StringComparer.OrdinalIgnoreCase,
     };
 
-    // [Benchmark]
+    [Benchmark]
     public async Task _FlameCsv()
     {
         if (Async)
