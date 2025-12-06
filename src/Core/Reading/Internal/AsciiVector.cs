@@ -273,28 +273,4 @@ internal static class AsciiVector
 
         return Vector256.Create(r0, r1);
     }
-
-    public static Vector128<byte> ZeroLower(Vector128<byte> vector, int count)
-    {
-        // csharpier-ignore
-        ReadOnlySpan<byte> ZeroLowerLUT =
-        [
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 0..15
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // 16..31
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 32..47
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // 48..63
-        ];
-
-        Debug.Assert(ZeroLowerLUT.Length == Vector128<byte>.Count * 2);
-        Debug.Assert(count >= 0 && count <= Vector128<byte>.Count);
-        Vector128<byte> mask = Vector128.LoadUnsafe(in ZeroLowerLUT[ZeroLowerLUT.Length / 2], (nuint)count);
-        return vector & mask;
-    }
-
-    public static Vector128<byte> ZeroLower2(Vector128<byte> vector, int count)
-    {
-        Vector128<byte> broadcast = Vector128.Create((byte)count);
-        Vector128<byte> mask = Vector128.LessThanOrEqual(broadcast, Vector128<byte>.Indices);
-        return vector & mask;
-    }
 }
