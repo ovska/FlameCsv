@@ -77,9 +77,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
         uint maskCR = TCRLF.Value ? hasCR.MoveMask() : 0;
-        uint maskControl = hasControl.MoveMask();
-        uint maskLF = hasLF.MoveMask();
-        uint maskQuote = hasQuote.MoveMask();
+        (uint maskControl, uint maskLF, uint maskQuote) = AsciiVector.MoveMask(hasControl, hasLF, hasQuote);
 
         Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
 
@@ -204,9 +202,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasControl = hasLF | hasDelimiter;
 
             maskCR = TCRLF.Value ? hasCR.MoveMask() : 0;
-            maskControl = hasControl.MoveMask();
-            maskLF = hasLF.MoveMask();
-            maskQuote = hasQuote.MoveMask();
+            (maskControl, maskLF, maskQuote) = AsciiVector.MoveMask(hasControl, hasLF, hasQuote);
         } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;

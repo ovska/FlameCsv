@@ -30,11 +30,9 @@ internal static class AsciiVector
             return Avx512BW.ConvertToVector256ByteWithSaturation(v);
         }
 
-        Vector256<short> v0 = Vector256.LoadUnsafe(ref Unsafe.As<T, short>(ref source), offset);
-        Vector256<short> v1 = Vector256.LoadUnsafe(
-            ref Unsafe.As<T, short>(ref source),
-            offset + (nuint)Vector256<short>.Count
-        );
+        ref short src = ref Unsafe.As<T, short>(ref Unsafe.Add(ref source, offset));
+        Vector256<short> v0 = Vector256.LoadUnsafe(ref src);
+        Vector256<short> v1 = Vector256.LoadUnsafe(ref src, (nuint)Vector256<short>.Count);
 
         if (Avx2.IsSupported)
         {
@@ -94,14 +92,45 @@ internal static class AsciiVector
             throw Token<T>.NotSupported;
         }
 
-        Vector512<short> v0 = Vector512.LoadUnsafe(ref Unsafe.As<T, short>(ref source), offset);
-        Vector512<short> v1 = Vector512.LoadUnsafe(
-            ref Unsafe.As<T, short>(ref source),
-            offset + (nuint)Vector512<short>.Count
-        );
+        if (AdvSimd.IsSupported)
+        {
+            ref short src = ref Unsafe.As<T, short>(ref Unsafe.Add(ref source, offset));
+            int width = Vector128<short>.Count;
 
-        Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(v0, v1);
-        return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0L, 2, 4, 6, 1, 3, 5, 7)).AsByte();
+            Vector128<short> v0 = Vector128.LoadUnsafe(ref src, 0 * (nuint)width);
+            Vector128<short> v1 = Vector128.LoadUnsafe(ref src, 1 * (nuint)width);
+            Vector128<short> v2 = Vector128.LoadUnsafe(ref src, 2 * (nuint)width);
+            Vector128<short> v3 = Vector128.LoadUnsafe(ref src, 3 * (nuint)width);
+            Vector128<short> v4 = Vector128.LoadUnsafe(ref src, 4 * (nuint)width);
+            Vector128<short> v5 = Vector128.LoadUnsafe(ref src, 5 * (nuint)width);
+            Vector128<short> v6 = Vector128.LoadUnsafe(ref src, 6 * (nuint)width);
+            Vector128<short> v7 = Vector128.LoadUnsafe(ref src, 7 * (nuint)width);
+
+            Vector64<byte> lo01 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(v0); // UQXTN
+            Vector128<byte> out01 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo01, v1); // UQXTN2
+
+            Vector64<byte> lo23 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(v2); // UQXTN
+            Vector128<byte> out23 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo23, v3); // UQXTN2
+
+            Vector64<byte> lo45 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(v4); // UQXTN
+            Vector128<byte> out45 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo45, v5); // UQXTN2
+
+            Vector64<byte> lo67 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(v6); // UQXTN
+            Vector128<byte> out67 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo67, v7); // UQXTN2
+
+            return Vector512.Create(Vector256.Create(out01, out23), Vector256.Create(out45, out67));
+        }
+        else
+        {
+            Vector512<short> v0 = Vector512.LoadUnsafe(ref Unsafe.As<T, short>(ref source), offset);
+            Vector512<short> v1 = Vector512.LoadUnsafe(
+                ref Unsafe.As<T, short>(ref source),
+                offset + (nuint)Vector512<short>.Count
+            );
+
+            Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(v0, v1);
+            return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0L, 2, 4, 6, 1, 3, 5, 7)).AsByte();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -153,6 +182,49 @@ internal static class AsciiVector
             $"MoveMask mismatch: {result:b32} vs {vec.ExtractMostSignificantBits():b32}"
         );
         return result;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static (uint a, uint b, uint c) MoveMask(Vector256<byte> v0, Vector256<byte> v1, Vector256<byte> v2)
+    {
+        if (!AdvSimd.IsSupported)
+            return (v0.ExtractMostSignificantBits(), v1.ExtractMostSignificantBits(), v2.ExtractMostSignificantBits());
+
+        Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+
+        Vector128<byte> lo0 = v0.GetLower();
+        Vector128<byte> hi0 = v0.GetUpper();
+        Vector128<byte> lo1 = v1.GetLower();
+        Vector128<byte> hi1 = v1.GetUpper();
+        Vector128<byte> lo2 = v2.GetLower();
+        Vector128<byte> hi2 = v2.GetUpper();
+
+        Vector128<sbyte> t0 = AdvSimd.And(lo0, w).AsSByte();
+        Vector128<sbyte> t1 = AdvSimd.And(hi0, w).AsSByte();
+        Vector128<sbyte> t2 = AdvSimd.And(lo1, w).AsSByte();
+        Vector128<sbyte> t3 = AdvSimd.And(hi1, w).AsSByte();
+        Vector128<sbyte> t4 = AdvSimd.And(lo2, w).AsSByte();
+        Vector128<sbyte> t5 = AdvSimd.And(hi2, w).AsSByte();
+
+        // vpadd across the two halves, then fold twice
+        Vector128<sbyte> s0 = AdvSimd.Arm64.AddPairwise(t0, t1);
+        Vector128<sbyte> s1 = AdvSimd.Arm64.AddPairwise(t2, t3);
+        Vector128<sbyte> s2 = AdvSimd.Arm64.AddPairwise(t4, t5);
+
+        s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
+        s1 = AdvSimd.Arm64.AddPairwise(s1, s1);
+        s2 = AdvSimd.Arm64.AddPairwise(s2, s2);
+
+        s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
+        s1 = AdvSimd.Arm64.AddPairwise(s1, s1);
+        s2 = AdvSimd.Arm64.AddPairwise(s2, s2);
+
+        uint r0 = s0.AsUInt32().ToScalar();
+        uint r1 = s1.AsUInt32().ToScalar();
+        uint r2 = s2.AsUInt32().ToScalar();
+
+        return (r0, r1, r2);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -236,16 +308,16 @@ internal static class AsciiVector
         // jagged order to improve instruction-level parallelism
 
         // load even
-        Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a2 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a4 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a6 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a0 = Vector128.LoadUnsafe(ref field, pos + (0 * (nuint)Vector128<int>.Count));
+        Vector128<int> a2 = Vector128.LoadUnsafe(ref field, pos + (2 * (nuint)Vector128<int>.Count));
+        Vector128<int> a4 = Vector128.LoadUnsafe(ref field, pos + (4 * (nuint)Vector128<int>.Count));
+        Vector128<int> a6 = Vector128.LoadUnsafe(ref field, pos + (6 * (nuint)Vector128<int>.Count));
 
         // load odd
-        Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a3 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a5 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<uint>.Count));
-        Vector128<int> a7 = Vector128.LoadUnsafe(ref field, pos + (7 * (nuint)Vector128<uint>.Count));
+        Vector128<int> a1 = Vector128.LoadUnsafe(ref field, pos + (1 * (nuint)Vector128<int>.Count));
+        Vector128<int> a3 = Vector128.LoadUnsafe(ref field, pos + (3 * (nuint)Vector128<int>.Count));
+        Vector128<int> a5 = Vector128.LoadUnsafe(ref field, pos + (5 * (nuint)Vector128<int>.Count));
+        Vector128<int> a7 = Vector128.LoadUnsafe(ref field, pos + (7 * (nuint)Vector128<int>.Count));
 
         // narrow even
         Vector64<short> b0 = AdvSimd.ExtractNarrowingSaturateLower(a0);
@@ -272,5 +344,26 @@ internal static class AsciiVector
         Vector128<byte> r1 = AdvSimd.ShiftRightArithmetic(e1, 7).AsByte();
 
         return Vector256.Create(r0, r1);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool ZeroOrOneMatches(Vector256<byte> vector)
+    {
+        // values are either 0x00 or 0xFF
+        Vector64<ushort> lower = AdvSimd.Arm64.AddAcrossWidening(vector.GetLower());
+        Vector64<ushort> upper = AdvSimd.Arm64.AddAcrossWidening(vector.GetUpper());
+        return (lower + upper).ToScalar() <= 0xFF;
+    }
+
+    extension(Vector256)
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [DebuggerStepThrough]
+        public static Vector256<byte> Equals128(Vector256<byte> vector, Vector128<byte> value)
+        {
+            var x0 = vector.GetLower();
+            var x1 = vector.GetUpper();
+            return Vector256.Create(Vector128.Equals(x0, value), Vector128.Equals(x1, value));
+        }
     }
 }
