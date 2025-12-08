@@ -1,6 +1,9 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using CommunityToolkit.HighPerformance;
+using FlameCsv.Intrinsics;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Reading;
@@ -61,6 +64,29 @@ public static class NeonTests
             expected = vec512.ExtractMostSignificantBits().ToString("b64");
             actual = vec512.MoveMask().ToString("b64");
             Assert.Equal(expected, actual);
+
+            // test trifecta
+            Vector256<byte> a = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Random.Shared.NextBytes(bytes);
+            Vector256<byte> b = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Random.Shared.NextBytes(bytes);
+            Vector256<byte> c = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Random.Shared.NextBytes(bytes);
+            Vector256<byte> d = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+
+            var (x, y, z, w) = AsciiVector.MoveMask<TrueConstant>(a, b, c, d);
+            string expectedX = a.ExtractMostSignificantBits().ToString("b32");
+            string expectedY = b.ExtractMostSignificantBits().ToString("b32");
+            string expectedZ = c.ExtractMostSignificantBits().ToString("b32");
+            string expectedW = d.ExtractMostSignificantBits().ToString("b32");
+            Assert.Equal(expectedX, a.MoveMask().ToString("b32"));
+            Assert.Equal(expectedY, b.MoveMask().ToString("b32"));
+            Assert.Equal(expectedZ, c.MoveMask().ToString("b32"));
+            Assert.Equal(expectedW, d.MoveMask().ToString("b32"));
+            Assert.Equal(expectedX, x.ToString("b32"));
+            Assert.Equal(expectedY, y.ToString("b32"));
+            Assert.Equal(expectedZ, z.ToString("b32"));
+            Assert.Equal(expectedW, w.ToString("b32"));
         }
     }
 

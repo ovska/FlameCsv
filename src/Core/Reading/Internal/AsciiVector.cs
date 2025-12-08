@@ -186,10 +186,23 @@ internal static class AsciiVector
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
-    public static (uint a, uint b, uint c) MoveMask(Vector256<byte> v0, Vector256<byte> v1, Vector256<byte> v2)
+    public static (uint a, uint b, uint c, uint d) MoveMask<TCRLF>(
+        Vector256<byte> v0,
+        Vector256<byte> v1,
+        Vector256<byte> v2,
+        Vector256<byte> v3
+    )
+        where TCRLF : struct, IConstant
     {
         if (!AdvSimd.IsSupported)
-            return (v0.ExtractMostSignificantBits(), v1.ExtractMostSignificantBits(), v2.ExtractMostSignificantBits());
+        {
+            return (
+                v0.ExtractMostSignificantBits(),
+                v1.ExtractMostSignificantBits(),
+                v2.ExtractMostSignificantBits(),
+                TCRLF.Value ? v3.ExtractMostSignificantBits() : default
+            );
+        }
 
         Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
 
@@ -199,6 +212,8 @@ internal static class AsciiVector
         Vector128<byte> hi1 = v1.GetUpper();
         Vector128<byte> lo2 = v2.GetLower();
         Vector128<byte> hi2 = v2.GetUpper();
+        Vector128<byte> lo3 = TCRLF.Value ? v3.GetLower() : default;
+        Vector128<byte> hi3 = TCRLF.Value ? v3.GetUpper() : default;
 
         Vector128<sbyte> t0 = AdvSimd.And(lo0, w).AsSByte();
         Vector128<sbyte> t1 = AdvSimd.And(hi0, w).AsSByte();
@@ -206,25 +221,31 @@ internal static class AsciiVector
         Vector128<sbyte> t3 = AdvSimd.And(hi1, w).AsSByte();
         Vector128<sbyte> t4 = AdvSimd.And(lo2, w).AsSByte();
         Vector128<sbyte> t5 = AdvSimd.And(hi2, w).AsSByte();
+        Vector128<sbyte> t6 = TCRLF.Value ? AdvSimd.And(lo3, w).AsSByte() : default;
+        Vector128<sbyte> t7 = TCRLF.Value ? AdvSimd.And(hi3, w).AsSByte() : default;
 
         // vpadd across the two halves, then fold twice
         Vector128<sbyte> s0 = AdvSimd.Arm64.AddPairwise(t0, t1);
         Vector128<sbyte> s1 = AdvSimd.Arm64.AddPairwise(t2, t3);
         Vector128<sbyte> s2 = AdvSimd.Arm64.AddPairwise(t4, t5);
+        Vector128<sbyte> s3 = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(t6, t7) : default;
 
         s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
         s1 = AdvSimd.Arm64.AddPairwise(s1, s1);
         s2 = AdvSimd.Arm64.AddPairwise(s2, s2);
+        s3 = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(s3, s3) : default;
 
         s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
         s1 = AdvSimd.Arm64.AddPairwise(s1, s1);
         s2 = AdvSimd.Arm64.AddPairwise(s2, s2);
+        s3 = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(s3, s3) : default;
 
         uint r0 = s0.AsUInt32().ToScalar();
         uint r1 = s1.AsUInt32().ToScalar();
         uint r2 = s2.AsUInt32().ToScalar();
+        uint r3 = TCRLF.Value ? s3.AsUInt32().ToScalar() : default;
 
-        return (r0, r1, r2);
+        return (r0, r1, r2, r3);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -353,6 +374,35 @@ internal static class AsciiVector
         Vector64<ushort> lower = AdvSimd.Arm64.AddAcrossWidening(vector.GetLower());
         Vector64<ushort> upper = AdvSimd.Arm64.AddAcrossWidening(vector.GetUpper());
         return (lower + upper).ToScalar() <= 0xFF;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint CountMatches(Vector128<byte> vector)
+    {
+        // values are either 0x00 or 0xFF
+        return (uint)AdvSimd.Arm64.AddAcrossWidening(vector).ToScalar() / 256;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint CountMatches(Vector256<byte> vector)
+    {
+        // values are either 0x00 or 0xFF
+        Vector128<byte> x0 = vector.GetLower() >> 7;
+        Vector128<byte> x1 = vector.GetUpper() >> 7;
+        Vector64<ushort> lower = AdvSimd.Arm64.AddAcrossWidening(x0);
+        Vector64<ushort> upper = AdvSimd.Arm64.AddAcrossWidening(x1);
+        return (uint)(lower + upper).ToScalar();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllBytesHaveAtMost4Bits(uint mask)
+    {
+        Vector64<byte> bytes = Vector64.CreateScalar(mask).AsByte();
+        Vector64<byte> counts = AdvSimd.PopCount(bytes);
+        Vector64<byte> four = Vector64.Create((byte)4);
+        Vector64<byte> gt4 = AdvSimd.CompareGreaterThan(counts, four);
+        ulong anyGt4 = gt4.AsUInt64().ToScalar();
+        return anyGt4 == 0;
     }
 
     extension(Vector256)

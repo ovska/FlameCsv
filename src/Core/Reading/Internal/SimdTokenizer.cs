@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -76,8 +77,12 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         Vector256<byte> hasControl = hasLF | hasDelimiter;
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
 
-        uint maskCR = TCRLF.Value ? hasCR.MoveMask() : 0;
-        (uint maskControl, uint maskLF, uint maskQuote) = AsciiVector.MoveMask(hasControl, hasLF, hasQuote);
+        (uint maskControl, uint maskLF, uint maskQuote, uint maskCR) = AsciiVector.MoveMask<TCRLF>(
+            hasControl,
+            hasLF,
+            hasQuote,
+            hasCR
+        );
 
         Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
 
@@ -125,7 +130,35 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
             if ((quotesConsumed | maskQuote) != 0)
             {
-                goto SlowPath;
+                if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
+                {
+                    goto SlowPath;
+                }
+
+                /*
+                | Method | Chars | Quoted | Newline | Mean     | StdDev  | Ratio |
+                |------- |------ |------- |-------- |---------:|--------:|------:|
+                | Simd   | False | True   | LF      | 163.1 us | 0.58 us |  1.00 |
+                */
+
+                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                byte quotesInMask = Unsafe.BitCast<bool, byte>(maskQuote != 0);
+
+                if (maskControl == 0)
+                {
+                    quotesConsumed += quotesInMask;
+                    goto ContinueRead;
+                }
+
+                uint bitsBeforeQuote = (uint)BitOperations.PopCount((maskQuote - 1) & maskControl);
+
+                // store accumulated quotes in the first field
+                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
+
+                // add the quotes to the correct position in the field; there are 0 or 1 quotes in the mask
+                // this can be the first field or any other
+                Unsafe.Add(ref firstQuote, fieldIndex + bitsBeforeQuote) += quotesInMask;
+                quotesConsumed = 0;
             }
 
             if (Bithacks.ZeroOrOneBitsSet(maskLF))
@@ -149,17 +182,34 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
             uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-            ParseAny(
-                index: (uint)index,
-                firstField: ref firstField,
-                firstQuote: ref firstQuote,
-                fieldIndex: ref fieldIndex,
-                quotesConsumed: ref quotesConsumed,
-                maskControl: maskControl,
-                maskLF: maskLF,
-                maskQuote: maskQuote,
-                flag: flag
-            );
+            if (AdvSimd.Arm64.IsSupported)
+            {
+                ParseAnyArm64(
+                    index: (uint)index,
+                    firstField: ref firstField,
+                    firstQuote: ref firstQuote,
+                    fieldIndex: ref fieldIndex,
+                    quotesConsumed: ref quotesConsumed,
+                    maskControl: maskControl,
+                    maskLF: maskLF,
+                    maskQuote: maskQuote,
+                    flag: flag
+                );
+            }
+            else
+            {
+                ParseAny(
+                    index: (uint)index,
+                    firstField: ref firstField,
+                    firstQuote: ref firstQuote,
+                    fieldIndex: ref fieldIndex,
+                    quotesConsumed: ref quotesConsumed,
+                    maskControl: maskControl,
+                    maskLF: maskLF,
+                    maskQuote: maskQuote,
+                    flag: flag
+                );
+            }
 
             goto ContinueRead;
 
@@ -201,8 +251,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasQuote = Vector256.Equals(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
-            maskCR = TCRLF.Value ? hasCR.MoveMask() : 0;
-            (maskControl, maskLF, maskQuote) = AsciiVector.MoveMask(hasControl, hasLF, hasQuote);
+            (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF>(hasControl, hasLF, hasQuote, hasCR);
         } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;
@@ -257,4 +306,10 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         uint intermediate = index - flag;
         Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;
     }
+}
+
+[InlineArray(4)]
+file struct QuoteBuffer
+{
+    public uint elem0;
 }

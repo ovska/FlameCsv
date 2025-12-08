@@ -18,6 +18,17 @@ public class RFC4180ModeTests
             sb.Append(i % 2 == 0 ? "\r\n" : "\n");
         }
 
+        // using var rb1 = new RecordBuffer();
+        // using var rb2 = new RecordBuffer();
+        // var tok1 = new ArmTokenizer<char, FalseConstant>(CsvOptions<char>.Default);
+        // var tok2 = new SimdTokenizer<char, FalseConstant>(CsvOptions<char>.Default);
+        // var dst1 = rb1.GetUnreadBuffer(tok1.MinimumFieldBufferSize, out int start1);
+        // var dst2 = rb2.GetUnreadBuffer(tok2.MinimumFieldBufferSize, out int start2);
+        // var cnt1 = tok1.Tokenize(dst1, start1, sb.ToString());
+        // var cnt2 = tok2.Tokenize(dst2, start2, sb.ToString());
+        // var min = Math.Min(cnt1, cnt2);
+        // Assert.Equal(rb2._fields.AsSpan(0, min + 1), rb1._fields.AsSpan(0, min + 1));
+
         var result = StringBuilderSegment.Create(sb).Read(CsvOptions<char>.Default);
         Assert.Equal(
             Enumerable.Repeat("field1,field2,field3", 500).ToArray(),
@@ -40,8 +51,7 @@ public class RFC4180ModeTests
         Assert.Single(result);
         Assert.Equal([expected], result[0]);
     }
- 
- 
+
     [Fact]
     public void Should_Seek_Long_Line()
     {

@@ -22,6 +22,12 @@ internal static class CsvTokenizer
                 : new Avx512Tokenizer<T, FalseConstant>(options);
         }
 #endif
+        if (ArmTokenizer.IsSupported)
+        {
+            return options.Newline.IsCRLF()
+                ? new ArmTokenizer<T, TrueConstant>(options)
+                : new ArmTokenizer<T, FalseConstant>(options);
+        }
 
         if (Avx2Tokenizer.IsSupported)
         {
@@ -30,7 +36,7 @@ internal static class CsvTokenizer
                 : new Avx2Tokenizer<T, FalseConstant>(options);
         }
 
-        if (Vector128.IsHardwareAccelerated)
+        if (Vector128.IsHardwareAccelerated) // implies SSE, WASM or NEON
         {
             return options.Newline.IsCRLF()
                 ? new SimdTokenizer<T, TrueConstant>(options)
@@ -100,72 +106,147 @@ internal abstract class CsvTokenizer<T>
     {
         nuint fIdx = fieldIndex;
 
-        if (ArmBase.Arm64.IsSupported)
+        while (maskControl != TMask.Zero)
         {
-            Debug.Assert(typeof(TMask) == typeof(uint));
+            uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
+            TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
+            TMask quoteBits = maskQuote & maskUpToPos;
 
-            uint consumed = 0;
-            maskControl = Bithacks.ReverseBits(maskControl);
+            uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
+            uint pos = index + tz;
+            quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
-            while (maskControl != TMask.Zero)
-            {
-                uint lz = uint.CreateTruncating(TMask.LeadingZeroCount(maskControl));
-                TMask quoteBits = Bithacks.IsolateLowestBits(maskQuote, lz);
-                int k = (int)(lz + 1);
+            pos -= eolFlag;
 
-                uint eolFlag = Bithacks.ProcessFlag(maskLF, consumed + lz, flag);
-                quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
+            Field.SaturateQuotes(ref quotesConsumed);
 
-                Field.SaturateQuotes(ref quotesConsumed);
+            // consume masks
+            maskControl = Bithacks.ResetLowestSetBit(maskControl);
+            maskQuote &= ~maskUpToPos;
 
-                ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
-                ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
+            ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
+            ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
 
-                dstField = index + consumed + lz - eolFlag;
-                dstQuote = (byte)quotesConsumed;
+            dstField = pos;
+            dstQuote = (byte)quotesConsumed;
 
-                // zero extend through ulong so shift by 32 works correctly
-                maskControl = Unsafe.BitCast<uint, TMask>((uint)((ulong)Unsafe.BitCast<TMask, uint>(maskControl) << k));
-                maskQuote = Unsafe.BitCast<uint, TMask>((uint)((ulong)Unsafe.BitCast<TMask, uint>(maskQuote) >> k));
-
-                consumed += (uint)k;
-                fIdx++;
-                quotesConsumed = 0;
-            }
-        }
-        else
-        {
-            while (maskControl != TMask.Zero)
-            {
-                uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
-                TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
-                TMask quoteBits = maskQuote & maskUpToPos;
-
-                uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
-                uint pos = index + tz;
-                quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
-
-                pos -= eolFlag;
-
-                Field.SaturateQuotes(ref quotesConsumed);
-
-                // consume masks
-                maskControl = Bithacks.ResetLowestSetBit(maskControl);
-                maskQuote &= ~maskUpToPos;
-
-                ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
-                ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
-
-                dstField = pos;
-                dstQuote = (byte)quotesConsumed;
-
-                fIdx++;
-                quotesConsumed = 0;
-            }
+            fIdx++;
+            quotesConsumed = 0;
         }
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
         fieldIndex = fIdx;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static void ParseAnyArm64(
+        uint index,
+        scoped ref uint firstField,
+        scoped ref byte firstQuote,
+        scoped ref nuint fieldIndex,
+        scoped ref uint quotesConsumed,
+        uint maskControl,
+        uint maskLF,
+        uint maskQuote,
+        uint flag
+    )
+    {
+        if (!ArmBase.Arm64.IsSupported)
+            throw new UnreachableException();
+
+        nuint fIdx = fieldIndex;
+
+        uint consumed = 0;
+        maskControl = ArmBase.ReverseElementBits(maskControl);
+
+        Vector64<uint> popcnt;
+        Vector64<byte> aggregated;
+
+        while (maskControl != 0)
+        {
+            uint lz = (uint)ArmBase.LeadingZeroCount(maskControl);
+            uint offset = consumed + lz;
+            uint quoteBits = (uint)((ulong)maskQuote << (int)(32u - lz));
+
+            // interleave vector and scalar work
+            popcnt = Vector64.CreateScalar(quoteBits);
+
+            uint bitLF = maskLF >> (int)offset;
+
+            aggregated = AdvSimd.Arm64.AddAcross(AdvSimd.PopCount(popcnt.AsByte()));
+
+            uint eolFlag = (bitLF & 1) != 0 ? flag : 0;
+            int k = (int)(lz + 1);
+
+            ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
+            ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
+
+            quotesConsumed += aggregated.ToScalar();
+
+            dstField = index + offset - eolFlag;
+
+            Field.SaturateQuotes(ref quotesConsumed);
+
+            // zero extend through ulong so shift by 32 works correctly
+            maskControl = (uint)((ulong)maskControl << k);
+            maskQuote = (uint)((ulong)maskQuote >> k);
+
+            dstQuote = (byte)quotesConsumed;
+
+            consumed += (uint)k;
+            fIdx++;
+            quotesConsumed = 0;
+        }
+
+        popcnt = Vector64.CreateScalar(maskQuote);
+        aggregated = AdvSimd.Arm64.AddAcross(AdvSimd.PopCount(popcnt.AsByte()));
+        quotesConsumed += aggregated.ToScalar();
+        fieldIndex = fIdx;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static uint ParseAnyArm64Fast(
+        uint index,
+        scoped ref uint firstField,
+        scoped ref uint quoteBuffer,
+        scoped ref nuint fieldIndex,
+        uint maskControl,
+        uint maskLF,
+        uint maskQuote,
+        uint flag
+    )
+    {
+        if (!ArmBase.Arm64.IsSupported)
+            throw new UnreachableException();
+
+        nuint fIdx = fieldIndex;
+
+        uint consumed = 0;
+        maskControl = ArmBase.ReverseElementBits(maskControl);
+
+        while (maskControl != 0)
+        {
+            uint lz = (uint)ArmBase.LeadingZeroCount(maskControl);
+            uint offset = consumed + lz;
+            uint quoteBits = (uint)((ulong)maskQuote << (int)(32u - lz));
+
+            uint eolFlag = Bithacks.ProcessFlag(maskLF, lz, flag);
+            int k = (int)(lz + 1);
+
+            quoteBuffer = quoteBits;
+            Unsafe.Add(ref firstField, fIdx) = index + offset - eolFlag;
+
+            // zero extend through ulong so shift by 32 works correctly
+            maskControl = (uint)((ulong)maskControl << k);
+            maskQuote = (uint)((ulong)maskQuote >> k);
+
+            consumed += (uint)k;
+            fIdx++;
+            quoteBuffer = ref Unsafe.Add(ref quoteBuffer, 1);
+        }
+
+        fieldIndex = fIdx;
+        return maskQuote;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

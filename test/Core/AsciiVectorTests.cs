@@ -3,6 +3,7 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Extensions;
+using FlameCsv.Intrinsics;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests;
@@ -105,5 +106,20 @@ public static class AsciiVectorTests
         Vector256<byte> vec = Vector256.Equals(AsciiVector.Load256(ref data[0], 0), Vector256.Create((byte)'1'));
         var result = AsciiVector.ZeroOrOneMatches(vec);
         Assert.Equal(expected, result);
+
+        Assert.Equal(input.Count('1'), (int)AsciiVector.CountMatches(vec));
+    }
+
+    [Fact]
+    public static void Should_Return_PopCount()
+    {
+        Assert.Equal(CompressionTables.PopCount.Length, CompressionTables.PopCountMult2.Length);
+
+        for (int i = 0; i < CompressionTables.PopCountMult2.Length; i++)
+        {
+            int popcnt = BitOperations.PopCount((uint)i);
+            Assert.Equal(popcnt, CompressionTables.PopCount[i]);
+            Assert.Equal(popcnt * 2, CompressionTables.PopCountMult2[i]);
+        }
     }
 }

@@ -22,6 +22,38 @@ public class TokenizationTests
     // platform uses CRLF parser, but alternates between CRLF and LF, and inserts a lone CR every now and then
     public static TheoryData<RecSep> NewlineData => new() { RecSep.LF, RecSep.CRLF, RecSep.Alternating, RecSep.CR };
 
+    [Fact]
+    public void Aaaax()
+    {
+        var tok = new ArmTokenizer<char, FalseConstant>(CsvOptions<char>.Default);
+        char[] data = new char[1024];
+        for (int i = 0; i < 1024; i++)
+        {
+            if (i % 12 == 0)
+                data[i] = '\n';
+            else if (i % 3 == 0)
+                data[i] = ',';
+            else
+                data[i] = 'a';
+        }
+
+        using var rb = new RecordBuffer();
+        var dst = rb.GetUnreadBuffer(tok.MinimumFieldBufferSize, out int startIndex);
+        int count = tok.Tokenize(dst, startIndex, data);
+
+        int n = 0;
+        uint prev = 0;
+
+        using var rb2 = new RecordBuffer();
+        var dst2 = rb2.GetUnreadBuffer(tok.MinimumFieldBufferSize, out int startIndex2);
+        int count2 = new SimdTokenizer<char, FalseConstant>(CsvOptions<char>.Default).Tokenize(dst2, startIndex2, data);
+
+        int min = Math.Min(count, count2);
+        Assert.Equal(rb._fields.AsSpan(0, min), rb2._fields.AsSpan(0, min));
+
+        // Assert.Equal(Enumerable.Repeat(0, count).Select((_, i) => i * 3), rb._fields[1..(count + 1)].Select(Field.End));
+    }
+
     [Theory, MemberData(nameof(NewlineData))]
     public void Avx2_Char(RecSep newline)
     {
@@ -48,7 +80,6 @@ public class TokenizationTests
         );
     }
 
-#if false
     [Theory, MemberData(nameof(NewlineData))]
     public void Arm_Char(RecSep newline)
     {
@@ -74,7 +105,6 @@ public class TokenizationTests
                 : new ArmTokenizer<byte, TrueConstant>(CsvOptions<byte>.Default)
         );
     }
-#endif
 
     [Theory, MemberData(nameof(NewlineData))]
     public void Generic_Char(RecSep newline)
@@ -101,7 +131,7 @@ public class TokenizationTests
     private static void TokenizeCore<T>(RecSep newline, CsvTokenizer<T> tokenizer)
         where T : unmanaged, IBinaryInteger<T>
     {
-        var rb = new RecordBuffer(); // don't dispose
+        using var rb = new RecordBuffer();
         var dst = rb.GetUnreadBuffer(tokenizer.MinimumFieldBufferSize, out int startIndex);
 
         ReadOnlySpan<T> dataset = GetDataset<T>(newline);
