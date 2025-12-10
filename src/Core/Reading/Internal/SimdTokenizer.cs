@@ -93,18 +93,17 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
             Unsafe.SkipInit(out uint shiftedCR); // this can be garbage on LF, it's never used
 
+            vector = nextVector;
+            nextVector = prefetchVector;
+
             if (TCRLF.Value)
             {
-                vector = nextVector;
-                nextVector = prefetchVector;
-
                 shiftedCR = ((maskCR << 1) | crCarry);
                 crCarry = maskCR >> 31;
 
                 if ((maskControl | shiftedCR) == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto SumQuotesAndContinue;
                 }
 
                 if (Bithacks.IsDisjointCR(maskLF, shiftedCR))
@@ -116,50 +115,76 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
             else
             {
-                vector = nextVector;
-                nextVector = prefetchVector;
-
                 if (maskControl == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto SumQuotesAndContinue;
                 }
             }
 
-            uint controlCount = (uint)BitOperations.PopCount(maskControl);
+            uint controlCount;
 
-            if ((quotesConsumed | maskQuote) != 0)
+            if ((maskQuote | quotesConsumed) == 0)
             {
-                if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
+                controlCount = (uint)BitOperations.PopCount(maskControl);
+                goto FastPath;
+            }
+
+            // case 1: no quote in this chunk
+            if (maskQuote == 0)
+            {
+                // quotesConsumed is guaranteed non-zero here, so maskControl is correct too
+
+                // whole chunk is inside quotes
+                if ((quotesConsumed & 1u) != 0)
                 {
-                    goto SlowPath;
-                }
-
-                /*
-                | Method | Chars | Quoted | Newline | Mean     | StdDev  | Ratio |
-                |------- |------ |------- |-------- |---------:|--------:|------:|
-                | Simd   | False | True   | LF      | 163.1 us | 0.58 us |  1.00 |
-                */
-
-                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
-                byte quotesInMask = Unsafe.BitCast<bool, byte>(maskQuote != 0);
-
-                if (maskControl == 0)
-                {
-                    quotesConsumed += quotesInMask;
                     goto ContinueRead;
                 }
 
-                uint bitsBeforeQuote = (uint)BitOperations.PopCount((maskQuote - 1) & maskControl);
-
-                // store accumulated quotes in the first field
+                // A string just ended? flush quotes and read the rest as normal
                 Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
+                controlCount = (uint)BitOperations.PopCount(maskControl);
+                quotesConsumed = 0;
+                goto FastPath;
+            }
 
-                // add the quotes to the correct position in the field; there are 0 or 1 quotes in the mask
-                // this can be the first field or any other
-                Unsafe.Add(ref firstQuote, fieldIndex + bitsBeforeQuote) += quotesInMask;
+            // exactly 1 quote in the mask
+
+            // go to slow path if multiple quotes
+            if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
+            {
+                goto SlowPath;
+            }
+
+            // after XOR clearing, if no controls survive, just carry quote state forward
+            if (maskControl == 0)
+            {
+                // maskQuote != 0 here, so exactly one quote in this chunk
+                ++quotesConsumed;
+                goto ContinueRead;
+            }
+
+            maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
+
+            // surviving controls on one side of the quote
+            controlCount = (uint)BitOperations.PopCount(maskControl);
+
+            // thanks to 1-quote guarantee + XOR,
+            // controlsBeforeQuote is either 0 (quote before controls) or == maskControl (quote after)
+            uint controlsBeforeQuote = (maskQuote - 1u) & maskControl;
+            quotesConsumed++; // bump the quote
+
+            Debug.Assert(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
+
+            // quote after controls: just accumulate count and fall through
+            if (controlsBeforeQuote == 0)
+            {
+                // quote before any controls: flush accumulated into current field
+                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
                 quotesConsumed = 0;
             }
+
+            FastPath:
+            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             if (Bithacks.ZeroOrOneBitsSet(maskLF))
             {
@@ -167,20 +192,41 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                     count: controlCount,
                     mask: maskControl,
                     maskLF: maskLF,
-                    shiftedCR: shiftedCR,
+                    flag: flag,
                     index: (uint)index,
                     dst: ref Unsafe.Add(ref firstField, fieldIndex)
                 );
-
-                fieldIndex += controlCount;
-                goto ContinueRead;
+            }
+            else
+            {
+                if (AdvSimd.IsSupported)
+                {
+                    ParseControlsArm64(
+                        index: (uint)index,
+                        dst: ref Unsafe.Add(ref firstField, fieldIndex),
+                        maskControl: maskControl,
+                        maskLF: maskLF,
+                        flag: flag
+                    );
+                }
+                else
+                {
+                    ParseControls(
+                        index: (uint)index,
+                        dst: ref Unsafe.Add(ref firstField, fieldIndex),
+                        maskControl: maskControl,
+                        maskLF: maskLF,
+                        flag: flag
+                    );
+                }
             }
 
-            SlowPath:
-            // clear the bits that are inside quotes
-            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+            fieldIndex += controlCount;
+            goto ContinueRead;
 
-            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+            SlowPath:
+            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+            flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
             if (AdvSimd.Arm64.IsSupported)
             {
@@ -192,7 +238,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
                     maskLF: maskLF,
-                    maskQuote: maskQuote,
+                    maskQuote: ref maskQuote,
                     flag: flag
                 );
             }
@@ -206,12 +252,12 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
                     maskLF: maskLF,
-                    maskQuote: maskQuote,
+                    maskQuote: ref maskQuote,
                     flag: flag
                 );
             }
 
-            goto ContinueRead;
+            goto SumQuotesAndContinue;
 
             PathologicalPath:
             if (TCRLF.Value)
@@ -231,7 +277,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
                 ParsePathological(
                     maskControl: maskControl,
-                    maskQuote: maskQuote,
+                    maskQuote: ref maskQuote,
                     first: ref first,
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
@@ -241,6 +287,9 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                     quotesConsumed: ref quotesConsumed
                 );
             }
+
+            SumQuotesAndContinue:
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
 
             ContinueRead:
             index += (nuint)Vector256<byte>.Count;
@@ -262,7 +311,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         uint count,
         uint mask,
         uint maskLF,
-        uint shiftedCR,
+        uint flag,
         uint index,
         ref uint dst
     )
@@ -301,15 +350,8 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             } while (m5 != 0);
         }
 
-        uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);
         uint intermediate = index - flag;
         Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;
     }
-}
-
-[InlineArray(4)]
-file struct QuoteBuffer
-{
-    public uint elem0;
 }

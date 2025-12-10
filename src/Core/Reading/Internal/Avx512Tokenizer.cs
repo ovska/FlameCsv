@@ -226,7 +226,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
                     maskLF: maskLF,
-                    maskQuote: maskQuote,
+                    maskQuote: ref maskQuote,
                     flag: flag
                 );
 
@@ -250,7 +250,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
 
                     ParsePathological(
                         maskControl: maskControl,
-                        maskQuote: maskQuote,
+                        maskQuote: ref maskQuote,
                         first: ref first,
                         index: (uint)index,
                         fieldIndex: ref fieldIndex,

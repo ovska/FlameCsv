@@ -40,6 +40,29 @@ public class BithackTests
     }
 
     [Fact]
+    public static void Should_Get_Mask_Up_To_Lowest_Set_Bit()
+    {
+        Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b0001u));
+        Assert.Equal(0b0011u, Bithacks.GetMaskUpToLowestSetBit(0b0010u));
+        Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b0011u));
+        Assert.Equal(0b0111u, Bithacks.GetMaskUpToLowestSetBit(0b0100u));
+        Assert.Equal(0b0011u, Bithacks.GetMaskUpToLowestSetBit(0b0110u));
+        Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b0111u));
+        Assert.Equal(0b1111u, Bithacks.GetMaskUpToLowestSetBit(0b1000u));
+        Assert.Equal(0b0011u, Bithacks.GetMaskUpToLowestSetBit(0b1010u));
+        Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b1011u));
+        Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b1111u));
+        Assert.Equal(0b1111u, Bithacks.GetMaskUpToLowestSetBit(0b1000u));
+    }
+
+    [Fact]
+    public static void Should_Get_Quote_Mask_Single()
+    {
+        Assert.Equal(0b00001111u, Bithacks.FindInverseQuoteMaskSingle(0b00010000, 0));
+        Assert.Equal(~0b00001111u, Bithacks.FindInverseQuoteMaskSingle(0b00010000, 1));
+    }
+
+    [Fact]
     public static void Should_Check_if_Zero_or_One_Bits_Set()
     {
         Assert.True(Bithacks.ZeroOrOneBitsSet(0));

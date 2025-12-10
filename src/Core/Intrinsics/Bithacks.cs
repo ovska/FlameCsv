@@ -54,6 +54,8 @@ internal static class Bithacks
     public static T GetMaskUpToLowestSetBit<T>(T mask)
         where T : unmanaged, IBinaryInteger<T>
     {
+        Debug.Assert(mask != default, "Mask must not be zero");
+
         // as of NET9, the pattern is sometimes not lowered to BLSMSK if inlined in a busy loop with generic math
 
         if (Unsafe.SizeOf<T>() is sizeof(uint) && Bmi1.IsSupported)
@@ -109,6 +111,15 @@ internal static class Bithacks
         throw new NotSupportedException();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint FindInverseQuoteMaskSingle(uint maskQuote, uint quotesConsumed)
+    {
+        Debug.Assert(BitOperations.PopCount(maskQuote) == 1);
+        uint before = maskQuote - 1u;
+        uint mask = 0u - (quotesConsumed & 1u); // 0 or 0xFFFFFFFF
+        return before ^ mask;
+    }
+
     /// <summary>
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>
@@ -123,17 +134,6 @@ internal static class Bithacks
         T quoteMask = ComputeQuoteMask(quoteBits);
         T mask = T.Zero - (T.CreateTruncating(quoteCount) & T.One);
         return quoteMask ^ mask;
-    }
-
-    /// <summary>
-    /// Flips all bits in <paramref name="value"/> is condition is odd (has the lowest bit set).
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ConditionalFlipQuotes<T>(ref T value, T condition)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        T mask = T.Zero - (condition & T.One); // Extract LSB and create all-1s or all-0s mask
-        value ^= mask;
     }
 
     /// <summary>

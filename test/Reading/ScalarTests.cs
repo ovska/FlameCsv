@@ -1,3 +1,4 @@
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 
@@ -5,10 +6,19 @@ namespace FlameCsv.Tests.Reading;
 
 public static class ScalarTests
 {
-    [Theory, InlineData(true), InlineData(false)]
-    public static void Should_Parse_Identically(bool isCRLF)
+    public static TheoryData<CsvNewline, Escaping> NewlineEscapingData =>
+        new()
+        {
+            { CsvNewline.CRLF, Escaping.None },
+            { CsvNewline.CRLF, Escaping.Quote },
+            { CsvNewline.LF, Escaping.None },
+            { CsvNewline.LF, Escaping.Quote },
+        };
+
+    [Theory, MemberData(nameof(NewlineEscapingData))]
+    public static void Should_Parse_Identically(CsvNewline newline, Escaping escaping)
     {
-        var options = new CsvOptions<char> { Newline = isCRLF ? CsvNewline.CRLF : CsvNewline.LF };
+        var options = new CsvOptions<char> { Newline = newline };
 
         var scalarTokenizer = CsvTokenizer.CreateScalar(options);
         var simdTokenizer = CsvTokenizer.Create(options);
@@ -26,13 +36,10 @@ public static class ScalarTests
         fbSimd.Fields.Clear();
         fbSimd.Quotes.Clear();
 
-        Assert.Equal(fbScalar.Fields, fbSimd.Fields);
-        Assert.Equal(fbScalar.Quotes, fbSimd.Quotes);
-
-        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, Escaping.Quote).Span;
+        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, escaping).Span;
 
         int resultScalar = scalarTokenizer.Tokenize(fbScalar, scalarStartIndex, data, readToEnd: false);
-        int resultSimd = simdTokenizer!.Tokenize(fbSimd, simdStartIndex, data);
+        int resultSimd = simdTokenizer.Tokenize(fbSimd, simdStartIndex, data);
 
         // scalar can read the whole data
         // simd always stops because of insufficient field buffer, as we have more data than can fit in one batch
@@ -42,5 +49,49 @@ public static class ScalarTests
 
         Assert.Equal(fbScalar.Fields[..len], fbSimd.Fields[..len]);
         Assert.Equal(fbScalar.Quotes[..len], fbSimd.Quotes[..len]);
+    }
+
+    [Fact]
+    public static void Should_Parse_Long_Field()
+    {
+        using var rb = new RecordBuffer();
+        var tokenizer = CsvTokenizer.Create(CsvOptions<char>.Default);
+
+        Assert.SkipWhen(tokenizer is null, "SIMD tokenizer not supported on this platform");
+
+        FieldBuffer fb = rb.GetUnreadBuffer(0, out int startIndex);
+        fb.Fields.Clear();
+        fb.Quotes.Clear();
+
+        using var apbw = new ArrayPoolBufferWriter<char>();
+
+        for (int i = 0; i < 64; i++)
+        {
+            int fieldLength = i + 3;
+            var span = apbw.GetSpan(fieldLength);
+            span = span[..fieldLength];
+            span.Fill('a');
+            span[0] = '"';
+            span[fieldLength - 2] = '"';
+            span[fieldLength - 1] = '\n';
+            apbw.Advance(fieldLength);
+        }
+
+        apbw.GetSpan(64).Slice(0, 64).Clear();
+        apbw.Advance(64);
+
+        int result = tokenizer.Tokenize(fb, startIndex, apbw.WrittenSpan);
+        Assert.Equal(64, result);
+
+        int recordsRead = rb.SetFieldsRead(result);
+
+        Assert.Equal(64, recordsRead);
+
+        for (int i = 0; i < 64; i++)
+        {
+            Assert.True(rb.TryPop(out var view));
+            Assert.Equal(1, view.FieldCount);
+            Assert.Equal(i + 3, view.GetLengthWithNewline(rb)); // quotes + newline
+        }
     }
 }

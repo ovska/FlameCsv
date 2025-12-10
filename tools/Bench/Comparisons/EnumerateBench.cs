@@ -11,10 +11,10 @@ namespace FlameCsv.Benchmark.Comparisons;
 [MemoryDiagnoser]
 public class EnumerateBench
 {
-    [Params(false, true)]
+    [Params(true)]
     public bool ReadFields { get; set; }
 
-    [Params(false, true)]
+    [Params(false)]
     public bool Async { get; set; }
 
     private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = CsvNewline.LF };
@@ -53,7 +53,7 @@ public class EnumerateBench
                 {
                     for (int i = 0; i < r.FieldCount; i++)
                     {
-                        _ = r.GetRawSpan(i);
+                        _ = r[i];
                     }
                 }
             }
@@ -66,7 +66,7 @@ public class EnumerateBench
                 {
                     for (int i = 0; i < r.FieldCount; i++)
                     {
-                        _ = r.GetRawSpan(i);
+                        _ = r[i];
                     }
                 }
             }
@@ -117,7 +117,7 @@ public class EnumerateBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task _Sylvan()
     {
         using var reader = GetReader();
@@ -153,7 +153,7 @@ public class EnumerateBench
         }
     }
 
-    [Benchmark]
+    // [Benchmark]
     public async Task _CsvHelper()
     {
         using var reader = GetReader();

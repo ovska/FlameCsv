@@ -22,38 +22,6 @@ public class TokenizationTests
     // platform uses CRLF parser, but alternates between CRLF and LF, and inserts a lone CR every now and then
     public static TheoryData<RecSep> NewlineData => new() { RecSep.LF, RecSep.CRLF, RecSep.Alternating, RecSep.CR };
 
-    [Fact]
-    public void Aaaax()
-    {
-        var tok = new ArmTokenizer<char, FalseConstant>(CsvOptions<char>.Default);
-        char[] data = new char[1024];
-        for (int i = 0; i < 1024; i++)
-        {
-            if (i % 12 == 0)
-                data[i] = '\n';
-            else if (i % 3 == 0)
-                data[i] = ',';
-            else
-                data[i] = 'a';
-        }
-
-        using var rb = new RecordBuffer();
-        var dst = rb.GetUnreadBuffer(tok.MinimumFieldBufferSize, out int startIndex);
-        int count = tok.Tokenize(dst, startIndex, data);
-
-        int n = 0;
-        uint prev = 0;
-
-        using var rb2 = new RecordBuffer();
-        var dst2 = rb2.GetUnreadBuffer(tok.MinimumFieldBufferSize, out int startIndex2);
-        int count2 = new SimdTokenizer<char, FalseConstant>(CsvOptions<char>.Default).Tokenize(dst2, startIndex2, data);
-
-        int min = Math.Min(count, count2);
-        Assert.Equal(rb._fields.AsSpan(0, min), rb2._fields.AsSpan(0, min));
-
-        // Assert.Equal(Enumerable.Repeat(0, count).Select((_, i) => i * 3), rb._fields[1..(count + 1)].Select(Field.End));
-    }
-
     [Theory, MemberData(nameof(NewlineData))]
     public void Avx2_Char(RecSep newline)
     {
@@ -77,32 +45,6 @@ public class TokenizationTests
             newline == RecSep.LF
                 ? new Avx2Tokenizer<byte, FalseConstant>(CsvOptions<byte>.Default)
                 : new Avx2Tokenizer<byte, TrueConstant>(CsvOptions<byte>.Default)
-        );
-    }
-
-    [Theory, MemberData(nameof(NewlineData))]
-    public void Arm_Char(RecSep newline)
-    {
-        Assert.SkipUnless(ArmTokenizer.IsSupported, "ARM64 is not supported on this platform.");
-
-        TokenizeCore<char>(
-            newline,
-            newline == RecSep.LF
-                ? new ArmTokenizer<char, FalseConstant>(CsvOptions<char>.Default)
-                : new ArmTokenizer<char, TrueConstant>(CsvOptions<char>.Default)
-        );
-    }
-
-    [Theory, MemberData(nameof(NewlineData))]
-    public void Arm_Byte(RecSep newline)
-    {
-        Assert.SkipUnless(ArmTokenizer.IsSupported, "ARM64 is not supported on this platform.");
-
-        TokenizeCore<byte>(
-            newline,
-            newline == RecSep.LF
-                ? new ArmTokenizer<byte, FalseConstant>(CsvOptions<byte>.Default)
-                : new ArmTokenizer<byte, TrueConstant>(CsvOptions<byte>.Default)
         );
     }
 

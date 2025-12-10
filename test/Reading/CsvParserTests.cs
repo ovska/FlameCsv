@@ -74,13 +74,14 @@ public class CsvReaderTests
             Assert.True(enumerator.MoveNext());
 
             var reader = enumerator.Current;
-
-            Assert.Equal(5, reader.FieldCount);
+            string[] actual = new string[reader.FieldCount];
 
             for (int index = 0; index < reader.FieldCount; index++)
             {
-                Assert.Equal(expected[index + (lineIndex * 5)], reader[index].ToString());
+                actual[index] = reader[index].ToString();
             }
+
+            Assert.Equal(expected.AsSpan(lineIndex * 5, 5).ToArray(), actual);
         }
     }
 

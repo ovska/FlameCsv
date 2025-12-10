@@ -107,7 +107,6 @@ public class TokenizationBench
         }
     }
 
-#if !ARM
     private readonly Avx2Tokenizer<byte, FalseConstant> _avx2Byte = new(_dByteLF);
     private readonly Avx2Tokenizer<char, FalseConstant> _avx2Char = new(_dCharLF);
     private readonly Avx2Tokenizer<byte, TrueConstant> _avx2ByteCRLF = new(_dByteCRLF);
@@ -116,7 +115,7 @@ public class TokenizationBench
     private CsvTokenizer<char> Avx2Char => TokenizerIsLF ? _avx2Char : _avx2CharCRLF;
     private CsvTokenizer<byte> Avx2Byte => TokenizerIsLF ? _avx2Byte : _avx2ByteCRLF;
 
-    [Benchmark]
+    // [Benchmark]
     public void Avx2()
     {
         var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
@@ -154,6 +153,5 @@ public class TokenizationBench
             _ = Avx512Byte.Tokenize(dst, 0, ByteData);
         }
     }
-#endif
 #endif
 }
