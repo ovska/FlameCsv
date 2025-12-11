@@ -36,7 +36,7 @@ public static class ScalarTests
         fbSimd.Fields.Clear();
         fbSimd.Quotes.Clear();
 
-        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, escaping).Span;
+        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, escaping);
 
         int resultScalar = scalarTokenizer.Tokenize(fbScalar, scalarStartIndex, data, readToEnd: false);
         int resultSimd = simdTokenizer.Tokenize(fbSimd, simdStartIndex, data);

@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
+using CommunityToolkit.HighPerformance;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -187,11 +188,15 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                 Vector512<byte> taggedIndices = (hasLF & bit7) | Vector512<byte>.Indices; // compiles to vpternlogd
 
                 // pack the indexes of all matches to the front
-                Vector512<byte> packedAny = Avx512Vbmi2.Compress(Vector512<byte>.Zero, hasAny, taggedIndices);
+                Vector512<byte> packedAny = Avx512Vbmi2.Compress(
+                    merge: Vector512<byte>.Zero,
+                    mask: hasAny,
+                    value: taggedIndices
+                );
 
                 // create a fixup to keep only the low bits and the MSB (which is 1 on newlines)
                 Vector512<int> fixup = TCRLF.Value
-                    ? Vector512.Create(shiftedCR != 0 ? (fixupScalar | (1 << 30)) : fixupScalar)
+                    ? Vector512.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
                     : msbAndBitsUpTo7;
 
                 // we already verified that matchCount is low enough; pick the lowest 16 bytes...

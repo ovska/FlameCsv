@@ -80,31 +80,31 @@ public static class TestDataGenerator
 
     public static readonly byte[] GuidBytes = [0, 1, 2, 3, 4, 5, 6, 7];
 
-    private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<char>>> _chars = [];
-    private static readonly ConcurrentDictionary<Key, Lazy<ReadOnlyMemory<byte>>> _bytes = [];
+    private static readonly ConcurrentDictionary<Key, Lazy<string>> _chars = [];
+    private static readonly ConcurrentDictionary<Key, Lazy<byte[]>> _bytes = [];
 
-    private readonly record struct Key(string Newline, bool WriteHeader, Escaping Escaping);
+    private readonly record struct Key(CsvNewline Newline, bool WriteHeader, Escaping Escaping);
 
     public static ReadOnlyMemory<T> Generate<T>(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
         if (typeof(T) == typeof(char))
-            return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, escaping);
+            return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, escaping).AsMemory();
 
         if (typeof(T) == typeof(byte))
-            return (ReadOnlyMemory<T>)(object)GenerateBytes(newLineToken, writeHeader, escaping);
+            return (ReadOnlyMemory<T>)(object)(ReadOnlyMemory<byte>)GenerateBytes(newLineToken, writeHeader, escaping);
 
         throw new UnreachableException();
     }
 
-    public static ReadOnlyMemory<char> GenerateText(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
+    public static string GenerateText(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
-        string newLine = newLineToken.AsString();
-        var key = new Key(newLine, writeHeader, escaping);
+        var key = new Key(newLineToken, writeHeader, escaping);
         var chars = _chars.GetOrAdd(
             key,
-            static key => new Lazy<ReadOnlyMemory<char>>(() =>
+            static key => new Lazy<string>(() =>
             {
-                (string newLine, bool writeHeader, Escaping escaping) = key;
+                (CsvNewline newLineToken, bool writeHeader, Escaping escaping) = key;
+                string newLine = newLineToken.AsString();
 
                 StringBuilder writer = StringBuilderPool.Value.Get();
 
@@ -153,77 +153,21 @@ public static class TestDataGenerator
 
                 writer.Append(newLine);
 
-                return writer.ToString().AsMemory();
+                return writer.ToString();
             })
         );
 
         return chars.Value;
     }
 
-    public static ReadOnlyMemory<byte> GenerateBytes(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
+    public static byte[] GenerateBytes(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
-        string newLine = newLineToken.AsString();
-        var key = new Key(newLine, writeHeader, escaping);
+        var key = new Key(newLineToken, writeHeader, escaping);
         var chars = _bytes.GetOrAdd(
             key,
-            static key => new Lazy<ReadOnlyMemory<byte>>(() =>
-            {
-                (string newLine, bool writeHeader, Escaping escaping) = key;
-
-                var innerWriter = new ArrayBufferWriter<byte>(initialCapacity: RequiredCapacity);
-                var writer = Utf8StringInterpolation.Utf8String.CreateWriter(innerWriter);
-
-                if (writeHeader)
-                {
-                    writer.Append(Header);
-                    writer.Append(newLine);
-                }
-
-                CancellationToken token = TestContext.Current.CancellationToken;
-
-                for (int i = 0; i < 1_000; i++)
-                {
-                    token.ThrowIfCancellationRequested();
-
-                    if (i != 0)
-                        writer.Append(newLine);
-
-                    if (escaping != Escaping.None)
-                    {
-                        writer.AppendFormat($"\"{i}\"");
-                    }
-                    else
-                    {
-                        writer.AppendFormatted(i);
-                    }
-
-                    writer.Append(',');
-
-                    if (escaping == Escaping.Quote)
-                    {
-                        writer.AppendFormat($"\"Name\"\"{i}\"");
-                    }
-                    else
-                    {
-                        writer.AppendFormat($"Name-{i}");
-                    }
-
-                    writer.Append(',');
-                    writer.Append(i % 2 == 0 ? "true" : "false");
-                    writer.Append(',');
-                    writer.AppendFormatted(DateTimeOffset.UnixEpoch.AddDays(i), format: "O");
-                    writer.Append(',');
-                    writer.AppendFormatted(new Guid(i, 0, 0, GuidBytes));
-                }
-
-                writer.Append(newLine);
-
-                if (innerWriter.Capacity != RequiredCapacity)
-                    throw new UnreachableException(innerWriter.Capacity.ToString());
-
-                writer.Dispose();
-                return innerWriter.WrittenMemory;
-            })
+            key => new Lazy<byte[]>(() =>
+                Encoding.UTF8.GetBytes(GenerateText(key.Newline, key.WriteHeader, key.Escaping))
+            )
         );
 
         return chars.Value;
