@@ -83,12 +83,7 @@ internal sealed class RecordBuffer : IDisposable
         }
 
         startIndex = _fieldCount == 0 ? 0 : NextStart(_fields[_fieldCount]);
-        return new()
-        {
-            //
-            Fields = _fields.AsSpan(start),
-            Quotes = _quotes.AsSpan(start),
-        };
+        return new FieldBuffer(start, this);
     }
 
     /// <summary>

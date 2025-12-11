@@ -113,8 +113,6 @@ internal abstract class CsvTokenizer<T>
 
             pos -= eolFlag;
 
-            Field.SaturateQuotes(ref quotesConsumed);
-
             // consume masks
             maskControl = Bithacks.ResetLowestSetBit(maskControl);
             maskQuote &= ~maskUpToPos;
@@ -178,8 +176,6 @@ internal abstract class CsvTokenizer<T>
             quotesConsumed += aggregated.ToScalar();
 
             dstField = index + offset - eolFlag;
-
-            Field.SaturateQuotes(ref quotesConsumed);
 
             // zero extend through ulong so shift by 32 works correctly
             maskControl = (uint)((ulong)maskControl << k);
@@ -290,8 +286,6 @@ internal abstract class CsvTokenizer<T>
                 flag = Field.IsEOL;
             }
 
-            Field.SaturateQuotes(ref quotesConsumed);
-
             Unsafe.Add(ref fieldRef, fieldIndex) = (index - 1) | flag;
             Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
 
@@ -342,8 +336,6 @@ internal abstract class CsvTokenizer<T>
 
             maskControl &= ~maskUpToPos;
             maskQuote &= ~maskUpToPos;
-
-            Field.SaturateQuotes(ref quotesConsumed);
 
             Unsafe.Add(ref fieldRef, fieldIndex) = value | flag;
             Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;

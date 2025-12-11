@@ -301,6 +301,12 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasControl = hasLF | hasDelimiter;
 
             (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF>(hasControl, hasLF, hasQuote, hasCR);
+
+            if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
+            {
+                destination.DegenerateQuotes = true;
+                break;
+            }
         } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
 
         return (int)fieldIndex;

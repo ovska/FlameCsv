@@ -24,7 +24,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
-    private readonly CsvTokenizer<T>? _tokenizer;
+    private CsvTokenizer<T>? _tokenizer;
 
     /// <summary>
     /// Scalar tokenizer that is used to parse the tail end of the data, or as a fallback if SIMD is not available.
@@ -129,8 +129,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         Read:
         int fieldsRead;
+        CsvTokenizer<T>? tokenizer = _tokenizer;
 
-        if (readToEnd || _tokenizer is null)
+        if (readToEnd || tokenizer is null)
         {
             FieldBuffer destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
             fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd);
@@ -138,10 +139,22 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         else
         {
             FieldBuffer destination = _recordBuffer.GetUnreadBuffer(
-                _tokenizer.MinimumFieldBufferSize,
+                tokenizer.MinimumFieldBufferSize,
                 out int startIndex
             );
-            fieldsRead = _tokenizer.Tokenize(destination, startIndex, data);
+            fieldsRead = tokenizer.Tokenize(destination, startIndex, data);
+
+            // if there were too many quotes in a single field
+            if (destination.DegenerateQuotes)
+            {
+                _tokenizer = null; // disable SIMD tokenizer for the rest of this read
+
+                // try again with the scalar tokenizer
+                if (fieldsRead == 0)
+                {
+                    goto Read;
+                }
+            }
         }
 
         if (fieldsRead != 0)
@@ -151,7 +164,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             // request more data if the next tokenizing would not be large enough to be productive
             if (
                 _state == State.Reading
-                && (data.Length - _recordBuffer.BufferedDataLength) < _tokenizer?.PreferredLength
+                && (data.Length - _recordBuffer.BufferedDataLength) < tokenizer?.PreferredLength
             )
             {
                 _state = State.DataExhausted;

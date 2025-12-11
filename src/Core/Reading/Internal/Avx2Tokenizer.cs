@@ -108,6 +108,12 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             // Prefetch the vector that will be needed 2 iterations ahead
             Vector256<byte> prefetchVector = AsciiVector.Load256(ref first, index + (2 * (nuint)Vector256<byte>.Count));
 
+            if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
+            {
+                destination.DegenerateQuotes = true;
+                break;
+            }
+
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
             Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);

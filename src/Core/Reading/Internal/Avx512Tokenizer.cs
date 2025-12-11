@@ -156,6 +156,12 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                 vector = nextVector;
                 nextVector = AsciiVector.LoadAligned512<T>(ptr + index + (nuint)(2 * Vector512<byte>.Count));
 
+                if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
+                {
+                    destination.DegenerateQuotes = true;
+                    break;
+                }
+
                 if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
                 {
                     quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
