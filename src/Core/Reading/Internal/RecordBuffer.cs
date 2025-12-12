@@ -395,8 +395,6 @@ internal sealed class RecordBuffer : IDisposable
         }
         else
         {
-            // TODO: delete this branch and make a test for it!
-
             // no unread fields
             _fields[0] = 0;
             _starts[0] = 0;

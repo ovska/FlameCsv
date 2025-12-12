@@ -43,4 +43,29 @@ public class RecordBufferTests
         Assert.Equal(6, view.Count);
         Assert.Equal(43, view.GetLengthWithNewline(buffer)); // 41 + CRLF
     }
+
+    [Fact]
+    public void Should_Reset_Quotes()
+    {
+        using var rb = new RecordBuffer();
+
+        FieldBuffer dst = rb.GetUnreadBuffer(0, out int start);
+        Assert.Equal(0, start);
+
+        ((ReadOnlySpan<uint>)[1, 2, 3, (4 | Field.IsEOL | Field.IsCRLF)]).CopyTo(dst.Fields);
+        ((ReadOnlySpan<byte>)[0, 4, 0, 4]).CopyTo(dst.Quotes);
+
+        int records = rb.SetFieldsRead(4);
+        Assert.Equal(1, records);
+
+        Assert.True(rb.TryPop(out var view));
+        Assert.Equal(0, view.Start);
+        Assert.Equal(4 + 1, view.Count); // start offset, needed anymore?
+
+        int dataRead = rb.Reset();
+        Assert.Equal(4 + 2, dataRead); // trailing CRLF
+
+        // all quotes should be cleared
+        Assert.Equal(-1, rb._quotes.IndexOfAnyExcept((byte)0));
+    }
 }
