@@ -140,7 +140,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 // quotesConsumed is guaranteed non-zero here, so maskControl is correct too
 
                 // whole chunk is inside quotes
-                if ((quotesConsumed & 1u) != 0)
+                if (Unsafe.BitCast<byte, bool>((byte)(quotesConsumed & 1)))
                 {
                     goto ContinueRead;
                 }
@@ -160,6 +160,8 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 goto SlowPath;
             }
 
+            maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
+
             // after XOR clearing, if no controls survive, just carry quote state forward
             if (maskControl == 0)
             {
@@ -168,25 +170,34 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 goto ContinueRead;
             }
 
-            maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
-
             // surviving controls on one side of the quote
             controlCount = (uint)BitOperations.PopCount(maskControl);
 
             // thanks to 1-quote guarantee + XOR,
             // controlsBeforeQuote is either 0 (quote before controls) or == maskControl (quote after)
             uint controlsBeforeQuote = (maskQuote - 1u) & maskControl;
-            quotesConsumed++; // bump the quote
 
             Debug.Assert(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
 
-            // quote after controls: just accumulate count and fall through
+            // quote is first, flush
             if (controlsBeforeQuote == 0)
             {
-                // quote before any controls: flush accumulated into current field
-                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
+                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)(quotesConsumed + 1);
                 quotesConsumed = 0;
             }
+            else
+            {
+                // a string just ended
+                if (Unsafe.BitCast<byte, bool>((byte)(quotesConsumed & 1)))
+                {
+                    Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
+                }
+
+                // quote is last
+                quotesConsumed = 1;
+            }
+
+            // otherwise, quote is last, carry forward
 
             FastPath:
             uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;

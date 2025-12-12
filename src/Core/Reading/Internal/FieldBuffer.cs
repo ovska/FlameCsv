@@ -26,6 +26,7 @@ internal readonly ref struct FieldBuffer
         Fields = recordBuffer._fields.AsSpan(start);
         Quotes = recordBuffer._quotes.AsSpan(start);
         _degenerateQuotes = ref recordBuffer._quotes[0];
+        _degenerateQuotes = 0;
     }
 
     [Conditional("DEBUG")]
