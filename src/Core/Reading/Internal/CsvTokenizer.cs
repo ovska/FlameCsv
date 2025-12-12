@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Metrics;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
@@ -50,6 +49,7 @@ internal static class CsvTokenizer
     }
 }
 
+[SkipLocalsInit]
 internal abstract class CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
 {

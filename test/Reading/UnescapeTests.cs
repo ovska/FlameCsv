@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using FlameCsv.Reading.Unescaping;
+using FlameCsv.Reading.Internal;
 using Xunit.Internal;
 
 namespace FlameCsv.Tests.Reading;
@@ -25,7 +25,7 @@ public static class UnescapeTests
         Assert.True(value.Length <= 128);
         Span<char> buffer = stackalloc char[128];
 
-        RFC4180Mode<ushort>.Unescape(
+        Field.Unescape(
             quote: '"',
             buffer: MemoryMarshal.Cast<char, ushort>(buffer),
             field: MemoryMarshal.Cast<char, ushort>(value.AsSpan()),
@@ -43,7 +43,7 @@ public static class UnescapeTests
         Assert.True(value.Length <= 128);
         Span<byte> buffer = stackalloc byte[128];
 
-        RFC4180Mode<byte>.Unescape(
+        Field.Unescape(
             quote: (byte)'"',
             buffer: buffer,
             field: Encoding.UTF8.GetBytes(value),

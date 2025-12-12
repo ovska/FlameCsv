@@ -280,4 +280,11 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         }
     }
 }
+
+[InlineArray(64)]
+file struct Inline64<T>
+    where T : unmanaged
+{
+    public T elem0;
+}
 #endif

@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using FlameCsv.Reading.Unescaping;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Fuzzing.Scenarios;
 
@@ -30,7 +30,7 @@ public class Unescape : IScenario
 
             if (typeof(T) == typeof(char))
             {
-                RFC4180Mode<ushort>.Unescape(
+                Field.Unescape(
                     ushort.CreateTruncating(quote),
                     MemoryMarshal.Cast<T, ushort>(destination),
                     MemoryMarshal.Cast<T, ushort>(data),
@@ -39,7 +39,7 @@ public class Unescape : IScenario
             }
             else
             {
-                RFC4180Mode<T>.Unescape(quote, destination, data, count);
+                Field.Unescape(quote, destination, data, count);
             }
         }
         catch (CsvFormatException) { }

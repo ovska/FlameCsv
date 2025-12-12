@@ -3,11 +3,11 @@ using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
-using FlameCsv.Reading.Unescaping;
 
 namespace FlameCsv.Reading.Internal;
 
-internal static class Field
+[SkipLocalsInit]
+internal static partial class Field
 {
     public const int MaxFieldEnd = (int)EndMask;
 
@@ -90,7 +90,7 @@ internal static class Field
                 // Vector<char> is not supported
                 if (Unsafe.SizeOf<T>() is sizeof(char))
                 {
-                    RFC4180Mode<ushort>.Unescape(
+                    Unescape(
                         ushort.CreateTruncating(q),
                         buffer.Cast<T, ushort>(),
                         retVal.Cast<T, ushort>(),
@@ -99,7 +99,7 @@ internal static class Field
                 }
                 else
                 {
-                    RFC4180Mode<T>.Unescape(q, buffer, retVal, quoteCount);
+                    Unescape(q, buffer, retVal, quoteCount);
                 }
 
                 int unescapedLength = retVal.Length - unchecked((int)(quoteCount / 2));

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Unescaping;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
 
@@ -62,23 +62,7 @@ public class UnescapeBench
 
         foreach (var f in _data)
         {
-            RFC4180Mode<ushort>.Unescape(
-                quote: '"',
-                buffer: buffer,
-                field: MemoryMarshal.Cast<char, ushort>(f.AsSpan()),
-                quotesConsumed: 2
-            );
-        }
-    }
-
-    [Benchmark]
-    public void New()
-    {
-        Span<ushort> buffer = stackalloc ushort[512];
-
-        foreach (var f in _data)
-        {
-            RFC4180Mode<ushort>.UnescapeNew(
+            Field.Unescape(
                 quote: '"',
                 buffer: buffer,
                 field: MemoryMarshal.Cast<char, ushort>(f.AsSpan()),
@@ -88,7 +72,6 @@ public class UnescapeBench
     }
 
     private readonly string[] _data;
-    private readonly byte[][] _bytes;
 
     public UnescapeBench()
     {

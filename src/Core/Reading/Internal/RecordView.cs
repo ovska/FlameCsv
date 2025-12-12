@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reading.Internal;
 
+[SkipLocalsInit]
 internal readonly struct RecordView
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

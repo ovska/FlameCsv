@@ -7,6 +7,7 @@ using System.Runtime.Intrinsics.X86;
 
 namespace FlameCsv.Reading.Internal;
 
+[SkipLocalsInit]
 internal static class AsciiVector
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

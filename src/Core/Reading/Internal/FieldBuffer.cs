@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reading.Internal;
 
+[SkipLocalsInit]
 internal readonly ref struct FieldBuffer
 {
     public Span<uint> Fields { get; init; }
