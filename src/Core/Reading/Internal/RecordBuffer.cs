@@ -361,8 +361,7 @@ internal sealed class RecordBuffer : IDisposable
     private int ResetCore()
     {
         int fieldIndex = FieldIndex;
-        uint lastRead = _fields[fieldIndex];
-        int offset = NextStart(lastRead);
+        int offset = _starts[fieldIndex];
 
         if (_fieldCount > fieldIndex)
         {
@@ -407,7 +406,6 @@ internal sealed class RecordBuffer : IDisposable
         _eolIndex = 0;
 
         Debug.Assert(_fields[0] == 0);
-        Debug.Assert((lastRead & IsEOL) != 0, "Last read record must have EOL flag set");
         Debug.Assert(_fieldCount >= 0, $"Count should be >= 0, was {_fieldCount}");
 
         return offset;

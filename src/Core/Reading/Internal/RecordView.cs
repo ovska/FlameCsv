@@ -20,7 +20,7 @@ internal readonly struct RecordView
     public int GetLengthWithNewline(RecordBuffer buffer)
     {
         // only the original field metadata knows if this is a CRLF or not
-        int end = Field.NextStart(buffer._fields[Start + Count - 1]);
+        int end = buffer._starts[Start + Count - 1];
         int start = buffer._starts[Start];
 
         return end - start;
