@@ -21,7 +21,7 @@ public readonly ref struct CsvRecordRef<T>
     private readonly ref T _data;
     private readonly ReadOnlySpan<int> _starts;
     private readonly ref int _ends;
-    private readonly ref byte _quotes;
+    internal readonly ref byte _quotes;
     internal readonly RecordOwner<T> _owner;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

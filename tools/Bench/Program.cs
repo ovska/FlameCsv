@@ -22,9 +22,7 @@ using BenchmarkDotNet.Diagnosers;
 //     args
 // );
 
-// new TokenizationBench() { Quoted = true }.Simd();
-
-BenchmarkRunner.Run<ReadObjects>(new Config(), args);
+BenchmarkRunner.Run<UnescapeBench>(new Config(), args);
 
 file class Config : ManualConfig
 {
