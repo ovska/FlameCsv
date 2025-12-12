@@ -360,55 +360,29 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private int ResetCore()
     {
+        ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
+
+        Debug.Assert(FieldIndex > 0);
+
         int fieldIndex = FieldIndex;
-        int offset = _starts[fieldIndex];
 
-        if (_fieldCount > fieldIndex)
-        {
-            int length = _fieldCount - fieldIndex;
-            int start = fieldIndex + 1;
-
-            for (int i = 0; i < length; i++)
-            {
-                int pos = start + i;
-                _fields[pos] -= (uint)offset;
-                _starts[pos] -= offset;
-                _ends[pos] -= offset;
-            }
-
-            _fields.AsSpan(start, length).CopyTo(_fields.AsSpan(1));
-            _starts.AsSpan(start, length).CopyTo(_starts.AsSpan(1));
-            _ends.AsSpan(start, length).CopyTo(_ends.AsSpan(1));
-            _quotes.AsSpan(start, length).CopyTo(_quotes.AsSpan(1));
-
-            _fields[0] = 0; // reset start of data
-            _starts[0] = 0;
-            _ends[0] = 0;
-            _quotes.AsSpan(1 + length, _fieldCount - length).Clear(); // Clear stale quote data beyond the copied fields
-#if DEBUG
-            if (_quotes.AsSpan(1 + length).IndexOfAnyExcept<byte>(0) is int idx && idx >= 0)
-            {
-                throw new InvalidOperationException("Quote buffer was not properly cleared.");
-            }
-#endif
-        }
-        else
-        {
-            // no unread fields
-            _fields[0] = 0;
-            _starts[0] = 0;
-            _ends[0] = 0;
-            _quotes.AsSpan(1, _fieldCount).Clear();
-        }
-
-        _fieldCount -= fieldIndex;
+        // no unread fields
+        _fields[0] = 0;
+        _starts[0] = 0;
+        _ends[0] = 0;
+        _quotes.AsSpan(1, _fieldCount).Clear();
+        _fieldCount = 0;
         _eolCount = 0;
         _eolIndex = 0;
 
-        Debug.Assert(_fields[0] == 0);
-        Debug.Assert(_fieldCount >= 0, $"Count should be >= 0, was {_fieldCount}");
+#if DEBUG
+        if (_quotes.ContainsAnyExcept((byte)0))
+        {
+            throw new InvalidOperationException("Quote buffer was not properly cleared.");
+        }
+#endif
 
-        return offset;
+        return _starts[fieldIndex];
     }
 
     /// <summary>

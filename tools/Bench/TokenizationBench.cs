@@ -24,7 +24,7 @@ public class TokenizationBench
     [Params(
         [ /**/
             true,
-            // false,
+            false,
         ]
     )]
     public bool Quoted { get; set; }
@@ -33,7 +33,7 @@ public class TokenizationBench
         [ /**/
             ParserNewline.LF,
             // ParserNewline.LF_With_CRLF,
-            // ParserNewline.CRLF,
+            ParserNewline.CRLF,
         ]
     )]
     public ParserNewline Newline { get; set; }
