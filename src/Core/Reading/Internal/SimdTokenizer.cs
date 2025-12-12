@@ -38,9 +38,16 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
     [MethodImpl(MethodImplOptions.NoInlining)]
     public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
     {
-        Debug.Assert(data.Length <= Field.MaxFieldEnd);
+        if (!Vector128.IsHardwareAccelerated)
+        {
+            // ensure the method is trimmed on NAOT
+            throw new UnreachableException();
+        }
 
-        if ((uint)(data.Length - startIndex) < EndOffset || destination.Fields.Length < MaxFieldsPerIteration)
+        Debug.Assert(data.Length <= Field.MaxFieldEnd);
+        destination.AssertInitialState(MaxFieldsPerIteration);
+
+        if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
         }
@@ -57,8 +64,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         // ensure the worst case doesn't read past the end (e.g. data ends in Vector.Count delimiters)
         // we do this so there are no bounds checks in the loops
         Debug.Assert(searchSpaceEnd < (nuint)data.Length);
-        Debug.Assert(destination.Fields.Length >= Vector256<byte>.Count);
-        Debug.Assert(destination.Quotes.Length >= Vector256<byte>.Count);
 
         // load the constants into registers
         uint quotesConsumed = 0;

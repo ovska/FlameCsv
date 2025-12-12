@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.Reading.Internal;
@@ -25,5 +26,13 @@ internal readonly ref struct FieldBuffer
         Fields = recordBuffer._fields.AsSpan(start);
         Quotes = recordBuffer._quotes.AsSpan(start);
         _degenerateQuotes = ref recordBuffer._quotes[0];
+    }
+
+    [Conditional("DEBUG")]
+    public void AssertInitialState(int length)
+    {
+        Debug.Assert(!DegenerateQuotes);
+        Debug.Assert(Fields.Length >= length);
+        Debug.Assert(Quotes.Length >= length);
     }
 }

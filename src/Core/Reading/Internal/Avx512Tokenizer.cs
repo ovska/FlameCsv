@@ -51,8 +51,9 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         }
 
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
+        destination.AssertInitialState(MaxFieldsPerIteration);
 
-        if ((uint)(data.Length - startIndex) < EndOffset || destination.Fields.Length < MaxFieldsPerIteration)
+        if ((uint)(data.Length - startIndex) < EndOffset)
         {
             return 0;
         }
