@@ -130,6 +130,14 @@ internal sealed class IndentedTextWriter : IDisposable
         return new(this);
     }
 
+    public Block WriteBlockWithSemicolon()
+    {
+        WriteLine("{");
+        IncreaseIndent();
+
+        return new(this, true);
+    }
+
     /// <summary>
     /// Writes a block to the underlying buffer.
     /// </summary>
@@ -160,9 +168,7 @@ internal sealed class IndentedTextWriter : IDisposable
     /// <param name="content">The content to write.</param>
     public void Write(char content)
     {
-        Span<char> span = stackalloc char[1];
-        span[0] = content;
-        Write(span, false);
+        this.builder.Add(content);
     }
 
     /// <summary>
@@ -420,7 +426,7 @@ internal sealed class IndentedTextWriter : IDisposable
     /// Represents an indented block that needs to be closed.
     /// </summary>
     /// <param name="writer">The input <see cref="IndentedTextWriter"/> instance to wrap.</param>
-    public struct Block(IndentedTextWriter writer) : IDisposable
+    public struct Block(IndentedTextWriter writer, bool writeSemicolon = false) : IDisposable
     {
         /// <summary>
         /// The <see cref="IndentedTextWriter"/> instance to write to.
@@ -437,7 +443,15 @@ internal sealed class IndentedTextWriter : IDisposable
             if (writer is not null)
             {
                 writer.DecreaseIndent();
-                writer.WriteLine("}");
+
+                if (writeSemicolon)
+                {
+                    writer.WriteLine("};");
+                }
+                else
+                {
+                    writer.WriteLine("}");
+                }
             }
         }
     }

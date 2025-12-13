@@ -147,34 +147,34 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 writer.WriteLine(";");
 
                 writer.WriteLine("_formatStrategy = _format switch");
-                writer.WriteLine("{");
-                writer.IncreaseIndent();
-                writer.WriteLine("null or \"g\" or \"G\" => WriteStringStrategy,");
-                writer.WriteLine("\"d\" or \"D\" => WriteNumberStrategy,");
-                writer.Write("\"x\" or \"X\" => global::FlameCsv.Converters.Enums.EnumFormatStrategy");
-                WriteStrategyGenerics(model, writer, context.CancellationToken);
-                writer.WriteLine(".None, // always defer to Enum.TryFormat");
 
-                writer.Write("\"f\" or \"F\" => ");
-                if (model.HasFlagsAttribute)
+                using (writer.WriteBlockWithSemicolon())
                 {
-                    string specifier = model.IsByte ? "Utf8" : "Text";
+                    writer.WriteLine("null or \"g\" or \"G\" => WriteStringStrategy,");
+                    writer.WriteLine("\"d\" or \"D\" => WriteNumberStrategy,");
+                    writer.Write("\"x\" or \"X\" => global::FlameCsv.Converters.Enums.EnumFormatStrategy");
+                    WriteStrategyGenerics(model, writer, context.CancellationToken);
+                    writer.WriteLine(".None, // always defer to Enum.TryFormat");
+
+                    writer.Write("\"f\" or \"F\" => ");
+                    if (model.HasFlagsAttribute)
+                    {
+                        string specifier = model.IsByte ? "Utf8" : "Text";
+                        writer.WriteLine(
+                            $"new global::FlameCsv.Converters.Enums.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),"
+                        );
+                    }
+                    else
+                    {
+                        writer.WriteLine(
+                            $"throw new global::System.NotSupportedException(\"Flags-format not supported for non-flags enum {model.EnumType.Name}\"),"
+                        );
+                    }
+
                     writer.WriteLine(
-                        $"new global::FlameCsv.Converters.Enums.CsvEnumFlags{specifier}FormatStrategy<{model.EnumType.FullyQualifiedName}>(options, WriteStringStrategy),"
+                        "{ } configuredFormat => throw new global::System.NotSupportedException(\"Invalid enum format specified: \" + configuredFormat)"
                     );
                 }
-                else
-                {
-                    writer.WriteLine(
-                        $"throw new global::System.NotSupportedException(\"Flags-format not supported for non-flags enum {model.EnumType.Name}\"),"
-                    );
-                }
-
-                writer.WriteLine(
-                    "{ } configuredFormat => throw new global::System.NotSupportedException(\"Invalid enum format specified: \" + configuredFormat)"
-                );
-                writer.DecreaseIndent();
-                writer.WriteLine("};");
             }
 
             writer.WriteLine();
@@ -406,11 +406,11 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
     )
     {
         cancellationToken.ThrowIfCancellationRequested();
-        writer.Write("<");
+        writer.Write('<');
         writer.Write(model.Token);
         writer.Write(", ");
         writer.Write(model.EnumType.FullyQualifiedName);
-        writer.Write(">");
+        writer.Write('>');
     }
 
     private static void WriteVectorImport(IndentedTextWriter writer, EnumModel model)

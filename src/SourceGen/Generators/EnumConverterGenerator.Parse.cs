@@ -842,7 +842,7 @@ partial class EnumConverterGenerator
         // no mask needed, no case-sensitive characters
         if (allSame is false)
         {
-            writer.Write(")");
+            writer.Write(')');
             return;
         }
 
@@ -852,7 +852,7 @@ partial class EnumConverterGenerator
         {
             writer.Write("0x20202020");
             writer.WriteIf(width == 8, "20202020");
-            writer.Write(")");
+            writer.Write(')');
             return;
         }
 
@@ -889,7 +889,7 @@ partial class EnumConverterGenerator
         writer.WriteIf(allSame is null or true, "(");
         writer.Write("__Vector128.LoadUnsafe(in first");
         writer.WriteIf(offset != 0, $", {offset}");
-        writer.Write(")");
+        writer.Write(')');
 
         if (allSame is null)
         {

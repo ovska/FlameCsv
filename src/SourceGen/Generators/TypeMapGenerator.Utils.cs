@@ -109,7 +109,7 @@ partial class TypeMapGenerator
             {
                 writer.Write(", identifier: ");
                 member.WriteOverrideId(writer);
-                writer.Write(")");
+                writer.Write(')');
             }
         }
 
@@ -127,7 +127,7 @@ partial class TypeMapGenerator
                 writer.Write("global::System.Guid.Empty");
             }
 
-            writer.Write(")");
+            writer.Write(')');
         }
     }
 

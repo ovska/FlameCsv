@@ -118,7 +118,7 @@ partial class TypeMapGenerator
                 WriteConverterType(writer, typeMap.TokenName, member);
                 writer.Write(' ');
                 member.WriteConverterName(writer);
-                writer.Write(";");
+                writer.Write(';');
                 writer.WriteIf(member.IsRequired, " // required");
                 writer.WriteLine();
             }
@@ -188,7 +188,7 @@ partial class TypeMapGenerator
                         writer.Write(" is not null && ");
                     }
 
-                    writer.Write("!");
+                    writer.Write('!');
                     member.WriteConverterName(writer);
                     writer.Write(".TryParse(record[");
                     member.WriteId(writer);
@@ -299,7 +299,7 @@ partial class TypeMapGenerator
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        writer.Write("(");
+        writer.Write('(');
 
         if (!typeMap.Parameters.IsEmpty)
         {
@@ -320,7 +320,7 @@ partial class TypeMapGenerator
             writer.DecreaseIndent();
         }
 
-        writer.Write(")");
+        writer.Write(')');
 
         // explicit interface implementations cannot be init only, and cannot be written in an initializer
         if (
@@ -344,7 +344,7 @@ partial class TypeMapGenerator
             }
 
             writer.DecreaseIndent();
-            writer.Write("}");
+            writer.Write('}');
         }
 
         writer.WriteLine(";");
@@ -512,7 +512,7 @@ partial class TypeMapGenerator
 
             writer.DecreaseIndent();
 
-            writer.Write(")");
+            writer.Write(')');
 
             if (member.Order.HasValue)
             {
@@ -559,19 +559,17 @@ partial class TypeMapGenerator
         writer.Write("TypeMapMaterializer materializer = new TypeMapMaterializer(");
         writer.Write(typeMap.IndexesForReading.Length.ToString());
         writer.WriteLine(")");
-        writer.WriteLine("{");
-        writer.IncreaseIndent();
 
-        foreach (var member in typeMap.IndexesForReading)
+        using (writer.WriteBlockWithSemicolon())
         {
-            member.WriteConverterName(writer);
-            writer.Write(" = ");
-            WriteConverter(writer, typeMap.TokenName, member);
-            writer.WriteLine(",");
+            foreach (var member in typeMap.IndexesForReading)
+            {
+                member.WriteConverterName(writer);
+                writer.Write(" = ");
+                WriteConverter(writer, typeMap.TokenName, member);
+                writer.WriteLine(",");
+            }
         }
-
-        writer.DecreaseIndent();
-        writer.WriteLine("};");
 
         for (int index = 0; index < typeMap.IndexesForReading.Length; index++)
         {

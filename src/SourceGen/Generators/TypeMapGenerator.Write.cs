@@ -151,8 +151,7 @@ partial class TypeMapGenerator
             {
                 writer.WriteLine("return new TypeMapDematerializer");
 
-                writer.WriteLine("{");
-                writer.IncreaseIndent();
+                using var _ = writer.WriteBlockWithSemicolon();
 
                 foreach (var property in typeMap.AllMembers.Writable())
                 {
@@ -163,9 +162,6 @@ partial class TypeMapGenerator
 
                     writableCount++;
                 }
-
-                writer.DecreaseIndent();
-                writer.WriteLine("};");
             }
 
             writer.WriteLine();
@@ -178,20 +174,16 @@ partial class TypeMapGenerator
             else
             {
                 writer.WriteLine("return new TypeMapIndexDematerializer");
-
-                writer.WriteLine("{");
-                writer.IncreaseIndent();
-
-                foreach (var property in typeMap.IndexesForWriting)
+                using (writer.WriteBlockWithSemicolon())
                 {
-                    property.WriteConverterName(writer);
-                    writer.Write(" = ");
-                    WriteConverter(writer, typeMap.TokenName, property);
-                    writer.WriteLine(",");
+                    foreach (var property in typeMap.IndexesForWriting)
+                    {
+                        property.WriteConverterName(writer);
+                        writer.Write(" = ");
+                        WriteConverter(writer, typeMap.TokenName, property);
+                        writer.WriteLine(",");
+                    }
                 }
-
-                writer.DecreaseIndent();
-                writer.WriteLine("};");
             }
         }
     }
