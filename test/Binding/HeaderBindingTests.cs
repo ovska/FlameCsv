@@ -90,8 +90,6 @@ public static partial class HeaderBindingTests
     [Theory, InlineData(true), InlineData(false)]
     public static void Should_Use_Write_Configuration_From_Proxy(bool sourceGen)
     {
-        Assert.SkipWhen(sourceGen, "Source generator for type proxies is not supported yet");
-
         var sb = new System.Text.StringBuilder();
         Csv.To(new StringWriter(sb)).Write<ISomething>([]);
         Assert.Equal("_name,_isenabled,_targeted\r\n", sb.ToString());
@@ -100,8 +98,6 @@ public static partial class HeaderBindingTests
     [Theory, InlineData(true), InlineData(false)]
     public static void Should_Use_Read_Configuration_From_Underlying(bool sourceGen)
     {
-        Assert.SkipWhen(sourceGen, "Source generator for type proxies is not supported yet");
-
         var bindings = new CsvReflectionBinder<char>(CsvOptions<char>.Default).GetMaterializer<ISomething>(
             ["Name", "IsEnabled", "Targeted"]
         );
