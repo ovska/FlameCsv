@@ -400,6 +400,12 @@ internal sealed class IndentedTextWriter : IDisposable
     public void DebugLine(string value) => WriteLine($"/* {value} */");
 
     [Conditional("WRITER_DEBUG")]
+    public void DebugLine([InterpolatedStringHandlerArgument("")] ref WriteInterpolatedStringHandler handler)
+    {
+        WriteLine(ref handler);
+    }
+
+    [Conditional("WRITER_DEBUG")]
     public void DebugLineIf(bool condition, string value) => WriteLineIf(condition, $"/* {value} */");
 
     /// <summary>

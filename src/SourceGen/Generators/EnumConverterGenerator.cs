@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace FlameCsv.SourceGen.Generators;
@@ -22,10 +23,12 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                     static (context, cancellationToken) =>
                     {
                         cancellationToken.ThrowIfCancellationRequested();
+                        Compilation compilation = context.SemanticModel.Compilation;
 
                         EnumModel? model = EnumModel.TryGet(
-                            context.TargetSymbol,
-                            context.Attributes[0],
+                            converterSymbol: context.TargetSymbol,
+                            attributeData: context.Attributes[0],
+                            unsafeCode: compilation.Options is CSharpCompilationOptions { AllowUnsafe: true },
                             cancellationToken,
                             out var diagnostics
                         );
@@ -53,14 +56,13 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
     private static void ExecuteGenerator(EnumModel model, SourceProductionContext context)
     {
-        context.CancellationToken.ThrowIfCancellationRequested();
         using var writer = new IndentedTextWriter();
-
+        context.CancellationToken.ThrowIfCancellationRequested();
         ExecuteGeneratorCore(writer, model, context);
 
-        context.CancellationToken.ThrowIfCancellationRequested();
-
         string sourceName = GlobalConstants.GetFileName(model.ConverterTypeName, model.WrappingTypes);
+
+        context.CancellationToken.ThrowIfCancellationRequested();
         context.AddSource(sourceName, writer.ToString());
     }
 
@@ -101,8 +103,9 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
         }
 
         writer.WriteLine(GlobalConstants.CodeDomAttribute);
+        writer.WriteLineIf(model.UnsafeCode, GlobalConstants.SkipLocalsInitAttribute);
         writer.WriteLine(
-            $"partial class {model.ConverterTypeName} : global::FlameCsv.CsvConverter<{(model.Token)}, {model.EnumType.FullyQualifiedName}>"
+            $"partial class {model.ConverterTypeName} : global::FlameCsv.CsvConverter<{model.Token}, {model.EnumType.FullyQualifiedName}>"
         );
 
         using (writer.WriteBlock())
@@ -185,6 +188,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             }
 
             writer.WriteLine();
+            context.CancellationToken.ThrowIfCancellationRequested();
 
             writer.WriteLine(
                 $"public override bool TryFormat(global::System.Span<{model.Token}> destination, {model.EnumType.FullyQualifiedName} value, out int charsWritten)"
@@ -267,11 +271,14 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
                 }
             }
 
+            context.CancellationToken.ThrowIfCancellationRequested();
+
             writer.WriteLine();
             writer.WriteLine("/// <summary>");
             writer.WriteLine("/// Case-sensitive parsing strategy.");
             writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLineIf(model.UnsafeCode, GlobalConstants.SkipLocalsInitAttribute);
             writer.Write("private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy");
             WriteStrategyGenerics(model, writer, context.CancellationToken);
             writer.WriteLine();
@@ -285,6 +292,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("/// Case-insensitive parsing strategy.");
             writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLineIf(model.UnsafeCode, GlobalConstants.SkipLocalsInitAttribute);
             writer.Write(
                 "private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy"
             );
@@ -300,6 +308,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("/// Formatting strategy for writing numeric values.");
             writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLineIf(model.UnsafeCode, GlobalConstants.SkipLocalsInitAttribute);
             writer.Write("private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(model, writer, context.CancellationToken);
             writer.WriteLine();
@@ -320,6 +329,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("/// Formatting strategy for writing enum names.");
             writer.WriteLine("/// </summary>");
             writer.WriteLine(GlobalConstants.CodeDomAttribute);
+            writer.WriteLineIf(model.UnsafeCode, GlobalConstants.SkipLocalsInitAttribute);
             writer.Write("private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy");
             WriteStrategyGenerics(model, writer, context.CancellationToken);
             writer.WriteLine();

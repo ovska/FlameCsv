@@ -176,6 +176,7 @@ partial class TypeMapGenerator
 
                     if (!member.IsRequired && member is not ParameterModel)
                     {
+                        writer.DebugLine($"Skipping non-required member {member.Identifier}");
                         continue;
                     }
 
@@ -329,6 +330,7 @@ partial class TypeMapGenerator
         )
         {
             writer.WriteLine();
+            writer.DebugLine("Using explicit assignments for required properties");
 
             writer.WriteLine("{");
             writer.IncreaseIndent();
@@ -399,8 +401,7 @@ partial class TypeMapGenerator
     {
         if (!typeMap.HasRequiredMembers)
         {
-            writer.WriteLine();
-            writer.WriteLine("// No required fields");
+            writer.DebugLine("No required members in this type");
             return;
         }
 
@@ -429,7 +430,9 @@ partial class TypeMapGenerator
     private static void WriteMissingRequiredFields(TypeMapModel typeMap, IndentedTextWriter writer)
     {
         if (!typeMap.HasRequiredMembers)
+        {
             return;
+        }
 
         writer.WriteLine();
         writer.WriteLine(

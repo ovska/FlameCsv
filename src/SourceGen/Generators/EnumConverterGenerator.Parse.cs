@@ -391,17 +391,17 @@ partial class EnumConverterGenerator
             || entriesByLength.All(e => char.ToLowerInvariant(e.Name[0]) == char.ToUpperInvariant(e.Name[0]))
         )
         {
-            // if all first chars are case-agnostic, we can use the simple switch path
+            writer.DebugLineIf(ignoreCase, "All values are case-agnostic");
             writer.WriteLine($"switch ({firstItem})");
         }
         else if (entriesByLength.All(e => e.Name[0].IsAsciiLetter()))
         {
-            // if all first chars are ascii letters, we can use bitwise lowercase
+            writer.DebugLine("All first chars are ASCII letters, use bitwise lowercasing");
             writer.WriteLine($"switch ((char)({firstItem} | 0x20))");
         }
         else
         {
-            writer.DebugLine("Slow path: ignore case and not ascii");
+            writer.DebugLine("Slow path: some first chars are not ASCII");
             writer.WriteLine($"switch (char.ToLowerInvariant({firstItem}))");
         }
 
@@ -704,6 +704,7 @@ partial class EnumConverterGenerator
         writer.DebugLine(nameof(WriteGetChars));
 
         writer.WriteLine("global::System.Span<char> destination;");
+        writer.DebugLine("Optimistic GetMaxCharCount length check first");
         writer.WriteLine("int length = global::System.Text.Encoding.UTF8.GetMaxCharCount(source.Length);");
         writer.WriteLine();
         writer.WriteLine(

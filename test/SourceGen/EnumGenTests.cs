@@ -284,6 +284,7 @@ public class EnumGenTests(MetadataFixture fixture)
         var model = EnumModel.TryGet(
             enumConverter,
             attribute,
+            unsafeCode: false,
             TestContext.Current.CancellationToken,
             out var diagnostics
         );

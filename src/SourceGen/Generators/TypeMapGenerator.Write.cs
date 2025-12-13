@@ -67,6 +67,7 @@ partial class TypeMapGenerator
                 writer.WriteLine();
                 cancellationToken.ThrowIfCancellationRequested();
 
+                writer.WriteLineIf(typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
                 writer.WriteLine(
                     $"public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.TokenName}> writer, {typeMap.Type.FullyQualifiedName} obj)"
                 );
@@ -101,6 +102,7 @@ partial class TypeMapGenerator
                 writer.WriteLine();
                 cancellationToken.ThrowIfCancellationRequested();
 
+                writer.WriteLineIf(hasHeader && typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
                 writer.WriteLine(
                     $"public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<{typeMap.TokenName}> writer)"
                 );

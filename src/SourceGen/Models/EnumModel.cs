@@ -9,6 +9,7 @@ internal sealed record EnumModel
     public static EnumModel? TryGet(
         ISymbol converterSymbol,
         AttributeData attributeData,
+        bool unsafeCode,
         CancellationToken cancellationToken,
         out ImmutableArray<Diagnostic> diagnostics
     )
@@ -38,6 +39,7 @@ internal sealed record EnumModel
             EnumModel model = new EnumModel(
                 enumType: enumType,
                 isByte: tokenType.SpecialType == SpecialType.System_Byte,
+                unsafeCode: unsafeCode,
                 converterType: converterType,
                 cancellationToken,
                 diagList
@@ -61,7 +63,7 @@ internal sealed record EnumModel
         return null;
     }
 
-    public bool IsByte { get; }
+    public bool IsByte => (_config & Config.IsByte) != 0;
     public string Token => IsByte ? "byte" : "char";
 
     public string ConverterTypeName { get; }
@@ -81,7 +83,9 @@ internal sealed record EnumModel
     /// <summary>
     /// Whether the typemap is in the global namespace.
     /// </summary>
-    public bool InGlobalNamespace { get; }
+    public bool InGlobalNamespace => (_config & Config.InGlobalNamespace) != 0;
+
+    public bool UnsafeCode => (_config & Config.UnsafeCode) != 0;
 
     /// <summary>
     /// Namespace of the typemap.
@@ -92,17 +96,22 @@ internal sealed record EnumModel
     private EnumModel(
         INamedTypeSymbol enumType,
         bool isByte,
+        bool unsafeCode,
         ITypeSymbol converterType,
         CancellationToken cancellationToken,
         List<Diagnostic> diagnostics
     )
     {
-        IsByte = isByte;
+        _config = default;
+
+        if (isByte)
+        {
+            _config |= Config.IsByte;
+        }
+
         ConverterTypeName = converterType.Name;
         EnumType = new TypeRef(enumType);
         UnderlyingType = enumType.EnumUnderlyingType!.ToDisplayString();
-
-        _config = default;
 
         List<EnumValueModel> values = PooledList<EnumValueModel>.Acquire();
         HashSet<BigInteger> uniqueValues = PooledSet<BigInteger>.Acquire();
@@ -152,8 +161,17 @@ internal sealed record EnumModel
         ContiguousFromZeroCount = contiguousCount;
 
         WrappingTypes = NestedType.Create(converterType, cancellationToken, diagnostics);
-        InGlobalNamespace = converterType.ContainingNamespace.IsGlobalNamespace;
         Namespace = converterType.ContainingNamespace.ToDisplayString();
+
+        if (converterType.ContainingNamespace.IsGlobalNamespace)
+        {
+            _config |= Config.InGlobalNamespace;
+        }
+
+        if (unsafeCode)
+        {
+            _config |= Config.UnsafeCode;
+        }
 
         if (UniqueValues.AsImmutableArray().Any(v => v < BigInteger.Zero))
         {
@@ -268,5 +286,8 @@ internal sealed record EnumModel
         ContiguousFromZero = 1 << 1,
         HasExplicitNames = 1 << 2,
         HasNegativeValues = 1 << 3,
+        UnsafeCode = 1 << 4,
+        InGlobalNamespace = 1 << 5,
+        IsByte = 1 << 6,
     }
 }
