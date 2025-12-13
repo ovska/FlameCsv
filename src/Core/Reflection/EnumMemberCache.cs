@@ -10,11 +10,11 @@ using FlameCsv.Utilities;
 
 namespace FlameCsv.Reflection;
 
+#pragma warning disable RCS1158 // Static member in generic type should use a type parameter
+
 internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.PublicFields)] TEnum>
     where TEnum : struct, Enum
 {
-    public static bool IsFlagsFormat(string? format) => "f".Equals(format, StringComparison.OrdinalIgnoreCase);
-
     public static void EnsureFlagsAttribute()
     {
         if (!HasFlagsAttribute)
@@ -163,20 +163,6 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         return builder.ToImmutable();
     }
 
-    [ExcludeFromCodeCoverage]
-    static EnumMemberCache()
-    {
-        HotReloadService.RegisterForHotReload(
-            typeof(TEnum),
-            static _ =>
-            {
-                _hasFlagsAttribute = null;
-                _valuesAndNames = default;
-                _allFlags = null;
-            }
-        );
-    }
-
     protected static char GetFormatChar(string? format)
     {
         if (string.IsNullOrEmpty(format))
@@ -184,16 +170,13 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
             return 'g';
         }
 
-        ReadOnlySpan<char> fmt = format.AsSpan();
-
-        if (fmt.Length == 1)
+        if (
+            format.Length == 1
+            && char.IsAsciiLetter(format[0])
+            && char.ToLowerInvariant(format[0]) is char c and ('g' or 'd' or 'x' or 'f')
+        )
         {
-            char c = (char)(fmt[0] | 0x20);
-
-            if (c is 'g' or 'd' or 'x' or 'f')
-            {
-                return c;
-            }
+            return c;
         }
 
         throw new FormatException($"Invalid enum format string: {format}");

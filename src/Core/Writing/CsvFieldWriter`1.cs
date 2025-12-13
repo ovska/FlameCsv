@@ -37,6 +37,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
     private readonly bool _isCRLF;
     private readonly IQuoter<T> _quoter;
     private readonly Allocator<T> _allocator;
+    private readonly object? _defaultStringConverter;
+    private readonly bool _usesDefaultOptions;
 
     /// <summary>
     /// Creates a new instance.
@@ -56,6 +58,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
         _quoter = Quoter.Create(options);
         _isCRLF = options.Newline.IsCRLF();
         _allocator = new Allocator<T>(writer.BufferPool);
+        _defaultStringConverter =
+            typeof(T) == typeof(char) ? Converters.StringTextConverter.Instance
+            : typeof(T) == typeof(byte) ? Converters.StringUtf8Converter.Instance
+            : null;
+        _usesDefaultOptions = ReferenceEquals(options, CsvOptions<T>.Default);
     }
 
     /// <summary>
@@ -63,8 +70,9 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
     /// </summary>
     public void WriteField<TValue>(CsvConverter<T, TValue> converter, TValue? value)
     {
-        // string is the most common reference type, and most likely not using a custom converter
-        if (!typeof(TValue).IsValueType && ReferenceEquals(converter, Converters.StringTextConverter.Instance))
+        // string is super common and most likely not overridden (IsValueType is intrinsic for generics)
+        // use a local to avoid static ctor call on every WriteField
+        if (!typeof(TValue).IsValueType && ReferenceEquals(_defaultStringConverter, converter))
         {
             Debug.Assert(typeof(TValue) == typeof(string));
             WriteText(Unsafe.As<string?>(value));
@@ -74,6 +82,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
         int tokensWritten;
         scoped Span<T> destination;
 
+        // null check is folded away for value types
         if (value is not null || converter.CanFormatNull)
         {
             destination = Writer.GetSpan();
@@ -91,14 +100,9 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
             tokensWritten = nullValue.Length;
         }
 
-        // validate negative or too large tokensWritten in case of broken user-defined formatters
-        if ((uint)tokensWritten > (uint)destination.Length)
-        {
-            InvalidTokensWritten.Throw(converter, tokensWritten, destination.Length);
-        }
-
+        // fast path: default options with primitives; these never need validation or escaping
         if (
-            // JIT folds into a constant
+            // JIT folds struct typeof checks into a constant
             (
                 typeof(T) == typeof(bool)
                 || typeof(T) == typeof(int)
@@ -112,12 +116,18 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
                 || typeof(T) == typeof(float)
                 || typeof(T) == typeof(double)
                 || typeof(T) == typeof(decimal)
-            ) && ReferenceEquals(Options, CsvOptions<T>._default)
+                || typeof(T) == typeof(Guid)
+            ) && _usesDefaultOptions
         )
         {
-            // default options imply Auto-quoting
             Writer.Advance(tokensWritten);
             return;
+        }
+
+        // validate negative or too large tokensWritten in case of broken user-defined formatters
+        if ((uint)tokensWritten > (uint)destination.Length)
+        {
+            InvalidTokensWritten.Throw(converter, tokensWritten, destination.Length);
         }
 
         EscapeAndAdvance(destination, tokensWritten);
@@ -128,7 +138,6 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
     /// </summary>
     /// <param name="value">Text to write</param>
     /// <param name="skipEscaping">Don't quote or escape the value</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {
         if (typeof(T) == typeof(char))
@@ -262,7 +271,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
     /// </summary>
     public void WriteNull<TValue>()
     {
-        if (ReferenceEquals(Options, CsvOptions<T>._default))
+        if (_usesDefaultOptions)
         {
             // default options have an empty null
             return;

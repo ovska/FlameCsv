@@ -48,7 +48,9 @@ internal static class ExpressionExtensions
         TDelegate? fn = lambda.TryCompileWithoutClosure<TDelegate>(flags: DefaultCompilerFlags);
 
         if (fn is null && throwIfClosure)
+        {
             ThrowForClosure(lambda);
+        }
 
         return fn ?? lambda.CompileFast<TDelegate>(flags: DefaultCompilerFlags);
     }

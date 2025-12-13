@@ -15,7 +15,7 @@ public abstract class EnumParseStrategy<T, TEnum>
     /// <summary>
     /// Returns a singleton strategy that always fails to parse an enum value.
     /// </summary>
-    public static EnumParseStrategy<T, TEnum> None { get; } = new NoneImpl();
+    public static EnumParseStrategy<T, TEnum> None => field ??= new NoneImpl();
 
     /// <inheritdoc cref="CsvConverter{T,TValue}.TryParse"/>
     /// <returns>

@@ -30,7 +30,7 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
 
         var formatStrategy = new FormatStrategy(_format);
 
-        if (EnumMemberCache<TEnum>.IsFlagsFormat(_format))
+        if (_format is "f" or "F")
         {
             EnumMemberCache<TEnum>.EnsureFlagsAttribute();
             _formatStrategy = new CsvEnumFlagsUtf8FormatStrategy<TEnum>(options, formatStrategy);
@@ -157,9 +157,8 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
         {
             if (_names is not null && _names.TryGetValue(value, out byte[]? name))
             {
-                if (destination.Length >= name.Length)
+                if (name.AsSpan().TryCopyTo(destination))
                 {
-                    name.CopyTo(destination);
                     charsWritten = name.Length;
                     return OperationStatus.Done;
                 }

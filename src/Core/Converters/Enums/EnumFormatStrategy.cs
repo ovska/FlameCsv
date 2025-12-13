@@ -15,7 +15,7 @@ public abstract class EnumFormatStrategy<T, TEnum>
     /// <summary>
     /// Returns a singleton strategy that always fails to format an enum value.
     /// </summary>
-    public static EnumFormatStrategy<T, TEnum> None { get; } = new NoneImpl();
+    public static EnumFormatStrategy<T, TEnum> None => field ??= new NoneImpl();
 
     /// <inheritdoc cref="CsvConverter{T,TValue}.TryFormat"/>
     /// <returns>

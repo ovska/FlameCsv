@@ -3,10 +3,14 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.Writing;
 
-internal abstract class Dematerializer<T, TValue> : Dematerializer<T>
+[System.Runtime.CompilerServices.SkipLocalsInit]
+internal abstract class Dematerializer<T, TValue> : Dematerializer<T>, IDematerializer<T, TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvBindingCollection<TValue> _bindings;
+
+    public abstract int FieldCount { get; }
+    public abstract void Write(ref readonly CsvFieldWriter<T> writer, TValue value);
 
     protected Dematerializer(CsvBindingCollection<TValue> bindings)
     {

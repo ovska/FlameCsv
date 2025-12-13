@@ -72,11 +72,11 @@ internal abstract partial class Dematerializer<T>
 /// </summary>
 [ExcludeFromCodeCoverage]
 [GeneratedCode(Messages.T4Template, null)]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-internal sealed class Dematerializer<T, <#= generics #>>
-    : Dematerializer<T, TValue>, IDematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
+internal sealed class Dematerializer<T, <#= generics #>> : Dematerializer<T, TValue> where T : unmanaged, IBinaryInteger<T>
 {
-    public int FieldCount => <#= current #>;
+    public override int FieldCount => <#= current #>;
 
     public Dematerializer(
         CsvBindingCollection<TValue> bindingCollection,
@@ -132,7 +132,7 @@ internal sealed class Dematerializer<T, <#= generics #>>
         }
 #>
 
-    public void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
 <#
         for (var i = 0; i < current; i++)

@@ -18,7 +18,7 @@ internal static class MaterializerExtensions
         /// <summary>
         /// Cached bindings for headerless CSV.
         /// </summary>
-        public static DelegateGenerator<T>.MaterializerFactory<TResult>? Cached;
+        public static Func<CsvOptions<T>, IMaterializer<T, TResult>>? Cached;
     }
 
     /// <summary>
@@ -32,7 +32,7 @@ internal static class MaterializerExtensions
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        return ExpressionDelegateGenerator<T>.Instance.GetMaterializerFactory(bindingCollection)(options);
+        return ExpressionDelegateGenerator<T>.GetMaterializerFactory(bindingCollection)(options);
     }
 
     /// <summary>
@@ -45,7 +45,7 @@ internal static class MaterializerExtensions
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        DelegateGenerator<T>.MaterializerFactory<TResult>? factory = ForType<T, TResult>.Cached;
+        Func<CsvOptions<T>, IMaterializer<T, TResult>>? factory = ForType<T, TResult>.Cached;
 
         if (factory is null)
         {
@@ -54,7 +54,7 @@ internal static class MaterializerExtensions
                 || IndexAttributeBinder<TResult>.TryGetBindings(write: false, out bindings)
             )
             {
-                factory = ExpressionDelegateGenerator<T>.Instance.GetMaterializerFactory(bindings);
+                factory = ExpressionDelegateGenerator<T>.GetMaterializerFactory(bindings);
             }
             else
             {

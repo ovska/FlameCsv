@@ -5,7 +5,7 @@ using FlameCsv.Exceptions;
 
 namespace FlameCsv.Reading;
 
-internal abstract class Materializer<T, TValue>
+internal abstract class Materializer<T, TValue> : IMaterializer<T, TValue>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly CsvBindingCollection<TValue> _bindings;
@@ -28,6 +28,8 @@ internal abstract class Materializer<T, TValue>
 
         return binding.ResolveConverter<T, TConverted>(options) ?? options.GetConverter<TConverted>();
     }
+
+    public abstract TValue Parse(scoped ref readonly CsvRecordRef<T> record);
 
     protected virtual (Type type, object converter) GetExceptionMetadata(int index) => (typeof(void), new object());
 

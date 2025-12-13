@@ -9,12 +9,20 @@ namespace FlameCsv.Reflection;
 
 [RUF(Messages.Reflection)]
 [RDC(Messages.DynamicCode)]
-internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T>
+internal static class ExpressionDelegateGenerator<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    public static readonly ExpressionDelegateGenerator<T> Instance = new();
+    public static Func<CsvOptions<T>, IMaterializer<T, TResult>> GetMaterializerFactory<[DAM(Messages.Ctors)] TResult>(
+        CsvBindingCollection<TResult> bc
+    )
+    {
+        ArgumentNullException.ThrowIfNull(bc);
+        var materializerFactory = GetMaterializerInit(bc, out Type factoryType);
+        var valueFactory = GetValueFactory(bc, factoryType);
+        return options => materializerFactory.Invoke([valueFactory, bc, options]);
+    }
 
-    protected override Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
+    private static Func<object[], IMaterializer<T, TResult>> GetMaterializerInit<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc,
         out Type factoryType
     )
@@ -48,7 +56,7 @@ internal sealed class ExpressionDelegateGenerator<T> : DelegateGenerator<T>
         return lambda.CompileLambda<Func<object[], IMaterializer<T, TResult>>>(throwIfClosure: true);
     }
 
-    protected override Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(
+    private static Delegate GetValueFactory<[DAM(Messages.Ctors)] TResult>(
         CsvBindingCollection<TResult> bc,
         Type factoryType
     )

@@ -70,7 +70,8 @@ internal static class Materializer<T>
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult>, IMaterializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
+[SkipLocalsInit]
+internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(<#
         for (var i = 0; i < current; i++)
@@ -110,7 +111,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
         }
 #>
 
-    public TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
     {
         Unsafe.SkipInit(out int invalidIndex);
         if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, in record);

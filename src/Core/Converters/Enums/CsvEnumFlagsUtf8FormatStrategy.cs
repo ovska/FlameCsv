@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Reflection;
-using FlameCsv.Utilities;
 
 namespace FlameCsv.Converters.Enums;
 
@@ -11,13 +10,10 @@ namespace FlameCsv.Converters.Enums;
 public sealed class CsvEnumFlagsUtf8FormatStrategy<TEnum> : CsvEnumFlagsFormatStrategy<byte, TEnum>
     where TEnum : struct, Enum
 {
+    // hot reload safe; enum members or attributes can't be changed at runtime
+
     // ReSharper disable once StaticMemberInGenericType
     private static byte[]? _zero;
-
-    static CsvEnumFlagsUtf8FormatStrategy()
-    {
-        HotReloadService.RegisterForHotReload(typeof(TEnum), static _ => _zero = null);
-    }
 
     /// <inheritdoc />
     public CsvEnumFlagsUtf8FormatStrategy(CsvOptions<byte> options, EnumFormatStrategy<byte, TEnum> inner)

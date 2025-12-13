@@ -5,6 +5,7 @@ namespace FlameCsv.Converters.Enums;
 
 internal static class EnumExtensions
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool CanParseNumber<T, TEnum>(ReadOnlySpan<T> source)
         where T : unmanaged, IBinaryInteger<T>
         where TEnum : struct, Enum

@@ -20,7 +20,7 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
 
     static CsvEnumFlagsFormatStrategy()
     {
-        _valuesByBits = Enum.GetValues<TEnum>().Distinct().ToArray();
+        _valuesByBits = [.. Enum.GetValues<TEnum>().Distinct()];
         _valuesByBits
             .AsSpan()
             .Sort(
@@ -94,14 +94,14 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
             return OperationStatus.DestinationTooSmall;
         }
 
-        // refer to number formatting if the value contains any bit not defined in the enum type
+        // defer to number formatting if the value contains any bit not defined in the enum type
         if (!AllFlagsDefined(value))
         {
             return OperationStatus.InvalidData;
         }
 
         // allocate a buffer for each bit
-        // constant sized stackallocs are treated nicer
+        // constant sized stackallocs are treated nicer (JIT constant folds sizeof)
         Span<int> foundValues = stackalloc int[Unsafe.SizeOf<TEnum>() * 8];
         int count = 0;
 
