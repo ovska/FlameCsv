@@ -5,6 +5,9 @@ namespace FlameCsv.Attributes;
 /// <summary>
 /// Configures the type used when instantiating the target type.
 /// </summary>
+/// <remarks>
+/// This API is still only partially supported and experimental, and may change in future releases.
+/// </remarks>
 [PublicAPI]
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,

@@ -358,7 +358,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
         if (count > UnrollCount)
         {
-            // for some reason this is faster than incrementing a pointer
             ref uint dst2 = ref Unsafe.Add(ref dst, UnrollCount);
 
             m5 &= m5 - 1;

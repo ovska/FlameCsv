@@ -60,11 +60,9 @@ internal static class MaterializerExtensions
             {
                 // Don't cache nulls since its unlikely they will be attempted many times
                 throw new CsvBindingException(
-                    $"Headerless CSV could not be bound to {typeof(TResult)}, since the type had no [CsvIndex]-attributes and no built-in configuration."
-                )
-                {
-                    TargetType = typeof(TResult),
-                };
+                    typeof(TResult),
+                    $"Headerless CSV could not be bound to {typeof(TResult)}; no [CsvIndex]-attributes."
+                );
             }
 
             factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null) ?? factory;
