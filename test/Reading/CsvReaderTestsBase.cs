@@ -3,6 +3,7 @@ using FlameCsv.Binding;
 using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests.Reading;
@@ -272,7 +273,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
-            int length = record._view.GetLengthWithNewline(record._owner.Reader._recordBuffer);
+            int length = record._owner.Reader._recordBuffer.GetLengthWithNewline(record._view);
             tokenPosition += length;
 
             Obj obj = new()

@@ -16,7 +16,7 @@ public class TokenizationBench
     [Params(
         [ /**/
             false,
-            // true,
+            true,
         ]
     )]
     public bool Chars { get; set; }

@@ -138,7 +138,7 @@ partial class TypeMapGenerator
 
             writer.WriteLineIf(typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
             writer.WriteLine(
-                $"public {typeMap.Type.FullyQualifiedName} Parse(scoped ref readonly global::FlameCsv.Reading.CsvRecordRef<{typeMap.TokenName}> record)"
+                $"public {typeMap.Type.FullyQualifiedName} Parse(global::FlameCsv.Reading.CsvRecordRef<{typeMap.TokenName}> record)"
             );
 
             using (writer.WriteBlock())
@@ -148,18 +148,18 @@ partial class TypeMapGenerator
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine(
-                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expectedFieldCount, in record);"
+                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expectedFieldCount, record);"
                     );
                 }
+
+                writer.WriteLine("int __index;");
 
                 writer.WriteWithoutIndent(
                     """
 
                     #if RELEASE
-                                global::System.Runtime.CompilerServices.Unsafe.SkipInit(out int invalidIndex);
                                 global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
                     #else
-                                int invalidIndex = -1;
                                 ParseState state = default;
                     #endif
 
@@ -190,17 +190,14 @@ partial class TypeMapGenerator
 
                     writer.Write('!');
                     member.WriteConverterName(writer);
-                    writer.Write(".TryParse(record[");
+                    writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
                     member.WriteId(writer);
-                    writer.Write("], out state.");
+                    writer.Write("), out state.");
                     writer.Write(member.Identifier);
                     writer.WriteLine("))");
 
                     using (writer.WriteBlock())
                     {
-                        writer.Write("invalidIndex = ");
-                        member.WriteId(writer);
-                        writer.WriteLine(";");
                         writer.WriteLine("goto FailedParse;");
                     }
 
@@ -217,7 +214,7 @@ partial class TypeMapGenerator
 
                 writer.WriteLine();
                 writer.WriteLine("FailedParse:");
-                writer.WriteLine("ThrowForFailedParse(invalidIndex);");
+                writer.WriteLine("ThrowForFailedParse(__index);");
                 writer.WriteLine("return default; // Unreachable");
             }
 
@@ -367,17 +364,14 @@ partial class TypeMapGenerator
 
             writer.Write("if (!");
             property.WriteConverterName(writer);
-            writer.Write(".TryParse(record[");
+            writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
             property.WriteId(writer);
-            writer.Write("], out state.");
+            writer.Write("), out state.");
             writer.Write(property.Identifier);
             writer.WriteLine("))");
 
             using (writer.WriteBlock())
             {
-                writer.Write("invalidIndex = ");
-                property.WriteId(writer);
-                writer.WriteLine(";");
                 writer.WriteLine("goto FailedParse;");
             }
 

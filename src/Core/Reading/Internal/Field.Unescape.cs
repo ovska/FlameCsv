@@ -13,28 +13,28 @@ namespace FlameCsv.Reading.Internal;
 
 internal static partial class Field
 {
-[SkipLocalsInit]
+    [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Unescape<T>(T quote, scoped Span<T> buffer, ReadOnlySpan<T> field, uint quotesConsumed)
+    public static void Unescape<T>(T quote, scoped Span<T> destination, ReadOnlySpan<T> source, uint quotesConsumed)
         where T : unmanaged, IBinaryInteger<T>
     {
         Debug.Assert(quotesConsumed >= 2);
         Debug.Assert(quotesConsumed % 2 == 0);
-        Debug.Assert(field.Length >= 2);
-        Debug.Assert(field.Length >= quotesConsumed);
-        Debug.Assert(buffer.Length >= field.Length);
+        Debug.Assert(source.Length >= 2);
+        Debug.Assert(source.Length >= quotesConsumed);
+        Debug.Assert(destination.Length >= source.Length);
 
         uint quotePairsRemaining = quotesConsumed / 2;
 
         // leave 1 space for the second quote
-        uint len = (uint)field.Length;
+        uint len = (uint)source.Length;
 
-        scoped ref T src = ref MemoryMarshal.GetReference(field);
-        scoped ref T dst = ref MemoryMarshal.GetReference(buffer);
+        scoped ref T src = ref MemoryMarshal.GetReference(source);
+        scoped ref T dst = ref MemoryMarshal.GetReference(destination);
         scoped ref T srcEnd = ref Unsafe.Add(ref src, len);
         scoped ref T oneFromEnd = ref Unsafe.Subtract(ref srcEnd, 1);
 
-        // TODO: optimized version for AVX512
+        // TODO: optimized version for AVX512; 512 bits is a bit too long for most fields
         if (Vector.IsHardwareAccelerated && len >= Vector<T>.Count)
         {
             Vector<T> quoteVector = Vector.Create(quote);
@@ -188,7 +188,7 @@ internal static partial class Field
         }
 
         Fail:
-        ThrowInvalidUnescape(field, quote, quotesConsumed);
+        ThrowInvalidUnescape(source, quote, quotesConsumed);
 
         // Copy remaining data
         NoQuotesLeft:

@@ -27,6 +27,15 @@ public sealed partial class CsvRecordEnumerator<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
+    /// The position of the reader in CSV data.
+    /// This is the end position of the current record (including possible trailing newline),
+    /// or 0 if the enumeration has not started.
+    /// </summary>
+    public long Position => Math.Min(_position, _reader._reader.Position);
+
+    private long _position;
+
+    /// <summary>
     /// Gets the current record.
     /// </summary>
     /// <remarks>
@@ -144,7 +153,8 @@ public sealed partial class CsvRecordEnumerator<T>
         }
 
         _version++;
-        _current = new CsvRecord<T>(_version, Position, Line, view, this);
+        _current = new CsvRecord<T>(_version, _position, Line, view, this);
+        _position = GetEndPosition(view);
         return true;
     }
 
@@ -182,8 +192,9 @@ public sealed partial class CsvRecordEnumerator<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void CreateHeader(RecordView view)
     {
+        _position = GetEndPosition(view);
         CsvRecordRef<T> record = new(_reader, view);
-        Header = new CsvHeader(Options.Comparer, CsvHeader.Parse(in record));
+        Header = new CsvHeader(Options.Comparer, CsvHeader.Parse(record));
     }
 
     [DoesNotReturn]

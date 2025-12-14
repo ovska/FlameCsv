@@ -19,21 +19,19 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
 {
-    private static nuint EndOffset
+    protected override int Overscan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (nuint)Vector256<byte>.Count * 3;
-    }
-
-    private static int MaxFieldsPerIteration
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count;
+        get => Vector256<byte>.Count * 3;
     }
 
     public override int PreferredLength => Vector256<byte>.Count * 4;
 
-    public override int MinimumFieldBufferSize => MaxFieldsPerIteration;
+    public override int MaxFieldsPerIteration
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256<byte>.Count;
+    }
 
     private readonly T _quote;
     private readonly T _delimiter;
@@ -45,34 +43,25 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
+    protected override unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end)
     {
-        if (!Avx2.IsSupported)
+        if (!Avx2.IsSupported || RuntimeInformation.ProcessArchitecture is not (Architecture.X86 or Architecture.X64))
         {
             // ensure the method is trimmed on NAOT
-            throw new UnreachableException();
+            throw new PlatformNotSupportedException();
         }
 
-        Debug.Assert(data.Length <= Field.MaxFieldEnd);
-        destination.AssertInitialState(MaxFieldsPerIteration);
+#if false
+        ReadOnlySpan<T> data = new(start, (int)(end - start));
+#endif
 
-        if ((uint)(data.Length - startIndex) < EndOffset)
-        {
-            return 0;
-        }
+        _ = CompressionTables.BlendMask; // ensure static ctor is run
 
-        unsafe
-        {
-            _ = CompressionTables.BlendMask; // ensure static ctor is run
-        }
-
-        scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (nuint)startIndex;
-        nuint searchSpaceEnd = (nuint)data.Length - EndOffset;
+        T* pData = start + index;
+
         nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
         nuint fieldIndex = 0;
-
-        Debug.Assert(searchSpaceEnd < (nuint)data.Length);
 
         scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
@@ -99,15 +88,15 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
         Vector256<byte> vector;
         Vector256<uint> indexVector;
-        vector = AsciiVector.Load256(ref first, index);
+        vector = AsciiVector.Load256(pData);
         indexVector = Vector256.Create((uint)index);
 
-        Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.Load256(pData + (nuint)Vector256<byte>.Count);
 
         do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetchVector = AsciiVector.Load256(ref first, index + (2 * (nuint)Vector256<byte>.Count));
+            Vector256<byte> prefetchVector = AsciiVector.Load256(pData + (2 * (nuint)Vector256<byte>.Count));
 
             if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
             {
@@ -249,8 +238,8 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
             ContinueRead:
             index += (nuint)Vector256<byte>.Count;
+            pData += Vector256<byte>.Count;
             indexVector += iterationLength;
-
             continue;
 
             SlowPath:
@@ -286,7 +275,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
                 CheckDanglingCR(
                     maskControl: ref maskControl,
-                    first: ref first,
+                    first: ref Unsafe.AsRef<T>(start),
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
@@ -297,7 +286,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
                 ParsePathological(
                     maskControl: maskControl,
                     maskQuote: ref maskQuote,
-                    first: ref first,
+                    first: ref Unsafe.AsRef<T>(start),
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
@@ -308,7 +297,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             }
 
             goto ContinueRead;
-        } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
+        } while (fieldIndex <= fieldEnd && pData <= end);
 
         return (int)fieldIndex;
     }

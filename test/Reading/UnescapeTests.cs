@@ -27,8 +27,8 @@ public static class UnescapeTests
 
         Field.Unescape(
             quote: '"',
-            buffer: MemoryMarshal.Cast<char, ushort>(buffer),
-            field: MemoryMarshal.Cast<char, ushort>(value.AsSpan()),
+            destination: MemoryMarshal.Cast<char, ushort>(buffer),
+            source: MemoryMarshal.Cast<char, ushort>(value.AsSpan()),
             quotesConsumed: quoteCount
         );
 
@@ -45,8 +45,8 @@ public static class UnescapeTests
 
         Field.Unescape(
             quote: (byte)'"',
-            buffer: buffer,
-            field: Encoding.UTF8.GetBytes(value),
+            destination: buffer,
+            source: Encoding.UTF8.GetBytes(value),
             quotesConsumed: quoteCount
         );
 

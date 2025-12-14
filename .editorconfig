@@ -161,3 +161,6 @@ resharper_virtual_member_never_overridden_global_highlighting = none
 
 # RCS1233: Use short-circuiting operator
 dotnet_diagnostic.RCS1233.severity = none
+
+# RCS1001: Add braces (when expression spans over multiple lines)
+dotnet_diagnostic.RCS1001.severity = none

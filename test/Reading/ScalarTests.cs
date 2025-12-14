@@ -19,9 +19,7 @@ public static class ScalarTests
     public static void Should_Parse_Identically(CsvNewline newline, Escaping escaping)
     {
         var options = new CsvOptions<char> { Newline = newline };
-
-        var scalarTokenizer = CsvTokenizer.CreateScalar(options);
-        var simdTokenizer = CsvTokenizer.Create(options);
+        var (scalarTokenizer, simdTokenizer) = options.GetTokenizers();
 
         Assert.SkipWhen(simdTokenizer is null, "SIMD tokenizer not supported on this platform");
 
@@ -44,7 +42,7 @@ public static class ScalarTests
         // scalar can read the whole data
         // simd always stops because of insufficient field buffer, as we have more data than can fit in one batch
         Assert.Equal(RecordBuffer.DefaultFieldBufferSize - 1, resultScalar);
-        Assert.Equal(RecordBuffer.DefaultFieldBufferSize - simdTokenizer.MinimumFieldBufferSize, resultSimd);
+        Assert.Equal(RecordBuffer.DefaultFieldBufferSize - simdTokenizer.MaxFieldsPerIteration, resultSimd);
         int len = resultSimd;
 
         Assert.Equal(fbScalar.Fields[..len], fbSimd.Fields[..len]);
@@ -55,7 +53,7 @@ public static class ScalarTests
     public static void Should_Parse_Long_Field()
     {
         using var rb = new RecordBuffer();
-        var tokenizer = CsvTokenizer.Create(CsvOptions<char>.Default);
+        var tokenizer = CsvOptions<char>.Default.GetTokenizers().simd!;
 
         Assert.SkipWhen(tokenizer is null, "SIMD tokenizer not supported on this platform");
 
@@ -90,8 +88,8 @@ public static class ScalarTests
         for (int i = 0; i < 64; i++)
         {
             Assert.True(rb.TryPop(out var view));
-            Assert.Equal(1, view.FieldCount);
-            Assert.Equal(i + 3, view.GetLengthWithNewline(rb)); // quotes + newline
+            Assert.Equal(1, view.Length);
+            Assert.Equal(i + 3, rb.GetLengthWithNewline(view)); // quotes + newline
         }
     }
 }

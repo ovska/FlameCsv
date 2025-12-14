@@ -29,12 +29,4 @@ internal readonly ref struct FieldBuffer
         _degenerateQuotes = ref recordBuffer._quotes[0];
         _degenerateQuotes = 0;
     }
-
-    [Conditional("DEBUG")]
-    public void AssertInitialState(int length)
-    {
-        Debug.Assert(!DegenerateQuotes);
-        Debug.Assert(Fields.Length >= length);
-        Debug.Assert(Quotes.Length >= length);
-    }
 }

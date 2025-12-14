@@ -64,18 +64,6 @@ public static class ReadExtensionTests
         Assert.Equal(expected, input.AsSpan(start, end - start).ToString());
     }
 
-    [Theory, MemberData(nameof(TrimmingData))]
-    public static void Should_Check_If_Needs_Trimming(CsvFieldTrimming value, string input, string expected)
-    {
-        if (value == CsvFieldTrimming.None)
-        {
-            Assert.False(input.AsSpan().NeedsTrimming(value));
-            return;
-        }
-
-        Assert.Equal(input.Length != expected.Length, input.AsSpan().NeedsTrimming(value));
-    }
-
     public static TheoryData<CsvFieldTrimming, string, string> TrimmingData =>
         new()
         {

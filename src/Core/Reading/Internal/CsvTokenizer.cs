@@ -1,53 +1,10 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
-using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
-
-internal static class CsvTokenizer
-{
-    [ExcludeFromCodeCoverage]
-    public static CsvTokenizer<T>? Create<T>(CsvOptions<T> options)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-#if NET10_0_OR_GREATER
-        if (Avx512Tokenizer.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new Avx512Tokenizer<T, TrueConstant>(options)
-                : new Avx512Tokenizer<T, FalseConstant>(options);
-        }
-#endif
-
-        if (Avx2Tokenizer.IsSupported)
-        {
-            return options.Newline.IsCRLF()
-                ? new Avx2Tokenizer<T, TrueConstant>(options)
-                : new Avx2Tokenizer<T, FalseConstant>(options);
-        }
-
-        if (Vector128.IsHardwareAccelerated) // implies SSE, WASM or NEON
-        {
-            return options.Newline.IsCRLF()
-                ? new SimdTokenizer<T, TrueConstant>(options)
-                : new SimdTokenizer<T, FalseConstant>(options);
-        }
-
-        return null;
-    }
-
-    public static CsvScalarTokenizer<T> CreateScalar<T>(CsvOptions<T> options)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return options.Newline.IsCRLF()
-            ? new ScalarTokenizer<T, TrueConstant>(options)
-            : new ScalarTokenizer<T, FalseConstant>(options);
-    }
-}
 
 [SkipLocalsInit]
 internal abstract class CsvTokenizer<T>
@@ -62,16 +19,42 @@ internal abstract class CsvTokenizer<T>
     /// Minimum length of the field buffer to safely read into,
     /// e.g. the number of fields that can be read per iteration without bounds checks.
     /// </summary>
-    public abstract int MinimumFieldBufferSize { get; }
+    public abstract int MaxFieldsPerIteration { get; }
+
+    /// <summary>
+    /// Number of extra elements the tokenizer reads beyond the last processed chunk.
+    /// </summary>
+    protected abstract int Overscan { get; }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
+    {
+        Debug.Assert(data.Length <= Field.MaxFieldEnd);
+        Debug.Assert(!destination.DegenerateQuotes);
+        Debug.Assert(destination.Fields.Length >= MaxFieldsPerIteration);
+        Debug.Assert(destination.Quotes.Length >= MaxFieldsPerIteration);
+
+        if ((uint)(data.Length - startIndex) < Overscan)
+        {
+            return 0;
+        }
+
+        fixed (T* start = data)
+        {
+            T* end = start + data.Length - Overscan;
+            return TokenizeCore(destination, startIndex, start, end);
+        }
+    }
 
     /// <summary>
     /// Reads fields from the data into <paramref name="destination"/>.
     /// </summary>
     /// <param name="destination">Buffer to parse the records to</param>
     /// <param name="startIndex">Start index in the data</param>
-    /// <param name="data">Data to read from</param>
+    /// <param name="start">Pointer to the start of the data</param>
+    /// <param name="end">Pointer to the end of the data</param>
     /// <returns>Number of fields read</returns>
-    public abstract int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data);
+    protected abstract unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end);
 
     /// <summary>
     /// Parses any control characters (LF, CR, delimiter).

@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
+using Sylvan.Data;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;
@@ -37,7 +38,7 @@ public partial class ReadObjects
         HeaderComparer = StringComparer.OrdinalIgnoreCase,
     };
 
-    // [Benchmark]
+    [Benchmark(Baseline = true)]
     public async Task _FlameCsv()
     {
         if (Async)
@@ -56,28 +57,7 @@ public partial class ReadObjects
         }
     }
 
-    // [Benchmark]
-    public async Task _Parallel()
-    {
-        if (Async)
-        {
-            await Csv.From(_string2)
-                .AsParallel()
-                .ForEachUnorderedAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
-        }
-        else
-        {
-            Csv.From(_string2).AsParallel().ForEachUnordered(EntryTypeMap.Default, _ => { });
-        }
-    }
-
-    // [Benchmark]
-    public async Task AsyncEnumerable1()
-    {
-        await foreach (var _ in Csv.From(_string2).AsParallel().ReadUnorderedAsync<Entry>(EntryTypeMap.Default)) { }
-    }
-
-    [Benchmark(Baseline = true)]
+    [Benchmark]
     public async Task _Flame_SrcGen()
     {
         if (Async)
@@ -105,48 +85,63 @@ public partial class ReadObjects
     }
 
     // [Benchmark]
-    // public async Task _Sylvan()
-    // {
-    //     using var reader = GetReader();
-    //     using var csv = Sylvan.Data.Csv.CsvDataReader.Create(reader, _sylvanOptions);
-
-    //     if (Async)
-    //     {
-    //         await foreach (var entry in csv.GetRecordsAsync<Entry>())
-    //         {
-    //             _ = entry;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         foreach (var entry in csv.GetRecords<Entry>())
-    //         {
-    //             _ = entry;
-    //         }
-    //     }
-    // }
+    public async Task _Parallel()
+    {
+        if (Async)
+        {
+            await Csv.From(_string2)
+                .AsParallel()
+                .ForEachUnorderedAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
+        }
+        else
+        {
+            Csv.From(_string2).AsParallel().ForEachUnordered(EntryTypeMap.Default, _ => { });
+        }
+    }
 
     // [Benchmark]
-    // public async Task _CsvHelper()
-    // {
-    //     using var reader = GetReader();
-    //     using var csv = new CsvHelper.CsvReader(reader, _helperConfig);
+    public async Task _Sylvan()
+    {
+        using var reader = GetReader();
+        using var csv = CsvDataReader.Create(reader, _sylvanOptions);
 
-    //     if (Async)
-    //     {
-    //         await foreach (var entry in csv.GetRecordsAsync<Entry>())
-    //         {
-    //             _ = entry;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         foreach (var entry in csv.GetRecords<Entry>())
-    //         {
-    //             _ = entry;
-    //         }
-    //     }
-    // }
+        if (Async)
+        {
+            await foreach (var entry in csv.GetRecordsAsync<Entry>())
+            {
+                _ = entry;
+            }
+        }
+        else
+        {
+            foreach (var entry in csv.GetRecords<Entry>())
+            {
+                _ = entry;
+            }
+        }
+    }
+
+    // [Benchmark]
+    public async Task _CsvHelper()
+    {
+        using var reader = GetReader();
+        using var csv = new CsvHelper.CsvReader(reader, _helperConfig);
+
+        if (Async)
+        {
+            await foreach (var entry in csv.GetRecordsAsync<Entry>())
+            {
+                _ = entry;
+            }
+        }
+        else
+        {
+            foreach (var entry in csv.GetRecords<Entry>())
+            {
+                _ = entry;
+            }
+        }
+    }
 
     private Stream GetStream() =>
         Records switch

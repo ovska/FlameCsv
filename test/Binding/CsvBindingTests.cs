@@ -71,7 +71,7 @@ public static class CsvBindingTests
         );
 
         var record = ConstantRecord.Create("!unparsable!", "2", "Test"); // only the bound one is actually parsed
-        Assert.Equal(new RecordTest(2, "Test"), valid.Parse(ref record)); // The last one wins
+        Assert.Equal(new RecordTest(2, "Test"), valid.Parse(record)); // The last one wins
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public static class CsvBindingTests
         var materializer = binder.GetMaterializer<RecordTest>(["Id", "Name"]);
 
         var record = ConstantRecord.Create("1", "Test");
-        Assert.Equal(new RecordTest(1, "Test"), materializer.Parse(ref record));
+        Assert.Equal(new RecordTest(1, "Test"), materializer.Parse(record));
 
         var dematerializer = binder.GetDematerializer<RecordTest>();
 
@@ -172,8 +172,8 @@ public static class CsvBindingTests
         var m2 = Binder.GetMaterializer<MultipleAliases>(["alias2"]);
 
         var record = ConstantRecord.Create("1");
-        Assert.Equal(1, m1.Parse(ref record).Value);
-        Assert.Equal(1, m2.Parse(ref record).Value);
+        Assert.Equal(1, m1.Parse(record).Value);
+        Assert.Equal(1, m2.Parse(record).Value);
     }
 
     [CsvRequired(MemberName = nameof(Value))]

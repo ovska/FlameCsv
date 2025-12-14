@@ -40,7 +40,11 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
         get
         {
             _owner.EnsureVersion(_version);
-            return _view.GetRecord(_owner.Reader);
+
+            ReadOnlySpan<ulong> fieldBits = FieldBits;
+            int end = (int)((uint)(fieldBits[^1] >> 32) & Field.EndMask);
+            int start = (int)(uint)fieldBits[0];
+            return _owner.Reader._buffer.Span.Slice(start, end - start);
         }
     }
 
@@ -68,7 +72,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
             return _owner.Header?.ContainsKey(name) ?? false;
         }
 
-        return (uint)index < (uint)_view.FieldCount;
+        return (uint)index < (uint)_view.Length;
     }
 
     /// <summary>
@@ -82,6 +86,12 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     internal readonly CsvRecordEnumerator<T> _owner;
     internal readonly RecordView _view;
     private readonly int _version;
+
+    internal ReadOnlySpan<ulong> FieldBits
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _owner.Reader._recordBuffer._bits.AsSpan(_view.Start, _view.Length);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecord(int version, long position, int lineIndex, RecordView view, CsvRecordEnumerator<T> owner)
@@ -120,24 +130,26 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
                 Throw.Argument_HeaderNameNotFound(name, header.Values);
             }
         }
-        else if ((uint)index >= (uint)_view.FieldCount)
+        else if ((uint)index >= (uint)_view.Length)
         {
-            Throw.Argument_FieldIndex(index, _view.FieldCount, id.UnsafeName);
+            Throw.Argument_FieldIndex(index, _view.Length, id.UnsafeName);
         }
 
         CsvReader<T> reader = _owner.Reader;
-        RecordBuffer buffer = reader._recordBuffer;
         ReadOnlySpan<T> dataSpan = reader._buffer.Span;
 
-        (int start, int length) = _view.GetFieldBounds(buffer, index);
-        byte quote = _view.GetQuote(buffer, index);
+        ref readonly ulong bits = ref FieldBits[index];
 
-        if ((quote | (int)reader._dialect.Trimming) == 0)
+        uint start = (uint)bits;
+        uint end = (uint)(bits >> 32);
+        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+
+        if (reader._dialect.Trimming == 0 && (long)bits >= 0)
         {
-            return dataSpan.Slice(start, length);
+            return dataSpan.Slice((int)start, (int)(end - start));
         }
 
-        return Field.GetValue(start, start + length, quote, ref MemoryMarshal.GetReference(dataSpan), _owner.Reader);
+        return Field.GetValue(index, (CsvRecordRef<T>)this);
     }
 
     /// <summary>
@@ -151,12 +163,13 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     public ReadOnlySpan<T> GetField(CsvFieldIdentifier id) => GetField(id, out _);
 
     /// <summary>
-    /// Returns the number of fields in the record (always at least 1, even if the record's length is 0)
+    /// Returns the number of fields in the record; always at least 1 in a valid record, even if the record's length is 0.
+    /// Returns 0 if the struct is <c>default</c>.
     /// </summary>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _view.FieldCount;
+        get => _view.Length;
     }
 
     /// <summary>
@@ -277,8 +290,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        var record = (CsvRecordRef<T>)this;
-        return materializer.Parse(in record);
+        return materializer.Parse((CsvRecordRef<T>)this);
     }
 
     /// <summary>
@@ -303,8 +315,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
         }
 
         var materializer = (IMaterializer<T, TRecord>)obj;
-        var record = (CsvRecordRef<T>)this;
-        return materializer.Parse(in record);
+        return materializer.Parse((CsvRecordRef<T>)this);
     }
 
     IEnumerator<ReadOnlySpan<T>> IEnumerable<ReadOnlySpan<T>>.GetEnumerator() => GetEnumerator();
@@ -315,7 +326,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     [ExcludeFromCodeCoverage]
     public override string ToString()
     {
-        return $"{{ CsvRecord[{_view.FieldCount}] \"{Transcode.ToString(Raw)}\" }}";
+        return $"{{ CsvRecord[{_view.Length}] \"{Transcode.ToString(Raw)}\" }}";
     }
 
     /// <summary>
@@ -325,7 +336,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     {
         _owner.EnsureVersion(_version);
 
-        var fields = new string[_view.FieldCount];
+        var fields = new string[_view.Length];
         for (int i = 0; i < fields.Length; i++)
         {
             fields[i] = Transcode.ToString(GetField(i, out _));
@@ -360,9 +371,9 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
             }
         }
 
-        if ((uint)index >= (uint)_view.FieldCount)
+        if ((uint)index >= (uint)_view.Length)
         {
-            Throw.Argument_FieldIndex(index, _view.FieldCount, paramName);
+            Throw.Argument_FieldIndex(index, _view.Length, paramName);
         }
 
         return index;
@@ -391,7 +402,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool MoveNext()
         {
-            if (_index < _record._view.FieldCount)
+            if (_index < _record._view.Length)
             {
                 _index++;
                 return true;
@@ -456,7 +467,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
             Target = target,
         };
 
-        ex.Enrich(Line, Position, _view, _owner.Reader);
+        ex.Enrich(Line, Position, (CsvRecordRef<T>)this);
         ex.HeaderValue = id.UnsafeName;
         throw ex;
     }

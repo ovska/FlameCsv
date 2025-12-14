@@ -162,7 +162,7 @@ public readonly partial struct CsvRecord<T> : IDataRecord
     {
         ArgumentNullException.ThrowIfNull(values);
 
-        var record = new CsvRecordRef<T>(_owner.Reader, _view);
+        var record = (CsvRecordRef<T>)this;
 
         int i = 0;
         int end = Math.Min(values.Length, record.FieldCount);

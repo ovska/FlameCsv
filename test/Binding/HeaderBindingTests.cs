@@ -22,7 +22,7 @@ public static partial class HeaderBindingTests
         var materializer = binder.GetMaterializer<AssemblyScoped>(["_id", "_name"]);
 
         var record = ConstantRecord.Create("5", "Test");
-        var result = materializer.Parse(ref record);
+        var result = materializer.Parse(record);
 
         Assert.Equal(5, result.Id);
         Assert.Equal("Test", result.Name);
@@ -34,7 +34,7 @@ public static partial class HeaderBindingTests
         var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
         var materializer = binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]);
         var record = ConstantRecord.Create("Test", "true");
-        var result = materializer.Parse(ref record);
+        var result = materializer.Parse(record);
 
         Assert.True(result.IsEnabled);
         Assert.Equal("Test", result.Name);
@@ -52,7 +52,7 @@ public static partial class HeaderBindingTests
 
         // should require exactly 3 fields
         var record = ConstantRecord.Create("true", "Test", "1");
-        var result = materializer.Parse(ref record);
+        var result = materializer.Parse(record);
 
         Assert.True(result.IsEnabled);
         Assert.Equal("Test", result.DisplayName);
@@ -79,7 +79,7 @@ public static partial class HeaderBindingTests
         );
 
         var record = ConstantRecord.Create("true", "Test", "1");
-        ISomething result = materializer.Parse(ref record);
+        ISomething result = materializer.Parse(record);
 
         Assert.IsType<Something>(result);
         Assert.True(result.IsEnabled);
@@ -90,6 +90,7 @@ public static partial class HeaderBindingTests
     [Theory(Skip = "TODO"), InlineData(true), InlineData(false)]
     public static void Should_Not_Use_Write_Configuration_From_Proxy(bool sourceGen)
     {
+        _ = sourceGen;
         var sb = new System.Text.StringBuilder();
         Csv.To(new StringWriter(sb)).Write<ISomething>([]);
         Assert.Equal("_name,_isenabled,_targeted\r\n", sb.ToString());
@@ -98,11 +99,13 @@ public static partial class HeaderBindingTests
     [Theory, InlineData(true), InlineData(false)]
     public static void Should_Use_Read_Configuration_From_Underlying(bool sourceGen)
     {
+        _ = sourceGen;
+
         var opts = CsvOptions<char>.Default;
         var bindings = opts.TypeBinder.GetMaterializer<ISomething>(["Name", "IsEnabled", "Targeted"]);
 
         var record = ConstantRecord.Create("Test", "true", "1");
-        ISomething obj = bindings.Parse(ref record);
+        ISomething obj = bindings.Parse(record);
 
         Assert.IsType<Something>(obj);
         Assert.True(obj.IsEnabled);

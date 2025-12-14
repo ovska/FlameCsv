@@ -15,5 +15,5 @@ public interface IMaterializer<T, out TResult>
     /// Thrown if the data is invalid (e.g., wrong number of fields)
     /// </exception>
     /// <exception cref="Exceptions.CsvParseException">Thrown if a value cannot be parsed</exception>
-    TResult Parse(scoped ref readonly CsvRecordRef<T> record);
+    TResult Parse(CsvRecordRef<T> record);
 }

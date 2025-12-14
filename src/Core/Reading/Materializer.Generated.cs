@@ -80,15 +80,15 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult> wh
 
     private readonly CsvConverter<T, T0> _converter0;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
+        int index;
+        if (record.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
         return _valueFactory(v0);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -120,16 +120,16 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
+        int index;
+        if (record.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
         return _valueFactory(v0, v1);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -164,17 +164,17 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
     private readonly CsvConverter<T, T1> _converter1;
     private readonly CsvConverter<T, T2> _converter2;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
+        int index;
+        if (record.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
         return _valueFactory(v0, v1, v2);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -212,18 +212,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
     private readonly CsvConverter<T, T2> _converter2;
     private readonly CsvConverter<T, T3> _converter3;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
+        int index;
+        if (record.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
         return _valueFactory(v0, v1, v2, v3);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -264,19 +264,19 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
     private readonly CsvConverter<T, T3> _converter3;
     private readonly CsvConverter<T, T4> _converter4;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
+        int index;
+        if (record.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -320,20 +320,20 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
     private readonly CsvConverter<T, T4> _converter4;
     private readonly CsvConverter<T, T5> _converter5;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
+        int index;
+        if (record.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -380,21 +380,21 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
     private readonly CsvConverter<T, T5> _converter5;
     private readonly CsvConverter<T, T6> _converter6;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
+        int index;
+        if (record.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -444,22 +444,22 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     private readonly CsvConverter<T, T6> _converter6;
     private readonly CsvConverter<T, T7> _converter7;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
+        int index;
+        if (record.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -512,23 +512,23 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> _converter7;
     private readonly CsvConverter<T, T8> _converter8;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
+        int index;
+        if (record.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -584,24 +584,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> _converter8;
     private readonly CsvConverter<T, T9> _converter9;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
+        int index;
+        if (record.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -660,25 +660,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> _converter9;
     private readonly CsvConverter<T, T10> _converter10;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
+        int index;
+        if (record.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -740,26 +740,26 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> _converter10;
     private readonly CsvConverter<T, T11> _converter11;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
+        int index;
+        if (record.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -824,27 +824,27 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> _converter11;
     private readonly CsvConverter<T, T12> _converter12;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
+        int index;
+        if (record.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -912,28 +912,28 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> _converter12;
     private readonly CsvConverter<T, T13> _converter13;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
+        int index;
+        if (record.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1004,29 +1004,29 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> _converter13;
     private readonly CsvConverter<T, T14> _converter14;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
+        int index;
+        if (record.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1100,30 +1100,30 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> _converter14;
     private readonly CsvConverter<T, T15> _converter15;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
+        int index;
+        if (record.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1200,31 +1200,31 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T15> _converter15;
     private readonly CsvConverter<T, T16> _converter16;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 17) CsvReadException.ThrowForInvalidFieldCount(17, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
+        int index;
+        if (record.FieldCount != 17) CsvReadException.ThrowForInvalidFieldCount(17, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1304,32 +1304,32 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T16> _converter16;
     private readonly CsvConverter<T, T17> _converter17;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 18) CsvReadException.ThrowForInvalidFieldCount(18, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
+        int index;
+        if (record.FieldCount != 18) CsvReadException.ThrowForInvalidFieldCount(18, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1412,33 +1412,33 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T17> _converter17;
     private readonly CsvConverter<T, T18> _converter18;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 19) CsvReadException.ThrowForInvalidFieldCount(19, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
-        if (!_converter18.TryParse(record[18], out T18 v18)) { invalidIndex = 18; goto Fail; }
+        int index;
+        if (record.FieldCount != 19) CsvReadException.ThrowForInvalidFieldCount(19, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1524,34 +1524,34 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T18> _converter18;
     private readonly CsvConverter<T, T19> _converter19;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 20) CsvReadException.ThrowForInvalidFieldCount(20, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
-        if (!_converter18.TryParse(record[18], out T18 v18)) { invalidIndex = 18; goto Fail; }
-        if (!_converter19.TryParse(record[19], out T19 v19)) { invalidIndex = 19; goto Fail; }
+        int index;
+        if (record.FieldCount != 20) CsvReadException.ThrowForInvalidFieldCount(20, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
+        if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1640,35 +1640,35 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T19> _converter19;
     private readonly CsvConverter<T, T20> _converter20;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 21) CsvReadException.ThrowForInvalidFieldCount(21, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
-        if (!_converter18.TryParse(record[18], out T18 v18)) { invalidIndex = 18; goto Fail; }
-        if (!_converter19.TryParse(record[19], out T19 v19)) { invalidIndex = 19; goto Fail; }
-        if (!_converter20.TryParse(record[20], out T20 v20)) { invalidIndex = 20; goto Fail; }
+        int index;
+        if (record.FieldCount != 21) CsvReadException.ThrowForInvalidFieldCount(21, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
+        if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
+        if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1760,36 +1760,36 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T20> _converter20;
     private readonly CsvConverter<T, T21> _converter21;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 22) CsvReadException.ThrowForInvalidFieldCount(22, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
-        if (!_converter18.TryParse(record[18], out T18 v18)) { invalidIndex = 18; goto Fail; }
-        if (!_converter19.TryParse(record[19], out T19 v19)) { invalidIndex = 19; goto Fail; }
-        if (!_converter20.TryParse(record[20], out T20 v20)) { invalidIndex = 20; goto Fail; }
-        if (!_converter21.TryParse(record[21], out T21 v21)) { invalidIndex = 21; goto Fail; }
+        int index;
+        if (record.FieldCount != 22) CsvReadException.ThrowForInvalidFieldCount(22, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
+        if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
+        if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
+        if (!_converter21.TryParse(record.GetFieldUnsafe(index = 21), out T21 v21)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1884,37 +1884,37 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T21> _converter21;
     private readonly CsvConverter<T, T22> _converter22;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 23) CsvReadException.ThrowForInvalidFieldCount(23, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
-        if (!_converter18.TryParse(record[18], out T18 v18)) { invalidIndex = 18; goto Fail; }
-        if (!_converter19.TryParse(record[19], out T19 v19)) { invalidIndex = 19; goto Fail; }
-        if (!_converter20.TryParse(record[20], out T20 v20)) { invalidIndex = 20; goto Fail; }
-        if (!_converter21.TryParse(record[21], out T21 v21)) { invalidIndex = 21; goto Fail; }
-        if (!_converter22.TryParse(record[22], out T22 v22)) { invalidIndex = 22; goto Fail; }
+        int index;
+        if (record.FieldCount != 23) CsvReadException.ThrowForInvalidFieldCount(23, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
+        if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
+        if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
+        if (!_converter21.TryParse(record.GetFieldUnsafe(index = 21), out T21 v21)) goto Fail;
+        if (!_converter22.TryParse(record.GetFieldUnsafe(index = 22), out T22 v22)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -2012,38 +2012,38 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T22> _converter22;
     private readonly CsvConverter<T, T23> _converter23;
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != 24) CsvReadException.ThrowForInvalidFieldCount(24, in record);
-        if (!_converter0.TryParse(record[0], out T0 v0)) { invalidIndex = 0; goto Fail; }
-        if (!_converter1.TryParse(record[1], out T1 v1)) { invalidIndex = 1; goto Fail; }
-        if (!_converter2.TryParse(record[2], out T2 v2)) { invalidIndex = 2; goto Fail; }
-        if (!_converter3.TryParse(record[3], out T3 v3)) { invalidIndex = 3; goto Fail; }
-        if (!_converter4.TryParse(record[4], out T4 v4)) { invalidIndex = 4; goto Fail; }
-        if (!_converter5.TryParse(record[5], out T5 v5)) { invalidIndex = 5; goto Fail; }
-        if (!_converter6.TryParse(record[6], out T6 v6)) { invalidIndex = 6; goto Fail; }
-        if (!_converter7.TryParse(record[7], out T7 v7)) { invalidIndex = 7; goto Fail; }
-        if (!_converter8.TryParse(record[8], out T8 v8)) { invalidIndex = 8; goto Fail; }
-        if (!_converter9.TryParse(record[9], out T9 v9)) { invalidIndex = 9; goto Fail; }
-        if (!_converter10.TryParse(record[10], out T10 v10)) { invalidIndex = 10; goto Fail; }
-        if (!_converter11.TryParse(record[11], out T11 v11)) { invalidIndex = 11; goto Fail; }
-        if (!_converter12.TryParse(record[12], out T12 v12)) { invalidIndex = 12; goto Fail; }
-        if (!_converter13.TryParse(record[13], out T13 v13)) { invalidIndex = 13; goto Fail; }
-        if (!_converter14.TryParse(record[14], out T14 v14)) { invalidIndex = 14; goto Fail; }
-        if (!_converter15.TryParse(record[15], out T15 v15)) { invalidIndex = 15; goto Fail; }
-        if (!_converter16.TryParse(record[16], out T16 v16)) { invalidIndex = 16; goto Fail; }
-        if (!_converter17.TryParse(record[17], out T17 v17)) { invalidIndex = 17; goto Fail; }
-        if (!_converter18.TryParse(record[18], out T18 v18)) { invalidIndex = 18; goto Fail; }
-        if (!_converter19.TryParse(record[19], out T19 v19)) { invalidIndex = 19; goto Fail; }
-        if (!_converter20.TryParse(record[20], out T20 v20)) { invalidIndex = 20; goto Fail; }
-        if (!_converter21.TryParse(record[21], out T21 v21)) { invalidIndex = 21; goto Fail; }
-        if (!_converter22.TryParse(record[22], out T22 v22)) { invalidIndex = 22; goto Fail; }
-        if (!_converter23.TryParse(record[23], out T23 v23)) { invalidIndex = 23; goto Fail; }
+        int index;
+        if (record.FieldCount != 24) CsvReadException.ThrowForInvalidFieldCount(24, record);
+        if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
+        if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
+        if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
+        if (!_converter21.TryParse(record.GetFieldUnsafe(index = 21), out T21 v21)) goto Fail;
+        if (!_converter22.TryParse(record.GetFieldUnsafe(index = 22), out T22 v22)) goto Fail;
+        if (!_converter23.TryParse(record.GetFieldUnsafe(index = 23), out T23 v23)) goto Fail;
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23);
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch

@@ -22,7 +22,7 @@ using BenchmarkDotNet.Diagnosers;
 //     args
 // );
 
-BenchmarkRunner.Run<UnescapeBench>(new Config(), args);
+BenchmarkRunner.Run<ReadObjects>(new Config(), args);
 
 file class Config : ManualConfig
 {

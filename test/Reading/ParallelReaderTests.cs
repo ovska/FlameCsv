@@ -42,7 +42,7 @@ public class ParallelReaderTests
                     }
                     else
                     {
-                        var obj = materializer.Parse(ref record);
+                        var obj = materializer.Parse(record);
                         yield return obj;
                     }
                 }

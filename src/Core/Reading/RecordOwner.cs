@@ -1,3 +1,5 @@
+using FlameCsv.Reading.Internal;
+
 namespace FlameCsv.Reading;
 
 /// <summary>
@@ -11,14 +13,16 @@ public abstract class RecordOwner<T>
     /// </summary>
     public CsvOptions<T> Options { get; }
 
-    private protected RecordOwner(CsvOptions<T> options)
+    private protected RecordOwner(CsvOptions<T> options, RecordBuffer recordBuffer)
     {
         options.MakeReadOnly();
         Options = options;
         _dialect = new Dialect<T>(options);
+        _recordBuffer = recordBuffer;
     }
 
     internal readonly Dialect<T> _dialect;
+    internal readonly RecordBuffer _recordBuffer;
 
     /// <summary>
     /// Returns a buffer that can be used for unescaping field data.

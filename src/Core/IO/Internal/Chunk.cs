@@ -28,7 +28,7 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
     /// <summary>
     /// Records available in the chunk.
     /// </summary>
-    public RecordBuffer RecordBuffer { get; }
+    public RecordBuffer RecordBuffer => _recordBuffer;
 
     /// <summary>
     /// Memory owner for the chunk data.
@@ -49,20 +49,19 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
         IDisposable? owner,
         RecordBuffer recordBuffer
     )
-        : base(options)
+        : base(options, recordBuffer)
     {
         Order = order;
         Data = data;
         _bufferPool = bufferPool;
         _owner = owner;
-        RecordBuffer = recordBuffer;
     }
 
     public bool TryPop(out CsvRecordRef<T> record)
     {
         if (RecordBuffer.TryPop(out RecordView view))
         {
-            record = new(this, RecordBuffer, ref MemoryMarshal.GetReference(Data.Span), view);
+            record = new(this, ref MemoryMarshal.GetReference(Data.Span), view);
             return true;
         }
 
@@ -112,8 +111,7 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
             _chunk = chunk;
         }
 
-        public CsvRecordRef<T> Current =>
-            new(_chunk, _chunk.RecordBuffer, ref MemoryMarshal.GetReference(_chunk.Data.Span), _current);
+        public CsvRecordRef<T> Current => new(_chunk, ref MemoryMarshal.GetReference(_chunk.Data.Span), _current);
 
         object IEnumerator.Current => throw new NotSupportedException();
 

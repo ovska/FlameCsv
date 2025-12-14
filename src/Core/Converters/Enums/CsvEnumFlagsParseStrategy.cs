@@ -74,7 +74,7 @@ public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, T
         {
             ReadOnlySpan<T> slice = source[part];
 
-            if (slice.NeedsTrimming(_trimming))
+            if (_trimming != 0)
             {
                 slice = slice.Trim(_trimming);
             }

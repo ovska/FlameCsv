@@ -19,16 +19,16 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
         _quote = T.CreateTruncating(options.Quote);
         _delimiter = T.CreateTruncating(options.Delimiter);
 
+        _lut = default; // zero init
         Span<byte> lut = _lut;
-        lut.Clear();
 
         if (typeof(T) == typeof(byte))
         {
             Debug.Assert(lut.Length == 256, "LUT must be 256 bytes long");
 
             // for bytes, store a value directly.
-            lut[options.Quote] = 1;
-            lut[options.Delimiter] = 1;
+            lut[(byte)options.Quote] = 1;
+            lut[(byte)options.Delimiter] = 1;
             lut['\n'] = 1;
 
             if (TCRLF.Value)
@@ -48,8 +48,8 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
 
             // for chars we need to ensure that high bits are zeroed out, so compare the value with itself
             span[0] = char.MaxValue; // in case the data contains zeroes
-            span[options.Quote] = options.Quote;
-            span[options.Delimiter] = options.Delimiter;
+            span[options.Quote & 127] = options.Quote;
+            span[options.Delimiter & 127] = options.Delimiter;
             span['\n'] = '\n';
 
             if (TCRLF.Value)
@@ -71,7 +71,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
         T delimiter = _delimiter;
 
         ref T first = ref MemoryMarshal.GetReference(data);
-        nuint runningIndex = (nuint)startIndex;
+        nuint index = (nuint)startIndex;
         uint quotesConsumed = 0;
 
         scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer.Fields);
@@ -80,61 +80,61 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
 
         // offset ends -2 so we can check for \r\n and "" without bounds checks
         nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 2);
-        nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 4);
+        nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 6);
 
         while (fieldIndex < (nuint)buffer.Fields.Length)
         {
-            while (runningIndex < unrolledEnd)
+            while (index < unrolledEnd)
             {
-                if (IsAny(Unsafe.Add(ref first, runningIndex)))
+                if (IsAny(Unsafe.Add(ref first, index)))
                 {
                     goto Found;
                 }
 
-                if (IsAny(Unsafe.Add(ref first, runningIndex + 1)))
+                if (IsAny(Unsafe.Add(ref first, index + 1)))
                 {
-                    runningIndex += 1;
+                    index += 1;
                     goto Found;
                 }
 
-                if (IsAny(Unsafe.Add(ref first, runningIndex + 2)))
+                if (IsAny(Unsafe.Add(ref first, index + 2)))
                 {
-                    runningIndex += 2;
+                    index += 2;
                     goto Found;
                 }
 
-                if (IsAny(Unsafe.Add(ref first, runningIndex + 3)))
+                if (IsAny(Unsafe.Add(ref first, index + 3)))
                 {
-                    runningIndex += 3;
+                    index += 3;
                     goto Found;
                 }
 
-                runningIndex += 4;
+                index += 4;
             }
 
-            while (runningIndex <= searchSpaceEnd)
+            while (index <= searchSpaceEnd)
             {
-                if (IsAny(Unsafe.Add(ref first, runningIndex)))
+                if (IsAny(Unsafe.Add(ref first, index)))
                 {
                     goto Found;
                 }
 
-                runningIndex++;
+                index++;
             }
 
             // ran out of data
             goto EndOfData;
 
             Found:
-            if (Unsafe.Add(ref first, runningIndex) == quote)
+            if (Unsafe.Add(ref first, index) == quote)
             {
                 quotesConsumed++;
-                runningIndex++;
+                index++;
                 goto ReadString;
             }
 
             FoundNonQuote:
-            ref T current = ref Unsafe.Add(ref first, runningIndex);
+            ref T current = ref Unsafe.Add(ref first, index);
             uint flag = 0;
 
             if (current != delimiter)
@@ -142,23 +142,23 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
                 flag = TCRLF.Value && Bithacks.IsCRLF(ref current) ? Field.IsCRLF : Field.IsEOL;
             }
 
-            Field.SaturateQuotes(ref quotesConsumed);
+            quotesConsumed = Math.Min(quotesConsumed, byte.MaxValue);
 
-            Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | flag;
+            Unsafe.Add(ref dstField, fieldIndex) = (uint)index | flag;
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             quotesConsumed = 0;
-            runningIndex += TCRLF.Value ? (1 + ((flag >> 30) & 1)) : 1;
+            index += TCRLF.Value ? (1 + ((flag >> 30) & 1)) : 1;
             continue;
 
             FoundQuote:
             // found just a single quote in a string?
-            if (Unsafe.Add(ref first, runningIndex + 1) != quote)
+            if (Unsafe.Add(ref first, index + 1) != quote)
             {
                 quotesConsumed++;
-                runningIndex++;
+                index++;
 
-                T next = Unsafe.Add(ref first, runningIndex);
+                T next = Unsafe.Add(ref first, index);
 
                 // quotes should be followed by delimiters or newlines
                 if (next == delimiter || IsAnyNewline(next))
@@ -172,44 +172,44 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             // two consecutive quotes, continue
             Debug.Assert(quotesConsumed % 2 == 1);
             quotesConsumed += 2;
-            runningIndex += 2;
+            index += 2;
 
             ReadString:
             Debug.Assert(quotesConsumed % 2 != 0);
 
-            while (runningIndex < unrolledEnd)
+            while (index < unrolledEnd)
             {
-                if (quote == Unsafe.Add(ref first, runningIndex))
+                if (quote == Unsafe.Add(ref first, index))
                 {
                     goto FoundQuote;
                 }
 
-                if (quote == Unsafe.Add(ref first, runningIndex + 1))
+                if (quote == Unsafe.Add(ref first, index + 1))
                 {
-                    runningIndex += 1;
+                    index += 1;
                     goto FoundQuote;
                 }
 
-                if (quote == Unsafe.Add(ref first, runningIndex + 2))
+                if (quote == Unsafe.Add(ref first, index + 2))
                 {
-                    runningIndex += 2;
+                    index += 2;
                     goto FoundQuote;
                 }
 
-                if (quote == Unsafe.Add(ref first, runningIndex + 3))
+                if (quote == Unsafe.Add(ref first, index + 3))
                 {
-                    runningIndex += 3;
+                    index += 3;
                     goto FoundQuote;
                 }
 
-                runningIndex += 4;
+                index += 4;
             }
 
-            while (runningIndex <= searchSpaceEnd)
+            while (index <= searchSpaceEnd)
             {
-                if (Unsafe.Add(ref first, runningIndex) == quote)
+                if (Unsafe.Add(ref first, index) == quote)
                     goto FoundQuote;
-                runningIndex++;
+                index++;
             }
 
             // ran out of data
@@ -230,15 +230,15 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             }
 
             // need to process the final token (unless it was skipped with CRLF)
-            if ((nint)runningIndex == (data.Length - 1))
+            if ((nint)index == (data.Length - 1))
             {
-                T final = Unsafe.Add(ref first, runningIndex);
-                Field.SaturateQuotes(ref quotesConsumed);
+                T final = Unsafe.Add(ref first, index);
+                quotesConsumed = Math.Min(quotesConsumed, byte.MaxValue);
 
                 if (IsAnyNewline(final))
                 {
                     // this can only be a 1-token newline, omit the newline kind as the offset is always 1
-                    Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex | Field.IsEOL;
+                    Unsafe.Add(ref dstField, fieldIndex) = (uint)index | Field.IsEOL;
                     Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
                     fieldIndex++;
                     break;
@@ -246,7 +246,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
 
                 if (final == delimiter)
                 {
-                    Unsafe.Add(ref dstField, fieldIndex) = (uint)runningIndex;
+                    Unsafe.Add(ref dstField, fieldIndex) = (uint)index;
                     Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
                     quotesConsumed = 0;
                     fieldIndex++;
@@ -257,8 +257,8 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
                 }
             }
 
-            Field.SaturateQuotes(ref quotesConsumed);
-            Unsafe.Add(ref dstField, fieldIndex) = (uint)++runningIndex | Field.IsEOL; // add shadow EOL
+            quotesConsumed = Math.Min(quotesConsumed, byte.MaxValue);
+            Unsafe.Add(ref dstField, fieldIndex) = ((uint)index + 1) | Field.IsEOL; // add shadow EOL
             Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
             fieldIndex++;
             break;

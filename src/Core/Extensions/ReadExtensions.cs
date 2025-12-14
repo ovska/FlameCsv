@@ -4,28 +4,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Unicode;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Extensions;
 
 internal static class ReadExtensions
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetRecordLength(this ReadOnlySpan<uint> fields, bool isFirst, bool includeTrailingNewline = false)
-    {
-        uint lastField = fields[^1];
-        uint firstField = fields[0];
-        return GetRecordLength(firstField, lastField, isFirst, includeTrailingNewline);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetRecordLength(uint first, uint last, bool isFirst, bool includeTrailingNewline = false)
-    {
-        int end = includeTrailingNewline ? Field.NextStart(last) : Field.End(last);
-        int start = isFirst ? 0 : Field.NextStart(first);
-        return end - start;
-    }
-
+    /// <summary>
+    /// Parses the given UTF-8 byte span into the specified value type.
+    /// </summary>
     public static bool TryParseFromUtf8<TValue>(
         ReadOnlySpan<byte> source,
         IFormatProvider? formatProvider,
@@ -65,6 +51,9 @@ internal static class ReadExtensions
         return result;
     }
 
+    /// <summary>
+    /// Formats the given value into the provided UTF-8 byte span.
+    /// </summary>
     public static bool TryFormatToUtf8<TValue>(
         Span<byte> destination,
         TValue value,
@@ -87,13 +76,9 @@ internal static class ReadExtensions
         return Utf8.TryWrite(destination, ref handler, out charsWritten);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NeedsTrimming<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return value.Length > 0 & (trimming & CsvFieldTrimming.Both) != 0;
-    }
-
+    /// <summary>
+    /// Trims the field in-place by adjusting the start and end indices according to the trimming options.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void TrimUnsafe<T>(
         this CsvFieldTrimming trimming,
@@ -126,6 +111,9 @@ internal static class ReadExtensions
         }
     }
 
+    /// <summary>
+    /// Returns the field span with spaces removed according to the trimming options.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ReadOnlySpan<T> Trim<T>(this ReadOnlySpan<T> value, CsvFieldTrimming trimming)
         where T : unmanaged, IBinaryInteger<T>

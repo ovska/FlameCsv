@@ -23,8 +23,7 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
         _bufferPool = bufferPool ?? DefaultBufferPool.Instance;
 
         _options = options;
-        _tokenizer = CsvTokenizer.Create(options);
-        _scalarTokenizer = CsvTokenizer.CreateScalar(options);
+        (_scalarTokenizer, _tokenizer) = options.GetTokenizers();
     }
 
     public Chunk<T>? Read()
@@ -34,7 +33,7 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
             RecordBuffer recordBuffer = new();
 
             FieldBuffer destination = recordBuffer.GetUnreadBuffer(
-                _tokenizer?.MinimumFieldBufferSize ?? 0,
+                _tokenizer?.MaxFieldsPerIteration ?? 0,
                 out int startIndex
             );
 

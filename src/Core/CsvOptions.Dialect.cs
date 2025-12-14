@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -116,6 +117,51 @@ public partial class CsvOptions<T>
         {
             DialectHelper.ThrowException(errors.AsSpan(), _delimiter, _quote);
         }
+    }
+
+    private CsvScalarTokenizer<T>? _scalarTokenizer;
+    private CsvTokenizer<T>? _simdTokenizer;
+    private bool _tokenizersCreated;
+
+    internal (CsvScalarTokenizer<T> scalar, CsvTokenizer<T>? simd) GetTokenizers()
+    {
+        if (!_tokenizersCreated)
+        {
+            MakeReadOnly();
+
+            bool isCRLF = Newline.IsCRLF();
+
+#if NET10_0_OR_GREATER
+            if (Avx512Tokenizer.IsSupported)
+            {
+                _simdTokenizer = isCRLF
+                    ? new Avx512Tokenizer<T, TrueConstant>(this)
+                    : new Avx512Tokenizer<T, FalseConstant>(this);
+            }
+            else
+#endif
+            if (Avx2Tokenizer.IsSupported)
+            {
+                _simdTokenizer = isCRLF
+                    ? new Avx2Tokenizer<T, TrueConstant>(this)
+                    : new Avx2Tokenizer<T, FalseConstant>(this);
+            }
+            else if (Vector.IsHardwareAccelerated) // implies SSE, WASM or NEON
+            {
+                _simdTokenizer = isCRLF
+                    ? new SimdTokenizer<T, TrueConstant>(this)
+                    : new SimdTokenizer<T, FalseConstant>(this);
+            }
+
+            _scalarTokenizer = isCRLF
+                ? new ScalarTokenizer<T, TrueConstant>(this)
+                : new ScalarTokenizer<T, FalseConstant>(this);
+
+            _tokenizersCreated = true;
+        }
+
+        Debug.Assert(_scalarTokenizer is not null, "Scalar tokenizer should have been created");
+        return (_scalarTokenizer, _simdTokenizer);
     }
 
     /// <summary>

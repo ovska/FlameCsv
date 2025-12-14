@@ -25,7 +25,7 @@ public abstract class CsvReadExceptionBase(string? message = null, Exception? in
     /// </summary>
     public string? RecordValue { get; set; }
 
-    internal virtual void Enrich<T>(int line, long position, RecordView view, CsvReader<T> reader)
+    internal virtual void Enrich<T>(int line, long position, CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         Line ??= line;
@@ -33,7 +33,7 @@ public abstract class CsvReadExceptionBase(string? message = null, Exception? in
 
         try
         {
-            RecordValue ??= view.GetRecord(reader).AsPrintableString();
+            RecordValue ??= record.Raw.AsPrintableString();
         }
         catch
         {

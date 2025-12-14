@@ -168,6 +168,11 @@ internal sealed class IndentedTextWriter : IDisposable
     /// <param name="content">The content to write.</param>
     public void Write(char content)
     {
+        if (this.builder.Count == 0 || this.builder.WrittenSpan[^1] == DefaultNewLine)
+        {
+            this.builder.AddRange(this.currentIndentation.AsSpan());
+        }
+        
         this.builder.Add(content);
     }
 

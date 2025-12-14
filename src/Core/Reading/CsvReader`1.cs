@@ -31,13 +31,12 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </summary>
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
-    internal readonly RecordBuffer _recordBuffer;
-
     internal readonly Allocator<T> _unescapeAllocator;
     private EnumeratorStack _stackMemory; // don't make me readonly!
 
     internal readonly ICsvBufferReader<T> _reader;
     internal ReadOnlyMemory<T> _buffer;
+    internal long _consumed;
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
@@ -61,17 +60,15 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// Initializes a new instance of the <see cref="CsvReader{T}"/> class.
     /// </summary>
     public CsvReader(CsvOptions<T> options, ICsvBufferReader<T> reader, in CsvIOOptions ioOptions = default)
-        : base(options)
+        : base(options, new RecordBuffer())
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(reader);
 
-        _recordBuffer = new RecordBuffer();
         _reader = reader;
         _state = State.Initialized;
 
-        _tokenizer = CsvTokenizer.Create(options);
-        _scalarTokenizer = CsvTokenizer.CreateScalar(options);
+        (_scalarTokenizer, _tokenizer) = options.GetTokenizers();
 
         _unescapeAllocator = new Allocator<T>(ioOptions.EffectiveBufferPool);
 
@@ -139,7 +136,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         else
         {
             FieldBuffer destination = _recordBuffer.GetUnreadBuffer(
-                tokenizer.MinimumFieldBufferSize,
+                tokenizer.MaxFieldsPerIteration,
                 out int startIndex
             );
             fieldsRead = tokenizer.Tokenize(destination, startIndex, data);
@@ -274,6 +271,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             consumed = Math.Min(consumed, _buffer.Length);
             _reader.Advance(consumed);
             _buffer = _buffer.Slice(consumed);
+            _consumed += consumed;
         }
     }
 

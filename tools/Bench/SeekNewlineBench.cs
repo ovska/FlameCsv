@@ -15,7 +15,8 @@ public class SeekNewlineBench
 
         for (int i = 0; i < buffer.Fields.Length; i++)
         {
-            buffer.Fields[i] = i % Interval == 0 ? ~0u : 0u;
+            var v = i % Interval == 0 ? ~0u : 0u;
+            buffer.Fields[i] = v;
         }
     }
 

@@ -23,261 +23,251 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
     // vector count to avoid reading past the buffer
     // vector count for prefetching
     // and 1 for reading past the current vector to check two token sequences
-    private static int EndOffset
+    protected override int Overscan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Vector512<byte>.Count * 3;
     }
 
-    private static int MaxFieldsPerIteration
+    public override int PreferredLength => Vector512<byte>.Count * 4;
+    public override int MaxFieldsPerIteration
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Vector512<byte>.Count;
     }
 
-    public override int PreferredLength => Vector512<byte>.Count * 4;
-    public override int MinimumFieldBufferSize => MaxFieldsPerIteration;
-
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override unsafe int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
+    protected override unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end)
     {
         if (!Avx512Vbmi2.IsSupported)
         {
             // ensure the method is trimmed on NAOT
-            throw new UnreachableException();
+            throw new PlatformNotSupportedException();
         }
 
-        Debug.Assert(data.Length <= Field.MaxFieldEnd);
-        destination.AssertInitialState(MaxFieldsPerIteration);
+#if false
+        ReadOnlySpan<T> data = new(start, (int)(end - start));
+#endif
 
-        if ((uint)(data.Length - startIndex) < EndOffset)
+        nuint index = (uint)startIndex;
+        T* pData = start + index;
+
+        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
+
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+
+        nuint fieldIndex = 0;
+
+        Vector512<byte> vecDelim = Vector512.Create(byte.CreateTruncating(_delimiter));
+        Vector512<byte> vecQuote = Vector512.Create(byte.CreateTruncating(_quote));
+        Vector512<byte> vecLF = Vector512.Create((byte)'\n');
+        Vector512<byte> vecCR = TCRLF.Value ? Vector512.Create((byte)'\r') : default;
+
+        const int fixupScalar = unchecked((int)0x8000007F);
+
+        Vector512<byte> bit7 = Vector512.Create((byte)0x80);
+        Vector512<int> msbAndBitsUpTo7 = Vector512.Create(fixupScalar);
+        Vector512<uint> iterationLength = Vector512.Create((uint)Vector512<byte>.Count);
+
+        uint quotesConsumed = 0;
+        ulong crCarry = 0;
+
+        Vector512<uint> indexVector;
+        Vector512<byte> vector;
+
+        // align the start
+        // TODO: benchmark whether unaligned loads are worth it on real-world buffer sizes and streaming;
+        // currently only optimized for fully buffered data
         {
-            return 0;
-        }
+            nint alignment = 64;
+            nint remainder = ((nint)pData % alignment) / sizeof(T);
 
-        scoped ref T first = ref MemoryMarshal.GetReference(data);
-
-        fixed (T* ptr = &first)
-        {
-            nuint index = (uint)startIndex;
-            nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
-            nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
-
-            Debug.Assert(searchSpaceEnd < (nuint)data.Length);
-
-            scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
-            scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
-
-            nuint fieldIndex = 0;
-
-            // load the constants into registers
-            Vector512<byte> vecDelim = Vector512.Create(byte.CreateTruncating(_delimiter));
-            Vector512<byte> vecQuote = Vector512.Create(byte.CreateTruncating(_quote));
-            Vector512<byte> vecLF = Vector512.Create((byte)'\n');
-            Vector512<byte> vecCR = TCRLF.Value ? Vector512.Create((byte)'\r') : default;
-
-            const int fixupScalar = unchecked((int)0x8000007F);
-
-            Vector512<byte> bit7 = Vector512.Create((byte)0x80);
-            Vector512<int> msbAndBitsUpTo7 = Vector512.Create(fixupScalar);
-            Vector512<uint> iterationLength = Vector512.Create((uint)Vector512<byte>.Count);
-
-            uint quotesConsumed = 0;
-            ulong crCarry = 0;
-
-            Vector512<uint> indexVector;
-            Vector512<byte> vector;
-
-            // align the start
-            // TODO: benchmark whether unaligned loads are worth it on real-world buffer sizes and streaming;
-            // currently only optimized for fully buffered data
+            if (remainder != 0)
             {
-                nint alignment = 64;
-                nint remainder = ((nint)(ptr + index) % alignment) / sizeof(T);
+                nuint skip = (uint)alignment - (uint)remainder;
 
-                if (remainder != 0)
+                Inline64<T> temp = default; // default zero-inits
+
+                nuint idx = 0;
+                ref T src = ref Unsafe.AsRef<T>(start);
+                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainder);
+
+                do
                 {
-                    nuint skip = (uint)alignment - (uint)remainder;
+                    Unsafe.Add(ref dst, idx) = Unsafe.Add(ref src, idx);
+                    idx++;
+                } while (idx < skip);
 
-                    Inline64<T> temp = default; // default zero-inits
+                // safe AsPointer; stack allocated struct
+                vector = AsciiVector.Load512((T*)Unsafe.AsPointer(ref temp.elem0));
 
-                    nuint idx = 0;
-                    ref T src = ref Unsafe.Add(ref first, (nuint)startIndex);
-                    ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainder);
+                // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
+                indexVector = Vector512.Create((uint)index - (uint)remainder);
+                index -= (nuint)remainder;
+                pData -= remainder;
 
-                    do
-                    {
-                        Unsafe.Add(ref dst, idx) = Unsafe.Add(ref src, idx);
-                        idx++;
-                    } while (idx < skip);
+                Debug.Assert(((nint)index + 64) >= 0);
+            }
+            else
+            {
+                vector = AsciiVector.LoadAligned512(pData);
+                indexVector = Vector512.Create((uint)index);
+            }
+        }
 
-                    vector = AsciiVector.Load512(ref temp.elem0, 0);
+        Vector512<byte> nextVector = AsciiVector.LoadAligned512(pData + (nuint)Vector512<byte>.Count);
 
-                    // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
-                    indexVector = Vector512.Create((uint)index - (uint)remainder);
-                    index -= (nuint)remainder;
+        do
+        {
+            Vector512<byte> hasLF = Vector512.Equals(vector, vecLF);
+            Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
+            Vector512<byte> hasAny = hasLF | hasDelimiter;
 
-                    Debug.Assert(((nint)index + 64) >= 0);
-                }
-                else
-                {
-                    vector = AsciiVector.LoadAligned512<T>(ptr + index);
-                    indexVector = Vector512.Create((uint)index);
-                }
+            ulong maskControl = hasAny.ExtractMostSignificantBits();
+
+            // getting the mask instantly saves a bit so hasQuote isn't bounced between registers
+            ulong maskQuote = Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits();
+
+            Unsafe.SkipInit(out ulong maskCR);
+            Unsafe.SkipInit(out ulong maskLF);
+            Unsafe.SkipInit(out ulong shiftedCR);
+
+            if (TCRLF.Value)
+            {
+                maskCR = Vector512.Equals(vector, vecCR).ExtractMostSignificantBits();
+                maskLF = hasLF.ExtractMostSignificantBits(); // queue the movemask
+                shiftedCR = ((maskCR << 1) | crCarry);
+                crCarry = maskCR >> 63;
             }
 
-            Vector512<byte> nextVector = AsciiVector.LoadAligned512<T>(ptr + (index + (nuint)Vector512<byte>.Count));
+            // prefetch 2 vectors ahead
+            vector = nextVector;
+            nextVector = AsciiVector.LoadAligned512(pData + (nuint)(2 * Vector512<byte>.Count));
 
-            do
+            if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
             {
-                Vector512<byte> hasLF = Vector512.Equals(vector, vecLF);
-                Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
-                Vector512<byte> hasAny = hasLF | hasDelimiter;
+                destination.DegenerateQuotes = true;
+                break;
+            }
 
-                ulong maskControl = hasAny.ExtractMostSignificantBits();
+            if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
+            {
+                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                goto ContinueRead;
+            }
 
-                // getting the mask instantly saves a bit so hasQuote isn't bounced between registers
-                ulong maskQuote = Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits();
+            if (TCRLF.Value && Bithacks.IsDisjointCR(maskLF, shiftedCR))
+            {
+                // maskControl doesn't contain CR by default, add it so we can find lone CR's
+                maskControl |= maskCR;
+                goto PathologicalPath;
+            }
 
-                Unsafe.SkipInit(out ulong maskCR);
-                Unsafe.SkipInit(out ulong maskLF);
-                Unsafe.SkipInit(out ulong shiftedCR);
+            uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
-                if (TCRLF.Value)
-                {
-                    maskCR = Vector512.Equals(vector, vecCR).ExtractMostSignificantBits();
-                    maskLF = hasLF.ExtractMostSignificantBits(); // queue the movemask
-                    shiftedCR = ((maskCR << 1) | crCarry);
-                    crCarry = maskCR >> 63;
-                }
+            // rare cases: quotes, or too many matches to fit in VPCOMPRESSB path
+            if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector512<int>.Count)
+            {
+                goto SlowPath;
+            }
 
-                // prefetch 2 vectors ahead
-                vector = nextVector;
-                nextVector = AsciiVector.LoadAligned512<T>(ptr + index + (nuint)(2 * Vector512<byte>.Count));
+            // get an iota vector with the MSB set on newline positions
+            Vector512<byte> taggedIndices = (hasLF & bit7) | Vector512<byte>.Indices; // compiles to vpternlogd
 
-                if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
-                {
-                    destination.DegenerateQuotes = true;
-                    break;
-                }
+            // pack the indexes of all matches to the front
+            Vector512<byte> packedAny = Avx512Vbmi2.Compress(
+                merge: Vector512<byte>.Zero,
+                mask: hasAny,
+                value: taggedIndices
+            );
 
-                if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
-                {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
-                }
+            // create a fixup to keep only the low bits and the MSB (which is 1 on newlines)
+            Vector512<int> fixup = TCRLF.Value
+                ? Vector512.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
+                : msbAndBitsUpTo7;
 
-                if (TCRLF.Value && Bithacks.IsDisjointCR(maskLF, shiftedCR))
-                {
-                    // maskControl doesn't contain CR by default, add it so we can find lone CR's
-                    maskControl |= maskCR;
-                    goto PathologicalPath;
-                }
+            // we already verified that matchCount is low enough; pick the lowest 16 bytes...
+            Vector128<sbyte> lowestLane = Avx512F.ExtractVector128(packedAny, 0).AsSByte();
 
-                uint matchCount = (uint)BitOperations.PopCount(maskControl);
+            // ...and sign extend to int32 to preserve bits above 7 if the match was an EOL
+            Vector512<int> taggedIndexVector = Avx512F.ConvertToVector512Int32(lowestLane);
 
-                // rare cases: quotes, or too many matches to fit in VPCOMPRESSB path
-                if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector512<int>.Count)
-                {
-                    goto SlowPath;
-                }
+            // preserve only MSB (and the next most significant bit, if the matches were CRLF pairs)
+            Vector512<int> fixedTaggedVector = taggedIndexVector & fixup;
 
-                // get an iota vector with the MSB set on newline positions
-                Vector512<byte> taggedIndices = (hasLF & bit7) | Vector512<byte>.Indices; // compiles to vpternlogd
+            // add the base index to the iota to get the final field indexes
+            Vector512<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
+            result.StoreUnsafe(ref firstField, fieldIndex);
+            fieldIndex += matchCount;
 
-                // pack the indexes of all matches to the front
-                Vector512<byte> packedAny = Avx512Vbmi2.Compress(
-                    merge: Vector512<byte>.Zero,
-                    mask: hasAny,
-                    value: taggedIndices
-                );
+            ContinueRead:
+            index += (nuint)Vector512<byte>.Count;
+            pData += Vector512<byte>.Count;
+            indexVector += iterationLength;
+            continue;
 
-                // create a fixup to keep only the low bits and the MSB (which is 1 on newlines)
-                Vector512<int> fixup = TCRLF.Value
-                    ? Vector512.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
-                    : msbAndBitsUpTo7;
+            SlowPath:
+            if (!TCRLF.Value)
+            {
+                maskLF = hasLF.ExtractMostSignificantBits();
+            }
 
-                // we already verified that matchCount is low enough; pick the lowest 16 bytes...
-                Vector128<sbyte> lowestLane = Avx512F.ExtractVector128(packedAny, 0).AsSByte();
+            // clear the bits that are inside quotes
+            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-                // ...and sign extend to int32 to preserve bits above 7 if the match was an EOL
-                Vector512<int> taggedIndexVector = Avx512F.ConvertToVector512Int32(lowestLane);
+            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-                // preserve only MSB (and the next most significant bit, if the matches were CRLF pairs)
-                Vector512<int> fixedTaggedVector = taggedIndexVector & fixup;
+            ParseAny(
+                index: (uint)index,
+                firstField: ref firstField,
+                firstQuote: ref firstQuote,
+                fieldIndex: ref fieldIndex,
+                quotesConsumed: ref quotesConsumed,
+                maskControl: maskControl,
+                maskLF: maskLF,
+                maskQuote: ref maskQuote,
+                flag: flag
+            );
 
-                // add the base index to the iota to get the final field indexes
-                Vector512<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
-                result.StoreUnsafe(ref firstField, fieldIndex);
-                fieldIndex += matchCount;
+            goto ContinueRead;
 
-                ContinueRead:
-                index += (nuint)Vector512<byte>.Count;
-                indexVector += iterationLength;
-                continue;
-
-                SlowPath:
-                if (!TCRLF.Value)
-                {
-                    maskLF = hasLF.ExtractMostSignificantBits();
-                }
-
+            PathologicalPath:
+            if (TCRLF.Value)
+            {
                 // clear the bits that are inside quotes
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
 
-                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
-
-                ParseAny(
+                CheckDanglingCR(
+                    maskControl: ref maskControl,
+                    first: ref Unsafe.AsRef<T>(start),
                     index: (uint)index,
-                    firstField: ref firstField,
-                    firstQuote: ref firstQuote,
                     fieldIndex: ref fieldIndex,
-                    quotesConsumed: ref quotesConsumed,
-                    maskControl: maskControl,
-                    maskLF: maskLF,
-                    maskQuote: ref maskQuote,
-                    flag: flag
+                    fieldRef: ref firstField,
+                    quoteRef: ref firstQuote,
+                    quotesConsumed: ref quotesConsumed
                 );
 
-                goto ContinueRead;
+                ParsePathological(
+                    maskControl: maskControl,
+                    maskQuote: ref maskQuote,
+                    first: ref Unsafe.AsRef<T>(start),
+                    index: (uint)index,
+                    fieldIndex: ref fieldIndex,
+                    fieldRef: ref firstField,
+                    quoteRef: ref firstQuote,
+                    delimiter: _delimiter,
+                    quotesConsumed: ref quotesConsumed
+                );
+            }
 
-                PathologicalPath:
-                if (TCRLF.Value)
-                {
-                    // clear the bits that are inside quotes
-                    maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+            goto ContinueRead;
+        } while (fieldIndex <= fieldEnd && pData < end);
 
-                    CheckDanglingCR(
-                        maskControl: ref maskControl,
-                        first: ref first,
-                        index: (uint)index,
-                        fieldIndex: ref fieldIndex,
-                        fieldRef: ref firstField,
-                        quoteRef: ref firstQuote,
-                        quotesConsumed: ref quotesConsumed
-                    );
-
-                    ParsePathological(
-                        maskControl: maskControl,
-                        maskQuote: ref maskQuote,
-                        first: ref first,
-                        index: (uint)index,
-                        fieldIndex: ref fieldIndex,
-                        fieldRef: ref firstField,
-                        quoteRef: ref firstQuote,
-                        delimiter: _delimiter,
-                        quotesConsumed: ref quotesConsumed
-                    );
-                }
-
-                goto ContinueRead;
-            } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
-
-            return (int)fieldIndex;
-        }
+        return (int)fieldIndex;
     }
 }
 

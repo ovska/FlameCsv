@@ -21,15 +21,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// </summary>
     public int Line { get; protected set; }
 
-    /// <summary>
-    /// The position of the reader in CSV data.
-    /// This is the end position of the current record (including possible trailing newline),
-    /// or 0 if the enumeration has not started.
-    /// </summary>
-    public long Position => Math.Min(_position, _reader._reader.Position);
-
-    private long _position;
-
     [HandlesResourceDisposal]
     private protected readonly CsvReader<T> _reader;
     private readonly CancellationToken _cancellationToken;
@@ -82,7 +73,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             result = MoveNextCore(view);
         }
 
-        _position += view.GetLengthWithNewline(_reader._recordBuffer);
         return result;
     }
 
@@ -99,7 +89,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             new CsvRecordRef<T>(_reader, view),
             header,
             Line,
-            Position,
+            GetStartPosition(view),
             ref skip,
             ref headerRead
         );
@@ -156,7 +146,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <c>false</c> if the record was a header record, or was skipped.
     /// </returns>
     /// <remarks>
-    /// When this method is called, <see cref="Position"/> points to the start of the record.
+    /// When this method is called, <see cref="GetStartPosition"/> returns the start offset of the record.
     /// </remarks>
     internal abstract bool MoveNextCore(RecordView record);
 
@@ -225,6 +215,16 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         {
             await DisposeAsyncCore().ConfigureAwait(false);
         }
+    }
+
+    internal long GetStartPosition(RecordView view)
+    {
+        return _reader._consumed + (int)_reader._recordBuffer._bits[view.Start];
+    }
+
+    internal long GetEndPosition(RecordView view)
+    {
+        return _reader._consumed + (int)_reader._recordBuffer._bits[view.Start + view.Length];
     }
 
     /// <summary>

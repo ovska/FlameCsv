@@ -12,16 +12,10 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
 {
-    private static int EndOffset
+    protected override int Overscan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Vector256<byte>.Count * 3;
-    }
-
-    private static int MaxFieldsPerIteration
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count;
     }
 
     public override int PreferredLength
@@ -30,42 +24,36 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         get => Vector256<byte>.Count * 4;
     }
 
-    public override int MinimumFieldBufferSize => MaxFieldsPerIteration;
+    public override int MaxFieldsPerIteration
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Vector256<byte>.Count;
+    }
 
     private readonly T _quote = T.CreateTruncating(options.Quote);
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
+    protected override unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end)
     {
         if (!Vector128.IsHardwareAccelerated)
         {
             // ensure the method is trimmed on NAOT
-            throw new UnreachableException();
+            throw new PlatformNotSupportedException();
         }
 
-        Debug.Assert(data.Length <= Field.MaxFieldEnd);
-        destination.AssertInitialState(MaxFieldsPerIteration);
+#if false
+        ReadOnlySpan<T> data = new(start, (int)(end - start));
+#endif
 
-        if ((uint)(data.Length - startIndex) < EndOffset)
-        {
-            return 0;
-        }
-
-        scoped ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (uint)startIndex;
-        nuint searchSpaceEnd = (nuint)data.Length - (nuint)EndOffset;
+        T* pData = start + index;
 
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
         scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
         nuint fieldIndex = 0;
         nuint fieldEnd = Math.Max(0, (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration);
 
-        // ensure the worst case doesn't read past the end (e.g. data ends in Vector.Count delimiters)
-        // we do this so there are no bounds checks in the loops
-        Debug.Assert(searchSpaceEnd < (nuint)data.Length);
-
-        // load the constants into registers
         uint quotesConsumed = 0;
         uint crCarry = 0;
 
@@ -74,7 +62,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
         Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
 
-        Vector256<byte> vector = AsciiVector.Load256(ref first, index);
+        Vector256<byte> vector = AsciiVector.Load256(pData);
 
         Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
         Vector256<byte> hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
@@ -89,17 +77,17 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasCR
         );
 
-        Vector256<byte> nextVector = AsciiVector.Load256(ref first, index + (nuint)Vector256<byte>.Count);
+        Vector256<byte> nextVector = AsciiVector.Load256(pData + (nuint)Vector256<byte>.Count);
 
         do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetchVector = AsciiVector.Load256(ref first, index + (nuint)(2 * Vector256<byte>.Count));
+            Vector256<byte> prefetch = AsciiVector.Load256(pData + (nuint)(2 * Vector256<byte>.Count));
 
             Unsafe.SkipInit(out uint shiftedCR); // this can be garbage on LF, it's never used
 
             vector = nextVector;
-            nextVector = prefetchVector;
+            nextVector = prefetch;
 
             if (TCRLF.Value)
             {
@@ -283,7 +271,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
                 CheckDanglingCR(
                     maskControl: ref maskControl,
-                    first: ref first,
+                    first: ref Unsafe.AsRef<T>(start),
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
@@ -294,7 +282,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 ParsePathological(
                     maskControl: maskControl,
                     maskQuote: ref maskQuote,
-                    first: ref first,
+                    first: ref Unsafe.AsRef<T>(start),
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
@@ -309,6 +297,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
             ContinueRead:
             index += (nuint)Vector256<byte>.Count;
+            pData += Vector256<byte>.Count;
 
             hasLF = Vector256.Equals(vector, vecLF);
             hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
@@ -323,7 +312,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 destination.DegenerateQuotes = true;
                 break;
             }
-        } while (fieldIndex <= fieldEnd && index <= searchSpaceEnd);
+        } while (fieldIndex <= fieldEnd && pData <= end);
 
         return (int)fieldIndex;
     }

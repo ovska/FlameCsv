@@ -1,8 +1,6 @@
-#if false
-
-
-using FlameCsv.Intrinsics;
-using FlameCsv.IO.Internal;
+using System.Runtime.CompilerServices;
+using System.Text;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 
@@ -10,53 +8,126 @@ namespace FlameCsv.Benchmark;
 
 public class GetFieldBench
 {
-    private readonly byte[] _dataUnquoted;
-    private readonly byte[] _dataQuoted;
-    private readonly Meta[] _metaUnquoted = new Meta[24 * 65535];
-    private readonly Meta[] _metaQuoted = new Meta[24 * 65535];
-    private readonly int _countQuoted;
-    private readonly int _countUnquoted;
-    private readonly CsvReader<byte> _reader = new(CsvOptions<byte>.Default, EmptyBufferReader<byte>.Instance);
+    private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
+    private static readonly byte[] _quoteBuffer = new byte[24 * 65535];
+    private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
+    private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
+    private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
+    private static readonly byte[] _bytes1LF = Encoding.UTF8.GetBytes(_chars1LF);
+    private static readonly string _chars0CRLF = _chars0LF.ReplaceLineEndings("\r\n");
+    private static readonly string _chars1CRLF = _chars1LF.ReplaceLineEndings("\r\n");
+    private static readonly byte[] _bytes0CRLF = Encoding.UTF8.GetBytes(_chars0CRLF);
+    private static readonly byte[] _bytes1CRLF = Encoding.UTF8.GetBytes(_chars1CRLF);
 
-    // [Params(true, false)]
-    public bool Quoted { get; set; }
+    private static readonly CsvOptions<char> _dCharLF = new CsvOptions<char>
+    {
+        Delimiter = ',',
+        Quote = '"',
+        Newline = CsvNewline.LF,
+    };
 
-    public bool Raw { get; set; }
+    private static readonly CsvOptions<byte> _dByteCRLF = new CsvOptions<byte>
+    {
+        Delimiter = ',',
+        Quote = '"',
+        Newline = CsvNewline.CRLF,
+    };
+
+    private static readonly CsvOptions<byte> _dByteLF = new CsvOptions<byte>
+    {
+        Delimiter = ',',
+        Quote = '"',
+        Newline = CsvNewline.LF,
+    };
+
+    private static readonly CsvOptions<char> _dCharCRLF = new CsvOptions<char>
+    {
+        Delimiter = ',',
+        Quote = '"',
+        Newline = CsvNewline.CRLF,
+    };
+
+    private readonly SimdTokenizer<char, FalseConstant> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, FalseConstant> _t128bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, TrueConstant> _t128bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<char, TrueConstant> _t128CRLF = new(_dCharCRLF);
+
+    private readonly NoOpOwner _owner;
+    private readonly RecordBuffer _rb2;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (int, int, int, int, int, int, int, int) GetRandomInts()
+    {
+        return (7, 11, 2, 8, 3, 11, 4, 0);
+    }
+
+    [Benchmark]
+    public void New()
+    {
+        var o = new NoOpOwner(_dByteLF);
+        _rb2._eolIndex = 0;
+        ref byte data = ref _bytes0LF[0];
+
+        var (a, b, c, d, e, f, g, h) = GetRandomInts();
+
+        while (_rb2.TryPop(out RecordView view))
+        {
+            var x = new CsvRecordRef<byte>(o, ref data, view);
+
+            _ = x[a];
+            _ = x[b];
+            _ = x[c];
+            _ = x[d];
+            _ = x[e];
+            _ = x[f];
+            _ = x[g];
+            _ = x[h];
+        }
+    }
+
+    [Benchmark]
+    public void New2()
+    {
+        var o = new NoOpOwner(_dByteLF);
+        _rb2._eolIndex = 0;
+        ref byte data = ref _bytes0LF[0];
+
+        var (a, b, c, d, e, f, g, h) = GetRandomInts();
+
+        while (_rb2.TryPop(out RecordView view))
+        {
+            var x = new CsvRecordRef<byte>(o, ref data, view);
+
+            _ = x.GetFieldUnsafe(a);
+            _ = x.GetFieldUnsafe(b);
+            _ = x.GetFieldUnsafe(c);
+            _ = x.GetFieldUnsafe(d);
+            _ = x.GetFieldUnsafe(e);
+            _ = x.GetFieldUnsafe(f);
+            _ = x.GetFieldUnsafe(g);
+            _ = x.GetFieldUnsafe(h);
+        }
+    }
 
     public GetFieldBench()
     {
-        _dataUnquoted = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
-        _dataQuoted = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
+        const int len = 16 * 65535;
+        _owner = new NoOpOwner(_dByteLF);
+        _rb2 = _owner._recordBuffer;
+        _rb2._fields = new uint[len];
+        _rb2._quotes = new byte[len];
+        _rb2._bits = new ulong[len];
+        _rb2._eols = new ushort[len];
 
-        var tokenizer = new SimdTokenizer<byte, NewlineLF>(CsvOptions<byte>.Default);
-
-        _countQuoted = tokenizer.Tokenize(_metaUnquoted.AsSpan(1), _dataUnquoted, 0) + 1;
-        _countUnquoted = tokenizer.Tokenize(_metaQuoted.AsSpan(1), _dataQuoted, 0) + 1;
+        int count = _t128bCRLF.Tokenize(_rb2.GetUnreadBuffer(0, out int start1), start1, _bytes0LF);
+        _rb2.SetFieldsRead(count);
     }
 
-    [Benchmark(Baseline = true)]
-    public void GetField()
+    private sealed class NoOpOwner(CsvOptions<byte> options) : RecordOwner<byte>(options, null!)
     {
-        var record = new CsvRecordRef<byte>(
-            _reader,
-            ref (Quoted ? ref _dataQuoted[0] : ref _dataUnquoted[0]),
-            Quoted ? _metaQuoted.AsSpan(0, _countUnquoted) : _metaUnquoted.AsSpan(0, _countQuoted)
-        );
-
-        if (Raw)
+        internal override Span<byte> GetUnescapeBuffer(int length)
         {
-            for (int i = 0; i < record.FieldCount; i++)
-            {
-                _ = record.GetRawSpan(i);
-            }
-        }
-        else
-        {
-            for (int i = 0; i < record.FieldCount; i++)
-            {
-                _ = record[i];
-            }
+            throw new NotImplementedException();
         }
     }
 }
-#endif

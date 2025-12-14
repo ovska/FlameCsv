@@ -25,7 +25,7 @@ public class CsvReadException(string? message = null, Exception? innerException 
     /// </summary>
     /// <exception cref="CsvReadException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowForInvalidFieldCount<T>(int expected, scoped ref readonly CsvRecordRef<T> record)
+    public static void ThrowForInvalidFieldCount<T>(int expected, CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         throw new CsvReadException(

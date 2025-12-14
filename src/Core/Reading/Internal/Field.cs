@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 
@@ -32,6 +32,8 @@ internal static partial class Field
     /// </summary>
     public const uint EndMask = 0x3FFFFFFF;
 
+    public const ulong NeedsUnescapingMask = 1ul << 62;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int NextStart(uint field)
     {
@@ -51,73 +53,86 @@ internal static partial class Field
     public static int End(uint field) => (int)(field & EndMask);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static ReadOnlySpan<T> GetValue<T>(int start, int end, byte quote, ref T data, RecordOwner<T> owner)
+    public static ReadOnlySpan<T> GetValue<T>(int index, scoped CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // trim before unquoting to preserve spaces in strings
+        ulong bits = Unsafe.Add(ref MemoryMarshal.GetReference(record._bits), (uint)index);
+        scoped ref T data = ref record._data;
+        RecordOwner<T> owner = record._owner;
+
+        int start = (int)bits;
+        int end = (int)(bits >> 32) & (int)EndMask;
+
         owner._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
 
         int length = end - start;
 
         ref T first = ref Unsafe.Add(ref data, (uint)start);
-        ReadOnlySpan<T> retVal;
 
-        if (quote != 0)
+        if ((long)bits >= 0)
         {
-            T q = owner._dialect.Quote;
+            return MemoryMarshal.CreateReadOnlySpan(ref first, length);
+        }
 
-            if (length < 2 || first != q || Unsafe.Add(ref first, (uint)length - 1u) != q)
-            {
-                goto InvalidField;
-            }
+        T quote = owner._dialect.Quote;
+        byte quoteCountByte;
 
-            retVal = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1u), length - 2);
+        if (length < 2 || first != quote || Unsafe.Add(ref first, (uint)length - 1u) != quote)
+        {
+            quoteCountByte = 2;
+            goto InvalidField;
+        }
 
-            if (quote != 2) // already trimmed the quotes
-            {
-                uint quoteCount =
-                    quote == byte.MaxValue // TODO: make a quote agnostic unescaper?
-                        ? (uint)System.MemoryExtensions.Count(retVal, q)
-                        : (uint)(quote - 2);
+        ReadOnlySpan<T> fieldSpan = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref first, 1u), length - 2);
 
-                if (quoteCount % 2 != 0)
-                {
-                    goto InvalidField;
-                }
+        if ((long)(bits << 1) >= 0)
+        {
+            return fieldSpan;
+        }
 
-                Span<T> buffer = owner.GetUnescapeBuffer(retVal.Length);
+        RecordBuffer recordBuffer = owner._recordBuffer;
+        ref byte quoteRef = ref MemoryMarshal.GetArrayDataReference(recordBuffer._quotes);
+        nint byteOffset = Unsafe.ByteOffset(
+            in MemoryMarshal.GetArrayDataReference(recordBuffer._bits),
+            in MemoryMarshal.GetReference(record._bits)
+        );
 
-                // Vector<char> is not supported
-                if (Unsafe.SizeOf<T>() is sizeof(char))
-                {
-                    Unescape(
-                        ushort.CreateTruncating(q),
-                        buffer.Cast<T, ushort>(),
-                        retVal.Cast<T, ushort>(),
-                        quoteCount
-                    );
-                }
-                else
-                {
-                    Unescape(q, buffer, retVal, quoteCount);
-                }
+        quoteCountByte = Unsafe.Add(ref quoteRef, (byteOffset / sizeof(ulong)) + index + 1);
+        Debug.Assert(quoteCountByte >= 2, "Quote count should be at least 2 for quoted fields.");
 
-                int unescapedLength = retVal.Length - unchecked((int)(quoteCount / 2));
-                retVal = buffer.Slice(0, unescapedLength);
-            }
+        uint quoteCount = quoteCountByte == byte.MaxValue ? (uint)fieldSpan.Count(quote) : (quoteCountByte - 2u);
+
+        if (quoteCount % 2 != 0)
+        {
+            goto InvalidField;
+        }
+
+        Span<T> buffer = owner.GetUnescapeBuffer(fieldSpan.Length);
+
+        // Vector<char> is not supported
+        if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            Unescape(
+                Unsafe.BitCast<T, ushort>(quote),
+                Unsafe.BitCast<Span<T>, Span<ushort>>(buffer),
+                Unsafe.BitCast<ReadOnlySpan<T>, ReadOnlySpan<ushort>>(fieldSpan),
+                quoteCount
+            );
         }
         else
         {
-            retVal = MemoryMarshal.CreateReadOnlySpan(ref first, length);
+            Unescape(quote, buffer, fieldSpan, quoteCount);
         }
 
-        return retVal;
+        int unescapedLength = fieldSpan.Length - (int)(quoteCount / 2);
+
+        return buffer.Slice(0, unescapedLength);
 
         InvalidField:
-        return Invalid(start, end, quote, ref data);
+        return Invalid(start, end, quoteCountByte, ref data);
     }
 
-    private static ReadOnlySpan<T> Invalid<T>(int start, int end, byte quote, ref T data)
+    private static ReadOnlySpan<T> Invalid<T>(int start, int end, byte quote, scoped ref T data)
         where T : unmanaged, IBinaryInteger<T>
     {
         ReadOnlySpan<T> value = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref data, (uint)start), end - start);
@@ -125,15 +140,5 @@ internal static partial class Field
         string asString = value.AsPrintableString();
 
         throw new CsvFormatException($"Invalid quoted field {start}..{end} ({quote}) with value: {asString}");
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void SaturateQuotes(ref uint quotesConsumed)
-    {
-        // this should be highly predictable so a branch is optimal
-        if (quotesConsumed > byte.MaxValue)
-        {
-            quotesConsumed = byte.MaxValue;
-        }
     }
 }

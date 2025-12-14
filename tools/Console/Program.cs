@@ -13,6 +13,8 @@ using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
 using JetBrains.Profiler.Api;
 
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+
 namespace FlameCsv.Console
 {
     public static class Program
@@ -22,78 +24,40 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
-            var tmp = Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy");
-
             FileInfo file = new(
                 // @"../../../../Bench/Comparisons/Data/65K_Records_Data.csv"
                 @"../../../../Bench/Comparisons/Data/SampleCSVFile_556kb_4x.csv"
             );
 
-            byte[] byteArray = File.ReadAllBytes(file.FullName);
+            string data = File.ReadAllText(file.FullName);
 
-#pragma warning disable CS0168 // Variable is declared but never used
-            try
+            for (int i = 0; i < 1000; i++)
             {
-                new SimdTokenizer<byte, FalseConstant>(CsvOptions<byte>.Default).Tokenize(
-                    new FieldBuffer() { Fields = new uint[24 * 65536], Quotes = new byte[24 * 65536] },
-                    0,
-                    byteArray
-                );
-            }
-            catch (Exception e)
-            {
-                //
-            }
-#pragma warning restore CS0168 // Variable is declared but never used
-
-            // var metas = new Reading.Internal.Meta[65536];
-
-            {
-                var rb = new RecordBuffer();
-                rb._fields = new uint[24 * 65535];
-                rb._quotes = new byte[24 * 65535];
-                rb.GetEolArrayRef() = new ushort[65535 + 256];
-                var dst = rb.GetUnreadBuffer(0, out int startIndex);
-
-                new SimdTokenizer<byte, TrueConstant>(CsvOptions<byte>.Default).Tokenize(
-                    dst,
-                    0,
-                    Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(byteArray).ReplaceLineEndings("\r\n"))
-                );
-                // new Avx2Tokenizer<byte, FalseConstant>(CsvOptions<byte>.Default).Tokenize(dst, startIndex, byteArray);
-            }
-
-            // var tokenizer = new SimdTokenizer<byte, FalseConstant, Vec256>(CsvOptions<byte>.Default);
-            // _ = tokenizer.Tokenize(metas, byteArray, 0);
-
-            // MemoryProfiler.CollectAllocations(true);
-            // MeasureProfiler.StartCollectingData();
-
-            for (int i = 0; i < 10_000; i++)
-            {
-                if (i == 5_000)
+                // foreach (var _ in Csv.From(data).Read<Entry>(_optionsC)) { }
+                foreach (var r in new CsvReader<char>(_optionsC, data.AsMemory()).ParseRecords())
                 {
-                    MeasureProfiler.StartCollectingData();
-                }
-
-                using var parser = new CsvReader<byte>(_options, CsvBufferReader.Create(byteArray));
-
-                foreach (var r in parser.ParseRecords())
-                {
-                    IterateFields(in r);
+                    for (int j = 0; j < r.FieldCount; j++)
+                    {
+                        _ = r[j];
+                    }
                 }
             }
 
-            MeasureProfiler.StopCollectingData();
+            JetBrains.Profiler.Api.MeasureProfiler.StartCollectingData();
 
-            [MethodImpl(MethodImplOptions.NoInlining)]
-            static void IterateFields(ref readonly CsvRecordRef<byte> record)
+            for (int i = 0; i < 5000; i++)
             {
-                for (int i = 0; i < record.FieldCount; i++)
+                // foreach (var _ in Csv.From(data).Read<Entry>(_optionsC)) { }
+                foreach (var r in new CsvReader<char>(_optionsC, data.AsMemory()).ParseRecords())
                 {
-                    _ = record[i];
+                    for (int j = 0; j < r.FieldCount; j++)
+                    {
+                        _ = r[j];
+                    }
                 }
             }
+
+            JetBrains.Profiler.Api.MeasureProfiler.StopCollectingData();
 
             /*
 1   20161
@@ -113,8 +77,6 @@ namespace FlameCsv.Console
 0
 0
             */
-
-            _ = 1;
         }
 
 #pragma warning disable IL2026

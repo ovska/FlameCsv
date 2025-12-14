@@ -111,24 +111,22 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
         }
 #>
 
-    public override TResult Parse(scoped ref readonly CsvRecordRef<T> record)
+    public override TResult Parse(CsvRecordRef<T> record)
     {
-        Unsafe.SkipInit(out int invalidIndex);
-        if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, in record);
+        int index;
+        if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, record);
 <#
         for (var i = 0; i < current; i++)
         {
             Write("        if (!_converter");
             Write(i.ToString());
-            Write(".TryParse(record[");
+            Write(".TryParse(record.GetFieldUnsafe(index = ");
             Write(i.ToString());
-            Write("], out ");
+            Write("), out ");
             Write(genericTypes[i]);
             Write(" ");
             Write(values[i]);
-            Write(")) { invalidIndex = ");
-            Write(i.ToString());
-            WriteLine("; goto Fail; }");
+            WriteLine(")) goto Fail;");
         }
 
         Write("        return _valueFactory(");
@@ -142,7 +140,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
 #>
 
         Fail:
-        return ThrowParseException(invalidIndex);
+        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch

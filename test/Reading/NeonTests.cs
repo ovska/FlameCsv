@@ -14,33 +14,40 @@ public static class NeonTests
     private static readonly byte[] dataBytes = System.Text.Encoding.UTF8.GetBytes(data);
 
     [Fact]
-    public static void Should_Load_Vector()
+    public static unsafe void Should_Load_Vector()
     {
         Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
 
-        Vector256<byte> vecBytes = AsciiVector.Load256(ref dataBytes[0], 0);
-        Vector256<byte> vecChars = AsciiVector.Load256(ref MemoryMarshal.GetReference(data.AsSpan()), 0);
-
-        for (int i = 0; i < Vector256<byte>.Count; i++)
+        fixed (char* charPtr = data)
+        fixed (byte* bytePtr = dataBytes)
         {
-            byte expected = (byte)data[i];
-            Assert.Equal(expected, vecBytes.GetElement(i));
-            Assert.Equal(expected, vecChars.GetElement(i));
+            Vector256<byte> vecBytes = AsciiVector.Load256(bytePtr);
+            Vector256<byte> vecChars = AsciiVector.Load256(charPtr);
+
+            for (int i = 0; i < Vector256<byte>.Count; i++)
+            {
+                byte expected = (byte)data[i];
+                Assert.Equal(expected, vecBytes.GetElement(i));
+                Assert.Equal(expected, vecChars.GetElement(i));
+            }
         }
     }
 
     [Fact]
-    public static void Should_Narrow_Correctly()
+    public static unsafe void Should_Narrow_Correctly()
     {
         Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
 
         Span<char> data = stackalloc char[Vector256<byte>.Count];
 
-        for (int i = 0; i < 1024; i++)
+        fixed (char* ptr = data)
         {
-            data.Fill((char)i);
-            Vector256<byte> vec = AsciiVector.Load256(ref data[0], 0);
-            Assert.Equal(Math.Min(i, byte.MaxValue), vec.GetElement(0));
+            for (int i = 0; i < 1024; i++)
+            {
+                data.Fill((char)i);
+                Vector256<byte> vec = AsciiVector.Load256(ptr);
+                Assert.Equal(Math.Min(i, byte.MaxValue), vec.GetElement(0));
+            }
         }
     }
 
@@ -55,9 +62,14 @@ public static class NeonTests
         {
             Random.Shared.NextBytes(bytes);
 
+            Vector128<byte> vec128 = Vector128.GreaterThan(Vector128.Create((byte)127), Vector128.Create(bytes, 0));
+            string expected = vec128.ExtractMostSignificantBits().ToString("b16");
+            string actual = vec128.MoveMask().ToString("b16");
+            Assert.Equal(expected, actual);
+
             Vector256<byte> vec256 = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
-            string expected = vec256.ExtractMostSignificantBits().ToString("b32");
-            string actual = vec256.MoveMask().ToString("b32");
+            expected = vec256.ExtractMostSignificantBits().ToString("b32");
+            actual = vec256.MoveMask().ToString("b32");
             Assert.Equal(expected, actual);
 
             Vector512<byte> vec512 = Vector512.GreaterThan(Vector512.Create((byte)127), Vector512.Create(bytes, 0));
@@ -88,30 +100,5 @@ public static class NeonTests
             Assert.Equal(expectedZ, z.ToString("b32"));
             Assert.Equal(expectedW, w.ToString("b32"));
         }
-    }
-
-    [Theory, MemberData(nameof(SignBits))]
-    public static void Should_Load_Int_Sign_Bits_To_Masks(int[] data)
-    {
-        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
-
-        byte[] expected = data.Select(i => (byte)(i < 0 ? 0xFF : 0x00)).ToArray();
-        Vector256<byte> result = AsciiVector.LoadInt32SignsToByteMasksARM(ref data[0], 0);
-        byte[] actual = new byte[32];
-        result.CopyTo(actual);
-        Assert.Equal(expected, actual);
-    }
-
-    public static TheoryData<int[]> SignBits()
-    {
-        return new()
-        {
-            new int[32],
-            Enumerable.Range(0, 32).Select(i => i % 2 == 0 ? -1 : 0).ToArray(),
-            Enumerable.Range(0, 32).Select(i => i % 5 == 0 ? -1 : 0).ToArray(),
-            Enumerable.Range(0, 32).Select(i => i % 7 == 0 ? -1 : 0).ToArray(),
-            Enumerable.Range(0, 32).Select(i => i % 11 == 0 ? -1 : 0).ToArray(),
-            Enumerable.Range(0, 32).Select(_ => -1).ToArray(),
-        };
     }
 }

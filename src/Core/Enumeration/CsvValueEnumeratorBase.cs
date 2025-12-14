@@ -107,30 +107,26 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     internal override bool MoveNextCore(RecordView view)
     {
         CsvReader<T> reader = _reader;
-        CsvRecordRef<T> record = new(
-            reader,
-            reader._recordBuffer,
-            ref MemoryMarshal.GetReference(_reader._buffer.Span),
-            view
-        );
+        CsvRecordRef<T> record = new(reader, ref MemoryMarshal.GetReference(_reader._buffer.Span), view);
 
-        if (_materializer is null && InitializeMaterializerAndTryConsume(in record))
+        if (_materializer is null && InitializeMaterializerAndTryConsume(record))
         {
             return false;
         }
 
         try
         {
-            Current = _materializer.Parse(in record);
+            Current = _materializer.Parse(record);
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            cfe.Enrich(Line, Position, view, reader);
+            cfe.Enrich(Line, GetStartPosition(view), record);
             throw;
         }
         catch (Exception ex)
         {
-            (ex as CsvReadExceptionBase)?.Enrich(Line, Position, view, reader);
+            long position = GetStartPosition(view);
+            (ex as CsvReadExceptionBase)?.Enrich(Line, position, record);
             (ex as CsvParseException)?.WithHeader(Headers);
 
             CsvExceptionHandler<T>? handler = _exceptionHandler;
@@ -142,7 +138,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                         Headers,
                         ex,
                         Line,
-                        Position,
+                        position,
                         (ex as CsvReadException)?.ExpectedFieldCount
                     )
                 ) == true
@@ -165,7 +161,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <c>true</c> if the record was consumed, <c>false</c> otherwise.
     /// </returns>
     [MemberNotNull(nameof(_materializer))]
-    private bool InitializeMaterializerAndTryConsume(ref readonly CsvRecordRef<T> record)
+    private bool InitializeMaterializerAndTryConsume(CsvRecordRef<T> record)
     {
         if (!Options.HasHeader)
         {
@@ -176,7 +172,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         StringScratch scratch = default;
         using ValueListBuilder<string> list = new(scratch);
 
-        Headers = CsvHeader.Parse(in record);
+        Headers = CsvHeader.Parse(record);
         _materializer = BindToHeaders(Headers);
         return true;
     }

@@ -23,8 +23,8 @@ public class RecordBufferTests
 
         Assert.True(buffer.TryPop(out var view));
         Assert.Equal(0, view.Start);
-        Assert.Equal(5, view.Count);
-        Assert.Equal(9, view.GetLengthWithNewline(buffer)); // 7 + CRLF
+        Assert.Equal(4, view.Length);
+        Assert.Equal(9, buffer.GetLengthWithNewline(view)); // 7 + CRLF
 
         // first 8 (+ 0 at start) were read
         Assert.Equal(bufferSize - 9, buffer.GetUnreadBuffer(0, out int startIndex).Fields.Length);
@@ -39,8 +39,8 @@ public class RecordBufferTests
         buffer.SetFieldsRead(1);
         Assert.True(buffer.TryPop(out view));
         Assert.Equal(0, view.Start);
-        Assert.Equal(2, view.Count);
-        Assert.Equal(43, view.GetLengthWithNewline(buffer)); // 41 + CRLF
+        Assert.Equal(1, view.Length);
+        Assert.Equal(43, buffer.GetLengthWithNewline(view)); // 41 + CRLF
     }
 
     [Fact]
@@ -59,12 +59,85 @@ public class RecordBufferTests
 
         Assert.True(rb.TryPop(out var view));
         Assert.Equal(0, view.Start);
-        Assert.Equal(4 + 1, view.Count); // start offset, needed anymore?
+        Assert.Equal(4, view.Length);
 
         int dataRead = rb.Reset();
         Assert.Equal(4 + 2, dataRead); // trailing CRLF
 
         // all quotes should be cleared
         Assert.Equal(-1, rb._quotes.IndexOfAnyExcept((byte)0));
+    }
+
+    [Fact]
+    public void Should_Set_Fields_Read()
+    {
+        using var rb = new RecordBuffer();
+
+        FieldBuffer dst = rb.GetUnreadBuffer(0, out int start);
+
+        // use a large prime so tail handling is tested
+        const int count = 1051;
+
+        for (int i = 0; i < count; i++)
+        {
+            uint value = (uint)((i + 1) * 3);
+
+            if (i % 5 == 0)
+            {
+                value |= Field.IsEOL;
+            }
+
+            dst.Fields[i] = value;
+
+            if (i % 3 == 0)
+            {
+                dst.Quotes[i] = (byte)2;
+            }
+            else if (i % 7 == 0)
+            {
+                dst.Quotes[i] = (byte)4;
+            }
+        }
+
+        int records = rb.SetFieldsRead(count);
+
+        string[] packed;
+
+        if (System.Diagnostics.Debugger.IsAttached)
+        {
+            packed = rb
+                ._bits.Take(count)
+                .Select(x =>
+                {
+                    var s = ((int)x).ToString().PadLeft(5, ' ');
+                    var e = (((int)(x >> 32)) & (int)Field.EndMask).ToString().PadLeft(5, ' ');
+                    return $"{s},{e}";
+                })
+                .ToArray();
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            ulong v = rb._bits[i];
+
+            int s = (int)rb._bits[i];
+            int e = (int)(rb._bits[i] >> 32) & (int)Field.EndMask;
+
+            Assert.Equal((i * 3 + (i == 0 ? 0 : 1)), s);
+            Assert.Equal(((i + 1) * 3), e);
+
+            if (i % 3 == 0)
+            {
+                Assert.Equal(0b10UL, v >> 62);
+            }
+            else if (i % 7 == 0)
+            {
+                Assert.Equal(0b11UL, v >> 62);
+            }
+            else
+            {
+                Assert.Equal(0UL, (v >> 62));
+            }
+        }
     }
 }

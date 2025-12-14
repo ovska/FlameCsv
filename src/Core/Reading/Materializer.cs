@@ -29,7 +29,7 @@ internal abstract class Materializer<T, TValue> : IMaterializer<T, TValue>
         return binding.ResolveConverter<T, TConverted>(options) ?? options.GetConverter<TConverted>();
     }
 
-    public abstract TValue Parse(scoped ref readonly CsvRecordRef<T> record);
+    public abstract TValue Parse(CsvRecordRef<T> record);
 
     protected virtual (Type type, object converter) GetExceptionMetadata(int index) => (typeof(void), new object());
 

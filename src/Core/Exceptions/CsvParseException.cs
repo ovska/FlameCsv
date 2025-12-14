@@ -161,18 +161,18 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
         }
     }
 
-    internal override void Enrich<T>(int line, long position, RecordView view, CsvReader<T> reader)
+    internal override void Enrich<T>(int line, long position, CsvRecordRef<T> record)
     {
-        base.Enrich(line, position, view, reader);
+        base.Enrich(line, position, record);
 
-        if (FieldIndex is { } index && (uint)index < (uint)view.FieldCount)
+        if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {
-            (int recordStart, _) = view.GetRecordBounds(reader._recordBuffer);
-            (int fieldStart, _) = view.GetFieldBounds(reader._recordBuffer, index);
+            int recordStart = (int)(uint)record._bits[0];
+            int fieldStart = (int)(uint)record._bits[index];
             int offset = fieldStart - recordStart;
 
             FieldPosition ??= position + offset;
-            FieldValue ??= view.GetField(reader, index).AsPrintableString();
+            FieldValue ??= record[index].AsPrintableString();
         }
     }
 }

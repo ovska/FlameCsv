@@ -12,6 +12,19 @@ namespace FlameCsv.Extensions;
 internal static class UtilityExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ReadOnlySpan<ulong> AsSpanUnsafe(this ArraySegment<ulong> segment)
+    {
+        ulong[] array = segment.Array!;
+        int start = segment.Offset;
+        int length = segment.Count;
+
+        return MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), (uint)start),
+            length
+        );
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCRLF(this CsvNewline newline)
     {
         // hoisting the check to a local allows JIT to "see" the constant and eliminate one jump instruction

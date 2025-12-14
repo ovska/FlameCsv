@@ -28,7 +28,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     /// <summary>
     /// Parses fields as strings from the specified record.
     /// </summary>
-    public static ImmutableArray<string> Parse<T>(ref readonly CsvRecordRef<T> record)
+    public static ImmutableArray<string> Parse<T>(CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (record.FieldCount == 0)
