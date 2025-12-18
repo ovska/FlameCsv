@@ -18,24 +18,14 @@ public static class MaterializerKeyTests
     [Theory, MemberData(nameof(ReadData))]
     public static void Should_Be_Equatable_Read_Reflection(bool ignoreUnmatched, string[] headers)
     {
-        MaterializerKey key = new(
-            StringComparer.OrdinalIgnoreCase,
-            typeof(object),
-            ignoreUnmatched,
-            headers.ToImmutableArray()
-        );
-        MaterializerKey key2 = new(
-            StringComparer.OrdinalIgnoreCase,
-            typeof(object),
-            ignoreUnmatched,
-            headers.ToImmutableArray()
-        );
+        MaterializerKey key = new(ignoreCase: true, typeof(object), ignoreUnmatched, headers.ToImmutableArray());
+        MaterializerKey key2 = new(ignoreCase: true, typeof(object), ignoreUnmatched, headers.ToImmutableArray());
         Assert.Equal(key, key2);
         Assert.Equal(key.GetHashCode(), key2.GetHashCode());
         Assert.True(key.Equals((object)key2));
 
         MaterializerKey invalidKey = new(
-            StringComparer.OrdinalIgnoreCase,
+            ignoreCase: true,
             typeof(object),
             !ignoreUnmatched,
             headers.ToImmutableArray()
@@ -43,20 +33,15 @@ public static class MaterializerKeyTests
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(StringComparer.Ordinal, typeof(object), ignoreUnmatched, headers.ToImmutableArray());
+        invalidKey = new(ignoreCase: false, typeof(object), ignoreUnmatched, headers.ToImmutableArray());
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(StringComparer.OrdinalIgnoreCase, typeof(string), ignoreUnmatched, headers.ToImmutableArray());
+        invalidKey = new(ignoreCase: true, typeof(string), ignoreUnmatched, headers.ToImmutableArray());
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(
-            StringComparer.OrdinalIgnoreCase,
-            typeof(object),
-            ignoreUnmatched,
-            headers.ToImmutableArray().Add("extra")
-        );
+        invalidKey = new(ignoreCase: true, typeof(object), ignoreUnmatched, headers.ToImmutableArray().Add("extra"));
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
     }
@@ -66,14 +51,14 @@ public static class MaterializerKeyTests
     {
         var tm1 = new FakeTypeMap();
         var tm2 = new AnotherFakeTypeMap();
-        MaterializerKey key = new(StringComparer.OrdinalIgnoreCase, tm1, ignoreUnmatched, headers.ToImmutableArray());
-        MaterializerKey key2 = new(StringComparer.OrdinalIgnoreCase, tm1, ignoreUnmatched, headers.ToImmutableArray());
+        MaterializerKey key = new(ignoreCase: true, tm1, ignoreUnmatched, headers.ToImmutableArray());
+        MaterializerKey key2 = new(ignoreCase: true, tm1, ignoreUnmatched, headers.ToImmutableArray());
         Assert.Equal(key, key2);
         Assert.Equal(key.GetHashCode(), key2.GetHashCode());
         Assert.True(key.Equals((object)key2));
 
         MaterializerKey invalidKey = new(
-            StringComparer.OrdinalIgnoreCase,
+            ignoreCase: true,
             new FakeTypeMap(),
             !ignoreUnmatched,
             headers.ToImmutableArray()
@@ -81,16 +66,11 @@ public static class MaterializerKeyTests
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(StringComparer.Ordinal, tm1, ignoreUnmatched, headers.ToImmutableArray());
+        invalidKey = new(ignoreCase: false, tm1, ignoreUnmatched, headers.ToImmutableArray());
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
 
-        invalidKey = new(
-            StringComparer.OrdinalIgnoreCase,
-            tm1,
-            ignoreUnmatched,
-            headers.ToImmutableArray().Add("extra")
-        );
+        invalidKey = new(ignoreCase: true, tm1, ignoreUnmatched, headers.ToImmutableArray().Add("extra"));
         Assert.NotEqual(key, invalidKey);
         Assert.NotEqual(key.GetHashCode(), invalidKey.GetHashCode());
     }

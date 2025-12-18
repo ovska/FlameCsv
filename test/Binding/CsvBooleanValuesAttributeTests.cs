@@ -171,22 +171,6 @@ public static class CsvBooleanValuesAttributeTests
         Assert.False(parsed.HasValue);
     }
 
-    [Fact]
-    public static void Should_Validate_Options()
-    {
-        var opts = new CsvOptions<char> { BooleanValues = { ("t", true), ("f", false) } };
-
-        Assert.ThrowsAny<CsvConfigurationException>(() =>
-            new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.CurrentCulture })
-        );
-
-        // no exception
-        _ = new CustomBooleanConverter<char>(new CsvOptions<char>(opts) { Comparer = StringComparer.Ordinal });
-        _ = new CustomBooleanConverter<char>(
-            new CsvOptions<char>(opts) { Comparer = StringComparer.OrdinalIgnoreCase }
-        );
-    }
-
     private sealed class NotAlternateComparer : IEqualityComparer<string>
     {
         public bool Equals(string? x, string? y) => String.Equals(x, y);

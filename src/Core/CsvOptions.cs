@@ -88,7 +88,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         _providers = other._providers?.Clone();
         _formats = other._formats?.Clone();
         _styles = other._styles?.Clone();
-        _comparer = other._comparer;
+        _normalizeHeader = other._normalizeHeader;
 
         _enumFormat = other._enumFormat;
         _enumFlagsSeparator = other._enumFlagsSeparator;
@@ -205,7 +205,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         return _styles.TryGetExt(resultType, defaultValue);
     }
 
-    private Config _config = Config.HasHeader | Config.UseDefaultConverters | Config.IgnoreEnumCase;
+    private Config _config =
+        Config.HasHeader | Config.UseDefaultConverters | Config.IgnoreEnumCase | Config.IgnoreHeaderCase;
 
     private CsvRecordCallback<T>? _recordCallback;
     private CsvExceptionHandler<T>? _exceptionHandler;
@@ -213,8 +214,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
     private SealableList<(string, bool)>? _booleanValues;
     private ICsvTypeBinder<T>? _typeBinder;
-
-    private IEqualityComparer<string> _comparer = StringComparer.OrdinalIgnoreCase;
+    private Func<ReadOnlySpan<char>, string>? _normalizeHeader;
 
     private Utf8String? _null;
     private TypeStringDictionary? _nullTokens;
@@ -283,26 +283,12 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
-    /// String comparer used to match CSV headers and <see cref="BooleanValues"/>.
-    /// Default is <see cref="StringComparer.OrdinalIgnoreCase"/>.
-    /// </summary>
-    public IEqualityComparer<string> Comparer
-    {
-        get => _comparer;
-        set
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            this.SetValue(ref _comparer, value);
-        }
-    }
-
-    /// <summary>
     /// Delegate that is called for each record before it is processed.
     /// Can be used to skip records or reset the header.
     /// </summary>
     /// <remarks>
     /// All records are expected to be valid CSV, so even if the callback skips a record (e.g. starting with <c>#</c>),
-    /// it must still have valid CSV structure.
+    /// it must still have valid CSV structure, and control characters like delimiters and quotes are NOT ignored.
     /// </remarks>
     public CsvRecordCallback<T>? RecordCallback
     {
@@ -376,6 +362,31 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     }
 
     /// <summary>
+    /// Whether to ignore case when matching enum values. Default is <c>true</c>.
+    /// </summary>
+    /// <seealso cref="NormalizeHeader"/>
+    public bool IgnoreHeaderCase
+    {
+        get => _config.GetFlag(Config.IgnoreHeaderCase);
+        set
+        {
+            this.ThrowIfReadOnly();
+            _config.SetFlag(Config.IgnoreHeaderCase, value);
+        }
+    }
+
+    /// <summary>
+    /// Function used to normalize header values when reading the header record.<br/>
+    /// The default is <c>null</c>, which uses the header value as-is.
+    /// </summary>
+    /// <seealso cref="IgnoreHeaderCase"/>
+    public Func<ReadOnlySpan<char>, string>? NormalizeHeader
+    {
+        get => _normalizeHeader;
+        set => this.SetValue(ref _normalizeHeader, value);
+    }
+
+    /// <summary>
     /// Whether to ignore headers that cannot be matched to any property, field, or constructor parameter.
     /// Default is <c>false</c>, which throws an exception if an unrecognized header field is encountered.
     /// </summary>
@@ -391,7 +402,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     /// <summary>
     /// Whether to ignore CSV headers that match to the same property, field, or constructor parameter
-    /// as another header. If <c>true</c>, only the first member that matches a header is used.
+    /// as another header. If <c>true</c>, only the last match is used.
     /// Default is <c>false</c>, which throws an exception if a duplicate header is encountered.
     /// </summary>
     public bool IgnoreDuplicateHeaders
@@ -436,6 +447,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         AllowUndefinedEnums = 1 << 3,
         IgnoreUnmatchedHeaders = 1 << 4,
         IgnoreDuplicateHeaders = 1 << 5,
+        IgnoreHeaderCase = 1 << 6,
     }
 }
 

@@ -30,7 +30,7 @@ partial class TypeMapGenerator
             writer.WriteLine("TypeMapMaterializer materializer = new TypeMapMaterializer(headerSpan.Length);");
             writer.WriteLine();
             writer.WriteLine(
-                "global::System.Collections.Generic.IEqualityComparer<string> comparer = options.Comparer;"
+                "global::System.StringComparison comparison = options.IgnoreHeaderCase ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal;"
             );
             writer.WriteLine("bool anyBound = false;");
             writer.WriteLine();
@@ -468,14 +468,14 @@ partial class TypeMapGenerator
             _ = enumerator.MoveNext(); // must succeed
 
             writer.WriteLine("// Ignored headers");
-            writer.Write($"if (comparer.Equals(name, {enumerator.Current.ToStringLiteral()}");
+            writer.Write($"if ({enumerator.Current.ToStringLiteral()}.Equals(name, comparison)");
 
             writer.IncreaseIndent();
 
             while (enumerator.MoveNext())
             {
                 writer.WriteLine(") ||");
-                writer.Write($"comparer.Equals(name, {enumerator.Current.ToStringLiteral()}");
+                writer.Write($"{enumerator.Current.ToStringLiteral()}.Equals(name, comparison)");
             }
 
             writer.DecreaseIndent();
@@ -496,12 +496,12 @@ partial class TypeMapGenerator
             writer.WriteLine();
             writer.Write("if (");
             writer.IncreaseIndent();
-            writer.Write($"comparer.Equals(name, {member.HeaderName.ToStringLiteral()})");
+            writer.Write($"{member.HeaderName.ToStringLiteral()}.Equals(name, comparison)");
 
             foreach (string name in member.Aliases)
             {
                 writer.WriteLine(" ||");
-                writer.Write($"comparer.Equals(name, {name.ToStringLiteral()})");
+                writer.Write($"{name.ToStringLiteral()}.Equals(name, comparison)");
             }
 
             writer.DecreaseIndent();
@@ -524,7 +524,7 @@ partial class TypeMapGenerator
                 {
                     writer.Write("base.ThrowDuplicate(");
                     writer.Write(member.HeaderName.ToStringLiteral());
-                    writer.WriteLine(", name, headers, comparer);");
+                    writer.WriteLine(", name, headers);");
                 }
 
                 writer.WriteLine();

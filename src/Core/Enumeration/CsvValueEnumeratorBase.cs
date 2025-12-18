@@ -61,7 +61,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
                 Throw.NotSupported_CsvHasNoHeader();
             }
 
-            if (value.IsDefaultOrEmpty || !Headers.AsSpan().SequenceEqual(value.AsSpan(), Options.Comparer))
+            if (value.IsDefaultOrEmpty || !Headers.AsSpan().SequenceEqual(value.AsSpan(), StringComparer.Ordinal))
             {
                 field = value;
                 _materializer = null;

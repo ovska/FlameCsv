@@ -14,14 +14,14 @@ internal readonly struct MaterializerKey : IEquatable<MaterializerKey>
 
     private readonly object _target;
     private readonly Flags _flags;
-    private readonly IEqualityComparer<string> _comparer;
+    private readonly bool _ignoreCase;
     private readonly ImmutableArray<string> _headers;
 
     public MaterializerKey(Type writtenType)
     {
         _target = writtenType;
         _flags = Flags.Write;
-        _comparer = ReferenceEqualityComparer.Instance;
+        _ignoreCase = false;
         _headers = [];
     }
 
@@ -29,33 +29,23 @@ internal readonly struct MaterializerKey : IEquatable<MaterializerKey>
     {
         _target = writtenTypeMap;
         _flags = Flags.Write;
-        _comparer = ReferenceEqualityComparer.Instance;
+        _ignoreCase = false;
         _headers = [];
     }
 
-    public MaterializerKey(
-        IEqualityComparer<string> comparer,
-        CsvTypeMap target,
-        bool ignoreUnmatched,
-        ImmutableArray<string> headers
-    )
+    public MaterializerKey(bool ignoreCase, CsvTypeMap target, bool ignoreUnmatched, ImmutableArray<string> headers)
     {
         _target = target;
         _flags = (ignoreUnmatched ? Flags.IgnoreUnmatched : Flags.None);
-        _comparer = comparer;
+        _ignoreCase = ignoreCase;
         _headers = headers;
     }
 
-    public MaterializerKey(
-        IEqualityComparer<string> comparer,
-        Type target,
-        bool ignoreUnmatched,
-        ImmutableArray<string> headers
-    )
+    public MaterializerKey(bool ignoreCase, Type target, bool ignoreUnmatched, ImmutableArray<string> headers)
     {
         _target = target;
         _flags = (ignoreUnmatched ? Flags.IgnoreUnmatched : Flags.None);
-        _comparer = comparer;
+        _ignoreCase = ignoreCase;
         _headers = headers;
     }
 
@@ -63,8 +53,8 @@ internal readonly struct MaterializerKey : IEquatable<MaterializerKey>
     {
         return _flags == other._flags
             && _target.Equals(other._target)
-            && _comparer.Equals(other._comparer)
-            && _headers.AsSpan().SequenceEqual(other._headers.AsSpan(), _comparer);
+            && _ignoreCase == other._ignoreCase
+            && _headers.AsSpan().SequenceEqual(other._headers.AsSpan(), Comparer);
     }
 
     public override bool Equals(object? obj) => obj is MaterializerKey ck && Equals(ck);
@@ -74,7 +64,7 @@ internal readonly struct MaterializerKey : IEquatable<MaterializerKey>
         HashCode hash = new();
         hash.Add(_target);
         hash.Add(_flags);
-        hash.Add(_comparer);
+        hash.Add(_ignoreCase);
 
         if (!_headers.IsDefault)
         {
@@ -82,10 +72,12 @@ internal readonly struct MaterializerKey : IEquatable<MaterializerKey>
 
             foreach (var header in _headers)
             {
-                hash.Add(header, _comparer);
+                hash.Add(header, Comparer);
             }
         }
 
         return hash.ToHashCode();
     }
+
+    private StringComparer Comparer => _ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 }

@@ -1,11 +1,10 @@
 ﻿using System.Collections.Immutable;
-using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
@@ -19,11 +18,10 @@ namespace FlameCsv;
 public sealed class CsvHeader : IEquatable<CsvHeader>
 {
     /// <summary>
-    /// Contains the string pool for header values.
+    /// A shared string pool for unnormalized header values.
     /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
     [CLSCompliant(false)]
-    public static StringPool HeaderPool { get; } = new StringPool(minimumSize: 128);
+    public static StringPool HeaderPool { get; } = new();
 
     /// <summary>
     /// Parses fields as strings from the specified record.
@@ -31,32 +29,57 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     public static ImmutableArray<string> Parse<T>(CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
-        if (record.FieldCount == 0)
+        if (record._owner is null)
+            Throw.Argument_DefaultStruct(typeof(CsvRecordRef<T>), nameof(record));
+
+        string[] result = new string[record.FieldCount];
+
+        if (typeof(T) == typeof(char))
         {
-            CsvFormatException.Throw("CSV header was empty");
+            ref var rec = ref Unsafe.As<CsvRecordRef<T>, CsvRecordRef<char>>(ref record);
+            CsvOptions<char> options = rec._owner.Options;
+
+            for (int i = 0; i < rec.FieldCount; i++)
+            {
+                ReadOnlySpan<char> field = rec[i];
+                result[i] =
+                    options.NormalizeHeader is not null ? options.NormalizeHeader(field)
+                    : field.Length > (EnumeratorStack.Length / sizeof(char)) ? new string(field)
+                    : HeaderPool.GetOrAdd(field);
+            }
+
+            return ImmutableCollectionsMarshal.AsImmutableArray(result);
         }
 
-        StringScratch scratch = default;
-        using ValueListBuilder<string> list = new(scratch);
-        EnumeratorStack stack = new();
-        Span<char> buffer = MemoryMarshal.Cast<byte, char>((Span<byte>)stack);
-
-        for (int field = 0; field < record.FieldCount; field++)
+        if (typeof(T) == typeof(byte))
         {
-            ReadOnlySpan<T> value = record[field];
-            string result = Transcode.TryToChars(value, buffer, out int length)
-                ? HeaderPool.GetOrAdd(buffer.Slice(0, length))
-                : Transcode.ToString(value);
-            list.Append(result);
+            ref var rec = ref Unsafe.As<CsvRecordRef<T>, CsvRecordRef<byte>>(ref record);
+            CsvOptions<byte> options = rec._owner.Options;
+
+            EnumeratorStack stack = default;
+            Span<char> buffer = MemoryMarshal.Cast<byte, char>((Span<byte>)stack);
+
+            for (int i = 0; i < rec.FieldCount; i++)
+            {
+                ReadOnlySpan<byte> field = rec[i];
+
+                if (Encoding.UTF8.TryGetChars(field, buffer, out int charCount))
+                {
+                    Span<char> slice = buffer.Slice(0, charCount);
+                    result[i] = options.NormalizeHeader?.Invoke(slice) ?? HeaderPool.GetOrAdd(slice);
+                }
+                else
+                {
+                    string value = Encoding.UTF8.GetString(field);
+                    result[i] = options.NormalizeHeader?.Invoke(value) ?? value;
+                }
+            }
+
+            return ImmutableCollectionsMarshal.AsImmutableArray(result);
         }
 
-        return [.. list.AsSpan()];
+        throw Token<T>.NotSupported;
     }
-
-    /// <summary>
-    /// The comparer used to compare header values.
-    /// </summary>
-    public IEqualityComparer<string> Comparer { get; }
 
     /// <summary>
     /// Returns the header values.
@@ -64,28 +87,33 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     public ImmutableArray<string> Values { get; }
 
     private readonly int[] _hashCodes;
+    private readonly bool _ignoreCase;
+
+    private StringComparison Comparison => _ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeader"/> class.
     /// </summary>
-    /// <param name="comparer">Comparer to use</param>
+    /// <param name="ignoreCase">Whether to ignore case when comparing headers</param>
     /// <param name="header">Header values</param>
-    public CsvHeader(IEqualityComparer<string> comparer, ImmutableArray<string> header)
+    public CsvHeader(bool ignoreCase, ImmutableArray<string> header)
     {
-        ArgumentNullException.ThrowIfNull(comparer);
-
         if (header.IsDefaultOrEmpty)
             Throw.DefaultOrEmptyImmutableArray(nameof(header));
 
         _hashCodes = new int[header.Length];
+        _ignoreCase = ignoreCase;
 
         for (int i = 0; i < header.Length; i++)
         {
-            ArgumentNullException.ThrowIfNull(header[i], nameof(header));
-            _hashCodes[i] = comparer.GetHashCode(header[i]);
+            if (header[i] is null)
+            {
+                Throw.ArgumentNull($"header[{i}]");
+            }
+
+            _hashCodes[i] = header[i].GetHashCode(Comparison);
         }
 
-        Comparer = comparer;
         Values = header;
     }
 
@@ -95,8 +123,8 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     public CsvHeader(CsvHeader other)
     {
         ArgumentNullException.ThrowIfNull(other);
-        Comparer = other.Comparer;
         Values = other.Values;
+        _ignoreCase = other._ignoreCase;
         _hashCodes = other._hashCodes; // this should be safe as the values are private and immutable
     }
 
@@ -108,13 +136,13 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        int hash = Comparer.GetHashCode(key);
+        int hash = key.GetHashCode(Comparison);
         int[] hashCodes = _hashCodes;
         ReadOnlySpan<string> values = Values.AsSpan();
 
         for (int index = 0; index < hashCodes.Length; index++)
         {
-            if (hashCodes[index] == hash && Comparer.Equals(values[index], key))
+            if (hashCodes[index] == hash && values[index].Equals(key, Comparison))
             {
                 return true;
             }
@@ -130,12 +158,12 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        int hash = Comparer.GetHashCode(key);
+        int hash = key.GetHashCode(Comparison);
         ReadOnlySpan<string> values = Values.AsSpan();
 
         for (int index = 0; index < values.Length; index++)
         {
-            if (_hashCodes[index] == hash && Comparer.Equals(values[index], key))
+            if (_hashCodes[index] == hash && values[index].Equals(key, Comparison))
             {
                 value = index;
                 return true;
@@ -155,10 +183,8 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         if (ReferenceEquals(this, other))
             return true;
 
-        if (!Equals(other.Comparer, Comparer))
-            return false;
-
-        return Values.AsSpan().SequenceEqual(other.Values.AsSpan(), Comparer);
+        return _ignoreCase == other._ignoreCase
+            && Values.AsSpan().SequenceEqual(other.Values.AsSpan(), StringComparer.FromComparison(Comparison));
     }
 
     /// <inheritdoc/>
@@ -169,10 +195,10 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     {
         HashCode hash = new();
 
+        hash.Add(_ignoreCase ? 1 : 0);
+
         // we need to add the hash comparer as well; Ordinal and OrdinalIgnoreCase comparers return same hashes
         // for many inputs, which would break the equality contract
-        hash.Add(Comparer.GetHashCode());
-
         for (int i = 0; i < _hashCodes.Length; i++)
         {
             hash.Add(_hashCodes[i]);

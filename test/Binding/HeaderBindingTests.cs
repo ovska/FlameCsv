@@ -18,7 +18,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Bind_Using_Assembly_Attributes()
     {
-        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { IgnoreHeaderCase = false });
         var materializer = binder.GetMaterializer<AssemblyScoped>(["_id", "_name"]);
 
         var record = ConstantRecord.Create("5", "Test");
@@ -31,7 +31,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Ctor_Parameter()
     {
-        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { IgnoreHeaderCase = false });
         var materializer = binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]);
         var record = ConstantRecord.Create("Test", "true");
         var result = materializer.Parse(record);
@@ -46,7 +46,7 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Bind_To_Properties()
     {
-        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { Comparer = StringComparer.Ordinal });
+        var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { IgnoreHeaderCase = false });
 
         var materializer = binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]);
 

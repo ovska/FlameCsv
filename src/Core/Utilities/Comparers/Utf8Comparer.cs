@@ -3,24 +3,17 @@ using FlameCsv.Reflection;
 
 namespace FlameCsv.Utilities.Comparers;
 
-internal sealed class Utf8Comparer
+internal sealed class Utf8Comparer(StringComparer comparer)
     : IEqualityComparer<StringLike>,
         IEqualityComparer<string>,
         IAlternateEqualityComparer<ReadOnlySpan<byte>, StringLike>,
         IAlternateEqualityComparer<ReadOnlySpan<byte>, string>
 {
-    public static Utf8Comparer Ordinal { get; } = new(ignoreCase: false);
-    public static Utf8Comparer OrdinalIgnoreCase { get; } = new(ignoreCase: true);
+    public static Utf8Comparer Ordinal { get; } = new(StringComparer.Ordinal);
+    public static Utf8Comparer OrdinalIgnoreCase { get; } = new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly IAlternateEqualityComparer<ReadOnlySpan<char>, string?> _comparer;
-
-    private Utf8Comparer(bool ignoreCase)
-    {
-        _comparer =
-            (IAlternateEqualityComparer<ReadOnlySpan<char>, string?>)(
-                ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal
-            );
-    }
+    private readonly IAlternateEqualityComparer<ReadOnlySpan<char>, string?> _comparer =
+        (IAlternateEqualityComparer<ReadOnlySpan<char>, string?>)comparer;
 
     public bool Equals(StringLike x, StringLike y) => _comparer.Equals(x, y);
 

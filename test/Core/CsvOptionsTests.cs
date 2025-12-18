@@ -305,7 +305,8 @@ public class CsvOptionsTests
         Run(o => o.RecordCallback = null);
         Run(o => o.NullTokens[typeof(int)] = "");
         Run(o => o.HasHeader = false);
-        Run(o => o.Comparer = StringComparer.Ordinal);
+        Run(o => o.NormalizeHeader = null);
+        Run(o => o.IgnoreHeaderCase = true);
         Run(o => o.Converters[0] = new BooleanTextConverter());
         Run(o => o.Converters.Add(new BooleanTextConverter()));
         Run(o => o.Converters.Insert(0, new BooleanTextConverter()));

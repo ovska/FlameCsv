@@ -194,7 +194,7 @@ public sealed partial class CsvRecordEnumerator<T>
     {
         _position = GetEndPosition(view);
         CsvRecordRef<T> record = new(_reader, view);
-        Header = new CsvHeader(Options.Comparer, CsvHeader.Parse(record));
+        Header = new CsvHeader(Options.IgnoreHeaderCase, CsvHeader.Parse(record));
     }
 
     [DoesNotReturn]

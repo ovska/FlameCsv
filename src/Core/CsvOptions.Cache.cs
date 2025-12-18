@@ -38,7 +38,7 @@ public partial class CsvOptions<T>
         MakeReadOnly();
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
-        MaterializerKey key = new(Comparer, typeof(TValue), IgnoreUnmatchedHeaders, headers);
+        MaterializerKey key = new(IgnoreHeaderCase, typeof(TValue), IgnoreUnmatchedHeaders, headers);
 
         if (!cache.TryGetValue(key, out object? materializer))
         {
@@ -58,7 +58,7 @@ public partial class CsvOptions<T>
         MakeReadOnly();
 
         TrimmingCache<MaterializerKey, object> cache = _bindingCache ?? InitializeBindingCache();
-        MaterializerKey key = new(Comparer, typeMap, IgnoreUnmatchedHeaders, headers);
+        MaterializerKey key = new(IgnoreHeaderCase, typeMap, IgnoreUnmatchedHeaders, headers);
 
         if (!cache.TryGetValue(key, out object? materializer))
         {

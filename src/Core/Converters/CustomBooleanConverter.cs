@@ -22,7 +22,7 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
         : this(
             options.BooleanValues.Where(v => v.value).Select(v => v.text),
             options.BooleanValues.Where(v => !v.value).Select(v => v.text),
-            GetIgnoreCaseFromOptions(options)
+            options.IgnoreHeaderCase
         ) { }
 
     internal CustomBooleanConverter(IEnumerable<string> trueValues, IEnumerable<string> falseValues, bool ignoreCase)
@@ -133,23 +133,6 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
                     (false, false) => Utf8Comparer.Ordinal,
                 }
             );
-    }
-
-    private static bool GetIgnoreCaseFromOptions(CsvOptions<T> options)
-    {
-        var comparer = options.Comparer;
-
-        if (Equals(comparer, StringComparer.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-        if (Equals(comparer, StringComparer.Ordinal))
-        {
-            return false;
-        }
-        throw new CsvConfigurationException(
-            "IgnoreCase must be defined, or CsvOptions.Comparer must be either Ordinal or OrdinalIgnoreCase.."
-        );
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -31,6 +31,8 @@ internal sealed class IgnoreCaseAsciiComparer
         if (alternate.IsEmpty)
             return 0;
 
+        // use a scalar impl instead of Ascii.ToLower as we expect most headers to be short
+
         ref byte first = ref MemoryMarshal.GetReference(alternate);
         nint index = 0;
         nint remaining = alternate.Length;

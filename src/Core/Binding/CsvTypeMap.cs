@@ -24,16 +24,11 @@ public abstract class CsvTypeMap
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    protected void ThrowDuplicate(
-        string member,
-        string field,
-        ImmutableArray<string> headers,
-        IEqualityComparer<string> comparer
-    )
+    protected void ThrowDuplicate(string member, string field, ImmutableArray<string> headers)
     {
         throw new CsvBindingException(
             TargetType,
-            $"\"{member}\" matched to multiple headers, including '{field}' using {comparer} in {JoinValues(headers)}."
+            $"\"{member}\" matched to multiple headers, including '{field}' in {JoinValues(headers)}."
         );
     }
 

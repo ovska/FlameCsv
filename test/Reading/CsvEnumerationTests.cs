@@ -250,7 +250,7 @@ public sealed class CsvEnumerationTests : IDisposable
                 .GetEnumerator();
 
             enumerator.MoveNext();
-            enumerator.Header = new(StringComparer.Ordinal, ["A", "B", "C"]);
+            enumerator.Header = new(true, ["A", "B", "C"]);
         });
     }
 
