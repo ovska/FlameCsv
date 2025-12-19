@@ -1,4 +1,3 @@
-#if false
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -56,45 +55,106 @@ namespace FlameCsv.Benchmark;
 
 public class UnescapeBench
 {
+    [Params(false, true)]
+    public bool Chars { get; set; }
+
     [Benchmark(Baseline = true)]
     public void RFC()
     {
-        Span<ushort> buffer = stackalloc ushort[512];
-
-        foreach (var f in _data)
+        if (Chars)
         {
-            Field.Unescape(
-                quote: '"',
-                destination: buffer,
-                source: MemoryMarshal.Cast<char, ushort>(f.AsSpan()),
-                quotesConsumed: 2
-            );
+            Span<ushort> buffer = stackalloc ushort[512];
+
+            foreach (var (f, c) in _data)
+            {
+                Field.Unescape(
+                    quote: '"',
+                    destination: buffer,
+                    source: MemoryMarshal.Cast<char, ushort>(f.AsSpan()),
+                    quotesConsumed: (uint)c
+                );
+            }
+        }
+        else
+        {
+            Span<byte> buffer = stackalloc byte[512];
+
+            foreach (var (f, c) in _dataBytes)
+            {
+                Field.Unescape(quote: (byte)'"', destination: buffer, source: f, quotesConsumed: (uint)c);
+            }
         }
     }
 
-    private readonly string[] _data;
+    [Benchmark]
+    public void NoCount()
+    {
+        if (Chars)
+        {
+            Span<ushort> buffer = stackalloc ushort[512];
+
+            foreach (var (f, c) in _data)
+            {
+                Field.Unescape(quote: '"', destination: buffer, source: MemoryMarshal.Cast<char, ushort>(f.AsSpan()));
+            }
+        }
+        else
+        {
+            Span<byte> buffer = stackalloc byte[512];
+
+            foreach (var (f, c) in _dataBytes)
+            {
+                Field.Unescape(quote: (byte)'"', destination: buffer, source: f);
+            }
+        }
+    }
+
+    private readonly (string, int)[] _data;
+    private readonly (byte[], int)[] _dataBytes;
 
     public UnescapeBench()
     {
-        using var reader = new CsvReader<char>(
+        using (
+            var readerChar = new CsvReader<char>(
+                new() { Newline = CsvNewline.LF },
+                CsvBufferReader.Create(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb_4x.csv"), Encoding.UTF8)
+            )
+        )
+        {
+            List<(string, int)> data = [];
+
+            foreach (var r in readerChar.ParseRecords())
+            {
+                for (int i = 0; i < r.FieldCount; i++)
+                {
+                    if (((r._bits[i] >> 62) & 1) != 0)
+                    {
+                        var value = r.GetRawSpan(i)[1..^1].ToString();
+                        data.Add((value, value.Count('"')));
+                    }
+                }
+            }
+            _data = [.. data];
+        }
+
+        List<(byte[], int)> dataBytes = [];
+        using var readerByte = new CsvReader<byte>(
             new() { Newline = CsvNewline.LF },
-            CsvBufferReader.Create(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb_4x.csv"), Encoding.UTF8)
+            CsvBufferReader.Create(File.OpenRead("Comparisons/Data/SampleCSVFile_556kb_4x.csv"))
         );
 
-        List<string> data = [];
-
-        foreach (var r in reader.ParseRecords())
+        foreach (var r in readerByte.ParseRecords())
         {
-            for (uint i = 0; i < r.FieldCount; i++)
+            for (int i = 0; i < r.FieldCount; i++)
             {
-                if (Unsafe.Add(ref r._quotes, i) > 2)
+                if (((r._bits[i] >> 62) & 1) != 0)
                 {
-                    data.Add(r.GetRawSpan((int)i)[1..^1].ToString());
+                    byte[] value = r.GetRawSpan(i)[1..^1].ToArray();
+                    dataBytes.Add((value, value.Count((byte)'"')));
                 }
             }
         }
 
-        _data = [.. data];
+        _dataBytes = [.. dataBytes];
     }
 }
-#endif
