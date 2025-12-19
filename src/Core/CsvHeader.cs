@@ -113,6 +113,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         ArgumentNullException.ThrowIfNull(other);
         Values = other.Values;
         _ignoreCase = other._ignoreCase;
+        _comparer = other._comparer;
         _hashCodes = other._hashCodes; // this should be safe as the values are private and immutable
     }
 

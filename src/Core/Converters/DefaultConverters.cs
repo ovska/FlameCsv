@@ -11,9 +11,14 @@ internal static class DefaultConverters
     // the span converter factory will create them if needed.
     // common types are included for better performance (avoiding reflection and generic instantiation at runtime)
 
+    private static readonly System.Reflection.Module _bclModule = typeof(string).Module;
+
     public static Func<CsvOptions<char>, CsvConverter<char>>? GetText(Type type)
     {
-        if (TextConverters.TryGetValue(type.MetadataToken, out var converterFactory))
+        if (
+            ReferenceEquals(type.Module, _bclModule)
+            && TextConverters.TryGetValue(type.MetadataToken, out var converterFactory)
+        )
         {
             return converterFactory;
         }
@@ -23,7 +28,10 @@ internal static class DefaultConverters
 
     public static Func<CsvOptions<byte>, CsvConverter<byte>>? GetUtf8(Type type)
     {
-        if (Utf8Converters.TryGetValue(type.MetadataToken, out var converterFactory))
+        if (
+            ReferenceEquals(type.Module, _bclModule)
+            && Utf8Converters.TryGetValue(type.MetadataToken, out var converterFactory)
+        )
         {
             return converterFactory;
         }
