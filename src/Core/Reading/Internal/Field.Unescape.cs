@@ -26,7 +26,6 @@ internal static partial class Field
 
         uint quotePairsRemaining = quotesConsumed / 2;
 
-        // leave 1 space for the second quote
         uint len = (uint)source.Length;
 
         scoped ref T src = ref MemoryMarshal.GetReference(source);

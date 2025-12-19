@@ -7,6 +7,64 @@ namespace FlameCsv.Tests.Reading;
 
 public static class UnescapeTests
 {
+    [Fact]
+    public static void Should_Unescape()
+    {
+        const int maxLen = 512;
+
+        Span<char> src = stackalloc char[maxLen];
+        Span<char> dst = stackalloc char[maxLen];
+        Span<byte> srcb = stackalloc byte[maxLen];
+        Span<byte> dstb = stackalloc byte[maxLen];
+
+        for (int iter = 0; iter < 256; iter++)
+        {
+            int len = Random.Shared.Next(2, src.Length - 1);
+            int i;
+
+            src.Slice(0, len).Fill('x');
+            src.Slice(len).Clear();
+
+            for (i = 0; i < len - 1; i++)
+            {
+                if (Random.Shared.NextDouble() < 0.1)
+                {
+                    src[i] = '"';
+                    src[++i] = '"';
+                }
+            }
+
+            Span<char> source = src.Slice(0, len);
+            int count = source.Count('"');
+
+            if (count == 0)
+                continue;
+
+            dst.Fill(char.MaxValue);
+
+            Field.Unescape<ushort>(
+                '"',
+                MemoryMarshal.Cast<char, ushort>(dst),
+                MemoryMarshal.Cast<char, ushort>(source),
+                (uint)count
+            );
+
+            string expected = source.ToString().Replace("\"\"", "\"");
+
+            Assert.Equal(expected, dst.Slice(0, expected.Length).ToString());
+            Assert.Equal(-1, dst.Slice(0, expected.Length).IndexOfAny('\0', char.MaxValue));
+
+            int byteLen = Encoding.UTF8.GetBytes(source, srcb);
+            dstb.Fill(byte.MaxValue);
+
+            Field.Unescape<byte>((byte)'"', dstb, srcb.Slice(0, byteLen), (uint)count);
+
+            // can use utf16 lengths, all data is ascii
+            Assert.Equal(expected, Encoding.UTF8.GetString(dstb.Slice(0, expected.Length)));
+            Assert.Equal(-1, dstb.Slice(0, expected.Length).IndexOfAny((byte)0, byte.MaxValue));
+        }
+    }
+
     public static readonly TheoryData<string, string> Entries =
     [
         .. Data.ReplaceLineEndings("\n")

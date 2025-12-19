@@ -61,7 +61,10 @@ internal static partial class Field
         int start = (int)bits;
         int end = (int)(bits >> 32) & (int)EndMask;
 
-        owner._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
+        if (owner._dialect.Trimming != 0)
+        {
+            owner._dialect.Trimming.TrimUnsafe(ref data, ref start, ref end);
+        }
 
         int length = end - start;
 
@@ -116,8 +119,9 @@ internal static partial class Field
         }
 
         int unescapedLength = fieldSpan.Length - (int)(quoteCount / 2);
+        Debug.Assert(unescapedLength >= 1, "Unescaped fields should not be empty.");
 
-        return buffer.Slice(0, unescapedLength);
+        return MemoryMarshal.CreateReadOnlySpan(ref MemoryMarshal.GetReference(buffer), unescapedLength);
 
         InvalidField:
         return Invalid(start, end, quoteCountByte, ref data);
