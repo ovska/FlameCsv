@@ -32,8 +32,6 @@ internal static partial class Field
     /// </summary>
     public const uint EndMask = 0x3FFFFFFF;
 
-    public const ulong NeedsUnescapingMask = 1ul << 62;
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int NextStart(uint field)
     {

@@ -92,18 +92,18 @@ internal static class ReadExtensions
 
         T space = T.CreateTruncating(' ');
 
-        if ((trimming & CsvFieldTrimming.Leading) != 0 && start < end && Unsafe.Add(ref data, (uint)start) == space)
+        if ((trimming & CsvFieldTrimming.Leading) != 0)
         {
-            for (start++; start < end; start++)
+            for (; start < end; start++)
             {
                 if (Unsafe.Add(ref data, (uint)start) != space)
                     break;
             }
         }
 
-        if ((trimming & CsvFieldTrimming.Trailing) != 0 && end > start && Unsafe.Add(ref data, (uint)end - 1u) == space)
+        if ((trimming & CsvFieldTrimming.Trailing) != 0)
         {
-            for (end--; end > start; end--)
+            for (; end > start; end--)
             {
                 if (Unsafe.Add(ref data, (uint)end - 1u) != space)
                     break;
