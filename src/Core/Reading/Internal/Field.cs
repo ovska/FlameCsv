@@ -90,14 +90,7 @@ internal static partial class Field
             return fieldSpan;
         }
 
-        RecordBuffer recordBuffer = owner._recordBuffer;
-        ref byte quoteRef = ref MemoryMarshal.GetArrayDataReference(recordBuffer._quotes);
-        nint byteOffset = Unsafe.ByteOffset(
-            in MemoryMarshal.GetArrayDataReference(recordBuffer._bits),
-            in MemoryMarshal.GetReference(record._bits)
-        );
-
-        quoteCountByte = Unsafe.Add(ref quoteRef, (byteOffset / sizeof(ulong)) + index + 1);
+        quoteCountByte = record.GetQuoteCount(index);
         Debug.Assert(quoteCountByte >= 2, "Quote count should be at least 2 for quoted fields.");
 
         uint quoteCount = quoteCountByte == byte.MaxValue ? (uint)fieldSpan.Count(quote) : (quoteCountByte - 2u);
