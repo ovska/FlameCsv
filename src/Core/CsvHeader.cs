@@ -2,14 +2,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using JetBrains.Annotations;
 
 namespace FlameCsv;
-
-// note: we don't _need_ to clear HeaderPool on hot-reload as the values are always the same
 
 /// <summary>
 /// Read-only CSV header record.
@@ -17,12 +14,6 @@ namespace FlameCsv;
 [PublicAPI]
 public sealed class CsvHeader : IEquatable<CsvHeader>
 {
-    /// <summary>
-    /// A shared string pool for unnormalized header values.
-    /// </summary>
-    [CLSCompliant(false)]
-    public static StringPool HeaderPool { get; } = new();
-
     /// <summary>
     /// Parses fields as strings from the specified record.
     /// </summary>
@@ -42,10 +33,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
             for (int i = 0; i < rec.FieldCount; i++)
             {
                 ReadOnlySpan<char> field = rec[i];
-                result[i] =
-                    options.NormalizeHeader is not null ? options.NormalizeHeader(field)
-                    : field.Length > (EnumeratorStack.Length / sizeof(char)) ? new string(field)
-                    : HeaderPool.GetOrAdd(field);
+                result[i] = options.NormalizeHeader?.Invoke(field) ?? field.ToString();
             }
 
             return ImmutableCollectionsMarshal.AsImmutableArray(result);
@@ -66,7 +54,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
                 if (Encoding.UTF8.TryGetChars(field, buffer, out int charCount))
                 {
                     Span<char> slice = buffer.Slice(0, charCount);
-                    result[i] = options.NormalizeHeader?.Invoke(slice) ?? HeaderPool.GetOrAdd(slice);
+                    result[i] = options.NormalizeHeader?.Invoke(slice) ?? slice.ToString();
                 }
                 else
                 {
@@ -88,8 +76,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
 
     private readonly int[] _hashCodes;
     private readonly bool _ignoreCase;
-
-    private StringComparison Comparison => _ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    private readonly StringComparer _comparer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CsvHeader"/> class.
@@ -103,6 +90,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
 
         _hashCodes = new int[header.Length];
         _ignoreCase = ignoreCase;
+        _comparer = ignoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
         for (int i = 0; i < header.Length; i++)
         {
@@ -111,7 +99,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
                 Throw.ArgumentNull($"header[{i}]");
             }
 
-            _hashCodes[i] = header[i].GetHashCode(Comparison);
+            _hashCodes[i] = _comparer.GetHashCode(header[i]);
         }
 
         Values = header;
@@ -136,13 +124,13 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        int hash = key.GetHashCode(Comparison);
+        int hash = _comparer.GetHashCode(key);
         int[] hashCodes = _hashCodes;
         ReadOnlySpan<string> values = Values.AsSpan();
 
         for (int index = 0; index < hashCodes.Length; index++)
         {
-            if (hashCodes[index] == hash && values[index].Equals(key, Comparison))
+            if (hashCodes[index] == hash && _comparer.Equals(values[index], key))
             {
                 return true;
             }
@@ -158,12 +146,12 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        int hash = key.GetHashCode(Comparison);
+        int hash = _comparer.GetHashCode(key);
         ReadOnlySpan<string> values = Values.AsSpan();
 
         for (int index = 0; index < values.Length; index++)
         {
-            if (_hashCodes[index] == hash && values[index].Equals(key, Comparison))
+            if (_hashCodes[index] == hash && _comparer.Equals(values[index], key))
             {
                 value = index;
                 return true;
@@ -183,8 +171,7 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         if (ReferenceEquals(this, other))
             return true;
 
-        return _ignoreCase == other._ignoreCase
-            && Values.AsSpan().SequenceEqual(other.Values.AsSpan(), StringComparer.FromComparison(Comparison));
+        return _ignoreCase == other._ignoreCase && Values.AsSpan().SequenceEqual(other.Values.AsSpan(), _comparer);
     }
 
     /// <inheritdoc/>

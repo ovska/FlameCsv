@@ -3,69 +3,19 @@
 public static class CsvHeaderTests
 {
     [Fact]
-    public static void Should_Not_Pool_Huge_Value()
+    public static void Should_Handle_HugeValues()
     {
-        string data = new string('a', 512) + "\n1\n";
+        string data = new string('a', 512) + "\n";
 
         CsvHeader? h1 = null;
-        CsvHeader? h2 = null;
 
         foreach (var record in Csv.From(data).Enumerate())
         {
             h1 = record.Header;
         }
 
-        foreach (var record in Csv.From(data).Enumerate())
-        {
-            h2 = record.Header;
-        }
-
         Assert.NotNull(h1);
-        Assert.NotNull(h2);
-        Assert.Equal(h1, h2);
-        Assert.Equal(h1.Values[0], h2.Values[0]);
-        Assert.NotSame(h1.Values[0], h2.Values[0]);
         Assert.Equal(data.AsSpan(0, 512), h1.Values[0]);
-    }
-
-    [Fact]
-    public static void Should_Pool()
-    {
-        const string data1 = "A,B,C\n1,2,3\n";
-
-        CsvHeader? h1 = null;
-        CsvHeader? h2 = null;
-
-        foreach (var record in Csv.From(data1).Enumerate())
-        {
-            h1 = record.Header;
-        }
-
-        foreach (var record in Csv.From(data1).Enumerate())
-        {
-            h2 = record.Header;
-        }
-
-        Assert.NotNull(h1);
-        Assert.NotNull(h2);
-        Assert.Same(h1.Values[0], h2.Values[0]);
-        Assert.Same(h1.Values[1], h2.Values[1]);
-        Assert.Same(h1.Values[2], h2.Values[2]);
-
-        // cannot be cached if normalization is used
-        CsvHeader? h3 = null;
-        var options = new CsvOptions<char>() { NormalizeHeader = s => s.ToString() };
-
-        foreach (var record in Csv.From(data1).Enumerate(options))
-        {
-            h3 = record.Header;
-        }
-
-        Assert.NotNull(h3);
-        Assert.Equal(h1, h3);
-        Assert.NotSame(h1.Values[0], h3.Values[0]);
-        Assert.NotSame(h1.Values[1], h3.Values[1]);
-        Assert.NotSame(h1.Values[2], h3.Values[2]);
     }
 
     [Fact]
