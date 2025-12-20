@@ -8,6 +8,41 @@ namespace FlameCsv.Tests.Reading;
 public class RFC4180ModeTests
 {
     [Fact]
+    public void Should_Read_CRLF()
+    {
+        const string chars = "A,B,C\r\n1,2,3\r\n4,5,6\r\n7,8,9\r\n";
+        using var reader = new CsvReader<char>(CsvOptions<char>.Default, chars.AsMemory());
+
+        using var enumerator = reader.ParseRecords().GetEnumerator();
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("A,B,C", enumerator.Current.Raw);
+        Assert.Equal("A", enumerator.Current[0]);
+        Assert.Equal("B", enumerator.Current[1]);
+        Assert.Equal("C", enumerator.Current[2]);
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("1,2,3", enumerator.Current.Raw);
+        Assert.Equal("1", enumerator.Current[0]);
+        Assert.Equal("2", enumerator.Current[1]);
+        Assert.Equal("3", enumerator.Current[2]);
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("4,5,6", enumerator.Current.Raw);
+        Assert.Equal("4", enumerator.Current[0]);
+        Assert.Equal("5", enumerator.Current[1]);
+        Assert.Equal("6", enumerator.Current[2]);
+
+        Assert.True(enumerator.MoveNext());
+        Assert.Equal("7,8,9", enumerator.Current.Raw);
+        Assert.Equal("7", enumerator.Current[0]);
+        Assert.Equal("8", enumerator.Current[1]);
+        Assert.Equal("9", enumerator.Current[2]);
+
+        Assert.False(enumerator.MoveNext());
+    }
+
+    [Fact]
     public void Should_Handle_Alternating_Newlines()
     {
         StringBuilder sb = new();

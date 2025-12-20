@@ -144,7 +144,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
     {
         RecordBuffer recordBuffer = new(_recordBufferSize);
 
-        FieldBuffer destination = recordBuffer.GetUnreadBuffer(
+        Span<uint> destination = recordBuffer.GetUnreadBuffer(
             _tokenizer?.MaxFieldsPerIteration ?? 0,
             out int startIndex
         );

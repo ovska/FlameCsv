@@ -130,28 +130,13 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         if (readToEnd || tokenizer is null)
         {
-            FieldBuffer destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
+            Span<uint> destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
             fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd);
         }
         else
         {
-            FieldBuffer destination = _recordBuffer.GetUnreadBuffer(
-                tokenizer.MaxFieldsPerIteration,
-                out int startIndex
-            );
+            Span<uint> destination = _recordBuffer.GetUnreadBuffer(tokenizer.MaxFieldsPerIteration, out int startIndex);
             fieldsRead = tokenizer.Tokenize(destination, startIndex, data);
-
-            // if there were too many quotes in a single field
-            if (destination.DegenerateQuotes)
-            {
-                _tokenizer = null; // disable SIMD tokenizer for the rest of this read
-
-                // try again with the scalar tokenizer
-                if (fieldsRead == 0)
-                {
-                    goto Read;
-                }
-            }
         }
 
         if (fieldsRead != 0)

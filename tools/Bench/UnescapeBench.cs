@@ -1,3 +1,4 @@
+#if false
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -57,34 +58,6 @@ public class UnescapeBench
 {
     [Params(false, true)]
     public bool Chars { get; set; }
-
-    [Benchmark(Baseline = true)]
-    public void RFC()
-    {
-        if (Chars)
-        {
-            Span<ushort> buffer = stackalloc ushort[512];
-
-            foreach (var (f, c) in _data)
-            {
-                Field.Unescape(
-                    quote: '"',
-                    destination: buffer,
-                    source: MemoryMarshal.Cast<char, ushort>(f.AsSpan()),
-                    quotesConsumed: (uint)c
-                );
-            }
-        }
-        else
-        {
-            Span<byte> buffer = stackalloc byte[512];
-
-            foreach (var (f, c) in _dataBytes)
-            {
-                Field.Unescape(quote: (byte)'"', destination: buffer, source: f, quotesConsumed: (uint)c);
-            }
-        }
-    }
 
     [Benchmark]
     public void NoCount()
@@ -158,3 +131,4 @@ public class UnescapeBench
         _dataBytes = [.. dataBytes];
     }
 }
+#endif

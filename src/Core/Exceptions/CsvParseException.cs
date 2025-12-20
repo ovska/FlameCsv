@@ -167,11 +167,16 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
 
         if (FieldIndex is { } index && (uint)index < (uint)record.FieldCount)
         {
-            int recordStart = (int)(uint)record._bits[0];
-            int fieldStart = (int)(uint)record._bits[index];
-            int offset = fieldStart - recordStart;
+            if (index == 0)
+            {
+                FieldPosition ??= position;
+            }
+            else
+            {
+                int fieldStart = Field.NextStart(record._fields[index - 1]);
+                FieldPosition ??= position + (int)(fieldStart - position);
+            }
 
-            FieldPosition ??= position + offset;
             FieldValue ??= record[index].AsPrintableString();
         }
     }

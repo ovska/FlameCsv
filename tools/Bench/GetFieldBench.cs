@@ -115,8 +115,6 @@ public class GetFieldBench
         _owner = new NoOpOwner(_dByteLF);
         _rb2 = _owner._recordBuffer;
         _rb2._fields = new uint[len];
-        _rb2._quotes = new byte[len];
-        _rb2._bits = new ulong[len];
         _rb2._eols = new ushort[len];
 
         int count = _t128bCRLF.Tokenize(_rb2.GetUnreadBuffer(0, out int start1), start1, _bytes0LF);

@@ -13,6 +13,15 @@ namespace FlameCsv.Intrinsics;
 [SkipLocalsInit]
 internal static class Bithacks
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static uint GetQuoteFlags(uint quoteCount)
+    {
+        Debug.Assert(quoteCount % 2 == 0);
+        byte any = Unsafe.BitCast<bool, byte>(quoteCount != 0);
+        byte needsUnescaping = Unsafe.BitCast<bool, byte>(quoteCount > 2);
+        return ((uint)any << 29) | ((uint)needsUnescaping << 28);
+    }
+
     /// <summary>
     /// Resets the lowest set bit in <paramref name="mask"/> (<c>BLSR</c> or emulation).
     /// </summary>

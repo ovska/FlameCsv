@@ -26,13 +26,11 @@ public static class ScalarTests
         using RecordBuffer rbScalar = new();
         using RecordBuffer rbSimd = new();
 
-        FieldBuffer fbScalar = rbScalar.GetUnreadBuffer(0, out int scalarStartIndex);
-        FieldBuffer fbSimd = rbSimd.GetUnreadBuffer(0, out int simdStartIndex);
+        Span<uint> fbScalar = rbScalar.GetUnreadBuffer(0, out int scalarStartIndex);
+        Span<uint> fbSimd = rbSimd.GetUnreadBuffer(0, out int simdStartIndex);
 
-        fbScalar.Fields.Clear();
-        fbScalar.Quotes.Clear();
-        fbSimd.Fields.Clear();
-        fbSimd.Quotes.Clear();
+        fbScalar.Clear();
+        fbSimd.Clear();
 
         ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, escaping);
 
@@ -45,8 +43,7 @@ public static class ScalarTests
         Assert.Equal(RecordBuffer.DefaultFieldBufferSize - simdTokenizer.MaxFieldsPerIteration, resultSimd);
         int len = resultSimd;
 
-        Assert.Equal(fbScalar.Fields[..len], fbSimd.Fields[..len]);
-        Assert.Equal(fbScalar.Quotes[..len], fbSimd.Quotes[..len]);
+        Assert.Equal(fbScalar[..len], fbSimd[..len]);
     }
 
     [Fact]
@@ -57,9 +54,8 @@ public static class ScalarTests
 
         Assert.SkipWhen(tokenizer is null, "SIMD tokenizer not supported on this platform");
 
-        FieldBuffer fb = rb.GetUnreadBuffer(0, out int startIndex);
-        fb.Fields.Clear();
-        fb.Quotes.Clear();
+        Span<uint> fb = rb.GetUnreadBuffer(0, out int startIndex);
+        fb.Clear();
 
         using var apbw = new ArrayPoolBufferWriter<char>();
 
@@ -88,7 +84,7 @@ public static class ScalarTests
         for (int i = 0; i < 64; i++)
         {
             Assert.True(rb.TryPop(out var view));
-            Assert.Equal(1, view.Length);
+            Assert.True(1 == view.Length, $"Field {i} length mismatch: {view.Length}");
             Assert.Equal(i + 3, rb.GetLengthWithNewline(view)); // quotes + newline
         }
     }

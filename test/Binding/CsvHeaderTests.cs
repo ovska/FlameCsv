@@ -5,7 +5,7 @@ public static class CsvHeaderTests
     [Fact]
     public static void Should_Handle_HugeValues()
     {
-        string data = new string('a', 512) + "\n";
+        string data = new string('a', 512) + "\n1\n";
 
         CsvHeader? h1 = null;
 

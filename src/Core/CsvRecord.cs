@@ -41,10 +41,10 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
         {
             _owner.EnsureVersion(_version);
 
-            ReadOnlySpan<ulong> fieldBits = FieldBits;
-            int end = (int)((uint)(fieldBits[^1] >> 32) & Field.EndMask);
-            int start = (int)(uint)fieldBits[0];
-            return _owner.Reader._buffer.Span.Slice(start, end - start);
+            ReadOnlySpan<uint> fields = FieldsWithPrevious;
+            int end = Field.End(fields[^1]);
+            int start = Field.NextStart(fields[0]);
+            return _owner.Reader._buffer.Span[start..end];
         }
     }
 
@@ -87,10 +87,10 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     internal readonly RecordView _view;
     private readonly int _version;
 
-    internal ReadOnlySpan<ulong> FieldBits
+    internal ReadOnlySpan<uint> FieldsWithPrevious
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _owner.Reader._recordBuffer._bits.AsSpan(_view.Start, _view.Length);
+        get => _owner.Reader._recordBuffer._fields.AsSpan(_view.Start, _view.Length + 1);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -137,19 +137,21 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
 
         CsvReader<T> reader = _owner.Reader;
         ReadOnlySpan<T> dataSpan = reader._buffer.Span;
+        ReadOnlySpan<uint> fields = FieldsWithPrevious;
 
-        ref readonly ulong bits = ref FieldBits[index];
+        uint previous = fields[index];
+        uint current = fields[index + 1];
 
-        uint start = (uint)bits;
-        uint end = (uint)(bits >> 32);
+        int start = Field.NextStart(previous);
+        int end = Field.End(current);
         Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
 
-        if (reader._dialect.Trimming == 0 && (long)bits >= 0)
+        if (reader._dialect.Trimming == 0 && (int)(current << 2) >= 0)
         {
-            return dataSpan.Slice((int)start, (int)(end - start));
+            return dataSpan[start..end];
         }
 
-        return Field.GetValue(index, (CsvRecordRef<T>)this);
+        return Field.GetValue(start, current, ref MemoryMarshal.GetReference(dataSpan), _owner.Reader);
     }
 
     /// <summary>

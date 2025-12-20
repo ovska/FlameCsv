@@ -68,7 +68,6 @@ public sealed partial class CsvRecordEnumerator<T>
         _version = 0;
         _current = default;
         _materializerCache?.Clear();
-        _expectedFieldCount = null;
         _header = null;
     }
 
@@ -102,7 +101,6 @@ public sealed partial class CsvRecordEnumerator<T>
     private CsvRecord<T> _current;
     internal readonly bool _hasHeader;
     private Dictionary<object, object>? _materializerCache;
-    private int? _expectedFieldCount;
     private CsvHeader? _header;
 
     internal Dictionary<object, object> MaterializerCache =>
@@ -128,7 +126,6 @@ public sealed partial class CsvRecordEnumerator<T>
                 return;
 
             _header = value;
-            _expectedFieldCount = value?.Values.Length;
             _materializerCache?.Clear();
         }
     }

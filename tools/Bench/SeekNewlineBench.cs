@@ -13,10 +13,10 @@ public class SeekNewlineBench
     {
         var buffer = rb.GetUnreadBuffer(0, out _);
 
-        for (int i = 0; i < buffer.Fields.Length; i++)
+        for (int i = 0; i < buffer.Length; i++)
         {
             var v = i % Interval == 0 ? ~0u : 0u;
-            buffer.Fields[i] = v;
+            buffer[i] = v;
         }
     }
 

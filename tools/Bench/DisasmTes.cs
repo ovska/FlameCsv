@@ -49,14 +49,12 @@ public class DisasmTest
     [Benchmark(Baseline = true)]
     public void Bytes()
     {
-        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
-        _ = _t128bLF.Tokenize(dst, 0, _dataBytes);
+        _ = _t128bLF.Tokenize(_fieldBuffer, 0, _dataBytes);
     }
 
     [Benchmark]
     public void Chars()
     {
-        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
-        _ = _t128LF.Tokenize(dst, 0, _dataChars);
+        _ = _t128LF.Tokenize(_fieldBuffer, 0, _dataChars);
     }
 }

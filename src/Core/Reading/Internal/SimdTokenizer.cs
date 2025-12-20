@@ -34,7 +34,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected override unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end)
+    protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
     {
         if (!Vector128.IsHardwareAccelerated)
         {
@@ -49,10 +49,9 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         nuint index = (uint)startIndex;
         T* pData = start + index;
 
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
-        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
         nuint fieldIndex = 0;
-        nuint fieldEnd = Math.Max(0, (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration);
+        nuint fieldEnd = Math.Max(0, (nuint)destination.Length - (nuint)MaxFieldsPerIteration);
 
         uint quotesConsumed = 0;
         uint crCarry = 0;
@@ -115,6 +114,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
 
             uint controlCount;
+            bool fastPathRemnant = false;
 
             if ((maskQuote | quotesConsumed) == 0)
             {
@@ -134,9 +134,8 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 }
 
                 // A string just ended? flush quotes and read the rest as normal
-                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
+                fastPathRemnant = true;
                 controlCount = (uint)BitOperations.PopCount(maskControl);
-                quotesConsumed = 0;
                 goto FastPath;
             }
 
@@ -170,16 +169,13 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             // quote is first, flush
             if (controlsBeforeQuote == 0)
             {
-                Unsafe.Add(ref firstQuote, fieldIndex) = (byte)(quotesConsumed + 1);
-                quotesConsumed = 0;
+                fastPathRemnant = true;
+                quotesConsumed++;
             }
             else
             {
                 // a string just ended
-                if (Unsafe.BitCast<byte, bool>((byte)(quotesConsumed & 1)))
-                {
-                    Unsafe.Add(ref firstQuote, fieldIndex) = (byte)quotesConsumed;
-                }
+                fastPathRemnant = Unsafe.BitCast<byte, bool>((byte)(quotesConsumed & 1));
 
                 // quote is last
                 quotesConsumed = 1;
@@ -225,6 +221,12 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 }
             }
 
+            if (fastPathRemnant)
+            {
+                Unsafe.Add(ref firstField, fieldIndex) |= Bithacks.GetQuoteFlags(quotesConsumed);
+                quotesConsumed = 0;
+            }
+
             fieldIndex += controlCount;
             goto ContinueRead;
 
@@ -237,7 +239,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 ParseAnyArm64(
                     index: (uint)index,
                     firstField: ref firstField,
-                    firstQuote: ref firstQuote,
                     fieldIndex: ref fieldIndex,
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
@@ -251,7 +252,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 ParseAny(
                     index: (uint)index,
                     firstField: ref firstField,
-                    firstQuote: ref firstQuote,
                     fieldIndex: ref fieldIndex,
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
@@ -275,7 +275,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
-                    quoteRef: ref firstQuote,
                     quotesConsumed: ref quotesConsumed
                 );
 
@@ -286,7 +285,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
-                    quoteRef: ref firstQuote,
                     delimiter: _delimiter,
                     quotesConsumed: ref quotesConsumed
                 );
@@ -306,12 +304,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasControl = hasLF | hasDelimiter;
 
             (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF>(hasControl, hasLF, hasQuote, hasCR);
-
-            if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
-            {
-                destination.DegenerateQuotes = true;
-                break;
-            }
         } while (fieldIndex <= fieldEnd && pData <= end);
 
         return (int)fieldIndex;

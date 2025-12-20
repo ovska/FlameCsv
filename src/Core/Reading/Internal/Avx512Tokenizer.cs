@@ -40,7 +40,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected override unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end)
+    protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
     {
         if (!Avx512Vbmi2.IsSupported)
         {
@@ -55,10 +55,9 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         nuint index = (uint)startIndex;
         T* pData = start + index;
 
-        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
+        nuint fieldEnd = (nuint)destination.Length - (nuint)MaxFieldsPerIteration;
 
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
-        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
 
         nuint fieldIndex = 0;
 
@@ -148,12 +147,6 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
             vector = nextVector;
             nextVector = AsciiVector.LoadAligned512(pData + (nuint)(2 * Vector512<byte>.Count));
 
-            if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
-            {
-                destination.DegenerateQuotes = true;
-                break;
-            }
-
             if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
             {
                 quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
@@ -224,7 +217,6 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
             ParseAny(
                 index: (uint)index,
                 firstField: ref firstField,
-                firstQuote: ref firstQuote,
                 fieldIndex: ref fieldIndex,
                 quotesConsumed: ref quotesConsumed,
                 maskControl: maskControl,
@@ -247,7 +239,6 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
-                    quoteRef: ref firstQuote,
                     quotesConsumed: ref quotesConsumed
                 );
 
@@ -258,7 +249,6 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
-                    quoteRef: ref firstQuote,
                     delimiter: _delimiter,
                     quotesConsumed: ref quotesConsumed
                 );

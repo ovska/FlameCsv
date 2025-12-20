@@ -60,7 +60,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd)
+    public override int Tokenize(Span<uint> buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd)
     {
         if (data.IsEmpty || data.Length <= startIndex)
         {
@@ -74,15 +74,14 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
         nuint index = (nuint)startIndex;
         uint quotesConsumed = 0;
 
-        scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer.Fields);
-        scoped ref byte dstQuote = ref MemoryMarshal.GetReference(buffer.Quotes);
+        scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer);
         nuint fieldIndex = 0;
 
         // offset ends -2 so we can check for \r\n and "" without bounds checks
         nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 2);
         nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 6);
 
-        while (fieldIndex < (nuint)buffer.Fields.Length)
+        while (fieldIndex < (nuint)buffer.Length)
         {
             while (index < unrolledEnd)
             {
@@ -142,10 +141,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
                 flag = TCRLF.Value && Bithacks.IsCRLF(ref current) ? Field.IsCRLF : Field.IsEOL;
             }
 
-            quotesConsumed = Math.Min(quotesConsumed, byte.MaxValue);
-
-            Unsafe.Add(ref dstField, fieldIndex) = (uint)index | flag;
-            Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+            Unsafe.Add(ref dstField, fieldIndex) = (uint)index | flag | Bithacks.GetQuoteFlags(quotesConsumed);
             fieldIndex++;
             quotesConsumed = 0;
             index += TCRLF.Value ? (1 + ((flag >> 30) & 1)) : 1;
@@ -223,7 +219,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             if (
                 fieldIndex > 0
                 && (Field.IsEOL & Unsafe.Add(ref dstField, fieldIndex - 1)) != 0
-                && Field.NextStart(Unsafe.Add(ref dstField, fieldIndex - 1)) == data.Length
+                && Field.NextStartCRLFAware(Unsafe.Add(ref dstField, fieldIndex - 1)) == data.Length
             )
             {
                 break;
@@ -233,21 +229,19 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             if ((nint)index == (data.Length - 1))
             {
                 T final = Unsafe.Add(ref first, index);
-                quotesConsumed = Math.Min(quotesConsumed, byte.MaxValue);
 
                 if (IsAnyNewline(final))
                 {
                     // this can only be a 1-token newline, omit the newline kind as the offset is always 1
-                    Unsafe.Add(ref dstField, fieldIndex) = (uint)index | Field.IsEOL;
-                    Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+                    Unsafe.Add(ref dstField, fieldIndex) =
+                        (uint)index | Field.IsEOL | Bithacks.GetQuoteFlags(quotesConsumed);
                     fieldIndex++;
                     break;
                 }
 
                 if (final == delimiter)
                 {
-                    Unsafe.Add(ref dstField, fieldIndex) = (uint)index;
-                    Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+                    Unsafe.Add(ref dstField, fieldIndex) = (uint)index | Bithacks.GetQuoteFlags(quotesConsumed);
                     quotesConsumed = 0;
                     fieldIndex++;
                 }
@@ -257,9 +251,9 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
                 }
             }
 
-            quotesConsumed = Math.Min(quotesConsumed, byte.MaxValue);
-            Unsafe.Add(ref dstField, fieldIndex) = ((uint)index + 1) | Field.IsEOL; // add shadow EOL
-            Unsafe.Add(ref dstQuote, fieldIndex) = (byte)quotesConsumed;
+            // add shadow EOL
+            Unsafe.Add(ref dstField, fieldIndex) =
+                ((uint)index + 1) | Field.IsEOL | Bithacks.GetQuoteFlags(quotesConsumed);
             fieldIndex++;
             break;
         }

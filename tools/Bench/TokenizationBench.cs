@@ -42,7 +42,6 @@ public class TokenizationBench
     public bool TokenizerIsLF => Newline == ParserNewline.LF;
 
     private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
-    private static readonly byte[] _quoteBuffer = new byte[24 * 65535];
     private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
     private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
     private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
@@ -95,16 +94,20 @@ public class TokenizationBench
     [Benchmark(Baseline = true)]
     public void Simd()
     {
-        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
+        using var rb = new RecordBuffer(bufferSize: 24 * 65535);
+        var dst = rb.GetUnreadBuffer(0, out _);
+        int c;
 
         if (Chars)
         {
-            _ = SimdChar.Tokenize(dst, 0, CharData);
+            c = SimdChar.Tokenize(dst, 0, CharData);
         }
         else
         {
-            _ = SimdByte.Tokenize(dst, 0, ByteData);
+            c = SimdByte.Tokenize(dst, 0, ByteData);
         }
+
+        rb.SetFieldsRead(c);
     }
 
     private readonly Avx2Tokenizer<byte, FalseConstant> _avx2Byte = new(_dByteLF);
@@ -118,7 +121,7 @@ public class TokenizationBench
     // [Benchmark]
     public void Avx2()
     {
-        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
+        var dst = _fieldBuffer;
 
         if (Chars)
         {
@@ -142,7 +145,7 @@ public class TokenizationBench
     // [Benchmark]
     public void Avx512()
     {
-        var dst = new FieldBuffer { Fields = _fieldBuffer, Quotes = _quoteBuffer };
+        var dst = _fieldBuffer;
 
         if (Chars)
         {

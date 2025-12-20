@@ -43,7 +43,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    protected override unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end)
+    protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
     {
         if (!Avx2.IsSupported || RuntimeInformation.ProcessArchitecture is not (Architecture.X86 or Architecture.X64))
         {
@@ -60,11 +60,10 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
         nuint index = (nuint)startIndex;
         T* pData = start + index;
 
-        nuint fieldEnd = (nuint)destination.Fields.Length - (nuint)MaxFieldsPerIteration;
+        nuint fieldEnd = (nuint)destination.Length - (nuint)MaxFieldsPerIteration;
         nuint fieldIndex = 0;
 
-        scoped ref byte firstQuote = ref MemoryMarshal.GetReference(destination.Quotes);
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination.Fields);
+        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
 
         Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
         Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
@@ -97,12 +96,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
         {
             // Prefetch the vector that will be needed 2 iterations ahead
             Vector256<byte> prefetchVector = AsciiVector.Load256(pData + (2 * (nuint)Vector256<byte>.Count));
-
-            if (quotesConsumed >= (uint)(byte.MaxValue - MaxFieldsPerIteration)) // constant folded
-            {
-                destination.DegenerateQuotes = true;
-                break;
-            }
 
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
@@ -256,7 +249,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             ParseAny(
                 index: (uint)index,
                 firstField: ref firstField,
-                firstQuote: ref firstQuote,
                 fieldIndex: ref fieldIndex,
                 quotesConsumed: ref quotesConsumed,
                 maskControl: maskControl,
@@ -279,7 +271,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
-                    quoteRef: ref firstQuote,
                     quotesConsumed: ref quotesConsumed
                 );
 
@@ -290,7 +281,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
-                    quoteRef: ref firstQuote,
                     delimiter: _delimiter,
                     quotesConsumed: ref quotesConsumed
                 );

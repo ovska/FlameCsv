@@ -20,9 +20,8 @@ public class Unescape : IScenario
         try
         {
             T quote = T.CreateTruncating('"');
-            uint count = (uint)data.Count(quote);
 
-            if (count == 0)
+            if (data.IndexOf(quote) == -1)
                 return;
 
             using var memory = PooledBoundedMemory<T>.Rent(data.Length, placement);
@@ -33,13 +32,12 @@ public class Unescape : IScenario
                 Field.Unescape(
                     ushort.CreateTruncating(quote),
                     MemoryMarshal.Cast<T, ushort>(destination),
-                    MemoryMarshal.Cast<T, ushort>(data),
-                    count
+                    MemoryMarshal.Cast<T, ushort>(data)
                 );
             }
             else
             {
-                Field.Unescape(quote, destination, data, count);
+                Field.Unescape(quote, destination, data);
             }
         }
         catch (CsvFormatException) { }

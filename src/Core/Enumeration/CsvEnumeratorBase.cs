@@ -219,12 +219,13 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
 
     internal long GetStartPosition(RecordView view)
     {
-        return _reader._consumed + (int)_reader._recordBuffer._bits[view.Start];
+        return _reader._consumed + Field.NextStart(_reader._recordBuffer._fields[view.Start]);
     }
 
     internal long GetEndPosition(RecordView view)
     {
-        return _reader._consumed + (int)_reader._recordBuffer._bits[view.Start + view.Length];
+        int end = Field.NextStartCRLFAware(_reader._recordBuffer._fields[view.Start + view.Length]);
+        return _reader._consumed + end;
     }
 
     /// <summary>

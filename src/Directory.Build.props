@@ -4,7 +4,7 @@
         <Version>0.4.0</Version>
     </PropertyGroup>
     <ItemGroup Condition="'$(IncludeInternalsVisibleTo)' == 'true'">
-        <PackageReference Include="Roslynator.Analyzers" Version="4.14.0">
+        <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>

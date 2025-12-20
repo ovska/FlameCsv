@@ -27,12 +27,10 @@ internal abstract class CsvTokenizer<T>
     protected abstract int Overscan { get; }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe int Tokenize(FieldBuffer destination, int startIndex, ReadOnlySpan<T> data)
+    public unsafe int Tokenize(Span<uint> destination, int startIndex, ReadOnlySpan<T> data)
     {
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
-        Debug.Assert(!destination.DegenerateQuotes);
-        Debug.Assert(destination.Fields.Length >= MaxFieldsPerIteration);
-        Debug.Assert(destination.Quotes.Length >= MaxFieldsPerIteration);
+        Debug.Assert(destination.Length >= MaxFieldsPerIteration);
 
         if ((uint)(data.Length - startIndex) < Overscan)
         {
@@ -54,14 +52,13 @@ internal abstract class CsvTokenizer<T>
     /// <param name="start">Pointer to the start of the data</param>
     /// <param name="end">Pointer to the end of the data</param>
     /// <returns>Number of fields read</returns>
-    protected abstract unsafe int TokenizeCore(FieldBuffer destination, int startIndex, T* start, T* end);
+    protected abstract unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end);
 
     /// <summary>
     /// Parses any control characters (LF, CR, delimiter).
     /// </summary>
     /// <param name="index">Index in the data</param>
     /// <param name="firstField">Reference where to write the fields to</param>
-    /// <param name="firstQuote">Reference where to write the quotes to</param>
     /// <param name="fieldIndex">Index of the current field</param>
     /// <param name="quotesConsumed">How many quotes are in the current field.</param>
     /// <param name="maskControl">Bitmask for all control characters</param>
@@ -72,7 +69,6 @@ internal abstract class CsvTokenizer<T>
     protected static void ParseAny<TMask>(
         uint index,
         scoped ref uint firstField,
-        scoped ref byte firstQuote,
         scoped ref nuint fieldIndex,
         scoped ref uint quotesConsumed,
         TMask maskControl,
@@ -101,10 +97,8 @@ internal abstract class CsvTokenizer<T>
             maskQuote &= ~maskUpToPos;
 
             ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
-            ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
 
-            dstField = pos;
-            dstQuote = (byte)quotesConsumed;
+            dstField = pos | Bithacks.GetQuoteFlags(quotesConsumed);
 
             fIdx++;
             quotesConsumed = 0;
@@ -117,7 +111,6 @@ internal abstract class CsvTokenizer<T>
     protected static void ParseAnyArm64(
         uint index,
         scoped ref uint firstField,
-        scoped ref byte firstQuote,
         scoped ref nuint fieldIndex,
         scoped ref uint quotesConsumed,
         uint maskControl,
@@ -153,18 +146,16 @@ internal abstract class CsvTokenizer<T>
             uint eolFlag = (bitLF & 1) != 0 ? flag : 0;
             int k = (int)(lz + 1);
 
-            ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
-            ref byte dstQuote = ref Unsafe.Add(ref firstQuote, fIdx);
-
             quotesConsumed += aggregated.ToScalar();
 
-            dstField = index + offset - eolFlag;
+            uint result = index + offset - eolFlag;
+            result |= Bithacks.GetQuoteFlags(quotesConsumed);
+
+            Unsafe.Add(ref firstField, fIdx) = result;
 
             // zero extend through ulong so shift by 32 works correctly
             maskControl = (uint)((ulong)maskControl << k);
             maskQuote = (uint)((ulong)maskQuote >> k);
-
-            dstQuote = (byte)quotesConsumed;
 
             consumed += (uint)k;
             fIdx++;
@@ -245,7 +236,6 @@ internal abstract class CsvTokenizer<T>
         uint index,
         ref nuint fieldIndex,
         ref uint fieldRef,
-        ref byte quoteRef,
         scoped ref uint quotesConsumed
     )
         where TMask : unmanaged, IBinaryInteger<TMask>
@@ -269,8 +259,7 @@ internal abstract class CsvTokenizer<T>
                 flag = Field.IsEOL;
             }
 
-            Unsafe.Add(ref fieldRef, fieldIndex) = (index - 1) | flag;
-            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
+            Unsafe.Add(ref fieldRef, fieldIndex) = (index - 1) | flag | Bithacks.GetQuoteFlags(quotesConsumed);
 
             fieldIndex++;
             quotesConsumed = 0;
@@ -285,7 +274,6 @@ internal abstract class CsvTokenizer<T>
         uint index,
         ref nuint fieldIndex,
         ref uint fieldRef,
-        ref byte quoteRef,
         T delimiter,
         scoped ref uint quotesConsumed
     )
@@ -320,8 +308,7 @@ internal abstract class CsvTokenizer<T>
             maskControl &= ~maskUpToPos;
             maskQuote &= ~maskUpToPos;
 
-            Unsafe.Add(ref fieldRef, fieldIndex) = value | flag;
-            Unsafe.Add(ref quoteRef, fieldIndex) = (byte)quotesConsumed;
+            Unsafe.Add(ref fieldRef, fieldIndex) = value | flag | Bithacks.GetQuoteFlags(quotesConsumed);
             quotesConsumed = 0;
             fieldIndex++;
         }

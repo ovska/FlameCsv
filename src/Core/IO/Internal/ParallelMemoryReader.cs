@@ -32,7 +32,7 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
         {
             RecordBuffer recordBuffer = new();
 
-            FieldBuffer destination = recordBuffer.GetUnreadBuffer(
+            Span<uint> destination = recordBuffer.GetUnreadBuffer(
                 _tokenizer?.MaxFieldsPerIteration ?? 0,
                 out int startIndex
             );

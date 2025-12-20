@@ -35,9 +35,8 @@ public static class UnescapeTests
             }
 
             Span<char> source = src.Slice(0, len);
-            int count = source.Count('"');
 
-            if (count == 0)
+            if (source.Count('"') == 0)
                 continue;
 
             dst.Fill(char.MaxValue);
@@ -45,8 +44,7 @@ public static class UnescapeTests
             Field.Unescape<ushort>(
                 '"',
                 MemoryMarshal.Cast<char, ushort>(dst),
-                MemoryMarshal.Cast<char, ushort>(source),
-                (uint)count
+                MemoryMarshal.Cast<char, ushort>(source)
             );
 
             string expected = source.ToString().Replace("\"\"", "\"");
@@ -57,7 +55,7 @@ public static class UnescapeTests
             int byteLen = Encoding.UTF8.GetBytes(source, srcb);
             dstb.Fill(byte.MaxValue);
 
-            Field.Unescape<byte>((byte)'"', dstb, srcb.Slice(0, byteLen), (uint)count);
+            Field.Unescape<byte>((byte)'"', dstb, srcb.Slice(0, byteLen));
 
             // can use utf16 lengths, all data is ascii
             Assert.Equal(expected, Encoding.UTF8.GetString(dstb.Slice(0, expected.Length)));
@@ -79,15 +77,13 @@ public static class UnescapeTests
     [MemberData(nameof(Entries))]
     public static void Should_Unescape_Field(string value, string expected)
     {
-        uint quoteCount = (uint)value.Count('"');
         Assert.True(value.Length <= 128);
         Span<char> buffer = stackalloc char[128];
 
         Field.Unescape(
             quote: '"',
             destination: MemoryMarshal.Cast<char, ushort>(buffer),
-            source: MemoryMarshal.Cast<char, ushort>(value.AsSpan()),
-            quotesConsumed: quoteCount
+            source: MemoryMarshal.Cast<char, ushort>(value.AsSpan())
         );
 
         Assert.Equal(expected, buffer.Slice(0, expected.Length));
@@ -97,16 +93,10 @@ public static class UnescapeTests
     [MemberData(nameof(Entries))]
     public static void Should_Unescape_Field_Utf8(string value, string expected)
     {
-        uint quoteCount = (uint)value.Count('"');
         Assert.True(value.Length <= 128);
         Span<byte> buffer = stackalloc byte[128];
 
-        Field.Unescape(
-            quote: (byte)'"',
-            destination: buffer,
-            source: Encoding.UTF8.GetBytes(value),
-            quotesConsumed: quoteCount
-        );
+        Field.Unescape(quote: (byte)'"', destination: buffer, source: Encoding.UTF8.GetBytes(value));
 
         Assert.Equal(expected, Encoding.UTF8.GetString(buffer)[..expected.Length]);
     }

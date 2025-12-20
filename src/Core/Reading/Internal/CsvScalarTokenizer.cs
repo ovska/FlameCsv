@@ -11,5 +11,5 @@ internal abstract class CsvScalarTokenizer<T>
     /// <param name="data">Data to read from</param>
     /// <param name="readToEnd">Whether to read to end even if data has no trailing newline</param>
     /// <returns>Number of fields read</returns>
-    public abstract int Tokenize(FieldBuffer buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd);
+    public abstract int Tokenize(Span<uint> buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd);
 }

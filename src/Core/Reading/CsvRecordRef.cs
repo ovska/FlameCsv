@@ -18,30 +18,34 @@ public readonly ref struct CsvRecordRef<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     internal readonly ref T _data;
-    internal readonly ReadOnlySpan<ulong> _bits;
+    internal readonly ReadOnlySpan<uint> _fields;
     internal readonly RecordOwner<T> _owner;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(CsvReader<T> reader, RecordView view)
-    {
-        _data = ref MemoryMarshal.GetReference(reader._buffer.Span);
-        _owner = reader;
-        _bits = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetReference(reader._recordBuffer._bits), (uint)view.Start),
-            view.Length
-        );
-    }
+        : this(reader, ref MemoryMarshal.GetReference(reader._buffer.Span), view) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(RecordOwner<T> reader, ref T data, RecordView view)
     {
+        view.AssertInvariants();
+
         _data = ref data;
         _owner = reader;
-        _bits = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetReference(reader._recordBuffer._bits), (uint)view.Start),
+        _fields = MemoryMarshal.CreateReadOnlySpan(
+            ref Unsafe.Add(ref MemoryMarshal.GetReference(reader._recordBuffer._fields), (uint)view.Start + 1),
             view.Length
         );
+#if DEBUG
+        _view = view;
     }
+
+#pragma warning disable IDE0052
+    private readonly RecordView _view;
+#pragma warning restore IDE0052
+#else
+    }
+#endif
 
     /// <summary>
     /// Gets the number of fields in the record.
@@ -49,7 +53,7 @@ public readonly ref struct CsvRecordRef<T>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _bits.Length;
+        get => _fields.Length;
     }
 
     /// <summary>
@@ -65,18 +69,20 @@ public readonly ref struct CsvRecordRef<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong bits = _bits[index];
+            // call indexer first to get bounds checks
+            uint current = _fields[index];
+            uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
 
-            uint start = (uint)bits;
-            uint end = (uint)(bits >> 32);
+            uint end = current & Field.EndMask;
+            uint start = (previous + 1) & Field.EndMask;
 
-            ref T startRef = ref Unsafe.Add(ref _data, start);
             int length = (int)(end - start);
+            ref T startRef = ref Unsafe.Add(ref _data, start);
 
             // trimming check is 100% predictable
-            if (_owner._dialect.Trimming != 0 || (long)bits < 0)
+            if (_owner._dialect.Trimming != 0 || (int)(current << 2) < 0)
             {
-                return Field.GetValue(index, this);
+                return Field.GetValue((int)start, current, ref _data, _owner);
             }
 
             Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
@@ -100,23 +106,24 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetFieldUnsafe(int index)
     {
-        ulong bits = Unsafe.Add(ref MemoryMarshal.GetReference(_bits), (uint)index);
+        // call indexer first to get bounds checks
+        ref uint fieldRef = ref MemoryMarshal.GetReference(_fields);
+        uint previous = Unsafe.Add(ref fieldRef, index - 1);
+        uint current = Unsafe.Add(ref fieldRef, (uint)index);
 
-        uint start = (uint)bits;
-        uint end = (uint)(bits >> 32);
+        uint start = (previous + 1) & Field.EndMask;
+        uint end = current & Field.EndMask;
 
         ref T startRef = ref Unsafe.Add(ref _data, start);
         int length = (int)(end - start);
 
         // trimming check is 100% predictable
-        if (_owner._dialect.Trimming != 0 || (long)bits < 0)
+        if (_owner._dialect.Trimming != 0 || (int)(current << 2) < 0)
         {
-            return Field.GetValue(index, this);
+            return Field.GetValue((int)start, current, ref _data, _owner);
         }
 
         Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
-
-        // if MSB (quoting) is not set, we don't need to mask the end at all
         return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
     }
 
@@ -131,16 +138,18 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        ulong bits = _bits[index];
+        // call indexer first to get bounds checks
+        uint current = _fields[index];
+        uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
 
-        uint start = (uint)bits;
-        uint end = (uint)(bits >> 32) & Field.EndMask;
-        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        uint end = current & Field.EndMask;
+        uint start = (previous + 1) & Field.EndMask;
 
-        ref T startRef = ref Unsafe.Add(ref _data, start);
         int length = (int)(end - start);
+        ref T startRef = ref Unsafe.Add(ref _data, start);
 
-        return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), length);
+        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
     }
 
     /// <summary>
@@ -150,13 +159,13 @@ public readonly ref struct CsvRecordRef<T>
     {
         get
         {
-            if (_bits.IsEmpty)
+            if (_fields.IsEmpty)
             {
                 return [];
             }
 
-            uint end = (uint)(_bits[^1] >> 32) & Field.EndMask;
-            uint start = (uint)_bits[0];
+            uint end = _fields[^1] & Field.EndMask;
+            uint start = (1 + Unsafe.Add(ref Unsafe.AsRef(in _fields[0]), -1)) & Field.EndMask;
 
             Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
 
@@ -170,13 +179,13 @@ public readonly ref struct CsvRecordRef<T>
     /// </summary>
     public int GetRecordLength()
     {
-        if (_bits.IsEmpty)
+        if (_fields.IsEmpty)
         {
             return 0;
         }
 
-        uint end = (uint)(_bits[^1] >> 32) & Field.EndMask;
-        uint start = (uint)_bits[0];
+        uint end = _fields[^1] & Field.EndMask;
+        uint start = (uint)Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in _fields[0]), -1));
 
         Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
 
@@ -202,21 +211,6 @@ public readonly ref struct CsvRecordRef<T>
         }
 
         return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Raw.ToString()}\" }}";
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal byte GetQuoteCount(int index)
-    {
-        Debug.Assert((uint)index < (uint)_bits.Length, "Index out of range in GetFieldBytes");
-
-        RecordBuffer recordBuffer = _owner._recordBuffer;
-        ref byte quoteRef = ref MemoryMarshal.GetArrayDataReference(recordBuffer._quotes);
-        nint byteOffset = Unsafe.ByteOffset(
-            in MemoryMarshal.GetArrayDataReference(recordBuffer._bits),
-            in MemoryMarshal.GetReference(_bits)
-        );
-
-        return Unsafe.Add(ref quoteRef, (byteOffset / sizeof(ulong)) + index + 1);
     }
 
     private class DebugProxy
@@ -245,7 +239,7 @@ public readonly ref struct CsvRecordRef<T>
     static CsvRecordRef()
     {
         int size = Unsafe.SizeOf<CsvRecordRef<T>>();
-        Debug.Assert(size is 32, $"Unexpected size of CsvRecordRef<T>: {size}");
+        // Debug.Assert(size is 32, $"Unexpected size of CsvRecordRef<T>: {size}");
     }
 #endif
 }
