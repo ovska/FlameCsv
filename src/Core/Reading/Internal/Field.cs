@@ -34,7 +34,7 @@ internal static partial class Field
     /// <summary>
     /// Mask for the end index of the field.
     /// </summary>
-    public const uint EndMask = 0x0FFFFFFF;
+    public const uint EndMask = 0x0FFF_FFFF;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int NextStart(uint field) => (int)((field + 1) & EndMask);

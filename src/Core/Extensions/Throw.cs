@@ -165,4 +165,12 @@ internal static class Throw
     {
         throw new ArgumentException("Stream.CanWrite returned false", paramName);
     }
+
+    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+    public static void TooLongRecord(int length)
+    {
+        throw new InvalidDataException(
+            $"The CSV record exceeded the maximum supported length (no full record read in {length} characters)."
+        );
+    }
 }

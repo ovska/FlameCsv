@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 using FlameCsv.Reading.Internal;
@@ -24,7 +25,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
-    private CsvTokenizer<T>? _tokenizer;
+    private readonly CsvTokenizer<T>? _tokenizer;
 
     /// <summary>
     /// Scalar tokenizer that is used to parse the tail end of the data, or as a fallback if SIMD is not available.
@@ -248,6 +249,8 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
     private void ResetBufferAndAdvanceReader()
     {
+        const int maxLengthThreshold = Field.MaxFieldEnd - 1024;
+
         int consumed = _recordBuffer.Reset();
 
         if (consumed > 0)
@@ -257,6 +260,10 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             _reader.Advance(consumed);
             _buffer = _buffer.Slice(consumed);
             _consumed += consumed;
+        }
+        else if (_state is State.DataExhausted && _buffer.Length >= maxLengthThreshold)
+        {
+            Throw.TooLongRecord(_buffer.Length);
         }
     }
 

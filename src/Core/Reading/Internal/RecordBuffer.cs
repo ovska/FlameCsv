@@ -232,12 +232,14 @@ internal sealed class RecordBuffer : IDisposable
 
         Debug.Assert(_fields.Length == _eols.Length);
 
+        const int hardLimit = ushort.MaxValue - 64;
+
         if (_fieldCount >= (_fields.Length * 15 / 16))
         {
-            if (_fieldCount >= (ushort.MaxValue * 15 / 16))
+            if (_fieldCount >= hardLimit)
             {
-                throw new NotSupportedException(
-                    $"The record has too many fields ({_fieldCount}), only up to {ushort.MaxValue} are supported."
+                throw new InvalidDataException(
+                    $"The record has too many fields ({_fieldCount}), only up to {hardLimit} are supported."
                 );
             }
 

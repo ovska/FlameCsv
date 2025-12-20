@@ -4,6 +4,7 @@ using System.Text;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.IO;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Reading;
 
@@ -289,12 +290,28 @@ public class CsvReaderTests
     [Fact]
     public void Should_Throw_On_Over_65K_Field_Record()
     {
-        using var mo = MemoryOwner<char>.Allocate(ushort.MaxValue * 2);
+        using var mo = MemoryOwner<char>.Allocate(ushort.MaxValue);
         mo.Span.Fill(',');
         mo.Span[^1] = '\n';
         var options = new CsvOptions<char> { Newline = CsvNewline.LF };
 
-        Assert.Throws<NotSupportedException>(() =>
+        Assert.Throws<InvalidDataException>(() =>
+        {
+            foreach (var _ in Csv.From(mo.Memory).Enumerate(options)) { }
+        });
+    }
+
+    [Fact(Skip = "This test is pretty slow, enable it periodically to verify.")]
+    public void Should_Throw_On_Too_Long_Record()
+    {
+        using var mo = MemoryOwner<byte>.Allocate(Field.MaxFieldEnd + 1);
+        mo.Span.Clear();
+        mo.Span[65536] = (byte)',';
+        mo.Span[65536 * 2] = (byte)',';
+        mo.Span[^1] = (byte)'\n';
+        var options = new CsvOptions<byte> { Newline = CsvNewline.LF };
+
+        Assert.Throws<InvalidDataException>(() =>
         {
             foreach (var _ in Csv.From(mo.Memory).Enumerate(options)) { }
         });
