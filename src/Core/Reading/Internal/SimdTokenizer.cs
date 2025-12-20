@@ -199,9 +199,9 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
             else
             {
-                if (AdvSimd.IsSupported)
+                if (ArmBase.IsSupported)
                 {
-                    ParseControlsArm64(
+                    ParseControlsArm(
                         index: (uint)index,
                         dst: ref Unsafe.Add(ref firstField, fieldIndex),
                         maskControl: maskControl,
@@ -234,7 +234,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
             flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-            if (AdvSimd.Arm64.IsSupported)
+            if (ArmBase.Arm64.IsSupported)
             {
                 ParseAnyArm64(
                     index: (uint)index,

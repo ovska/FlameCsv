@@ -120,7 +120,7 @@ internal abstract class CsvTokenizer<T>
     )
     {
         if (!ArmBase.Arm64.IsSupported)
-            throw new UnreachableException();
+            throw new PlatformNotSupportedException();
 
         nuint fIdx = fieldIndex;
 
@@ -191,10 +191,10 @@ internal abstract class CsvTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void ParseControlsArm64(uint index, scoped ref uint dst, uint maskControl, uint maskLF, uint flag)
+    protected static void ParseControlsArm(uint index, scoped ref uint dst, uint maskControl, uint maskLF, uint flag)
     {
-        if (!ArmBase.Arm64.IsSupported)
-            throw new UnreachableException();
+        if (!ArmBase.IsSupported)
+            throw new PlatformNotSupportedException();
 
         // reverse once; then we walk from MSB (bit 31) downward
         maskControl = ArmBase.ReverseElementBits(maskControl);
