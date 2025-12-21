@@ -66,6 +66,9 @@ internal abstract class CsvTokenizer<T>
     )
         where TMask : unmanaged, IBinaryInteger<TMask>
     {
+        // should use fast path if 0 or 1 newlines
+        Debug.Assert(TMask.PopCount(maskLF) > TMask.One);
+
         do
         {
             uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));

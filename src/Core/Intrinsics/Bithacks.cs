@@ -104,8 +104,8 @@ internal static class Bithacks
         if (Unsafe.SizeOf<T>() is sizeof(uint))
         {
             // handle pos=32 with zero extension to uint64 (tzcnt 0 returns)
-            bool set = (((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL) != 0;
-            return set ? flag : 0u;
+            uint mask = 0u - (uint)(((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL);
+            return flag & mask;
         }
 
         if (Unsafe.SizeOf<T>() is sizeof(ulong))

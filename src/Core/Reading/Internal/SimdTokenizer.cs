@@ -128,7 +128,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 // quotesConsumed is guaranteed non-zero here, so maskControl is correct too
 
                 // whole chunk is inside quotes
-                if (Unsafe.BitCast<byte, bool>((byte)(quotesConsumed & 1)))
+                if ((quotesConsumed & 1) != 0)
                 {
                     goto ContinueRead;
                 }
