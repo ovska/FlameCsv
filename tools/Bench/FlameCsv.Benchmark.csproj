@@ -36,17 +36,10 @@
         />
     </ItemGroup>
     <ItemGroup>
-        <None Update="Comparisons\Data\SampleCSVFile_556kb.csv">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Comparisons\Data\65K_Records_Data.csv">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Comparisons\Data\SampleCSVFile_100records.csv">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
-        <None Update="Comparisons\Data\SampleCSVFile_556kb_4x.csv">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
+        <None Update="Comparisons\Data\65K_Records_Data.csv" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Comparisons\Data\customers-100000.csv" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Comparisons\Data\SampleCSVFile_556kb.csv" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Comparisons\Data\SampleCSVFile_100records.csv" CopyToOutputDirectory="PreserveNewest" />
+        <None Update="Comparisons\Data\SampleCSVFile_556kb_4x.csv" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 </Project>

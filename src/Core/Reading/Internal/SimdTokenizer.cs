@@ -139,8 +139,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 goto FastPath;
             }
 
-            // exactly 1 quote in the mask
-
+            // exactly 1 quote in the mask?
             // go to slow path if multiple quotes
             if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
             {

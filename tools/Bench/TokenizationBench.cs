@@ -24,7 +24,7 @@ public class TokenizationBench
     [Params(
         [ /**/
             true,
-            false,
+            // false,
         ]
     )]
     public bool Quoted { get; set; }
@@ -42,18 +42,21 @@ public class TokenizationBench
     public bool TokenizerIsLF => Newline == ParserNewline.LF;
 
     private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
-    private static readonly string _chars0LF = File.ReadAllText("Comparisons/Data/65K_Records_Data.csv");
-    private static readonly string _chars1LF = File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
-    private static readonly byte[] _bytes0LF = Encoding.UTF8.GetBytes(_chars0LF);
-    private static readonly byte[] _bytes1LF = Encoding.UTF8.GetBytes(_chars1LF);
-    private static readonly string _chars0CRLF = _chars0LF.ReplaceLineEndings("\r\n");
-    private static readonly string _chars1CRLF = _chars1LF.ReplaceLineEndings("\r\n");
-    private static readonly byte[] _bytes0CRLF = Encoding.UTF8.GetBytes(_chars0CRLF);
-    private static readonly byte[] _bytes1CRLF = Encoding.UTF8.GetBytes(_chars1CRLF);
+    private static readonly string _cUnquoted = RAT("Comparisons/Data/65K_Records_Data.csv");
+    private static readonly string _cUnquotedCR = _cUnquoted.ReplaceLineEndings("\r\n");
+    private static readonly byte[] _bUnquoted = Encoding.UTF8.GetBytes(_cUnquoted);
+    private static readonly byte[] _bUnquotedCR = Encoding.UTF8.GetBytes(_cUnquotedCR);
 
-    private string CharData => Quoted ? (DataIsCRLF ? _chars1CRLF : _chars1LF) : (DataIsCRLF ? _chars0CRLF : _chars0LF);
+    private static readonly string _cQuoted = RAT("Comparisons/Data/customers-100000.csv");
+    private static readonly string _cQuotedCR = _cQuoted.ReplaceLineEndings("\r\n");
+    private static readonly byte[] _bQuoted = Encoding.UTF8.GetBytes(_cQuoted);
+    private static readonly byte[] _bQuotedCR = Encoding.UTF8.GetBytes(_cQuotedCR);
 
-    private byte[] ByteData => Quoted ? (DataIsCRLF ? _bytes1CRLF : _bytes1LF) : (DataIsCRLF ? _bytes0CRLF : _bytes0LF);
+    private static string RAT(string s) => File.ReadAllText(s).ReplaceLineEndings("\n");
+
+    private string CharData => Quoted ? (DataIsCRLF ? _cQuotedCR : _cQuoted) : (DataIsCRLF ? _cUnquotedCR : _cUnquoted);
+
+    private byte[] ByteData => Quoted ? (DataIsCRLF ? _bQuotedCR : _bQuoted) : (DataIsCRLF ? _bUnquotedCR : _bUnquoted);
 
     private static readonly CsvOptions<char> _dCharLF = new CsvOptions<char>
     {
