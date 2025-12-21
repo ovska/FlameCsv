@@ -114,7 +114,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
 
             uint controlCount;
-            bool fastPathRemnant = false;
+            bool firstFieldHasQuotes = false;
 
             if ((maskQuote | quotesConsumed) == 0)
             {
@@ -134,7 +134,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 }
 
                 // A string just ended? flush quotes and read the rest as normal
-                fastPathRemnant = true;
+                firstFieldHasQuotes = true;
                 controlCount = (uint)BitOperations.PopCount(maskControl);
                 goto FastPath;
             }
@@ -169,19 +169,17 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             // quote is first, flush
             if (controlsBeforeQuote == 0)
             {
-                fastPathRemnant = true;
+                firstFieldHasQuotes = true;
                 quotesConsumed++;
             }
             else
             {
                 // a string just ended
-                fastPathRemnant = Unsafe.BitCast<byte, bool>((byte)(quotesConsumed & 1));
+                firstFieldHasQuotes = (quotesConsumed & 1) != 0;
 
                 // quote is last
                 quotesConsumed = 1;
             }
-
-            // otherwise, quote is last, carry forward
 
             FastPath:
             uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
@@ -208,7 +206,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 );
             }
 
-            if (fastPathRemnant)
+            if (firstFieldHasQuotes)
             {
                 Unsafe.Add(ref firstField, fieldIndex) |= Bithacks.GetQuoteFlags(quotesConsumed);
                 quotesConsumed = 0;
@@ -221,32 +219,16 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
             flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-            if (ArmBase.Arm64.IsSupported)
-            {
-                ParseAnyArm64(
-                    index: (uint)index,
-                    firstField: ref firstField,
-                    fieldIndex: ref fieldIndex,
-                    quotesConsumed: ref quotesConsumed,
-                    maskControl: maskControl,
-                    maskLF: maskLF,
-                    maskQuote: ref maskQuote,
-                    flag: flag
-                );
-            }
-            else
-            {
-                ParseAny(
-                    index: (uint)index,
-                    firstField: ref firstField,
-                    fieldIndex: ref fieldIndex,
-                    quotesConsumed: ref quotesConsumed,
-                    maskControl: maskControl,
-                    maskLF: maskLF,
-                    maskQuote: ref maskQuote,
-                    flag: flag
-                );
-            }
+            ParseAny(
+                index: (uint)index,
+                firstField: ref firstField,
+                fieldIndex: ref fieldIndex,
+                quotesConsumed: ref quotesConsumed,
+                maskControl: maskControl,
+                maskLF: maskLF,
+                maskQuote: ref maskQuote,
+                flag: flag
+            );
 
             goto SumQuotesAndContinue;
 

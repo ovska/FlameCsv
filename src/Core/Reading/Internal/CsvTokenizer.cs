@@ -29,10 +29,11 @@ internal abstract class CsvTokenizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe int Tokenize(Span<uint> destination, int startIndex, ReadOnlySpan<T> data)
     {
+        Debug.Assert(startIndex >= 0);
         Debug.Assert(data.Length <= Field.MaxFieldEnd);
         Debug.Assert(destination.Length >= MaxFieldsPerIteration);
 
-        if ((uint)(data.Length - startIndex) < Overscan)
+        if ((data.Length - startIndex) < Overscan)
         {
             return 0;
         }
@@ -53,8 +54,6 @@ internal abstract class CsvTokenizer<T>
     /// <param name="end">Pointer to the end of the safe read range</param>
     /// <returns>Number of fields read</returns>
     protected abstract unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end);
-
-    #region x86
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void ParseControls<TMask>(
@@ -134,72 +133,6 @@ internal abstract class CsvTokenizer<T>
 
         fieldIndex = fIdx;
     }
-
-    #endregion x86
-
-    #region ARM
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void ParseAnyArm64(
-        uint index,
-        scoped ref uint firstField,
-        scoped ref nuint fieldIndex,
-        scoped ref uint quotesConsumed,
-        uint maskControl,
-        uint maskLF,
-        scoped ref uint maskQuote,
-        uint flag
-    )
-    {
-        if (!ArmBase.Arm64.IsSupported)
-            throw new PlatformNotSupportedException();
-
-        uint consumed = 0;
-        maskControl = ArmBase.ReverseElementBits(maskControl);
-
-        Vector64<uint> popcnt;
-        Vector64<byte> aggregated;
-
-        nuint fIdx = fieldIndex;
-
-        while (maskControl != 0)
-        {
-            uint lz = (uint)ArmBase.LeadingZeroCount(maskControl);
-            uint quoteBits = (uint)((ulong)maskQuote << (int)(32u - lz));
-            uint offset = consumed + lz;
-
-            // interleave vector and scalar work
-            popcnt = Vector64.CreateScalar(quoteBits);
-
-            uint bitLF = maskLF >> (int)offset;
-
-            aggregated = AdvSimd.Arm64.AddAcross(AdvSimd.PopCount(popcnt.AsByte()));
-
-            uint eolFlag = flag & (0u - (bitLF & 1u));
-
-            int k = (int)(lz + 1);
-            uint result = index + offset - eolFlag;
-
-            quotesConsumed += aggregated.ToScalar();
-
-            // zero extend through ulong so shift by 32 works correctly
-            maskControl = (uint)((ulong)maskControl << k);
-            maskQuote = (uint)((ulong)maskQuote >> k);
-
-            result |= Bithacks.GetQuoteFlags(quotesConsumed);
-
-            consumed += (uint)k;
-            quotesConsumed = 0;
-
-            Unsafe.Add(ref firstField, fIdx++) = result;
-        }
-
-        fieldIndex = fIdx;
-    }
-
-    #endregion ARM
-
-    #region Pathological
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void CheckDanglingCR<TMask>(
@@ -287,6 +220,4 @@ internal abstract class CsvTokenizer<T>
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
     }
-
-    #endregion
 }
