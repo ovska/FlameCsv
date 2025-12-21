@@ -199,26 +199,13 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
             else
             {
-                if (ArmBase.IsSupported)
-                {
-                    ParseControlsArm(
-                        index: (uint)index,
-                        dst: ref Unsafe.Add(ref firstField, fieldIndex),
-                        maskControl: maskControl,
-                        maskLF: maskLF,
-                        flag: flag
-                    );
-                }
-                else
-                {
-                    ParseControls(
-                        index: (uint)index,
-                        dst: ref Unsafe.Add(ref firstField, fieldIndex),
-                        maskControl: maskControl,
-                        maskLF: maskLF,
-                        flag: flag
-                    );
-                }
+                ParseControls(
+                    index: (uint)index,
+                    dst: ref Unsafe.Add(ref firstField, fieldIndex),
+                    maskControl: maskControl,
+                    maskLF: maskLF,
+                    flag: flag
+                );
             }
 
             if (fastPathRemnant)
@@ -346,8 +333,8 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             do
             {
                 uint offset = (uint)BitOperations.TrailingZeroCount(m5);
-                dst2 = index + offset;
                 m5 &= m5 - 1;
+                dst2 = index + offset;
                 dst2 = ref Unsafe.Add(ref dst2, 1u);
             } while (m5 != 0);
         }

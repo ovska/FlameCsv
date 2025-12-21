@@ -107,7 +107,7 @@ public class TokenizationBench
             c = SimdByte.Tokenize(dst, 0, ByteData);
         }
 
-        rb.SetFieldsRead(c);
+        // rb.SetFieldsRead(c);
     }
 
     private readonly Avx2Tokenizer<byte, FalseConstant> _avx2Byte = new(_dByteLF);

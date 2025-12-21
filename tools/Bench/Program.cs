@@ -22,7 +22,7 @@ using BenchmarkDotNet.Diagnosers;
 //     args
 // );
 
-BenchmarkRunner.Run<ReadObjects>(new Config(), args);
+BenchmarkRunner.Run<TokenizationBench>(new Config(), args);
 
 file class Config : ManualConfig
 {
