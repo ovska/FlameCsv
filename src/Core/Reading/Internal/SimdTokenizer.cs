@@ -2,7 +2,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -114,12 +113,19 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
 
             uint controlCount;
-            bool firstFieldHasQuotes = false;
+            QuoteState quoteState = 0;
 
             if ((maskQuote | quotesConsumed) == 0)
             {
                 controlCount = (uint)BitOperations.PopCount(maskControl);
                 goto FastPath;
+            }
+
+            // exactly 1 quote in the mask?
+            // go to slow path if multiple quotes
+            if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
+            {
+                goto SlowPath;
             }
 
             // case 1: no quote in this chunk
@@ -134,16 +140,9 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 }
 
                 // A string just ended? flush quotes and read the rest as normal
-                firstFieldHasQuotes = true;
+                quoteState = QuoteState.Flush;
                 controlCount = (uint)BitOperations.PopCount(maskControl);
                 goto FastPath;
-            }
-
-            // exactly 1 quote in the mask?
-            // go to slow path if multiple quotes
-            if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
-            {
-                goto SlowPath;
             }
 
             maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
@@ -165,19 +164,22 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
             Debug.Assert(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
 
-            // quote is first, flush
             if (controlsBeforeQuote == 0)
             {
-                firstFieldHasQuotes = true;
+                // quote is first, flush
+                quoteState = QuoteState.Flush;
                 quotesConsumed++;
+            }
+            else if (quotesConsumed != 0)
+            {
+                // string just ended?
+                Debug.Assert(quotesConsumed % 2 == 0);
+                quoteState = QuoteState.FlushAndCarry;
             }
             else
             {
-                // a string just ended
-                firstFieldHasQuotes = (quotesConsumed & 1) != 0;
-
-                // quote is last
-                quotesConsumed = 1;
+                // quote is last, flag it for the next iter
+                quotesConsumed++;
             }
 
             FastPath:
@@ -205,10 +207,10 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 );
             }
 
-            if (firstFieldHasQuotes)
+            if (quoteState != 0)
             {
                 Unsafe.Add(ref firstField, fieldIndex) |= Bithacks.GetQuoteFlags(quotesConsumed);
-                quotesConsumed = 0;
+                quotesConsumed = (uint)quoteState >> 1;
             }
 
             fieldIndex += controlCount;
@@ -272,7 +274,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasControl = hasLF | hasDelimiter;
 
             (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF>(hasControl, hasLF, hasQuote, hasCR);
-        } while (fieldIndex <= fieldEnd && pData <= end);
+        } while (fieldIndex <= fieldEnd && pData < end);
 
         return (int)fieldIndex;
     }
@@ -324,4 +326,11 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         uint intermediate = index - flag;
         Unsafe.Add(ref dst, lfPos) = intermediate + lfTz;
     }
+}
+
+file enum QuoteState
+{
+    None = 0,
+    Flush = 0b1,
+    FlushAndCarry = 0b11,
 }

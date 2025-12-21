@@ -114,14 +114,14 @@ internal abstract class CsvTokenizer<T>
             TMask quoteBits = maskQuote & maskUpToPos;
 
             uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
-            uint pos = index + tz;
             quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
-
-            pos -= eolFlag;
+            uint pos = index + tz;
 
             // consume masks
             maskControl = Bithacks.ResetLowestSetBit(maskControl);
             maskQuote &= ~maskUpToPos;
+
+            pos -= eolFlag;
 
             ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
 

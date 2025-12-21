@@ -358,7 +358,7 @@ internal sealed class RecordBuffer : IDisposable
 
                 if ((int)_fields[i] < 0)
                 {
-                    if ((_fields[i] & IsCRLF) != 0)
+                    if ((_fields[i] & IsCRLF) == IsCRLF)
                     {
                         vsb.Append(" CRLF");
                     }
