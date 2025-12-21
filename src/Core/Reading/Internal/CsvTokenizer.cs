@@ -50,7 +50,7 @@ internal abstract class CsvTokenizer<T>
     /// <param name="destination">Buffer to parse the records to</param>
     /// <param name="startIndex">Start index in the data</param>
     /// <param name="start">Pointer to the start of the data</param>
-    /// <param name="end">Pointer to the end of the data</param>
+    /// <param name="end">Pointer to the end of the safe read range</param>
     /// <returns>Number of fields read</returns>
     protected abstract unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end);
 

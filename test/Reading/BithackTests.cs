@@ -83,6 +83,30 @@ public class BithackTests
         }
     }
 
+    [Fact]
+    public static void Should_Check_if_Two_or_More_Bits_Set()
+    {
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0));
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0ul));
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000001u));
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000010u));
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000010ul));
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000001ul));
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000000ul));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00000011u));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00000011ul));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00101011ul));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00101011u));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(~0u));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(~0ul));
+
+        for (int i = 0; i < 8096; i++)
+        {
+            Assert.Equal(int.PopCount(i) >= 2, Bithacks.TwoOrMoreBitsSet(i));
+            Assert.Equal(int.PopCount(i) >= 2, Bithacks.TwoOrMoreBitsSet((long)i));
+        }
+    }
+
     public static TheoryData<ulong, ulong> TestData =>
         new()
         {

@@ -166,6 +166,28 @@ internal static class Bithacks
     }
 
     /// <summary>
+    /// Returns <c>true</c> if the value has a population count of 2 or more.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool TwoOrMoreBitsSet<T>(T value)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (Unsafe.SizeOf<T>() is sizeof(uint) && Bmi1.IsSupported)
+        {
+            uint v = Unsafe.BitCast<T, uint>(value);
+            return v != 0 & Bmi1.ResetLowestSetBit(v) != 0;
+        }
+
+        if (Unsafe.SizeOf<T>() is sizeof(ulong) && Bmi1.X64.IsSupported)
+        {
+            ulong v = Unsafe.BitCast<T, ulong>(value);
+            return v != 0 & Bmi1.X64.ResetLowestSetBit(v) != 0;
+        }
+
+        return value != T.Zero & (value & (value - T.One)) != T.Zero;
+    }
+
+    /// <summary>
     /// Does a prefix XOR-based computation of the quote mask.
     /// </summary>
     /// <param name="quoteBits">Movemask result containing bits at quote positions</param>

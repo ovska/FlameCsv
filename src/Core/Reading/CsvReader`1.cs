@@ -91,7 +91,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryFillBuffer(out RecordView record)
     {
-        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
+        ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
 
         ResetBufferAndAdvanceReader();
 
@@ -127,17 +127,19 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         Read:
         int fieldsRead;
-        CsvTokenizer<T>? tokenizer = _tokenizer;
 
-        if (readToEnd || tokenizer is null)
+        if (readToEnd || _tokenizer is null)
         {
             Span<uint> destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
             fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd);
         }
         else
         {
-            Span<uint> destination = _recordBuffer.GetUnreadBuffer(tokenizer.MaxFieldsPerIteration, out int startIndex);
-            fieldsRead = tokenizer.Tokenize(destination, startIndex, data);
+            Span<uint> destination = _recordBuffer.GetUnreadBuffer(
+                _tokenizer.MaxFieldsPerIteration,
+                out int startIndex
+            );
+            fieldsRead = _tokenizer.Tokenize(destination, startIndex, data);
         }
 
         if (fieldsRead != 0)
@@ -147,7 +149,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             // request more data if the next tokenizing would not be large enough to be productive
             if (
                 _state == State.Reading
-                && (data.Length - _recordBuffer.BufferedDataLength) < tokenizer?.PreferredLength
+                && (data.Length - _recordBuffer.BufferedDataLength) < _tokenizer?.PreferredLength
             )
             {
                 _state = State.DataExhausted;
@@ -179,7 +181,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </returns>
     public bool TryReset()
     {
-        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
+        ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
 
         if (_reader.TryReset())
         {
@@ -217,7 +219,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </remarks>
     internal bool TryAdvanceReader()
     {
-        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
+        ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
 
         if (_state < State.ReaderCompleted)
         {
@@ -233,7 +235,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <inheritdoc cref="TryAdvanceReader"/>
     internal async ValueTask<bool> TryAdvanceReaderAsync(CancellationToken cancellationToken = default)
     {
-        ObjectDisposedException.ThrowIf(_state is State.Disposed, this);
+        ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
         if (_state < State.ReaderCompleted)
@@ -305,7 +307,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_state is State.Disposed)
+        if (_state >= State.Disposed)
             return;
 
         _state = State.Disposed;
@@ -319,7 +321,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (_state is State.Disposed)
+        if (_state >= State.Disposed)
             return;
 
         _state = State.Disposed;
@@ -340,7 +342,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             return _unescapeAllocator.GetSpan(length);
         }
 
-        return MemoryMarshal.Cast<byte, T>((Span<byte>)_stackMemory);
+        return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);
     }
 
     private enum State : byte
@@ -363,12 +365,4 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         /// <summary>The parser has been disposed.</summary>
         Disposed = 5,
     }
-}
-
-[SkipLocalsInit]
-[InlineArray(Length)]
-internal struct EnumeratorStack
-{
-    public const int Length = 256;
-    public byte elem0;
 }
