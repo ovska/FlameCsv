@@ -232,7 +232,7 @@ internal sealed class RecordBuffer : IDisposable
 
         Debug.Assert(_fields.Length == _eols.Length);
 
-        const int hardLimit = ushort.MaxValue - 64;
+        const int hardLimit = ushort.MaxValue - 256;
 
         if (_fieldCount >= (_fields.Length * 15 / 16))
         {
@@ -319,11 +319,9 @@ internal sealed class RecordBuffer : IDisposable
         ArrayPool<ushort>.Shared.EnsureCapacity(ref _eols, bufferSize);
 
         _fields[0] = FirstSentinel;
-        _eols[0] = 0;
-
         _eols.AsSpan().Clear();
-        _fieldCount = 0;
 
+        _fieldCount = 0;
         _eolIndex = 0;
         _eolCount = 0;
     }

@@ -45,6 +45,9 @@ internal static partial class Field
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int End(uint field) => (int)(field & EndMask);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool NeedsQuoting(uint field) => (int)(field << 2) < 0;
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static ReadOnlySpan<T> GetValue<T>(int start, uint endAndMasks, ref T data, RecordOwner<T> owner)
         where T : unmanaged, IBinaryInteger<T>

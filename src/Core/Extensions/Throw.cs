@@ -149,28 +149,10 @@ internal static class Throw
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void StreamNotReadable(
-        [NotNull] Stream? stream,
-        [CallerArgumentExpression(nameof(stream))] string paramName = ""
-    )
-    {
-        throw new ArgumentException("Stream.CanRead returned false", paramName);
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void StreamNotWritable(
-        [NotNull] Stream? stream,
-        [CallerArgumentExpression(nameof(stream))] string paramName = ""
-    )
-    {
-        throw new ArgumentException("Stream.CanWrite returned false", paramName);
-    }
-
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void TooLongRecord(int length)
     {
         throw new InvalidDataException(
-            $"The CSV record exceeded the maximum supported length (no full record read in {length} characters)."
+            $"A CSV record exceeded the maximum supported length (no full record read in {length} characters)."
         );
     }
 }

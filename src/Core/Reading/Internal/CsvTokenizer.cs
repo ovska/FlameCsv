@@ -54,6 +54,33 @@ internal abstract class CsvTokenizer<T>
     /// <returns>Number of fields read</returns>
     protected abstract unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end);
 
+    #region x86
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static void ParseControls<TMask>(
+        uint index,
+        scoped ref uint dst,
+        TMask maskControl,
+        TMask maskLF,
+        uint flag
+    )
+        where TMask : unmanaged, IBinaryInteger<TMask>
+    {
+        do
+        {
+            uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
+
+            uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
+            uint pos = index + tz;
+
+            // consume masks
+            maskControl = Bithacks.ResetLowestSetBit(maskControl);
+
+            dst = pos - eolFlag;
+            dst = ref Unsafe.Add(ref dst, 1);
+        } while (maskControl != TMask.Zero);
+    }
+
     /// <summary>
     /// Parses any control characters (LF, CR, delimiter).
     /// </summary>
@@ -107,6 +134,49 @@ internal abstract class CsvTokenizer<T>
         fieldIndex = fIdx;
     }
 
+    #endregion x86
+
+    #region ARM
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected static void ParseControlsArm(uint index, scoped ref uint dst, uint maskControl, uint maskLF, uint flag)
+    {
+        if (!ArmBase.IsSupported)
+            throw new PlatformNotSupportedException();
+
+        // reverse once; then we walk from MSB (bit 31) downward
+        maskControl = ArmBase.ReverseElementBits(maskControl);
+        maskLF = ArmBase.ReverseElementBits(maskLF);
+
+        uint consumed = 0;
+
+        while (maskControl != 0)
+        {
+            // next control at lz from current MSB
+            uint lz = (uint)ArmBase.LeadingZeroCount(maskControl);
+
+            // shift both masks so current control/newline land at bit 31
+            uint lfShifted = maskLF << (int)lz;
+
+            uint offset = consumed + lz;
+            uint eolFlag = flag & (0u - (lfShifted >> 31));
+
+            uint ctrlShifted = maskControl << (int)lz;
+
+            // post-store increment in one op, keep these together for better codegen
+            dst = index + offset - eolFlag;
+            dst = ref Unsafe.Add(ref dst, 1);
+
+            // consume this control + everything above it by shifting once more
+            maskLF = lfShifted << 1;
+            maskControl = ctrlShifted << 1;
+
+            // we advanced lz+1 positions total
+            consumed = offset + 1;
+
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void ParseAnyArm64(
         uint index,
@@ -133,8 +203,8 @@ internal abstract class CsvTokenizer<T>
         while (maskControl != 0)
         {
             uint lz = (uint)ArmBase.LeadingZeroCount(maskControl);
-            uint offset = consumed + lz;
             uint quoteBits = (uint)((ulong)maskQuote << (int)(32u - lz));
+            uint offset = consumed + lz;
 
             // interleave vector and scalar work
             popcnt = Vector64.CreateScalar(quoteBits);
@@ -143,21 +213,23 @@ internal abstract class CsvTokenizer<T>
 
             aggregated = AdvSimd.Arm64.AddAcross(AdvSimd.PopCount(popcnt.AsByte()));
 
-            uint eolFlag = (bitLF & 1) != 0 ? flag : 0;
+            uint eolFlag = flag & (0u - (bitLF & 1u));
+
             int k = (int)(lz + 1);
+            uint result = index + offset - eolFlag;
 
             quotesConsumed += aggregated.ToScalar();
-
-            uint result = index + offset - eolFlag;
-            result |= Bithacks.GetQuoteFlags(quotesConsumed);
-
-            Unsafe.Add(ref firstField, fIdx) = result;
 
             // zero extend through ulong so shift by 32 works correctly
             maskControl = (uint)((ulong)maskControl << k);
             maskQuote = (uint)((ulong)maskQuote >> k);
 
+            result |= Bithacks.GetQuoteFlags(quotesConsumed);
+
             consumed += (uint)k;
+
+            Unsafe.Add(ref firstField, fIdx) = result;
+
             fIdx++;
             quotesConsumed = 0;
         }
@@ -165,69 +237,7 @@ internal abstract class CsvTokenizer<T>
         fieldIndex = fIdx;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void ParseControls<TMask>(
-        uint index,
-        scoped ref uint dst,
-        TMask maskControl,
-        TMask maskLF,
-        uint flag
-    )
-        where TMask : unmanaged, IBinaryInteger<TMask>
-    {
-        do
-        {
-            uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
-
-            uint eolFlag = Bithacks.ProcessFlag(maskLF, tz, flag);
-            uint pos = index + tz;
-
-            // consume masks
-            maskControl = Bithacks.ResetLowestSetBit(maskControl);
-
-            dst = pos - eolFlag;
-            dst = ref Unsafe.Add(ref dst, 1);
-        } while (maskControl != TMask.Zero);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void ParseControlsArm(uint index, scoped ref uint dst, uint maskControl, uint maskLF, uint flag)
-    {
-        if (!ArmBase.IsSupported)
-            throw new PlatformNotSupportedException();
-
-        // reverse once; then we walk from MSB (bit 31) downward
-        maskControl = ArmBase.ReverseElementBits(maskControl);
-        maskLF = ArmBase.ReverseElementBits(maskLF);
-
-        uint consumed = 0;
-
-        while (maskControl != 0)
-        {
-            // next control at lz from current MSB
-            uint lz = (uint)ArmBase.LeadingZeroCount(maskControl);
-
-            // shift both masks so current control/newline land at bit 31
-            uint lfShifted = maskLF << (int)lz;
-            uint ctrlShifted = maskControl << (int)lz;
-
-            uint offset = consumed + lz;
-
-            // MSB set if newline
-            uint eolFlag = (int)lfShifted < 0 ? flag : 0u;
-
-            // store index (adjusted for CRLF flag if needed)
-            dst = index + offset - eolFlag;
-            dst = ref Unsafe.Add(ref dst, 1);
-
-            // consume this control + everything above it by shifting once more
-            maskControl = ctrlShifted << 1;
-            maskLF = lfShifted << 1;
-
-            // we advanced lz+1 positions total
-            consumed = offset + 1;
-        }
-    }
+    #endregion ARM
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void CheckDanglingCR<TMask>(
