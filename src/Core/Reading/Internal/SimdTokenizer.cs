@@ -121,7 +121,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 goto FastPath;
             }
 
-            // exactly 1 quote in the mask?
             // go to slow path if multiple quotes
             if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
             {
@@ -145,6 +144,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 goto FastPath;
             }
 
+            // exactly one quote in this chunk
             maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
 
             // after XOR clearing, if no controls survive, just carry quote state forward
