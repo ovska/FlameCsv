@@ -30,8 +30,8 @@ internal ref struct ValueListBuilder<T>
         readonly get => _pos;
         set
         {
-            Debug.Assert(value >= 0);
-            Debug.Assert(value <= _span.Length);
+            Check.Positive(value);
+            Check.LessThanOrEqual(value, _span.Length);
             _pos = value;
         }
     }
@@ -40,7 +40,7 @@ internal ref struct ValueListBuilder<T>
     {
         get
         {
-            Debug.Assert(index < _pos);
+            Check.LessThan(index, _pos);
             return ref _span[index];
         }
     }
@@ -95,7 +95,7 @@ internal ref struct ValueListBuilder<T>
 
     public void Insert(int index, scoped ReadOnlySpan<T> source)
     {
-        Debug.Assert(index == 0, "Implementation currently only supports index == 0");
+        Check.True(index == 0, "Implementation currently only supports index == 0");
 
         if ((uint)(_pos + source.Length) > (uint)_span.Length)
         {
@@ -110,7 +110,7 @@ internal ref struct ValueListBuilder<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> AppendSpan(int length)
     {
-        Debug.Assert(length >= 0);
+        Check.Positive(length);
 
         int pos = _pos;
         Span<T> span = _span;
@@ -140,7 +140,7 @@ internal ref struct ValueListBuilder<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void AddWithResize(T item)
     {
-        Debug.Assert(_pos == _span.Length);
+        Check.Equal(_pos, _span.Length);
         int pos = _pos;
         Grow(additionalCapacityRequired: 1);
         _span[pos] = item;

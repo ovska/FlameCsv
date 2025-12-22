@@ -23,7 +23,7 @@ public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, T
     /// </summary>
     public CsvEnumFlagsParseStrategy(CsvOptions<T> options, EnumParseStrategy<T, TEnum> inner)
     {
-        Debug.Assert(EnumMemberCache<TEnum>.HasFlagsAttribute, $"Enum {typeof(TEnum)} is not a flags-enum");
+        Check.True(EnumMemberCache<TEnum>.HasFlagsAttribute, $"Enum {typeof(TEnum)} is not a flags-enum");
 
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(inner);

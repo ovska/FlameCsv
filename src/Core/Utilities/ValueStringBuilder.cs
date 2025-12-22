@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 namespace FlameCsv.Utilities;
 
 [ExcludeFromCodeCoverage]
-internal ref partial struct ValueStringBuilder
+internal ref struct ValueStringBuilder
 {
     private char[]? _arrayToReturnToPool;
     private Span<char> _chars;
@@ -32,21 +32,21 @@ internal ref partial struct ValueStringBuilder
 
     public int Length
     {
-        get => _pos;
+        readonly get => _pos;
         set
         {
-            Debug.Assert(value >= 0);
-            Debug.Assert(value <= _chars.Length);
+            Check.GreaterThanOrEqual(value, 0);
+            Check.LessThanOrEqual(value, _chars.Length);
             _pos = value;
         }
     }
 
-    public int Capacity => _chars.Length;
+    public readonly int Capacity => _chars.Length;
 
     public void EnsureCapacity(int capacity)
     {
         // This is not expected to be called this with negative capacity
-        Debug.Assert(capacity >= 0);
+        Check.GreaterThanOrEqual(capacity, 0);
 
         // If the caller has a bug and calls this with negative capacity, make sure to call Grow to throw an exception.
         if ((uint)capacity > (uint)_chars.Length)
@@ -83,7 +83,7 @@ internal ref partial struct ValueStringBuilder
     {
         get
         {
-            Debug.Assert(index < _pos);
+            Check.LessThan(index, _pos);
             return ref _chars[index];
         }
     }
@@ -294,11 +294,8 @@ internal ref partial struct ValueStringBuilder
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Grow(int additionalCapacityBeyondPos)
     {
-        Debug.Assert(additionalCapacityBeyondPos > 0);
-        Debug.Assert(
-            _pos > _chars.Length - additionalCapacityBeyondPos,
-            "Grow called incorrectly, no resize is needed."
-        );
+        Check.Positive(additionalCapacityBeyondPos);
+        Check.GreaterThan(_pos, _chars.Length - additionalCapacityBeyondPos);
 
         const uint arrayMaxLength = 0x7FFFFFC7; // same as Array.MaxLength
 

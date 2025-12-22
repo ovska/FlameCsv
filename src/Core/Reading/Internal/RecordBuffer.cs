@@ -111,7 +111,7 @@ internal sealed class RecordBuffer : IDisposable
         {
             ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
 
-            Debug.Assert(_fields[0] is FirstSentinel, "First field should indicate start of data");
+            Check.Equal(_fields[0], FirstSentinel);
 
             if (_eolCount == 0)
             {
@@ -137,8 +137,8 @@ internal sealed class RecordBuffer : IDisposable
             return 0;
         }
 
-        Debug.Assert(count >= 0);
-        Debug.Assert((_fieldCount + count) < _fields.Length);
+        Check.Positive(count, "Invalid count");
+        Check.LessThan(_fieldCount + count, _fields.Length, "Field count exceeds buffer length");
 
         _fieldCount += count;
 
@@ -230,7 +230,7 @@ internal sealed class RecordBuffer : IDisposable
     {
         ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
 
-        Debug.Assert(_fields.Length == _eols.Length);
+        Check.Equal(_fields.Length, _eols.Length);
 
         const int hardLimit = ushort.MaxValue - 256;
 
@@ -271,7 +271,7 @@ internal sealed class RecordBuffer : IDisposable
     {
         ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
 
-        Debug.Assert(FieldIndex > 0);
+        Check.OverZero(FieldIndex, "Field index must be greater than zero");
 
         int fieldIndex = FieldIndex;
 
@@ -380,7 +380,7 @@ internal sealed class RecordBuffer : IDisposable
         ref uint previous = ref Unsafe.Add(ref _fields[0], (uint)view.Start);
         int recordStart = NextStart(previous);
         int nextRecordStart = NextStartCRLFAware(Unsafe.Add(ref previous, (uint)view.Length));
-        Debug.Assert(nextRecordStart > recordStart);
+        Check.GreaterThan(nextRecordStart, recordStart);
         return nextRecordStart - recordStart;
     }
 }

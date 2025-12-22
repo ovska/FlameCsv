@@ -284,7 +284,7 @@ static partial class Csv
         {
             if (_reader is null)
             {
-                Debug.Assert(_stream is not null);
+                Check.NotNull(_stream);
                 return CsvBufferReader.Create(_stream, _encoding, in _ioOptions);
             }
 
@@ -381,7 +381,8 @@ static partial class Csv
 
         ICsvBufferReader<char> IReadBuilderBase<char, IReadBuilder<char>>.CreateReader(bool isAsync)
         {
-            Debug.Assert(!_ioOptions.LeaveOpen);
+            Check.False(_ioOptions.LeaveOpen);
+
             FileStream stream = GetFileStream(isAsync);
 
             try
@@ -398,7 +399,7 @@ static partial class Csv
 
         ICsvBufferReader<byte> IReadBuilderBase<byte, IReadBuilder<byte>>.CreateReader(bool isAsync)
         {
-            Debug.Assert(_encoding is null);
+            Check.IsNull(_encoding, "Bytes should be read from a file only without a specified encoding.");
             return new StreamBufferReader(GetFileStream(isAsync), in _ioOptions);
         }
 
@@ -419,7 +420,7 @@ static partial class Csv
             bool isAsync
         )
         {
-            Debug.Assert(_encoding is null);
+            Check.IsNull(_encoding, "Bytes should be read from a file only without a specified encoding.");
             return new ParallelStreamReader(GetFileStream(isAsync), options, _ioOptions);
         }
 

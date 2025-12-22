@@ -24,7 +24,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
 
         if (typeof(T) == typeof(byte))
         {
-            Debug.Assert(lut.Length == 256, "LUT must be 256 bytes long");
+            Check.Equal(lut.Length, 256);
 
             // for bytes, store a value directly.
             lut[(byte)options.Quote] = 1;
@@ -44,7 +44,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             }
 
             Span<char> span = MemoryMarshal.Cast<byte, char>((Span<byte>)_lut);
-            Debug.Assert(span.Length == 128, "LUT must be 128 chars long");
+            Check.Equal(span.Length, 128);
 
             // for chars we need to ensure that high bits are zeroed out, so compare the value with itself
             span[0] = char.MaxValue; // in case the data contains zeroes
@@ -166,12 +166,12 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             }
 
             // two consecutive quotes, continue
-            Debug.Assert(quotesConsumed % 2 == 1);
+            Check.Equal(quotesConsumed % 2, 1u);
             quotesConsumed += 2;
             index += 2;
 
             ReadString:
-            Debug.Assert(quotesConsumed % 2 != 0);
+            Check.Equal(quotesConsumed % 2, 1u);
 
             while (index < unrolledEnd)
             {

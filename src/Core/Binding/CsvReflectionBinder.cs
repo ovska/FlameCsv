@@ -144,7 +144,7 @@ public abstract class CsvReflectionBinder
 
         foreach (var candidate in candidates)
         {
-            Debug.Assert(candidate.Target is not ParameterInfo);
+            Check.True(candidate.Target is not ParameterInfo);
 
             if (handledMembers.Add(candidate.Target))
                 result.Add(CsvBinding.FromBindingData<TValue>(index++, in candidate));

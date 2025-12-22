@@ -144,7 +144,8 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
 
         int start = Field.NextStart(previous);
         int end = Field.End(current);
-        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+
+        Check.GreaterThanOrEqual(end, start, "Malformed field");
 
         if (reader._dialect.Trimming == 0 && (int)(current << 2) >= 0)
         {
@@ -479,7 +480,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     static CsvRecord()
     {
         int size = Unsafe.SizeOf<CsvRecord<T>>();
-        Debug.Assert(size <= 32, $"Unexpected size for CsvRecord<{typeof(T).Name}>: {size} bytes");
+        Check.LessThanOrEqual(size, 32, $"Unexpected size for CsvRecord<{typeof(T).Name}>: {size} bytes");
     }
 #endif
 }

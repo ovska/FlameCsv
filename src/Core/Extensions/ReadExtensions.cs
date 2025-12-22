@@ -88,7 +88,8 @@ internal static class ReadExtensions
     )
         where T : unmanaged, IBinaryInteger<T>
     {
-        Debug.Assert(start >= 0 && end >= start);
+        Check.Positive(start, "Start index cannot be negative");
+        Check.GreaterThanOrEqual(end, start, "End index cannot be less than start index");
 
         T space = T.CreateTruncating(' ');
 

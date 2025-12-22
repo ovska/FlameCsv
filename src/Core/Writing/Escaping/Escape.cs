@@ -23,8 +23,8 @@ internal static class Escape
         where T : unmanaged, IBinaryInteger<T>
         where TEscaper : struct, IEscaper<T>
     {
-        Debug.Assert(destination.Length >= source.Length + specialCount + 2, "Destination buffer is too small");
-        Debug.Assert(
+        Check.GreaterThanOrEqual(destination.Length, source.Length + specialCount + 2);
+        Check.True(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
             "If src and dst overlap, they must have the same starting point in memory"
         );

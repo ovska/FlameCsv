@@ -70,7 +70,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 break;
             }
 
-            Debug.Assert(status == OperationStatus.NeedMoreData, "ToUtf16 should not return InvalidData");
+            Check.Equal(status, OperationStatus.NeedMoreData);
 
             if (status == OperationStatus.NeedMoreData)
             {
@@ -152,7 +152,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 break;
             }
 
-            Debug.Assert(status == OperationStatus.NeedMoreData, "ToUtf16 should not return InvalidData");
+            Check.Equal(status, OperationStatus.NeedMoreData);
 
             if (status == OperationStatus.NeedMoreData)
             {

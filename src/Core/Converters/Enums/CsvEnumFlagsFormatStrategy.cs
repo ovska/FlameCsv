@@ -50,7 +50,7 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
     /// </summary>
     protected CsvEnumFlagsFormatStrategy(CsvOptions<T> options, EnumFormatStrategy<T, TEnum> inner)
     {
-        Debug.Assert(EnumMemberCache<TEnum>.HasFlagsAttribute, $"Enum {typeof(TEnum)} is not a flags-enum");
+        Check.True(EnumMemberCache<TEnum>.HasFlagsAttribute, $"Enum {typeof(TEnum)} is not a flags-enum");
 
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(inner);

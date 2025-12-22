@@ -27,7 +27,7 @@ internal static class Token<T>
     {
         get
         {
-            Debug.Assert(
+            Check.True(
                 typeof(T) != typeof(char) && typeof(T) != typeof(byte),
                 "Token<T>.NotSupported should not be called for char or byte tokens."
             );

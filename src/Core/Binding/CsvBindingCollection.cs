@@ -246,7 +246,7 @@ public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue
             parameterInfos.Add((match, parameter));
         }
 
-        Debug.Assert(parameterInfos.DistinctBy(p => p.param.Member).Count() == 1);
+        Check.True(parameterInfos.DistinctBy(p => p.param.Member).Count() == 1);
         parameterInfos.AsSpan().Sort(static (a, b) => a.param.Position.CompareTo(b.param.Position));
         return parameterInfos;
     }

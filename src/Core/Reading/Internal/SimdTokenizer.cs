@@ -162,7 +162,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             // controlsBeforeQuote is either 0 (quote before controls) or == maskControl (quote after)
             uint controlsBeforeQuote = (maskQuote - 1u) & maskControl;
 
-            Debug.Assert(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
+            Check.True(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
 
             if (controlsBeforeQuote == 0)
             {
@@ -173,7 +173,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             else if (quotesConsumed != 0)
             {
                 // string just ended?
-                Debug.Assert(quotesConsumed % 2 == 0);
+                Check.Equal(quotesConsumed % 2, 0u);
                 quoteState = QuoteState.FlushAndCarry;
             }
             else

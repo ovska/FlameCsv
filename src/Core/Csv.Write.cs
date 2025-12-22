@@ -283,7 +283,7 @@ static partial class Csv
                 return new TextBufferWriter(_writer, in _ioOptions);
             }
 
-            Debug.Assert(_stream is not null);
+            Check.NotNull(_stream);
 
             if (_encoding?.Equals(Encoding.UTF8) != false)
             {
@@ -319,7 +319,7 @@ static partial class Csv
 
             if (writer is null)
             {
-                Debug.Assert(_stream is not null);
+                Check.NotNull(_stream);
                 writer = new StreamWriter(
                     _stream,
                     _encoding ?? Encoding.UTF8,

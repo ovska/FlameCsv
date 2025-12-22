@@ -579,21 +579,21 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         [RequireStaticDelegate] Func<CsvOptions<T>, object?, IDematerializer<T, TRecord>> factory
     )
     {
-        Debug.Assert(cacheKey is Type or CsvTypeMap<T, TRecord>);
+        Check.True(cacheKey is Type or CsvTypeMap<T, TRecord>);
 
         IDematerializer<T, TRecord> dematerializer;
 
         // optimize for consecutive calls with the same type
         if (ReferenceEquals(_previousKey, cacheKey))
         {
-            Debug.Assert(_previousValue is IDematerializer<T, TRecord>);
+            Check.True(_previousValue is IDematerializer<T, TRecord>);
             dematerializer = Unsafe.As<IDematerializer<T, TRecord>>(_previousValue!);
         }
         else
         {
             if (_dematerializerCache.TryGetValue(cacheKey, out object? cached))
             {
-                Debug.Assert(cached is IDematerializer<T, TRecord>);
+                Check.True(cached is IDematerializer<T, TRecord>);
                 dematerializer = Unsafe.As<IDematerializer<T, TRecord>>(cached);
             }
             else

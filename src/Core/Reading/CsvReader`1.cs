@@ -257,7 +257,8 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         if (consumed > 0)
         {
-            Debug.Assert(consumed <= (_buffer.Length + 1), $"Buffer len {_buffer.Length}, but consumed was {consumed}");
+            Check.LessThanOrEqual(consumed, _buffer.Length + 1);
+
             consumed = Math.Min(consumed, _buffer.Length);
             _reader.Advance(consumed);
             _buffer = _buffer.Slice(consumed);
@@ -294,7 +295,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void TrySkipBOM()
     {
-        Debug.Assert(typeof(T) == typeof(byte));
+        Check.True(typeof(T) == typeof(byte), "BOM skipping is only supported for byte readers");
 
         if (_buffer.Span is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
         {

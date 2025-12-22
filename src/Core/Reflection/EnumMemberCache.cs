@@ -187,9 +187,9 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         if (!HasFlagsAttribute)
             throw new UnreachableException();
 
-        Debug.Assert(!char.IsAsciiDigit(flagsSeparator));
-        Debug.Assert(!char.IsAsciiLetter(flagsSeparator));
-        Debug.Assert(flagsSeparator != '-');
+        Check.False(char.IsAsciiDigit(flagsSeparator), $"Flags-separator cannot be a digit: '{flagsSeparator}'");
+        Check.False(char.IsAsciiLetter(flagsSeparator), $"Flags-separator cannot be a letter: '{flagsSeparator}'");
+        Check.NotEqual(flagsSeparator, '-');
 
         foreach (var member in ValuesAndNames)
         {

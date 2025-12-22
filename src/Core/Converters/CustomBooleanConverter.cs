@@ -140,13 +140,13 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
     {
         if (typeof(T) == typeof(char))
         {
-            Debug.Assert(value is string);
+            Check.True(value is string, $"Expected string but was {value.GetType().FullName}");
             return Unsafe.As<string>(value).AsSpan().Cast<char, T>();
         }
 
         if (typeof(T) == typeof(byte))
         {
-            Debug.Assert(value is byte[]);
+            Check.True(value is byte[], $"Expected byte[] but was {value.GetType().FullName}");
             return Unsafe.As<byte[]>(value).AsSpan().Cast<byte, T>();
         }
 

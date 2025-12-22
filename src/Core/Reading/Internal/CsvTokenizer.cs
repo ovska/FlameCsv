@@ -29,9 +29,9 @@ internal abstract class CsvTokenizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe int Tokenize(Span<uint> destination, int startIndex, ReadOnlySpan<T> data)
     {
-        Debug.Assert(startIndex >= 0);
-        Debug.Assert(data.Length <= Field.MaxFieldEnd);
-        Debug.Assert(destination.Length >= MaxFieldsPerIteration);
+        Check.Positive(startIndex, "Start index cannot be negative");
+        Check.GreaterThanOrEqual(destination.Length, MaxFieldsPerIteration, "Field buffer is too small");
+        Check.LessThanOrEqual(data.Length, Field.MaxFieldEnd, "Data length exceeds 28 bits");
 
         if ((data.Length - startIndex) < Overscan)
         {
@@ -65,8 +65,7 @@ internal abstract class CsvTokenizer<T>
     )
         where TMask : unmanaged, IBinaryInteger<TMask>
     {
-        // should use fast path if 0 or 1 newlines
-        Debug.Assert(TMask.PopCount(maskLF) > TMask.One);
+        Check.GreaterThan(TMask.PopCount(maskLF), TMask.One, "Use fast path for 0 or 1 newlines");
 
         do
         {

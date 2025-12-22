@@ -104,7 +104,7 @@ internal static class ExpressionDelegateGenerator<T>
 
             foreach ((ParameterCsvBinding<TResult>? binding, ParameterInfo parameter) in ctorParameters)
             {
-                Debug.Assert(binding is not null || parameter.HasDefaultValue);
+                Check.True(binding is not null || parameter.HasDefaultValue);
 
                 Expression? parameterExpression;
 

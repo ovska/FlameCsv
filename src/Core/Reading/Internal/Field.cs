@@ -99,7 +99,7 @@ internal static partial class Field
             unescapedLength = Unescape(quote, buffer, fieldSpan);
         }
 
-        Debug.Assert(unescapedLength >= 1, "Unescaped fields should not be empty.");
+        Check.GreaterThanOrEqual(unescapedLength, 1);
 
         return MemoryMarshal.CreateReadOnlySpan(ref MemoryMarshal.GetReference(buffer), unescapedLength);
 

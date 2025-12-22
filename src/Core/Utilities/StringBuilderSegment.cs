@@ -29,7 +29,7 @@ internal sealed class StringBuilderSegment : ReadOnlySequenceSegment<char>
             last = last.Append(enumerator.Current);
         } while (enumerator.MoveNext());
 
-        Debug.Assert((last.Memory.Length + last.RunningIndex) == builder.Length);
+        Check.Equal(last.Memory.Length + last.RunningIndex, builder.Length);
 
         return new(first, 0, last, last.Memory.Length);
     }

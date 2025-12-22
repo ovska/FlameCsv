@@ -118,7 +118,7 @@ internal static class IndexAttributeBinder<[DAM(Messages.ReflectionBound)] TValu
                     }
 
                     // must be a member binding
-                    Debug.Assert(binding is MemberCsvBinding<TValue>);
+                    Check.True(binding is MemberCsvBinding<TValue>, $"Was: {binding.GetType().FullName}");
                 }
 
                 if (parameter is null)

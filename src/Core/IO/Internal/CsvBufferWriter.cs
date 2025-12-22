@@ -55,7 +55,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
             return ResizeBuffer(sizeHint);
         }
 
-        Debug.Assert(memory.Length >= sizeHint);
+        Check.GreaterThanOrEqual(memory.Length, sizeHint);
         return memory;
     }
 

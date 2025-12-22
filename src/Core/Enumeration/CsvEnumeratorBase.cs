@@ -79,7 +79,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TrySkipRecord(RecordView view)
     {
-        Debug.Assert(_callback is not null);
+        Check.NotNull(_callback);
 
         ReadOnlySpan<string> header = GetHeader().AsSpan();
         bool skip = false;

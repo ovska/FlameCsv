@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.ParallelUtils;
@@ -21,7 +20,7 @@ internal sealed class Accumulator<T>(int chunkSize) : IConsumable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Add(T item)
     {
-        Debug.Assert(_index < _array.Length);
+        Check.LessThan(_index, _array.Length);
         _array[_index++] = item;
     }
 }

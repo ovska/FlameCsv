@@ -109,7 +109,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                 index -= (nuint)remainder;
                 pData -= remainder;
 
-                Debug.Assert(((nint)index + 64) >= 0);
+                Check.Positive((nint)index + 64, "Index should have rolled over correctly");
             }
             else
             {

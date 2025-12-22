@@ -79,11 +79,9 @@ partial class CsvOptions<T>
         {
             if (TryCreateDefaultConverter(resultType, out var builtin))
             {
-                Debug.Assert(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
-                Debug.Assert(
-                    builtin is not CsvConverterFactory<T>,
-                    $"{resultType} default converter returned a factory"
-                );
+                Check.True(builtin.CanConvert(resultType), $"Invalid builtin converter {builtin} for {resultType}");
+                Check.False(builtin is CsvConverterFactory<T>, $"{resultType} default converter returned a factory");
+
                 converter = builtin;
                 created = true;
             }
@@ -119,7 +117,7 @@ partial class CsvOptions<T>
 
         if (ConverterCache.TryGetValue((resultType, Guid.Empty), out var cached))
         {
-            Debug.Assert(cached.CanConvert(resultType));
+            Check.True(cached.CanConvert(resultType), $"Invalid cached converter {cached} for {resultType}");
             converter = cached;
             created = false;
             return true;

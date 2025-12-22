@@ -74,7 +74,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
         // use a local to avoid static ctor call on every WriteField
         if (!typeof(TValue).IsValueType && ReferenceEquals(_defaultStringConverter, converter))
         {
-            Debug.Assert(typeof(TValue) == typeof(string));
+            Check.True(typeof(TValue) == typeof(string), $"Invalid converter {converter} for type {typeof(TValue)}");
             WriteText(Unsafe.As<string?>(value));
             return;
         }

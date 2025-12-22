@@ -16,7 +16,8 @@ internal static class Bithacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetQuoteFlags(uint quoteCount)
     {
-        Debug.Assert(quoteCount % 2 == 0);
+        Check.True(quoteCount % 2 == 0);
+
         byte any = Unsafe.BitCast<bool, byte>(quoteCount != 0);
         byte needsUnescaping = Unsafe.BitCast<bool, byte>(quoteCount > 2);
         return ((uint)any << 29) | ((uint)needsUnescaping << 28);
@@ -63,10 +64,9 @@ internal static class Bithacks
     public static T GetMaskUpToLowestSetBit<T>(T mask)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Debug.Assert(mask != default, "Mask must not be zero");
+        Check.NotEqual(mask, T.Zero);
 
         // as of NET9, the pattern is sometimes not lowered to BLSMSK if inlined in a busy loop with generic math
-
         if (Unsafe.SizeOf<T>() is sizeof(uint) && Bmi1.IsSupported)
         {
             return Unsafe.BitCast<uint, T>(Bmi1.GetMaskUpToLowestSetBit(Unsafe.BitCast<T, uint>(mask)));
@@ -123,7 +123,7 @@ internal static class Bithacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint FindInverseQuoteMaskSingle(uint maskQuote, uint quotesConsumed)
     {
-        Debug.Assert(BitOperations.PopCount(maskQuote) == 1);
+        Check.Equals(BitOperations.PopCount(maskQuote), 1);
         uint before = maskQuote - 1u;
         uint mask = 0u - (quotesConsumed & 1u); // 0 or 0xFFFFFFFF
         return before ^ mask;

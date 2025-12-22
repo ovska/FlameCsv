@@ -14,7 +14,7 @@ internal readonly struct RecordView(int start, int length)
     [Conditional("DEBUG")]
     public void AssertInvariants()
     {
-        Debug.Assert(
+        Check.True(
             Start >= 0 && Length > 0,
             $"RecordView must have positive start and length: Start={Start}, Length={Length}"
         );

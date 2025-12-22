@@ -96,8 +96,8 @@ public partial class CsvOptions<T>
     /// <exception cref="CsvConfigurationException"/>
     public void Validate()
     {
-        Debug.Assert(_delimiter is not ('\0' or '\r' or '\n' or ' '));
-        Debug.Assert(_quote is not ('\0' or '\r' or '\n' or ' '));
+        Check.False(_delimiter is '\0' or '\r' or '\n' or ' ');
+        Check.False(_quote is '\0' or '\r' or '\n' or ' ');
 
         // already validated at this point
         if (IsReadOnly)
@@ -160,7 +160,7 @@ public partial class CsvOptions<T>
             _tokenizersCreated = true;
         }
 
-        Debug.Assert(_scalarTokenizer is not null, "Scalar tokenizer should have been created");
+        Check.NotNull(_scalarTokenizer);
         return (_scalarTokenizer, _simdTokenizer);
     }
 
@@ -177,7 +177,7 @@ public partial class CsvOptions<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private SearchValues<T> InitNeedsQuoting()
     {
-        Debug.Assert(IsReadOnly, "Dialect must be read-only to cache NeedsQuoting");
+        Check.True(IsReadOnly, "Dialect must be read-only to cache NeedsQuoting");
 
         if (typeof(T) == typeof(byte))
         {

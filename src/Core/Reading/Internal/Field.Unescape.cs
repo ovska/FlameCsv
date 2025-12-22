@@ -18,8 +18,8 @@ internal static partial class Field
     public static int Unescape<T>(T quote, scoped Span<T> destination, ReadOnlySpan<T> source)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Debug.Assert(source.Length >= 2);
-        Debug.Assert(destination.Length >= source.Length);
+        Check.GreaterThanOrEqual(source.Length, 2);
+        Check.GreaterThanOrEqual(destination.Length, source.Length);
 
         uint len = (uint)source.Length;
 

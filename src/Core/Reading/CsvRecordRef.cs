@@ -85,7 +85,7 @@ public readonly ref struct CsvRecordRef<T>
                 return Field.GetValue((int)start, current, ref _data, _owner);
             }
 
-            Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+            Check.GreaterThanOrEqual(end, start, "Malformed fields");
 
             // if MSB (quoting) is not set, we don't need to mask the end at all
             return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
@@ -123,7 +123,7 @@ public readonly ref struct CsvRecordRef<T>
             return Field.GetValue((int)start, current, ref _data, _owner);
         }
 
-        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        Check.GreaterThanOrEqual(end, start, "Malformed fields");
         return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
     }
 
@@ -148,7 +148,7 @@ public readonly ref struct CsvRecordRef<T>
         int length = (int)(end - start);
         ref T startRef = ref Unsafe.Add(ref _data, start);
 
-        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        Check.GreaterThanOrEqual(end, start, "Malformed fields");
         return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
     }
 
@@ -167,7 +167,7 @@ public readonly ref struct CsvRecordRef<T>
             uint end = _fields[^1] & Field.EndMask;
             uint start = (1 + Unsafe.Add(ref Unsafe.AsRef(in _fields[0]), -1)) & Field.EndMask;
 
-            Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+            Check.GreaterThanOrEqual(end, start, "Malformed fields");
 
             int length = (int)(end - start);
             return MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref _data, start), length);
@@ -187,7 +187,7 @@ public readonly ref struct CsvRecordRef<T>
         uint end = _fields[^1] & Field.EndMask;
         uint start = (uint)Field.NextStart(Unsafe.Add(ref Unsafe.AsRef(in _fields[0]), -1));
 
-        Debug.Assert(end >= start, $"End index {end} is less than start index {start}");
+        Check.GreaterThanOrEqual(end, start, "Malformed fields");
 
         return (int)(end - start);
     }
@@ -238,8 +238,7 @@ public readonly ref struct CsvRecordRef<T>
 #if DEBUG
     static CsvRecordRef()
     {
-        int size = Unsafe.SizeOf<CsvRecordRef<T>>();
-        // Debug.Assert(size is 32, $"Unexpected size of CsvRecordRef<T>: {size}");
+        Check.Equal(Unsafe.SizeOf<CsvRecordRef<T>>(), 40);
     }
 #endif
 }

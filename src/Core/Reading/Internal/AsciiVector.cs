@@ -152,10 +152,7 @@ internal static class AsciiVector
 
         // low 32 bits now hold the mask
         uint result = s.AsUInt16().ToScalar();
-        Debug.Assert(
-            result == vec.ExtractMostSignificantBits(),
-            $"MoveMask mismatch: {result:b32} vs {vec.ExtractMostSignificantBits():b32}"
-        );
+        Check.Equal(result, vec.ExtractMostSignificantBits());
         return result;
     }
 
@@ -181,10 +178,7 @@ internal static class AsciiVector
 
         // low 32 bits now hold the mask
         uint result = s.AsUInt32().ToScalar();
-        Debug.Assert(
-            result == vec.ExtractMostSignificantBits(),
-            $"MoveMask mismatch: {result:b32} vs {vec.ExtractMostSignificantBits():b32}"
-        );
+        Check.Equal(result, vec.ExtractMostSignificantBits());
         return result;
     }
 
