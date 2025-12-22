@@ -1,0 +1,3 @@
+name,is_enabled,id,value
+"Bond, James",true,1,0.572381
+"John ""The Man"" Doe",false,2,0.910437

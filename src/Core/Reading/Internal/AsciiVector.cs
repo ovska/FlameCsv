@@ -163,7 +163,7 @@ internal static class AsciiVector
     [DebuggerStepThrough]
     public static uint MoveMask(this Vector256<byte> vec)
     {
-        if (!AdvSimd.IsSupported)
+        if (!AdvSimd.Arm64.IsSupported)
             return vec.ExtractMostSignificantBits();
 
         Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
@@ -198,7 +198,7 @@ internal static class AsciiVector
     )
         where TCRLF : struct, IConstant
     {
-        if (!AdvSimd.IsSupported)
+        if (!AdvSimd.Arm64.IsSupported)
         {
             return (
                 v0.ExtractMostSignificantBits(),
@@ -256,7 +256,7 @@ internal static class AsciiVector
     [DebuggerStepThrough]
     public static ulong MoveMask(this Vector512<byte> vec)
     {
-        if (!AdvSimd.IsSupported)
+        if (!AdvSimd.Arm64.IsSupported)
             return vec.ExtractMostSignificantBits();
 
         Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
@@ -287,7 +287,7 @@ internal static class AsciiVector
     [DebuggerStepThrough]
     public static uint MoveMask(this Vector512<int> vec)
     {
-        if (!AdvSimd.IsSupported)
+        if (!AdvSimd.Arm64.IsSupported)
             return (uint)vec.ExtractMostSignificantBits();
 
         // Extract 128-bit vectors

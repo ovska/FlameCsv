@@ -27,7 +27,12 @@ public class Parsing : IScenario
                 for (int i = 0; i < r.FieldCount; i++)
                 {
                     _ = r[i];
+                    _ = r.GetFieldUnsafe(i);
+                    _ = r.GetRawSpan(i);
                 }
+
+                _ = r.Raw;
+                _ = r.GetRecordLength();
             }
         }
         catch (CsvFormatException)
