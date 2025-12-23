@@ -123,7 +123,7 @@ internal static class Bithacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint FindInverseQuoteMaskSingle(uint maskQuote, uint quotesConsumed)
     {
-        Check.Equals(BitOperations.PopCount(maskQuote), 1);
+        Check.Equal(BitOperations.PopCount(maskQuote), 1);
         uint before = maskQuote - 1u;
         uint mask = 0u - (quotesConsumed & 1u); // 0 or 0xFFFFFFFF
         return before ^ mask;

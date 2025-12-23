@@ -9,6 +9,11 @@ internal static class Check
 {
     [Conditional("FUZZ")]
     [Conditional("DEBUG")]
+    [Obsolete("Call Check.Equal instead", true)]
+    public static new void Equals(object? a, object? b) => throw new UnreachableException();
+
+    [Conditional("FUZZ")]
+    [Conditional("DEBUG")]
     [StackTraceHidden]
     public static void True(
         [DoesNotReturnIf(false)] bool condition,
