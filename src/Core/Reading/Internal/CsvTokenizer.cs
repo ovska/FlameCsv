@@ -26,6 +26,13 @@ internal abstract class CsvTokenizer<T>
     /// </summary>
     protected abstract int Overscan { get; }
 
+    /// <summary>
+    /// Reads fields from the data into <paramref name="destination"/>.
+    /// </summary>
+    /// <param name="destination">Buffer for the packed field bits</param>
+    /// <param name="startIndex">Start index in the data</param>
+    /// <param name="data">Data to tokenize</param>
+    /// <returns>Number of fields read</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe int Tokenize(Span<uint> destination, int startIndex, ReadOnlySpan<T> data)
     {
@@ -48,13 +55,21 @@ internal abstract class CsvTokenizer<T>
     /// <summary>
     /// Reads fields from the data into <paramref name="destination"/>.
     /// </summary>
-    /// <param name="destination">Buffer to parse the records to</param>
+    /// <param name="destination">Buffer for the packed field bits</param>
     /// <param name="startIndex">Start index in the data</param>
     /// <param name="start">Pointer to the start of the data</param>
     /// <param name="end">Pointer to the end of the safe read range</param>
     /// <returns>Number of fields read</returns>
     protected abstract unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end);
 
+    /// <summary>
+    /// Parses delimiters and newlines.
+    /// </summary>
+    /// <param name="index">Position of the mask in the data</param>
+    /// <param name="dst">Packed field buffer to write fields to</param>
+    /// <param name="maskControl">Composite mask of delimiters and newlines</param>
+    /// <param name="maskLF">Mask of newline positions</param>
+    /// <param name="flag">Flag to subtract from newline matches</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void ParseControls<TMask>(
         uint index,
@@ -81,12 +96,12 @@ internal abstract class CsvTokenizer<T>
     }
 
     /// <summary>
-    /// Parses any control characters (LF, CR, delimiter).
+    /// Parses any control characters and quotes.
     /// </summary>
-    /// <param name="index">Index in the data</param>
+    /// <param name="index">Position of the mask in the data</param>
     /// <param name="firstField">Reference where to write the fields to</param>
     /// <param name="fieldIndex">Index of the current field</param>
-    /// <param name="quotesConsumed">How many quotes are in the current field.</param>
+    /// <param name="quotesConsumed">Running counter of previously read quotes</param>
     /// <param name="maskControl">Bitmask for all control characters</param>
     /// <param name="maskLF">Bitmask for LFs</param>
     /// <param name="maskQuote">Bitmask for quotes</param>
@@ -133,6 +148,9 @@ internal abstract class CsvTokenizer<T>
         fieldIndex = fIdx;
     }
 
+    /// <summary>
+    /// Handles a potential dangling CR at the end of the previous chunk.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void CheckDanglingCR<TMask>(
         scoped ref TMask maskControl,
@@ -170,6 +188,9 @@ internal abstract class CsvTokenizer<T>
         }
     }
 
+    /// <summary>
+    /// Parses chunks that have CR's without a following LF.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected static void ParsePathological<TMask>(
         TMask maskControl,
