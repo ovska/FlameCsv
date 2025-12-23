@@ -265,7 +265,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
                 CheckDanglingCR(
                     maskControl: ref maskControl,
-                    first: ref Unsafe.AsRef<T>(start),
+                    data: ref Unsafe.AsRef<T>(pData),
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,
@@ -275,7 +275,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
                 ParsePathological(
                     maskControl: maskControl,
                     maskQuote: ref maskQuote,
-                    first: ref Unsafe.AsRef<T>(start),
+                    data: ref Unsafe.AsRef<T>(pData),
                     index: (uint)index,
                     fieldIndex: ref fieldIndex,
                     fieldRef: ref firstField,

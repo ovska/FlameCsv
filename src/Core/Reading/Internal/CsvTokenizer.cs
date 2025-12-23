@@ -152,9 +152,9 @@ internal abstract class CsvTokenizer<T>
     /// Handles a potential dangling CR at the end of the previous chunk.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void CheckDanglingCR<TMask>(
+    protected static unsafe void CheckDanglingCR<TMask>(
         scoped ref TMask maskControl,
-        scoped ref T first,
+        scoped ref T data,
         uint index,
         ref nuint fieldIndex,
         ref uint fieldRef,
@@ -165,13 +165,11 @@ internal abstract class CsvTokenizer<T>
         if (index == 0)
             return;
 
-        ref T previous = ref Unsafe.Add(ref first, index - 1);
-
-        if (previous == T.CreateTruncating('\r'))
+        if (Unsafe.Add(ref data, -1) == T.CreateTruncating('\r'))
         {
             uint flag;
 
-            if (Unsafe.Add(ref previous, 1) == T.CreateTruncating('\n'))
+            if (data == T.CreateTruncating('\n'))
             {
                 flag = Field.IsCRLF;
                 maskControl = Bithacks.ResetLowestSetBit(maskControl);
@@ -195,7 +193,7 @@ internal abstract class CsvTokenizer<T>
     protected static void ParsePathological<TMask>(
         TMask maskControl,
         scoped ref TMask maskQuote,
-        scoped ref T first,
+        scoped ref T data,
         uint index,
         ref nuint fieldIndex,
         ref uint fieldRef,
@@ -209,12 +207,10 @@ internal abstract class CsvTokenizer<T>
             uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
             TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
 
-            uint value = index + tz;
+            ref T token = ref Unsafe.Add(ref data, tz);
             TMask quoteBits = maskQuote & maskUpToPos;
 
-            ref T token = ref Unsafe.Add(ref first, value);
             uint flag = 0;
-
             quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
 
             if (delimiter != token)
@@ -233,9 +229,10 @@ internal abstract class CsvTokenizer<T>
             maskControl &= ~maskUpToPos;
             maskQuote &= ~maskUpToPos;
 
+            uint value = index + tz;
             Unsafe.Add(ref fieldRef, fieldIndex) = value | flag | Bithacks.GetQuoteFlags(quotesConsumed);
-            quotesConsumed = 0;
             fieldIndex++;
+            quotesConsumed = 0;
         }
 
         quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
