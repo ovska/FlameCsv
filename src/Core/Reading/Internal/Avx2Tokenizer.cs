@@ -123,8 +123,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
                 if ((maskControl | shiftedCR) == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto SumQuotesAndContinue;
                 }
 
                 if (Bithacks.IsDisjointCR(maskLF, shiftedCR))
@@ -141,8 +140,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
                 if (maskControl == 0)
                 {
-                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-                    goto ContinueRead;
+                    goto SumQuotesAndContinue;
                 }
             }
 
@@ -257,7 +255,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
                 flag: flag
             );
 
-            goto ContinueRead;
+            goto SumQuotesAndContinue;
 
             PathologicalPath:
             if (TCRLF.Value)
@@ -285,6 +283,9 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
                     quotesConsumed: ref quotesConsumed
                 );
             }
+
+            SumQuotesAndContinue:
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
 
             goto ContinueRead;
         } while (fieldIndex <= fieldEnd && pData <= end);

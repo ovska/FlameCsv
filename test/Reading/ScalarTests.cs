@@ -20,13 +20,15 @@ public static class ScalarTests
     [Theory, MemberData(nameof(NewlineEscapingData))]
     public static void Should_Parse_Identically(CsvNewline newline, Escaping escaping)
     {
+        const int bufferSize = RecordBuffer.DefaultFieldBufferSize;
+
         var options = new CsvOptions<char> { Newline = newline };
         var (scalarTokenizer, simdTokenizer) = options.GetTokenizers();
 
         Assert.SkipWhen(simdTokenizer is null, "SIMD tokenizer not supported on this platform");
 
-        using RecordBuffer rbScalar = new();
-        using RecordBuffer rbSimd = new();
+        using RecordBuffer rbScalar = new(bufferSize);
+        using RecordBuffer rbSimd = new(bufferSize);
 
         Span<uint> fbScalar = rbScalar.GetUnreadBuffer(0, out int scalarStartIndex);
         Span<uint> fbSimd = rbSimd.GetUnreadBuffer(0, out int simdStartIndex);
@@ -41,10 +43,10 @@ public static class ScalarTests
 
         // scalar can read the whole data
         // simd always stops because of insufficient field buffer, as we have more data than can fit in one batch
-        Assert.Equal(RecordBuffer.DefaultFieldBufferSize - 1, resultScalar);
-        Assert.Equal(RecordBuffer.DefaultFieldBufferSize - simdTokenizer.MaxFieldsPerIteration, resultSimd);
-        int len = resultSimd;
+        Assert.Equal(bufferSize - 1, resultScalar);
+        Assert.Equal(bufferSize - simdTokenizer.MaxFieldsPerIteration, resultSimd);
 
+        int len = resultSimd;
         Assert.Equal(fbScalar[..len], fbSimd[..len]);
     }
 

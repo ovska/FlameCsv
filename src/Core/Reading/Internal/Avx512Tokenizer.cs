@@ -225,6 +225,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
                 flag: flag
             );
 
+            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
             goto ContinueRead;
 
             PathologicalPath:

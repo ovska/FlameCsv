@@ -5,7 +5,7 @@
     title="FlameCsv logo"
     src="docs/data/logo.png" />
   <h1 align="center">FlameCsv</h1>
-  <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9 with trimming/AOT support</p>
+  <p align="center">High-performance RFC 4180-compliant CSV library for .NET 10 with trimming/AOT support</p>
   <p align="center" style="text-decoration:none">
     <a href="https://www.nuget.org/packages/FlameCsv/" target="_blank" style="text-decoration:none">
       <img src="https://img.shields.io/nuget/v/FlameCsv" alt="NuGet version" style="text-decoration:none"/>
@@ -78,7 +78,7 @@ string data = "id,name,lastlogin,age\n1,Bob,2010-01-01,42\n2,Alice,2024-05-22,\n
 CsvOptions<char> options = new()
 {
     HasHeader = true,
-    Comparer = StringComparer.Ordinal,
+    IgnoreHeaderCase = true,
     Converters = { new CustomDateTimeConverter() },
 };
 
