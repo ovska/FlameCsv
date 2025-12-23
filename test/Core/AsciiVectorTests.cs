@@ -111,4 +111,19 @@ public static class AsciiVectorTests
             Assert.Equal(popcnt * 2, CompressionTables.PopCountMult2[i]);
         }
     }
+
+    [Fact]
+    public static void Should_Shift_First_Elements()
+    {
+        Assert.SkipUnless(Avx2.IsSupported, "AVX2 not supported");
+
+        byte[] result = new byte[32];
+
+        for (int i = 1; i < 32; i++)
+        {
+            AsciiVector.ShiftItemsRight(Vector256<byte>.Indices, i).CopyTo(result);
+            byte[] expected = Enumerable.Range(0, 32).Select(x => (byte)Math.Max(0, x - i)).ToArray();
+            Assert.Equal(expected, result);
+        }
+    }
 }

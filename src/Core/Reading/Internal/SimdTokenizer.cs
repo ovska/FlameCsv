@@ -62,11 +62,11 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
         Vector256<byte> vector = AsciiVector.Load256(pData);
 
-        Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
-        Vector256<byte> hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
         Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
-        Vector256<byte> hasControl = hasLF | hasDelimiter;
+        Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
         Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
+        Vector256<byte> hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
+        Vector256<byte> hasControl = hasLF | hasDelimiter;
 
         (uint maskControl, uint maskLF, uint maskQuote, uint maskCR) = AsciiVector.MoveMask<TCRLF>(
             hasControl,

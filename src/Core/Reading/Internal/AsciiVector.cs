@@ -117,6 +117,8 @@ internal static class AsciiVector
     public static unsafe Vector512<byte> LoadAligned512<T>(T* ptr)
         where T : unmanaged, IBinaryInteger<T>
     {
+        Check.Equal((nint)ptr % 64, 0, "Pointer must be 64-byte aligned");
+
         if (typeof(T) == typeof(byte))
         {
             return Vector512.LoadAligned((byte*)ptr);
@@ -311,5 +313,23 @@ internal static class AsciiVector
         t = AdvSimd.Arm64.AddPairwise(t, t);
 
         return t.AsUInt32().ToScalar();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<byte> ShiftItemsRight(Vector256<byte> value, int amount)
+    {
+        Check.OverZero(amount);
+        Check.LessThan(amount, Vector256<byte>.Count);
+
+        if (Avx512Vbmi.VL.IsSupported)
+        {
+            Vector256<byte> indices = Vector256<byte>.Indices + Vector256.Create((byte)amount);
+            return Avx512Vbmi.VL.PermuteVar32x8(value, indices);
+        }
+
+        Unsafe.SkipInit(out Inline64<byte> tmp);
+        Vector256<byte>.Zero.StoreUnsafe(ref tmp.elem0); // zero init lower half
+        value.StoreUnsafe(ref tmp.elem0, elementOffset: (nuint)amount);
+        return Vector256.LoadUnsafe(ref tmp.elem0);
     }
 }

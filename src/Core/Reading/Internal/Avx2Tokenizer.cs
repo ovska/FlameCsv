@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -85,17 +86,30 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
         uint quotesConsumed = 0;
         uint crCarry = 0;
 
-        Vector256<byte> vector;
+        Vector256<byte> vector = AsciiVector.Load256(pData);
         Vector256<uint> indexVector;
-        vector = AsciiVector.Load256(pData);
-        indexVector = Vector256.Create((uint)index);
 
-        Vector256<byte> nextVector = AsciiVector.Load256(pData + (nuint)Vector256<byte>.Count);
+        nint alignment = 32;
+        nint remainder = ((nint)pData % alignment) / sizeof(T);
+
+        if (remainder != 0)
+        {
+            vector = AsciiVector.ShiftItemsRight(vector, (int)remainder);
+            indexVector = Vector256.Create((uint)index - (uint)remainder);
+            index -= (nuint)remainder;
+            pData -= remainder;
+        }
+        else
+        {
+            indexVector = Vector256.Create((uint)index);
+        }
+
+        Vector256<byte> nextVector = AsciiVector.Load256(pData + Vector256<byte>.Count);
 
         do
         {
             // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetchVector = AsciiVector.Load256(pData + (2 * (nuint)Vector256<byte>.Count));
+            Vector256<byte> prefetchVector = AsciiVector.Load256(pData + (2 * Vector256<byte>.Count));
 
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
