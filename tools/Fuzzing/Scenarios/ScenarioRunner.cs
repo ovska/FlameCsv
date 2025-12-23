@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 
 namespace FlameCsv.Fuzzing.Scenarios;
 
@@ -6,9 +8,14 @@ public static class ScenarioRunner
 {
     private static readonly PoisonPagePlacement[] _placements = [PoisonPagePlacement.After, PoisonPagePlacement.Before];
 
-    public static void Run<TScenario>(ReadOnlySpan<byte> data)
+    public static void Run<TScenario>(Stream stream)
         where TScenario : IScenario
     {
+        using var abw = new ArrayPoolBufferWriter<byte>(Environment.SystemPageSize);
+        stream.CopyTo(abw.AsStream());
+
+        ReadOnlySpan<byte> data = abw.WrittenSpan;
+
         foreach (var placement in _placements)
         {
             using (var byteMemory = PooledBoundedMemory<byte>.Rent(data.Length, placement))

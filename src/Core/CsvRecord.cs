@@ -479,8 +479,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     [ExcludeFromCodeCoverage]
     static CsvRecord()
     {
-        int size = Unsafe.SizeOf<CsvRecord<T>>();
-        Check.LessThanOrEqual(size, 32, $"Unexpected size for CsvRecord<{typeof(T).Name}>: {size} bytes");
+        Check.LessThanOrEqual(Unsafe.SizeOf<CsvRecord<T>>(), 32);
     }
 #endif
 }
