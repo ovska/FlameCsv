@@ -75,8 +75,10 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasCR
         );
 
-#if false // TODO: test on x86
-        if (((nuint)pData % (nuint)Vector256<byte>.Count) / (uint)sizeof(T) is nuint remainder and not 0)
+        nuint alignment = (nuint)(Vector256<byte>.Count * sizeof(T));
+
+        // Align to 32 on bytes, 64 on chars (as every load reads 64 bytes)
+        if (((nuint)pData % alignment) / (uint)sizeof(T) is nuint remainder and not 0)
         {
             maskControl <<= (int)remainder;
             maskLF <<= (int)remainder;
@@ -90,7 +92,6 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             index -= remainder;
             pData -= remainder;
         }
-#endif
 
         Vector256<byte> nextVector = AsciiVector.Load256(pData + (nuint)Vector256<byte>.Count);
 
