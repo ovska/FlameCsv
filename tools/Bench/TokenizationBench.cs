@@ -3,6 +3,18 @@ using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Benchmark;
 
+public sealed class DataSet(string path)
+{
+    public string CharsLF => field ??= File.ReadAllText(path).ReplaceLineEndings("\n");
+    public string CharsCRLF => field ??= CharsLF.ReplaceLineEndings("\r\n");
+    public byte[] BytesLF => field ??= Encoding.UTF8.GetBytes(CharsLF);
+    public byte[] BytesCRLF => field ??= Encoding.UTF8.GetBytes(CharsCRLF);
+
+    public string GetChars(bool crlf) => crlf ? CharsCRLF : CharsLF;
+
+    public byte[] GetBytes(bool crlf) => crlf ? BytesCRLF : BytesLF;
+}
+
 [HideColumns("Error", "RatioSD")]
 public class TokenizationBench
 {
@@ -13,9 +25,16 @@ public class TokenizationBench
         CRLF,
     }
 
+    public enum DataSetType
+    {
+        Unquoted,
+        QuotedA,
+        QuotedB,
+    }
+
     [Params(
         [ /**/
-            false,
+            // false,
             true,
         ]
     )]
@@ -23,11 +42,12 @@ public class TokenizationBench
 
     [Params(
         [ /**/
-            true,
-            // false,
+            DataSetType.Unquoted,
+            DataSetType.QuotedA,
+            DataSetType.QuotedB,
         ]
     )]
-    public bool Quoted { get; set; }
+    public DataSetType Dataset { get; set; }
 
     [Params(
         [ /**/
@@ -42,21 +62,23 @@ public class TokenizationBench
     public bool TokenizerIsLF => Newline == ParserNewline.LF;
 
     private static readonly uint[] _fieldBuffer = new uint[24 * 65535];
-    private static readonly string _cUnquoted = RAT("Comparisons/Data/65K_Records_Data.csv");
-    private static readonly string _cUnquotedCR = _cUnquoted.ReplaceLineEndings("\r\n");
-    private static readonly byte[] _bUnquoted = Encoding.UTF8.GetBytes(_cUnquoted);
-    private static readonly byte[] _bUnquotedCR = Encoding.UTF8.GetBytes(_cUnquotedCR);
 
-    private static readonly string _cQuoted = RAT("Comparisons/Data/customers-100000.csv");
-    private static readonly string _cQuotedCR = _cQuoted.ReplaceLineEndings("\r\n");
-    private static readonly byte[] _bQuoted = Encoding.UTF8.GetBytes(_cQuoted);
-    private static readonly byte[] _bQuotedCR = Encoding.UTF8.GetBytes(_cQuotedCR);
+    private static readonly DataSet _unquoted = new("Comparisons/Data/65K_Records_Data.csv");
+    private static readonly DataSet _quotedA = new("SampleCSVFile_556kb_4x.csv");
+    private static readonly DataSet _quotedB = new("Comparisons/Data/customers-100000.csv");
 
-    private static string RAT(string s) => File.ReadAllText(s).ReplaceLineEndings("\n");
+    private string CharData => GetDataSet().GetChars(DataIsCRLF);
 
-    private string CharData => Quoted ? (DataIsCRLF ? _cQuotedCR : _cQuoted) : (DataIsCRLF ? _cUnquotedCR : _cUnquoted);
+    private byte[] ByteData => GetDataSet().GetBytes(DataIsCRLF);
 
-    private byte[] ByteData => Quoted ? (DataIsCRLF ? _bQuotedCR : _bQuoted) : (DataIsCRLF ? _bUnquotedCR : _bUnquoted);
+    private DataSet GetDataSet() =>
+        Dataset switch
+        {
+            DataSetType.Unquoted => _unquoted,
+            DataSetType.QuotedA => _quotedA,
+            DataSetType.QuotedB => _quotedB,
+            _ => throw new InvalidOperationException(),
+        };
 
     private static readonly CsvOptions<char> _dCharLF = new CsvOptions<char>
     {
