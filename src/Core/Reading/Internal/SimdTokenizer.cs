@@ -75,6 +75,23 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasCR
         );
 
+#if false // TODO: test on x86
+        if (((nuint)pData % (nuint)Vector256<byte>.Count) / (uint)sizeof(T) is nuint remainder and not 0)
+        {
+            maskControl <<= (int)remainder;
+            maskLF <<= (int)remainder;
+            maskQuote <<= (int)remainder;
+
+            if (TCRLF.Value)
+            {
+                maskCR <<= (int)remainder;
+            }
+
+            index -= remainder;
+            pData -= remainder;
+        }
+#endif
+
         Vector256<byte> nextVector = AsciiVector.Load256(pData + (nuint)Vector256<byte>.Count);
 
         do

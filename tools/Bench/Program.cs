@@ -66,7 +66,7 @@ file class Config : ManualConfig
                     OperatingSystem.IsMacOS()
                         ?
                         [
-                            new EnvironmentVariable("COMPlus_JitDisasm", "Tokenize"),
+                            new EnvironmentVariable("COMPlus_JitDisasm", "TokenizeCore"),
                             new EnvironmentVariable("COMPlus_JitDisasmDiffable", "1"),
                             new EnvironmentVariable("COMPlus_TieredPGO", "1"),
                             new EnvironmentVariable("COMPlus_TC_QuickJitForLoops", "1"),

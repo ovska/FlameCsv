@@ -5,6 +5,7 @@ using System.Text;
 
 namespace FlameCsv;
 
+[ExcludeFromCodeCoverage]
 internal static class Check
 {
     [Conditional("FUZZ")]
@@ -74,7 +75,7 @@ internal static class Check
         [CallerArgumentExpression(nameof(value))] string expression = ""
     )
     {
-        if (expected is IEquatable<T> equatable ? !equatable.Equals(value) : !expected!.Equals(value))
+        if (!EqualityComparer<T>.Default.Equals(value, expected))
         {
             var fullMessage = string.IsNullOrEmpty(message)
                 ? $"Check.Equal failed: {expression} - Expected: {expected}, Actual: {value}"
@@ -92,9 +93,8 @@ internal static class Check
         string message = "",
         [CallerArgumentExpression(nameof(value))] string expression = ""
     )
-        where T : IEquatable<T>
     {
-        if (value.Equals(notExpected))
+        if (EqualityComparer<T>.Default.Equals(value, notExpected))
         {
             var fullMessage = string.IsNullOrEmpty(message)
                 ? $"Check.NotEqual failed: {expression} - Not Expected: {notExpected}, Actual: {value}"
