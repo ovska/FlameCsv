@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -16,9 +14,10 @@ internal static class Avx2Tokenizer
 }
 
 [SkipLocalsInit]
-internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
+internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
+    where TQuote : struct, IConstant
 {
     protected override int Overscan
     {
@@ -39,7 +38,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
     public Avx2Tokenizer(CsvOptions<T> options)
     {
-        _quote = T.CreateTruncating(options.Quote);
+        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _delimiter = T.CreateTruncating(options.Delimiter);
     }
 
@@ -67,17 +66,10 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
 
         Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
-        Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
+        Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(byte.CreateTruncating(_quote)) : default;
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
-        Vector256<byte> msb = Vector256.Create((byte)0x80);
+        Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
         Vector256<long> addCnst = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
-
-        Unsafe.SkipInit(out Vector256<byte> vecCR);
-
-        if (TCRLF.Value)
-        {
-            vecCR = Vector256.Create((byte)'\r');
-        }
 
         const int fixupScalar = unchecked((int)0x8000007F);
 
@@ -113,14 +105,19 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
 
             Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
             Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
-            Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
+            Vector256<byte> hasQuote = TQuote.Value ? Vector256.Equals(vector, vecQuote) : Vector256<byte>.Zero;
             Vector256<byte> hasAny = hasLF | hasDelimiter;
 
             uint maskControl = hasAny.ExtractMostSignificantBits();
-            uint maskQuote = hasQuote.ExtractMostSignificantBits();
 
+            Unsafe.SkipInit(out uint maskQuote);
             Unsafe.SkipInit(out uint maskLF); // calculated only on-demand for LF newlines
             Unsafe.SkipInit(out uint shiftedCR); // never used on LF newlines
+
+            if (TQuote.Value)
+            {
+                maskQuote = hasQuote.ExtractMostSignificantBits();
+            }
 
             if (TCRLF.Value)
             {
@@ -161,7 +158,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
             // rare cases: quotes, or too many matches to fit in the compress path
-            if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector256<int>.Count)
+            if ((TQuote.Value && (quotesConsumed | maskQuote) != 0) || matchCount > (uint)Vector256<int>.Count)
             {
                 goto SlowPath;
             }
@@ -198,8 +195,8 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             byte pop1 = Unsafe.Add(ref popCounts, (byte)mask1);
             byte pop3 = Unsafe.Add(ref popCounts, (byte)mask3);
 
-            // tag the indices with the MSB if they are newlines
-            Vector256<byte> taggedIndices = (hasLF & msb) | Vector256<byte>.Indices;
+            // tag the indices with the MSB if they are newlines (shift 0xFF to bit 7)
+            Vector256<byte> taggedIndices = (hasLF << 7) | Vector256<byte>.Indices;
 
             // jit optimizes this add to a constant address
             ref byte shuffleCombine = ref Unsafe.Add(ref Unsafe.AsRef(in CompressionTables.ShuffleCombine[0]), 16);
@@ -207,8 +204,8 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             // Load the 128-bit masks from pshufb_combine_table
             // note that the upper lane is offset to the correct position already, e.g.
             // < 1 2 0 0 0 ... 3 4 5 ... > will leave 2 items empty on the upper lane
-            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, (uint)pop1 * 8);
-            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, ((uint)pop3 * 8) - lowerCountOffset);
+            Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, pop1 * 8u);
+            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (pop3 * 8u) - lowerCountOffset);
 
             // shuffle the indexes to their correct positions
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
@@ -226,6 +223,13 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             // sign-extend to int32 to keep the CR/LF tags
             Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
 
+            Unsafe.SkipInit(out Vector256<uint> crlfShift);
+
+            if (TCRLF.Value)
+            {
+                crlfShift = ((taggedIndexVector.AsUInt32() >> 30) & Vector256<uint>.One);
+            }
+
             // clear extra sign-extended bits between the EOL flags and indices
             Vector256<uint> fixedTaggedVector = (taggedIndexVector & fixup).AsUInt32();
 
@@ -235,7 +239,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             if (TCRLF.Value)
             {
                 // subtract 1 from CRLF matches
-                result -= ((fixedTaggedVector >> 30) & Vector256<uint>.One);
+                result -= crlfShift;
             }
 
             result.StoreUnsafe(ref firstField, fieldIndex);
@@ -248,34 +252,44 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             continue;
 
             SlowPath:
-            if (!TCRLF.Value)
+            if (TQuote.Value)
             {
-                maskLF = hasLF.ExtractMostSignificantBits();
+                if (!TCRLF.Value)
+                {
+                    maskLF = hasLF.ExtractMostSignificantBits();
+                }
+
+                // clear the bits that are inside quotes
+                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+
+                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+
+                ParseAny(
+                    index: (uint)index,
+                    firstField: ref firstField,
+                    fieldIndex: ref fieldIndex,
+                    quotesConsumed: ref quotesConsumed,
+                    maskControl: maskControl,
+                    maskLF: maskLF,
+                    maskQuote: ref maskQuote,
+                    flag: flag
+                );
             }
-
-            // clear the bits that are inside quotes
-            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
-
-            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
-
-            ParseAny(
-                index: (uint)index,
-                firstField: ref firstField,
-                fieldIndex: ref fieldIndex,
-                quotesConsumed: ref quotesConsumed,
-                maskControl: maskControl,
-                maskLF: maskLF,
-                maskQuote: ref maskQuote,
-                flag: flag
-            );
 
             goto SumQuotesAndContinue;
 
             PathologicalPath:
             if (TCRLF.Value)
             {
-                // clear the bits that are inside quotes
-                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                if (TQuote.Value)
+                {
+                    // clear the bits that are inside quotes
+                    maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                }
+                else
+                {
+                    maskQuote = 0;
+                }
 
                 CheckDanglingCR(
                     maskControl: ref maskControl,
@@ -299,7 +313,10 @@ internal sealed class Avx2Tokenizer<T, TCRLF> : CsvTokenizer<T>
             }
 
             SumQuotesAndContinue:
-            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+            if (TQuote.Value)
+            {
+                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+            }
 
             goto ContinueRead;
         } while (fieldIndex <= fieldEnd && pData <= end);

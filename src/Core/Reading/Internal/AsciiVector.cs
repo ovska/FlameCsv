@@ -186,66 +186,76 @@ internal static class AsciiVector
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
-    public static (uint a, uint b, uint c, uint d) MoveMask<TCRLF>(
-        Vector256<byte> v0,
-        Vector256<byte> v1,
-        Vector256<byte> v2,
-        Vector256<byte> v3
+    public static (uint maskControl, uint maskLF, uint maskQuote, uint maskCR) MoveMask<TCRLF, TQuote>(
+        Vector256<byte> ctrl,
+        Vector256<byte> lf,
+        Vector256<byte> quote,
+        Vector256<byte> cr
     )
         where TCRLF : struct, IConstant
+        where TQuote : struct, IConstant
     {
         if (!AdvSimd.Arm64.IsSupported)
         {
             return (
-                v0.ExtractMostSignificantBits(),
-                v1.ExtractMostSignificantBits(),
-                v2.ExtractMostSignificantBits(),
-                TCRLF.Value ? v3.ExtractMostSignificantBits() : default
+                ctrl.ExtractMostSignificantBits(),
+                lf.ExtractMostSignificantBits(),
+                TQuote.Value ? quote.ExtractMostSignificantBits() : default,
+                TCRLF.Value ? cr.ExtractMostSignificantBits() : default
             );
         }
 
         Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
 
-        Vector128<byte> lo0 = v0.GetLower();
-        Vector128<byte> hi0 = v0.GetUpper();
-        Vector128<byte> lo1 = v1.GetLower();
-        Vector128<byte> hi1 = v1.GetUpper();
-        Vector128<byte> lo2 = v2.GetLower();
-        Vector128<byte> hi2 = v2.GetUpper();
-        Vector128<byte> lo3 = TCRLF.Value ? v3.GetLower() : default;
-        Vector128<byte> hi3 = TCRLF.Value ? v3.GetUpper() : default;
+        Vector128<byte> c0 = ctrl.GetLower();
+        Vector128<byte> c1 = ctrl.GetUpper();
+        Vector128<byte> l0 = lf.GetLower();
+        Vector128<byte> l1 = lf.GetUpper();
+        Vector128<byte> q0 = TQuote.Value ? quote.GetLower() : default;
+        Vector128<byte> q1 = TQuote.Value ? quote.GetUpper() : default;
+        Vector128<byte> r0 = TCRLF.Value ? cr.GetLower() : default;
+        Vector128<byte> r1 = TCRLF.Value ? cr.GetUpper() : default;
 
-        Vector128<sbyte> t0 = AdvSimd.And(lo0, w).AsSByte();
-        Vector128<sbyte> t1 = AdvSimd.And(hi0, w).AsSByte();
-        Vector128<sbyte> t2 = AdvSimd.And(lo1, w).AsSByte();
-        Vector128<sbyte> t3 = AdvSimd.And(hi1, w).AsSByte();
-        Vector128<sbyte> t4 = AdvSimd.And(lo2, w).AsSByte();
-        Vector128<sbyte> t5 = AdvSimd.And(hi2, w).AsSByte();
-        Vector128<sbyte> t6 = TCRLF.Value ? AdvSimd.And(lo3, w).AsSByte() : default;
-        Vector128<sbyte> t7 = TCRLF.Value ? AdvSimd.And(hi3, w).AsSByte() : default;
+        Vector128<sbyte> cw0 = AdvSimd.And(c0, w).AsSByte();
+        Vector128<sbyte> cw1 = AdvSimd.And(c1, w).AsSByte();
+        Vector128<sbyte> lw0 = AdvSimd.And(l0, w).AsSByte();
+        Vector128<sbyte> lw1 = AdvSimd.And(l1, w).AsSByte();
+        Vector128<sbyte> qw0 = TQuote.Value ? AdvSimd.And(q0, w).AsSByte() : default;
+        Vector128<sbyte> qw1 = TQuote.Value ? AdvSimd.And(q1, w).AsSByte() : default;
+        Vector128<sbyte> rw0 = TCRLF.Value ? AdvSimd.And(r0, w).AsSByte() : default;
+        Vector128<sbyte> rw1 = TCRLF.Value ? AdvSimd.And(r1, w).AsSByte() : default;
 
         // vpadd across the two halves, then fold twice
-        Vector128<sbyte> s0 = AdvSimd.Arm64.AddPairwise(t0, t1);
-        Vector128<sbyte> s1 = AdvSimd.Arm64.AddPairwise(t2, t3);
-        Vector128<sbyte> s2 = AdvSimd.Arm64.AddPairwise(t4, t5);
-        Vector128<sbyte> s3 = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(t6, t7) : default;
+        Vector128<sbyte> cx = AdvSimd.Arm64.AddPairwise(cw0, cw1);
+        Vector128<sbyte> lx = AdvSimd.Arm64.AddPairwise(lw0, lw1);
+        Vector128<sbyte> qx = TQuote.Value ? AdvSimd.Arm64.AddPairwise(qw0, qw1) : default;
+        Vector128<sbyte> rx = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(rw0, rw1) : default;
 
-        s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
-        s1 = AdvSimd.Arm64.AddPairwise(s1, s1);
-        s2 = AdvSimd.Arm64.AddPairwise(s2, s2);
-        s3 = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(s3, s3) : default;
+        cx = AdvSimd.Arm64.AddPairwise(cx, cx);
+        lx = AdvSimd.Arm64.AddPairwise(lx, lx);
+        qx = TQuote.Value ? AdvSimd.Arm64.AddPairwise(qx, qx) : default;
+        rx = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(rx, rx) : default;
 
-        s0 = AdvSimd.Arm64.AddPairwise(s0, s0);
-        s1 = AdvSimd.Arm64.AddPairwise(s1, s1);
-        s2 = AdvSimd.Arm64.AddPairwise(s2, s2);
-        s3 = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(s3, s3) : default;
+        cx = AdvSimd.Arm64.AddPairwise(cx, cx);
+        lx = AdvSimd.Arm64.AddPairwise(lx, lx);
+        qx = TQuote.Value ? AdvSimd.Arm64.AddPairwise(qx, qx) : default;
+        rx = TCRLF.Value ? AdvSimd.Arm64.AddPairwise(rx, rx) : default;
 
-        uint r0 = s0.AsUInt32().ToScalar();
-        uint r1 = s1.AsUInt32().ToScalar();
-        uint r2 = s2.AsUInt32().ToScalar();
-        uint r3 = TCRLF.Value ? s3.AsUInt32().ToScalar() : default;
+        uint maskControl = cx.AsUInt32().ToScalar();
+        uint maskLF = lx.AsUInt32().ToScalar();
+        Unsafe.SkipInit(out uint maskQuote);
+        Unsafe.SkipInit(out uint maskCR);
 
-        return (r0, r1, r2, r3);
+        if (TQuote.Value)
+        {
+            maskQuote = qx.AsUInt32().ToScalar();
+        }
+        if (TCRLF.Value)
+        {
+            maskCR = rx.AsUInt32().ToScalar();
+        }
+
+        return (maskControl, maskLF, maskQuote, maskCR);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

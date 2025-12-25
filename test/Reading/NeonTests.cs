@@ -78,27 +78,80 @@ public static class NeonTests
             Assert.Equal(expected, actual);
 
             // test trifecta
-            Vector256<byte> a = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Vector256<byte> vecControl = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
             Random.Shared.NextBytes(bytes);
-            Vector256<byte> b = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Vector256<byte> vecLF = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
             Random.Shared.NextBytes(bytes);
-            Vector256<byte> c = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Vector256<byte> vecQuote = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
             Random.Shared.NextBytes(bytes);
-            Vector256<byte> d = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
+            Vector256<byte> vecCR = Vector256.GreaterThan(Vector256.Create((byte)127), Vector256.Create(bytes, 0));
 
-            var (x, y, z, w) = AsciiVector.MoveMask<TrueConstant>(a, b, c, d);
-            string expectedX = a.ExtractMostSignificantBits().ToString("b32");
-            string expectedY = b.ExtractMostSignificantBits().ToString("b32");
-            string expectedZ = c.ExtractMostSignificantBits().ToString("b32");
-            string expectedW = d.ExtractMostSignificantBits().ToString("b32");
-            Assert.Equal(expectedX, a.MoveMask().ToString("b32"));
-            Assert.Equal(expectedY, b.MoveMask().ToString("b32"));
-            Assert.Equal(expectedZ, c.MoveMask().ToString("b32"));
-            Assert.Equal(expectedW, d.MoveMask().ToString("b32"));
-            Assert.Equal(expectedX, x.ToString("b32"));
-            Assert.Equal(expectedY, y.ToString("b32"));
-            Assert.Equal(expectedZ, z.ToString("b32"));
-            Assert.Equal(expectedW, w.ToString("b32"));
+            var (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TrueConstant, TrueConstant>(
+                vecControl,
+                vecLF,
+                vecQuote,
+                vecCR
+            );
+            string expectedCtrl = vecControl.ExtractMostSignificantBits().ToString("b32");
+            string expectedLF = vecLF.ExtractMostSignificantBits().ToString("b32");
+            string expectedQuot = vecQuote.ExtractMostSignificantBits().ToString("b32");
+            string expectedCR = vecCR.ExtractMostSignificantBits().ToString("b32");
+            Assert.Equal(expectedCtrl, vecControl.MoveMask().ToString("b32"));
+            Assert.Equal(expectedLF, vecLF.MoveMask().ToString("b32"));
+            Assert.Equal(expectedQuot, vecQuote.MoveMask().ToString("b32"));
+            Assert.Equal(expectedCR, vecCR.MoveMask().ToString("b32"));
+            Assert.Equal(expectedCtrl, maskControl.ToString("b32"));
+            Assert.Equal(expectedLF, maskLF.ToString("b32"));
+            Assert.Equal(expectedQuot, maskQuote.ToString("b32"));
+            Assert.Equal(expectedCR, maskCR.ToString("b32"));
+
+            // test without crlf
+            (maskControl, maskLF, maskQuote, _) = AsciiVector.MoveMask<FalseConstant, TrueConstant>(
+                vecControl,
+                vecLF,
+                vecQuote,
+                vecCR
+            );
+            expectedCtrl = vecControl.ExtractMostSignificantBits().ToString("b32");
+            expectedLF = vecLF.ExtractMostSignificantBits().ToString("b32");
+            expectedQuot = vecQuote.ExtractMostSignificantBits().ToString("b32");
+            Assert.Equal(expectedCtrl, vecControl.MoveMask().ToString("b32"));
+            Assert.Equal(expectedLF, vecLF.MoveMask().ToString("b32"));
+            Assert.Equal(expectedQuot, vecQuote.MoveMask().ToString("b32"));
+            Assert.Equal(expectedCtrl, maskControl.ToString("b32"));
+            Assert.Equal(expectedLF, maskLF.ToString("b32"));
+            Assert.Equal(expectedQuot, maskQuote.ToString("b32"));
+
+            // test without quote
+            (maskControl, maskLF, _, maskCR) = AsciiVector.MoveMask<TrueConstant, FalseConstant>(
+                vecControl,
+                vecLF,
+                vecQuote,
+                vecCR
+            );
+            expectedCtrl = vecControl.ExtractMostSignificantBits().ToString("b32");
+            expectedLF = vecLF.ExtractMostSignificantBits().ToString("b32");
+            expectedCR = vecCR.ExtractMostSignificantBits().ToString("b32");
+            Assert.Equal(expectedCtrl, vecControl.MoveMask().ToString("b32"));
+            Assert.Equal(expectedLF, vecLF.MoveMask().ToString("b32"));
+            Assert.Equal(expectedCR, vecCR.MoveMask().ToString("b32"));
+            Assert.Equal(expectedCtrl, maskControl.ToString("b32"));
+            Assert.Equal(expectedLF, maskLF.ToString("b32"));
+            Assert.Equal(expectedCR, maskCR.ToString("b32"));
+
+            // test without either
+            (maskControl, maskLF, _, _) = AsciiVector.MoveMask<FalseConstant, FalseConstant>(
+                vecControl,
+                vecLF,
+                vecQuote,
+                vecCR
+            );
+            expectedCtrl = vecControl.ExtractMostSignificantBits().ToString("b32");
+            expectedLF = vecLF.ExtractMostSignificantBits().ToString("b32");
+            Assert.Equal(expectedCtrl, vecControl.MoveMask().ToString("b32"));
+            Assert.Equal(expectedLF, vecLF.MoveMask().ToString("b32"));
+            Assert.Equal(expectedCtrl, maskControl.ToString("b32"));
+            Assert.Equal(expectedLF, maskLF.ToString("b32"));
         }
     }
 }

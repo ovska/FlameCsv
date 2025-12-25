@@ -68,6 +68,8 @@ internal static partial class Field
             return MemoryMarshal.CreateReadOnlySpan(ref first, length);
         }
 
+        Check.NotEqual(owner._dialect.Quote, T.Zero, "Quote must be set if we reach this point!");
+
         T quote = owner._dialect.Quote;
 
         if (length < 2 || first != quote || Unsafe.Add(ref first, (uint)length - 1u) != quote)

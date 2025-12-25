@@ -13,22 +13,22 @@ public abstract class CsvReaderTestsBase
     private static IEnumerable<(CsvNewline, bool, int, Escaping, bool, bool?)> BaseData =>
         from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
         from writeHeader in GlobalData.Booleans
-        from bufferSize in _bufferSizes
+        from bufferSize in BufferSizes
         from escaping in GlobalData.Enum<Escaping>()
         from sourceGen in GlobalData.Booleans
         from guarded in GlobalData.GuardedMemory
         select (crlf, writeHeader, bufferSize, escaping, sourceGen, guarded);
 
-    protected static readonly int[] _bufferSizes = [-1, 256, 1024];
+    private static IEnumerable<int> BufferSizes => [-1, 256, 1024];
 
-    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool?> RecordData => [.. BaseData];
+    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool?> RecordData { get; } = [.. BaseData];
 
-    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool, bool?> ObjectData =>
-        [
-            .. from tuple in BaseData
-            from parallel in GlobalData.Booleans
-            select (tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, parallel, tuple.Item6),
-        ];
+    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool, bool?> ObjectData { get; } =
+    [
+        .. from tuple in BaseData
+        from parallel in GlobalData.Booleans
+        select (tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, parallel, tuple.Item6),
+    ];
 }
 
 /// <summary>
@@ -58,7 +58,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     )
     {
         using var pool = new ReturnTrackingBufferPool(guarded);
-        CsvOptions<T> options = GetOptions(newline, header);
+        CsvOptions<T> options = GetOptions(newline, header, escaping);
         var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
 
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
@@ -96,7 +96,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header);
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
 
             var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
             using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
@@ -129,7 +129,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header);
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
 
@@ -189,7 +189,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header);
+            CsvOptions<T> options = GetOptions(newline, header, escaping);
 
             var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
             await using var stream = data.AsStream();
@@ -218,7 +218,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         await foreach (var obj in enumerable.WithTestContext())
         {
             Assert.Equal(i, obj.Id);
-            Assert.Equal(escaping != Escaping.None ? $"Name\"{i}" : $"Name-{i}", obj.Name);
+            Assert.Equal(escaping is Escaping.Quote ? $"Name\"{i}" : $"Name-{i}", obj.Name);
             Assert.Equal(i % 2 == 0, obj.IsEnabled);
             Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(i), obj.LastLogin);
             Assert.Equal(new Guid(i, 0, 0, TestDataGenerator.GuidBytes), obj.Token);
@@ -294,13 +294,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    protected static CsvOptions<T> GetOptions(CsvNewline newline, bool header)
+    protected static CsvOptions<T> GetOptions(CsvNewline newline, bool header, Escaping escaping)
     {
         return new CsvOptions<T>
         {
             Formats = { [typeof(DateTime)] = "O" },
             Newline = newline,
             HasHeader = header,
+            Quote = escaping is Escaping.QuoteNull ? null : '"',
         };
     }
 

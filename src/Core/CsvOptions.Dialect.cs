@@ -18,7 +18,7 @@ internal readonly struct Dialect<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dialect(CsvOptions<T> options)
     {
-        Quote = T.CreateTruncating(options.Quote);
+        Quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
 
         // remove undefined bits so we can cmp against zero later
         Trimming = options.Trimming & CsvFieldTrimming.Both;
@@ -28,7 +28,7 @@ internal readonly struct Dialect<T>
 public partial class CsvOptions<T>
 {
     private char _delimiter = ',';
-    private char _quote = '"';
+    private char? _quote = '"';
     private CsvNewline _newline = CsvNewline.CRLF;
     private CsvFieldTrimming _trimming = CsvFieldTrimming.None;
 
@@ -46,14 +46,20 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Characted used to quote strings containing control characters. Default value: <c>"</c>
+    /// Characted used to quote strings containing control characters. Default value: <c>"</c><br/>
+    /// If set to <c>null</c>, no control characters or newlines can appear anywhere in the data,
+    /// and <see cref="FieldQuoting"/> has no effect.
     /// </summary>
-    public char Quote
+    public char? Quote
     {
         get => _quote;
         set
         {
-            DialectHelper.ValidateToken(value);
+            if (value.HasValue)
+            {
+                DialectHelper.ValidateToken(value.Value, name: nameof(value));
+            }
+
             this.SetValue(ref _quote, value);
         }
     }
@@ -96,6 +102,7 @@ public partial class CsvOptions<T>
     /// <exception cref="CsvConfigurationException"/>
     public void Validate()
     {
+        // checked in setters
         Check.False(_delimiter is '\0' or '\r' or '\n' or ' ');
         Check.False(_quote is '\0' or '\r' or '\n' or ' ');
 
@@ -143,14 +150,23 @@ public partial class CsvOptions<T>
             if (Avx2Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
-                    ? new Avx2Tokenizer<T, TrueConstant>(this)
-                    : new Avx2Tokenizer<T, FalseConstant>(this);
+                    ? _quote.HasValue
+                        ? new Avx2Tokenizer<T, TrueConstant, TrueConstant>(this)
+                        : new Avx2Tokenizer<T, TrueConstant, FalseConstant>(this)
+                    : _quote.HasValue
+                        ? new Avx2Tokenizer<T, FalseConstant, TrueConstant>(this)
+                        : new Avx2Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
-            else if (Vector.IsHardwareAccelerated) // implies SSE, WASM or NEON
+            else if (Vector.IsHardwareAccelerated) // SSE or newer, NEON, or WASM
             {
                 _simdTokenizer = isCRLF
-                    ? new SimdTokenizer<T, TrueConstant>(this)
-                    : new SimdTokenizer<T, FalseConstant>(this);
+                    ? _quote.HasValue
+                        ? new SimdTokenizer<T, TrueConstant, TrueConstant>(this)
+                        : new SimdTokenizer<T, TrueConstant, FalseConstant>(this)
+                    : _quote.HasValue
+                        ? new SimdTokenizer<T, FalseConstant, TrueConstant>(this)
+                        : new SimdTokenizer<T, FalseConstant, FalseConstant>(this);
+                ;
             }
 
             _scalarTokenizer = isCRLF
@@ -167,29 +183,24 @@ public partial class CsvOptions<T>
     /// <summary>
     /// Returns search values that determine if a field needs to be quoted.
     /// </summary>
-    internal SearchValues<T> NeedsQuoting => field ??= InitNeedsQuoting();
-
-    internal SearchValues<char> NeedsQuotingChar =>
-        typeof(T) == typeof(char)
-            ? (SearchValues<char>)(object)NeedsQuoting
-            : (field ??= SearchValues.Create(_delimiter, _quote, '\r', '\n'));
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private SearchValues<T> InitNeedsQuoting()
+    internal SearchValues<T> NeedsQuoting
     {
-        Check.True(IsReadOnly, "Dialect must be read-only to cache NeedsQuoting");
-
-        if (typeof(T) == typeof(byte))
+        get
         {
-            return (SearchValues<T>)(object)SearchValues.Create((byte)_delimiter, (byte)_quote, (byte)'\r', (byte)'\n');
+            Check.True(IsReadOnly, "Cannot access NeedsQuoting on a mutable CsvOptions.");
+            return field ??= DialectHelper.InitNeedsQuoting<T>(_delimiter, _quote);
         }
+    }
 
-        if (typeof(T) == typeof(char))
+    internal SearchValues<char> NeedsQuotingChar
+    {
+        get
         {
-            return (SearchValues<T>)(object)SearchValues.Create(_delimiter, _quote, '\r', '\n');
+            Check.True(IsReadOnly, "Cannot access NeedsQuoting on a mutable CsvOptions.");
+            return field ??= (
+                NeedsQuoting as SearchValues<char> ?? DialectHelper.InitNeedsQuoting<char>(_delimiter, _quote)
+            );
         }
-
-        throw Token<T>.NotSupported;
     }
 
     internal bool DialectEqualsForWriting([NotNullWhen(true)] CsvOptions<T> other)
@@ -215,27 +226,27 @@ file static class DialectHelper
     {
         if (value > 127)
         {
-            ThrowOutOfRange(name, value, "Dialect cannot contain non-ASCII characters (over 0x7F)");
+            ThrowOutOfRange(name, value, "must not be non-ASCII (over 0x7F)");
         }
 
         if (value is '\0')
         {
-            ThrowOutOfRange(name, value, "Dialect cannot contain null character");
+            ThrowOutOfRange(name, value, "must not be the null char");
         }
 
         if (value is '\r' or '\n')
         {
-            ThrowOutOfRange(name, value, "Dialect cannot contain CR or LF due to newline ambiguity");
+            ThrowOutOfRange(name, value, "must not be CR or LF due to newline ambiguity");
         }
 
         if (value is ' ')
         {
-            ThrowOutOfRange(name, value, "Dialect cannot contain a space due to whitespace ambiguity");
+            ThrowOutOfRange(name, value, "must not be a space due to whitespace ambiguity");
         }
 
         if (char.IsAsciiLetterOrDigit(value) || value is '-')
         {
-            ThrowOutOfRange(name, value, "Dialect cannot contain ASCII letters, numbers, or a minus sign");
+            ThrowOutOfRange(name, value, "must not be an ASCII letter, number, or the minus sign");
         }
     }
 
@@ -252,7 +263,7 @@ file static class DialectHelper
 
     [DoesNotReturn]
     [StackTraceHidden]
-    public static void ThrowException(scoped ReadOnlySpan<string> errors, char delimiter, char quote)
+    public static void ThrowException(scoped ReadOnlySpan<string> errors, char delimiter, char? quote)
     {
         throw new CsvConfigurationException(
             $"Invalid dialect configuration: {string.Join(" ", errors.ToArray())}. "
@@ -271,8 +282,38 @@ file static class DialectHelper
             '\t' => @"\t",
             '\v' => @"\v",
             '\f' => @"\f",
-            ' ' => "' '",
-            _ => v.Value.ToString(),
+            char c when char.IsControl(c) => $"0x{(uint)c:X2}",
+            char c => c.ToString(),
         };
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static SearchValues<T> InitNeedsQuoting<T>(char delimiter, char? quote)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (quote is null)
+        {
+            throw new UnreachableException("NeedsQuoting should not be accessed when Quote is null.");
+        }
+
+        Span<T> values =
+        [
+            T.CreateTruncating(delimiter),
+            T.CreateTruncating(quote.Value),
+            T.CreateTruncating('\r'),
+            T.CreateTruncating('\n'),
+        ];
+
+        if (typeof(T) == typeof(byte))
+        {
+            return (SearchValues<T>)(object)SearchValues.Create(Unsafe.BitCast<Span<T>, Span<byte>>(values));
+        }
+
+        if (typeof(T) == typeof(char))
+        {
+            return (SearchValues<T>)(object)SearchValues.Create(Unsafe.BitCast<Span<T>, Span<char>>(values));
+        }
+
+        throw Token<T>.NotSupported;
     }
 }

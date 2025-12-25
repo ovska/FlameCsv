@@ -324,7 +324,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     /// <remarks>
     /// You can combine conditions using bitwise OR. For example, to quote both empty fields and fields with leading spaces:
-    /// <c>CsvFieldQuoting.Empty | CsvFieldQuoting.LeadingSpaces</c>
+    /// <c>CsvFieldQuoting.Empty | CsvFieldQuoting.LeadingSpaces</c><br/>
+    /// Having a non-zero value while <see cref="Quote"/> is <see langword="null"/> will throw an exception when writing.
     /// </remarks>
     public CsvFieldQuoting FieldQuoting
     {

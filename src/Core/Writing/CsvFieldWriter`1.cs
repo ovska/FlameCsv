@@ -54,7 +54,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
         Options = options;
 
         _delimiter = T.CreateTruncating(options.Delimiter);
-        _quote = T.CreateTruncating(options.Quote);
+        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _quoter = Quoter.Create(options);
         _isCRLF = options.Newline.IsCRLF();
         _allocator = new Allocator<T>(writer.BufferPool);

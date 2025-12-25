@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Exceptions;
 
 namespace FlameCsv.Writing.Escaping;
 
@@ -53,6 +54,18 @@ internal static class Quoter
     public static IQuoter<T> Create<T>(CsvOptions<T> options)
         where T : unmanaged, IBinaryInteger<T>
     {
+        if (options.Quote is null)
+        {
+            if (options.FieldQuoting != CsvFieldQuoting.Never)
+            {
+                throw new CsvConfigurationException(
+                    $"Quote must not be null when FieldQuoting is not 'Never' (was {options.FieldQuoting})."
+                );
+            }
+
+            return NoOpQuoter<T>.Instance;
+        }
+
         // optimize for the default common case
         if (options.FieldQuoting is CsvFieldQuoting.Auto)
         {
@@ -66,7 +79,7 @@ internal static class Quoter
 
         if (options.FieldQuoting is CsvFieldQuoting.Always)
         {
-            return new AlwaysQuoter<T>(T.CreateTruncating(options.Quote));
+            return new AlwaysQuoter<T>(T.CreateTruncating(options.Quote.Value));
         }
 
         return new Quoter<T>(options);
@@ -83,7 +96,8 @@ internal sealed class AutoQuoter<T> : IQuoter<T>
 
     public AutoQuoter(CsvOptions<T> options)
     {
-        Quote = T.CreateTruncating(options.Quote);
+        Check.NotNull(options.Quote, "Quote must be set for AutoQuoter.");
+        Quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _needsQuoting = options.NeedsQuoting;
         _needsQuotingChar = options.NeedsQuotingChar;
     }
@@ -135,9 +149,10 @@ internal sealed class Quoter<T> : IQuoter<T>
 
     public Quoter(CsvOptions<T> options)
     {
+        Check.NotNull(options.Quote, "Quote must be set for Quoter.");
         _needsQuoting = options.NeedsQuoting;
         _needsQuotingChar = options.NeedsQuotingChar;
-        Quote = T.CreateTruncating(options.Quote);
+        Quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _empty = (options.FieldQuoting & CsvFieldQuoting.Empty) != 0;
         _auto = (options.FieldQuoting & CsvFieldQuoting.Auto) != 0;
         _leading = (options.FieldQuoting & CsvFieldQuoting.LeadingSpaces) != 0;

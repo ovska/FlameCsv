@@ -10,13 +10,13 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
 {
-    private readonly T _quote;
+    private readonly T? _quote;
     private readonly T _delimiter;
     private EnumeratorStack _lut;
 
     public ScalarTokenizer(CsvOptions<T> options)
     {
-        _quote = T.CreateTruncating(options.Quote);
+        _quote = options.Quote is { } q ? T.CreateTruncating(q) : null;
         _delimiter = T.CreateTruncating(options.Delimiter);
 
         _lut = default; // zero init
@@ -27,7 +27,11 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             Check.Equal(lut.Length, 256);
 
             // for bytes, store a value directly.
-            lut[(byte)options.Quote] = 1;
+            if (options.Quote.HasValue)
+            {
+                lut[(byte)options.Quote.Value] = 1;
+            }
+
             lut[(byte)options.Delimiter] = 1;
             lut['\n'] = 1;
 
@@ -48,7 +52,12 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
 
             // for chars we need to ensure that high bits are zeroed out, so compare the value with itself
             span[0] = char.MaxValue; // in case the data contains zeroes
-            span[options.Quote & 127] = options.Quote;
+
+            if (options.Quote.HasValue)
+            {
+                span[options.Quote.Value & 127] = options.Quote.Value;
+            }
+
             span[options.Delimiter & 127] = options.Delimiter;
             span['\n'] = '\n';
 
@@ -67,7 +76,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             return 0;
         }
 
-        T quote = _quote;
+        T? quote = _quote;
         T delimiter = _delimiter;
 
         ref T first = ref MemoryMarshal.GetReference(data);
@@ -148,6 +157,8 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             continue;
 
             FoundQuote:
+            Check.NotNull(quote, "Quote must be set if we reach this point!");
+
             // found just a single quote in a string?
             if (Unsafe.Add(ref first, index + 1) != quote)
             {

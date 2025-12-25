@@ -33,7 +33,7 @@ file static class EscapeExt
 
 public static class RFC4180EscapeTests
 {
-    private static readonly RFC4180Escaper<char> _escaper = new(quote: EscapeExt.Options.Quote);
+    private static readonly RFC4180Escaper<char> _escaper = new(quote: EscapeExt.Options.Quote!.Value);
 
     [Theory]
     [InlineData("", "||")]

@@ -13,7 +13,7 @@ public class ParallelReaderTests
     {
         TestConsoleWriter.RedirectToTestOutput();
 
-        ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, Escaping.None);
+        ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, hasQuotes: false);
 
         Assert.Equal(Csv.From(data).Read<Obj>(), ReadSequential());
 
@@ -57,7 +57,7 @@ public class ParallelReaderTests
     {
         TestConsoleWriter.RedirectToTestOutput();
 
-        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, Escaping.None);
+        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
         List<Obj> list = [];
 
@@ -79,7 +79,7 @@ public class ParallelReaderTests
     {
         TestConsoleWriter.RedirectToTestOutput();
 
-        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, Escaping.None);
+        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
         List<Obj> list = [];
 
@@ -106,7 +106,7 @@ public class ParallelReaderTests
     {
         TestConsoleWriter.RedirectToTestOutput();
 
-        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, Escaping.None);
+        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
         ConcurrentBag<Obj> bag = new();

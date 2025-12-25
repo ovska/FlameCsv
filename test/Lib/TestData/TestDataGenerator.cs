@@ -67,6 +67,7 @@ public enum Escaping
 {
     None = 0,
     Quote = 1,
+    QuoteNull = 2,
 }
 
 public static class TestDataGenerator
@@ -83,27 +84,28 @@ public static class TestDataGenerator
     private static readonly ConcurrentDictionary<Key, Lazy<string>> _chars = [];
     private static readonly ConcurrentDictionary<Key, Lazy<byte[]>> _bytes = [];
 
-    private readonly record struct Key(CsvNewline Newline, bool WriteHeader, Escaping Escaping);
+    private readonly record struct Key(CsvNewline Newline, bool WriteHeader, bool hasQuotes);
 
     public static ReadOnlyMemory<T> Generate<T>(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
     {
         if (typeof(T) == typeof(char))
-            return (ReadOnlyMemory<T>)(object)GenerateText(newLineToken, writeHeader, escaping).AsMemory();
+            return (ReadOnlyMemory<T>)
+                (object)GenerateText(newLineToken, writeHeader, escaping is Escaping.Quote).AsMemory();
 
         if (typeof(T) == typeof(byte))
-            return (ReadOnlyMemory<T>)(object)(ReadOnlyMemory<byte>)GenerateBytes(newLineToken, writeHeader, escaping);
+            return (Memory<T>)(object)GenerateBytes(newLineToken, writeHeader, escaping is Escaping.Quote).AsMemory();
 
         throw new UnreachableException();
     }
 
-    public static string GenerateText(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
+    public static string GenerateText(CsvNewline newLineToken, bool writeHeader, bool hasQuotes)
     {
-        var key = new Key(newLineToken, writeHeader, escaping);
+        var key = new Key(newLineToken, writeHeader, hasQuotes);
         var chars = _chars.GetOrAdd(
             key,
             static key => new Lazy<string>(() =>
             {
-                (CsvNewline newLineToken, bool writeHeader, Escaping escaping) = key;
+                (CsvNewline newLineToken, bool writeHeader, bool hasQuotes) = key;
                 string newLine = newLineToken.AsString();
 
                 StringBuilder writer = StringBuilderPool.Value.Get();
@@ -123,7 +125,7 @@ public static class TestDataGenerator
                     if (i != 0)
                         writer.Append(newLine);
 
-                    if (escaping != Escaping.None)
+                    if (hasQuotes)
                     {
                         writer.Append($"\"{i}\"");
                     }
@@ -134,7 +136,7 @@ public static class TestDataGenerator
 
                     writer.Append(',');
 
-                    if (escaping == Escaping.Quote)
+                    if (hasQuotes)
                     {
                         writer.Append($"\"Name\"\"{i}\"");
                     }
@@ -160,13 +162,13 @@ public static class TestDataGenerator
         return chars.Value;
     }
 
-    public static byte[] GenerateBytes(CsvNewline newLineToken, bool writeHeader, Escaping escaping)
+    public static byte[] GenerateBytes(CsvNewline newLineToken, bool writeHeader, bool hasQuotes)
     {
-        var key = new Key(newLineToken, writeHeader, escaping);
+        var key = new Key(newLineToken, writeHeader, hasQuotes);
         var chars = _bytes.GetOrAdd(
             key,
             key => new Lazy<byte[]>(() =>
-                Encoding.UTF8.GetBytes(GenerateText(key.Newline, key.WriteHeader, key.Escaping))
+                Encoding.UTF8.GetBytes(GenerateText(key.Newline, key.WriteHeader, key.hasQuotes))
             )
         );
 

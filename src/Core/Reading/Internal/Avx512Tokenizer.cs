@@ -36,7 +36,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         get => Vector512<byte>.Count;
     }
 
-    private readonly T _quote = T.CreateTruncating(options.Quote);
+    private readonly T _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
     private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
 
     [MethodImpl(MethodImplOptions.NoInlining)]

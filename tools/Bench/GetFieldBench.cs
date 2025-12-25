@@ -47,10 +47,10 @@ public class GetFieldBench
         Newline = CsvNewline.CRLF,
     };
 
-    private readonly SimdTokenizer<char, FalseConstant> _t128LF = new(_dCharLF);
-    private readonly SimdTokenizer<byte, FalseConstant> _t128bLF = new(_dByteLF);
-    private readonly SimdTokenizer<byte, TrueConstant> _t128bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<char, TrueConstant> _t128CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, FalseConstant, TrueConstant> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, FalseConstant, TrueConstant> _t128bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, TrueConstant, TrueConstant> _t128bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<char, TrueConstant, TrueConstant> _t128CRLF = new(_dCharCRLF);
 
     private readonly NoOpOwner _owner;
     private readonly RecordBuffer _rb2;

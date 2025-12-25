@@ -13,8 +13,10 @@ public static class ScalarTests
         {
             { CsvNewline.CRLF, Escaping.None },
             { CsvNewline.CRLF, Escaping.Quote },
+            { CsvNewline.CRLF, Escaping.QuoteNull },
             { CsvNewline.LF, Escaping.None },
             { CsvNewline.LF, Escaping.Quote },
+            { CsvNewline.LF, Escaping.QuoteNull },
         };
 
     [Theory, MemberData(nameof(NewlineEscapingData))]
@@ -36,7 +38,9 @@ public static class ScalarTests
         fbScalar.Clear();
         fbSimd.Clear();
 
-        ReadOnlySpan<char> data = TestDataGenerator.GenerateText(options.Newline, true, escaping);
+        ReadOnlySpan<char> data = TestDataGenerator
+            .GenerateText(options.Newline, true, escaping != Escaping.None)
+            .AsSpan();
 
         int resultScalar = scalarTokenizer.Tokenize(fbScalar, scalarStartIndex, data, readToEnd: false);
         int resultSimd = simdTokenizer.Tokenize(fbSimd, simdStartIndex, data);

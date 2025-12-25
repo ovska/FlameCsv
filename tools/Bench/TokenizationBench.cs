@@ -34,7 +34,7 @@ public class TokenizationBench
 
     [Params(
         [ /**/
-            // false,
+            false,
             true,
         ]
     )]
@@ -43,8 +43,8 @@ public class TokenizationBench
     [Params(
         [ /**/
             DataSetType.Unquoted,
-            DataSetType.QuotedA,
-            DataSetType.QuotedB,
+            // DataSetType.QuotedA,
+            // DataSetType.QuotedB,
         ]
     )]
     public DataSetType Dataset { get; set; }
@@ -108,10 +108,10 @@ public class TokenizationBench
         Newline = CsvNewline.CRLF,
     };
 
-    private readonly SimdTokenizer<char, FalseConstant> _t128LF = new(_dCharLF);
-    private readonly SimdTokenizer<byte, FalseConstant> _t128bLF = new(_dByteLF);
-    private readonly SimdTokenizer<byte, TrueConstant> _t128bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<char, TrueConstant> _t128CRLF = new(_dCharCRLF);
+    private readonly SimdTokenizer<char, FalseConstant, FalseConstant> _t128LF = new(_dCharLF);
+    private readonly SimdTokenizer<byte, FalseConstant, FalseConstant> _t128bLF = new(_dByteLF);
+    private readonly SimdTokenizer<byte, TrueConstant, FalseConstant> _t128bCRLF = new(_dByteCRLF);
+    private readonly SimdTokenizer<char, TrueConstant, FalseConstant> _t128CRLF = new(_dCharCRLF);
 
     private CsvTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
     private CsvTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
@@ -135,6 +135,7 @@ public class TokenizationBench
         // rb.SetFieldsRead(c);
     }
 
+#if AVX2
     private readonly Avx2Tokenizer<byte, FalseConstant> _avx2Byte = new(_dByteLF);
     private readonly Avx2Tokenizer<char, FalseConstant> _avx2Char = new(_dCharLF);
     private readonly Avx2Tokenizer<byte, TrueConstant> _avx2ByteCRLF = new(_dByteCRLF);
@@ -157,6 +158,7 @@ public class TokenizationBench
             _ = Avx2Byte.Tokenize(dst, 0, ByteData);
         }
     }
+#endif
 
 #if NET10_0_OR_GREATER
     private readonly Avx512Tokenizer<byte, FalseConstant> _avx512Byte = new(_dByteLF);

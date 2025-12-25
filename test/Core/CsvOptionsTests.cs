@@ -78,7 +78,7 @@ public class CsvOptionsTests
     {
         var def = CsvOptions<char>.Default;
         Assert.True(def.NeedsQuoting.Contains(def.Delimiter));
-        Assert.True(def.NeedsQuoting.Contains(def.Quote));
+        Assert.True(def.NeedsQuoting.Contains(def.Quote!.Value));
         Assert.True(def.NeedsQuoting.Contains('\r'));
         Assert.True(def.NeedsQuoting.Contains('\n'));
         Assert.False(def.NeedsQuoting.Contains('a'));

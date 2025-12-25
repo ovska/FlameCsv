@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -7,9 +6,10 @@ using FlameCsv.Intrinsics;
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokenizer<T>
+internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
+    where TQuote : struct, IConstant
 {
     protected override int Overscan
     {
@@ -29,8 +29,15 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         get => Vector256<byte>.Count;
     }
 
-    private readonly T _quote = T.CreateTruncating(options.Quote);
-    private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
+    private readonly T _quote;
+    private readonly T _delimiter;
+
+    public SimdTokenizer(CsvOptions<T> options)
+    {
+        Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
+        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
+        _delimiter = T.CreateTruncating(options.Delimiter);
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
@@ -56,7 +63,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
         uint crCarry = 0;
 
         Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
-        Vector256<byte> vecQuote = Vector256.Create(byte.CreateTruncating(_quote));
+        Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(byte.CreateTruncating(_quote)) : default;
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
         Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
 
@@ -64,11 +71,11 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
 
         Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
         Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
-        Vector256<byte> hasQuote = Vector256.Equals(vector, vecQuote);
+        Vector256<byte> hasQuote = TQuote.Value ? Vector256.Equals(vector, vecQuote) : default;
         Vector256<byte> hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
         Vector256<byte> hasControl = hasLF | hasDelimiter;
 
-        (uint maskControl, uint maskLF, uint maskQuote, uint maskCR) = AsciiVector.MoveMask<TCRLF>(
+        (uint maskControl, uint maskLF, uint maskQuote, uint maskCR) = AsciiVector.MoveMask<TCRLF, TQuote>(
             hasControl,
             hasLF,
             hasQuote,
@@ -133,71 +140,78 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             uint controlCount;
             QuoteState quoteState = 0;
 
-            if ((maskQuote | quotesConsumed) == 0)
+            if (!TQuote.Value)
             {
                 controlCount = (uint)BitOperations.PopCount(maskControl);
-                goto FastPath;
-            }
-
-            // go to slow path if multiple quotes
-            if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
-            {
-                goto SlowPath;
-            }
-
-            // case 1: no quote in this chunk
-            if (maskQuote == 0)
-            {
-                // quotesConsumed is guaranteed non-zero here, so maskControl is correct too
-
-                // whole chunk is inside quotes
-                if ((quotesConsumed & 1) != 0)
-                {
-                    goto ContinueRead;
-                }
-
-                // A string just ended? flush quotes and read the rest as normal
-                quoteState = QuoteState.Flush;
-                controlCount = (uint)BitOperations.PopCount(maskControl);
-                goto FastPath;
-            }
-
-            // exactly one quote in this chunk
-            maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
-
-            // after XOR clearing, if no controls survive, just carry quote state forward
-            if (maskControl == 0)
-            {
-                // maskQuote != 0 here, so exactly one quote in this chunk
-                ++quotesConsumed;
-                goto ContinueRead;
-            }
-
-            // surviving controls on one side of the quote
-            controlCount = (uint)BitOperations.PopCount(maskControl);
-
-            // thanks to 1-quote guarantee + XOR,
-            // controlsBeforeQuote is either 0 (quote before controls) or == maskControl (quote after)
-            uint controlsBeforeQuote = (maskQuote - 1u) & maskControl;
-
-            Check.True(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
-
-            if (controlsBeforeQuote == 0)
-            {
-                // quote is first, flush
-                quoteState = QuoteState.Flush;
-                quotesConsumed++;
-            }
-            else if (quotesConsumed != 0)
-            {
-                // string just ended?
-                Check.Equal(quotesConsumed % 2, 0u);
-                quoteState = QuoteState.FlushAndCarry;
             }
             else
             {
-                // quote is last, flag it for the next iter
-                quotesConsumed++;
+                if ((maskQuote | quotesConsumed) == 0)
+                {
+                    controlCount = (uint)BitOperations.PopCount(maskControl);
+                    goto FastPath;
+                }
+
+                // go to slow path if multiple quotes
+                if (!Bithacks.ZeroOrOneBitsSet(maskQuote))
+                {
+                    goto SlowPath;
+                }
+
+                // case 1: no quote in this chunk
+                if (maskQuote == 0)
+                {
+                    // quotesConsumed is guaranteed non-zero here, so maskControl is correct too
+
+                    // whole chunk is inside quotes
+                    if ((quotesConsumed & 1) != 0)
+                    {
+                        goto ContinueRead;
+                    }
+
+                    // A string just ended? flush quotes and read the rest as normal
+                    quoteState = QuoteState.Flush;
+                    controlCount = (uint)BitOperations.PopCount(maskControl);
+                    goto FastPath;
+                }
+
+                // exactly one quote in this chunk
+                maskControl &= Bithacks.FindInverseQuoteMaskSingle(maskQuote, quotesConsumed);
+
+                // after XOR clearing, if no controls survive, just carry quote state forward
+                if (maskControl == 0)
+                {
+                    // maskQuote != 0 here, so exactly one quote in this chunk
+                    ++quotesConsumed;
+                    goto ContinueRead;
+                }
+
+                // surviving controls on one side of the quote
+                controlCount = (uint)BitOperations.PopCount(maskControl);
+
+                // thanks to 1-quote guarantee + XOR,
+                // controlsBeforeQuote is either 0 (quote before controls) or == maskControl (quote after)
+                uint controlsBeforeQuote = (maskQuote - 1u) & maskControl;
+
+                Check.True(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
+
+                if (controlsBeforeQuote == 0)
+                {
+                    // quote is first, flush
+                    quoteState = QuoteState.Flush;
+                    quotesConsumed++;
+                }
+                else if (quotesConsumed != 0)
+                {
+                    // string just ended?
+                    Check.Equal(quotesConsumed % 2, 0u);
+                    quoteState = QuoteState.FlushAndCarry;
+                }
+                else
+                {
+                    // quote is last, flag it for the next iter
+                    quotesConsumed++;
+                }
             }
 
             FastPath:
@@ -225,7 +239,7 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
                 );
             }
 
-            if (quoteState != 0)
+            if (TQuote.Value && quoteState != 0)
             {
                 Unsafe.Add(ref firstField, fieldIndex) |= Bithacks.GetQuoteFlags(quotesConsumed);
                 quotesConsumed = (uint)quoteState >> 1;
@@ -235,19 +249,22 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             goto ContinueRead;
 
             SlowPath:
-            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
-            flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+            if (TQuote.Value)
+            {
+                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-            ParseAny(
-                index: (uint)index,
-                firstField: ref firstField,
-                fieldIndex: ref fieldIndex,
-                quotesConsumed: ref quotesConsumed,
-                maskControl: maskControl,
-                maskLF: maskLF,
-                maskQuote: ref maskQuote,
-                flag: flag
-            );
+                ParseAny(
+                    index: (uint)index,
+                    firstField: ref firstField,
+                    fieldIndex: ref fieldIndex,
+                    quotesConsumed: ref quotesConsumed,
+                    maskControl: maskControl,
+                    maskLF: maskLF,
+                    maskQuote: ref maskQuote,
+                    flag: flag
+                );
+            }
 
             goto SumQuotesAndContinue;
 
@@ -255,7 +272,14 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             if (TCRLF.Value)
             {
                 // clear the bits that are inside quotes
-                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                if (TQuote.Value)
+                {
+                    maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                }
+                else
+                {
+                    maskQuote = default; // ensure zeroed
+                }
 
                 CheckDanglingCR(
                     maskControl: ref maskControl,
@@ -279,7 +303,10 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             }
 
             SumQuotesAndContinue:
-            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+            if (TQuote.Value)
+            {
+                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+            }
 
             ContinueRead:
             index += (nuint)Vector256<byte>.Count;
@@ -291,7 +318,12 @@ internal sealed class SimdTokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokeni
             hasQuote = Vector256.Equals(vector, vecQuote);
             hasControl = hasLF | hasDelimiter;
 
-            (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF>(hasControl, hasLF, hasQuote, hasCR);
+            (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF, TQuote>(
+                hasControl,
+                hasLF,
+                hasQuote,
+                hasCR
+            );
         } while (fieldIndex <= fieldEnd && pData < end);
 
         return (int)fieldIndex;
