@@ -38,6 +38,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
     public Avx2Tokenizer(CsvOptions<T> options)
     {
+        Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
         _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _delimiter = T.CreateTruncating(options.Delimiter);
     }
@@ -158,9 +159,22 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
             // rare cases: quotes, or too many matches to fit in the compress path
-            if ((TQuote.Value && (quotesConsumed | maskQuote) != 0) || matchCount > (uint)Vector256<int>.Count)
+            if (TQuote.Value && (quotesConsumed | maskQuote) != 0)
             {
                 goto SlowPath;
+            }
+
+            if (matchCount > (uint)Vector256<int>.Count)
+            {
+                if (!TCRLF.Value)
+                {
+                    maskLF = hasLF.ExtractMostSignificantBits();
+                }
+
+                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+                ParseControls((uint)index, ref Unsafe.Add(ref firstField, fieldIndex), maskControl, maskLF, flag);
+                fieldIndex += matchCount;
+                goto ContinueRead;
             }
 
             // build a mask to remove extra bits caused by sign-extension
@@ -223,15 +237,16 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             // sign-extend to int32 to keep the CR/LF tags
             Vector256<int> taggedIndexVector = Avx2.ConvertToVector256Int32(combined.AsSByte());
 
+            // clear extra sign-extended bits between the EOL flags and indices
+            Vector256<uint> fixedTaggedVector = (taggedIndexVector & fixup).AsUInt32();
+
             Unsafe.SkipInit(out Vector256<uint> crlfShift);
 
             if (TCRLF.Value)
             {
-                crlfShift = ((taggedIndexVector.AsUInt32() >> 30) & Vector256<uint>.One);
+                // this must be done on the fixed value, otherwise LF's read with CRLF mode get messed up
+                crlfShift = ((fixedTaggedVector.AsUInt32() >> 30) & Vector256<uint>.One);
             }
-
-            // clear extra sign-extended bits between the EOL flags and indices
-            Vector256<uint> fixedTaggedVector = (taggedIndexVector & fixup).AsUInt32();
 
             // add the base offset to the "tzcnts"
             Vector256<uint> result = fixedTaggedVector + indexVector;
@@ -252,6 +267,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             continue;
 
             SlowPath:
+            Check.True(TQuote.Value, "SlowPath should only be taken when quotes are enabled.");
             if (TQuote.Value)
             {
                 if (!TCRLF.Value)

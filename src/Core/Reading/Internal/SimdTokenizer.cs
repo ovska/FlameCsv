@@ -249,6 +249,7 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             goto ContinueRead;
 
             SlowPath:
+            Check.True(TQuote.Value, "SlowPath should only be taken when quotes are enabled.");
             if (TQuote.Value)
             {
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
