@@ -75,7 +75,12 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
             }
 
             // keep leftover for next read
-            memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
+            if (totalRead > 0)
+            {
+                _pool.EnsureCapacity(ref _previousData, totalRead, copyOnResize: false);
+                memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
+            }
+
             _previousRead = totalRead;
 
             // ownership not passed to Chunk, dispose
@@ -111,7 +116,12 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
             }
 
             // keep leftover for next read
-            memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
+            if (totalRead > 0)
+            {
+                _pool.EnsureCapacity(ref _previousData, totalRead, copyOnResize: false);
+                memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
+            }
+
             _previousRead = totalRead;
 
             // ownership not passed to Chunk, dispose
