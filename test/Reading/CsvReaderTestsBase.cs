@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Binding;
 using FlameCsv.Enumeration;
@@ -10,24 +11,24 @@ namespace FlameCsv.Tests.Reading;
 
 public abstract class CsvReaderTestsBase
 {
-    private static IEnumerable<(CsvNewline, bool, int, Escaping, bool, bool?)> BaseData =>
+    private static IEnumerable<(CsvNewline, Header, int, Escaping, bool, Tokenizer, bool?)> BaseData =>
         from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
-        from writeHeader in GlobalData.Booleans
-        from bufferSize in BufferSizes
+        from writeHeader in GlobalData.Enum<Header>()
+        from bufferSize in (int[])[-1, 256, 4096]
         from escaping in GlobalData.Enum<Escaping>()
         from sourceGen in GlobalData.Booleans
+        from tokenizer in GlobalData.Enum<Tokenizer>()
         from guarded in GlobalData.GuardedMemory
-        select (crlf, writeHeader, bufferSize, escaping, sourceGen, guarded);
+        select (crlf, writeHeader, bufferSize, escaping, sourceGen, tokenizer, guarded);
 
-    private static IEnumerable<int> BufferSizes => [-1, 256, 1024];
+    public static TheoryData<CsvNewline, Header, int, Escaping, bool, Tokenizer, bool?> RecordData { get; } =
+    [.. BaseData];
 
-    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool?> RecordData { get; } = [.. BaseData];
-
-    public static TheoryData<CsvNewline, bool, int, Escaping, bool, bool, bool?> ObjectData { get; } =
+    public static TheoryData<CsvNewline, Header, int, Escaping, bool, bool, Tokenizer, bool?> ObjectData { get; } =
     [
         .. from tuple in BaseData
         from parallel in GlobalData.Booleans
-        select (tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, parallel, tuple.Item6),
+        select (tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, parallel, tuple.Item6, tuple.Item7),
     ];
 }
 
@@ -49,11 +50,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     [Theory, MemberData(nameof(ObjectData))]
     public async Task Objects_Sync(
         CsvNewline newline,
-        bool header,
+        Header header,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
         bool parallel,
+        Tokenizer tokenizer,
         bool? guarded
     )
     {
@@ -61,8 +63,8 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             return;
 
         using var pool = new ReturnTrackingBufferPool(guarded);
-        CsvOptions<T> options = GetOptions(newline, header, escaping);
-        var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
+        CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
+        var memory = TestDataGenerator.Generate<T>(newline, header is Header.Yes, escaping);
 
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
         {
@@ -87,10 +89,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     [Theory, MemberData(nameof(RecordData))]
     public async Task Records_Sync(
         CsvNewline newline,
-        bool header,
+        Header header,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
+        Tokenizer tokenizer,
         bool? guarded
     )
     {
@@ -99,9 +102,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
+            CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
 
-            var memory = TestDataGenerator.Generate<T>(newline, header, escaping);
+            var memory = TestDataGenerator.Generate<T>(newline, header is Header.Yes, escaping);
             using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
             {
                 var builder = Csv.From(in sequence);
@@ -119,11 +122,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     [Theory, MemberData(nameof(ObjectData))]
     public async Task Objects_Async(
         CsvNewline newline,
-        bool header,
+        Header header,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
         bool parallel,
+        Tokenizer tokenizer,
         bool? guarded
     )
     {
@@ -132,9 +136,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
+            CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
 
-            var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
+            var data = TestDataGenerator.Generate<byte>(newline, header is Header.Yes, escaping);
 
             await using var stream = data.AsStream();
             var builder = GetBuilder(stream, options, bufferSize, pool);
@@ -180,10 +184,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
     [Theory, MemberData(nameof(RecordData))]
     public async Task Records_Async(
         CsvNewline newline,
-        bool header,
+        Header header,
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
+        Tokenizer tokenizer,
         bool? guarded
     )
     {
@@ -192,9 +197,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping);
+            CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
 
-            var data = TestDataGenerator.Generate<byte>(newline, header, escaping);
+            var data = TestDataGenerator.Generate<byte>(newline, header is Header.Yes, escaping);
             await using var stream = data.AsStream();
             var builder = GetBuilder(stream, options, bufferSize, pool);
 
@@ -236,13 +241,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         Csv.IReadBuilder<T> builder,
         CsvOptions<T> options,
         bool sourceGen,
-        bool hasHeader,
+        Header header,
         CsvNewline newline,
         bool isAsync
     )
     {
         int index = 0;
         long tokenPosition = 0;
+        bool hasHeader = header is Header.Yes;
 
         int newlineLength = newline.IsCRLF() ? 2 : 1;
 
@@ -297,19 +303,34 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    protected static CsvOptions<T> GetOptions(CsvNewline newline, bool header, Escaping escaping)
+    protected static CsvOptions<T> GetOptions(CsvNewline newline, Header header, Escaping escaping, Tokenizer tokenizer)
     {
-        return new CsvOptions<T>
+        CsvOptions<T> options = new()
         {
             Formats = { [typeof(DateTime)] = "O" },
             Newline = newline,
-            HasHeader = header,
+            HasHeader = header is Header.Yes,
             Quote = escaping is Escaping.QuoteNull ? null : '"',
         };
+
+        if (options.GetTokenizers().simd is null && tokenizer is Tokenizer.Simd)
+        {
+            Assert.Skip("SIMD tokenizer is not supported on this platform.");
+        }
+
+        if (tokenizer is Tokenizer.Scalar)
+        {
+            SimdTokenizerAccessor(options) = null;
+        }
+
+        return options;
     }
 
     private static CsvParallelOptions GetParallelOptions()
     {
-        return new CsvParallelOptions { };
+        return new CsvParallelOptions { CancellationToken = TestContext.Current.CancellationToken };
     }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_simdTokenizer")]
+    private static extern ref CsvTokenizer<T>? SimdTokenizerAccessor(CsvOptions<T> options);
 }

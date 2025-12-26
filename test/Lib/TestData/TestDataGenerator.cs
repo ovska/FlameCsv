@@ -63,11 +63,23 @@ public sealed record Obj : IEquatable<Obj>, IComparable<Obj>
     }
 }
 
+public enum Tokenizer
+{
+    Simd,
+    Scalar,
+}
+
 public enum Escaping
 {
     None = 0,
     Quote = 1,
     QuoteNull = 2,
+}
+
+public enum Header
+{
+    Yes,
+    No,
 }
 
 public static class TestDataGenerator
