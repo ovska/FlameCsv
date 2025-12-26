@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -38,6 +39,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
     public Avx2Tokenizer(CsvOptions<T> options)
     {
+        Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
         Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
         _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _delimiter = T.CreateTruncating(options.Delimiter);

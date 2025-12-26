@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using CommunityToolkit.HighPerformance;
+using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -15,9 +16,10 @@ internal static class Avx512Tokenizer
 }
 
 [SkipLocalsInit]
-internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvTokenizer<T>
+internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
+    where TQuote : struct, IConstant
 {
     // leave space for 2 vectors;
     // vector count to avoid reading past the buffer
@@ -36,8 +38,16 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         get => Vector512<byte>.Count;
     }
 
-    private readonly T _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
-    private readonly T _delimiter = T.CreateTruncating(options.Delimiter);
+    private readonly T _quote;
+    private readonly T _delimiter;
+
+    public Avx512Tokenizer(CsvOptions<T> options)
+    {
+        Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
+        Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
+        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
+        _delimiter = T.CreateTruncating(options.Delimiter);
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
@@ -62,7 +72,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
         nuint fieldIndex = 0;
 
         Vector512<byte> vecDelim = Vector512.Create(byte.CreateTruncating(_delimiter));
-        Vector512<byte> vecQuote = Vector512.Create(byte.CreateTruncating(_quote));
+        Vector512<byte> vecQuote = TQuote.Value ? Vector512.Create(byte.CreateTruncating(_quote)) : default;
         Vector512<byte> vecLF = Vector512.Create((byte)'\n');
         Vector512<byte> vecCR = TCRLF.Value ? Vector512.Create((byte)'\r') : default;
 
@@ -129,7 +139,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
             ulong maskControl = hasAny.ExtractMostSignificantBits();
 
             // getting the mask instantly saves a bit so hasQuote isn't bounced between registers
-            ulong maskQuote = Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits();
+            ulong maskQuote = TQuote.Value ? Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits() : default;
 
             Unsafe.SkipInit(out ulong maskCR);
             Unsafe.SkipInit(out ulong maskLF);
@@ -149,7 +159,10 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
 
             if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
             {
-                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                if (TQuote.Value)
+                {
+                    quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
+                }
                 goto ContinueRead;
             }
 
@@ -162,10 +175,24 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
 
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
-            // rare cases: quotes, or too many matches to fit in VPCOMPRESSB path
-            if ((quotesConsumed | maskQuote) != 0 || matchCount > (uint)Vector512<int>.Count)
+            // rare cases: quotes, or too many matches to fit in the compress path
+            if (TQuote.Value && (quotesConsumed | maskQuote) != 0)
             {
                 goto SlowPath;
+            }
+
+            // rare cases: quotes, or too many matches to fit in VPCOMPRESSB path
+            if (matchCount > (uint)Vector512<int>.Count)
+            {
+                if (!TCRLF.Value)
+                {
+                    maskLF = hasLF.ExtractMostSignificantBits(); // LF movemask not loaded yet
+                }
+
+                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+                ParseControls((uint)index, ref Unsafe.Add(ref firstField, fieldIndex), maskControl, maskLF, flag);
+                fieldIndex += matchCount;
+                goto ContinueRead;
             }
 
             // get an iota vector with the MSB set on newline positions
@@ -204,35 +231,46 @@ internal sealed class Avx512Tokenizer<T, TCRLF>(CsvOptions<T> options) : CsvToke
             continue;
 
             SlowPath:
-            if (!TCRLF.Value)
+            Check.True(TQuote.Value, "SlowPath should only be taken when quotes are enabled.");
+            if (TQuote.Value) // trim this codepath
             {
-                maskLF = hasLF.ExtractMostSignificantBits();
+                if (!TCRLF.Value)
+                {
+                    maskLF = hasLF.ExtractMostSignificantBits();
+                }
+
+                // clear the bits that are inside quotes
+                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+
+                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+
+                ParseAny(
+                    index: (uint)index,
+                    firstField: ref firstField,
+                    fieldIndex: ref fieldIndex,
+                    quotesConsumed: ref quotesConsumed,
+                    maskControl: maskControl,
+                    maskLF: maskLF,
+                    maskQuote: ref maskQuote,
+                    flag: flag
+                );
+
+                quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
             }
-
-            // clear the bits that are inside quotes
-            maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
-
-            uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
-
-            ParseAny(
-                index: (uint)index,
-                firstField: ref firstField,
-                fieldIndex: ref fieldIndex,
-                quotesConsumed: ref quotesConsumed,
-                maskControl: maskControl,
-                maskLF: maskLF,
-                maskQuote: ref maskQuote,
-                flag: flag
-            );
-
-            quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
             goto ContinueRead;
 
             PathologicalPath:
             if (TCRLF.Value)
             {
-                // clear the bits that are inside quotes
-                maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                if (TQuote.Value)
+                {
+                    // clear the bits that are inside quotes
+                    maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
+                }
+                else
+                {
+                    maskQuote = 0;
+                }
 
                 CheckDanglingCR(
                     maskControl: ref maskControl,

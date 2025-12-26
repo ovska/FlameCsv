@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
@@ -34,6 +35,7 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
     public SimdTokenizer(CsvOptions<T> options)
     {
+        Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
         Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
         _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _delimiter = T.CreateTruncating(options.Delimiter);

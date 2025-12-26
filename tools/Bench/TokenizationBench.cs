@@ -161,10 +161,10 @@ public class TokenizationBench
 #endif
 
 #if NET10_0_OR_GREATER
-    private readonly Avx512Tokenizer<byte, FalseConstant> _avx512Byte = new(_dByteLF);
-    private readonly Avx512Tokenizer<char, FalseConstant> _avx512Char = new(_dCharLF);
-    private readonly Avx512Tokenizer<byte, TrueConstant> _avx512ByteCRLF = new(_dByteCRLF);
-    private readonly Avx512Tokenizer<char, TrueConstant> _avx512CharCRLF = new(_dCharCRLF);
+    private readonly Avx512Tokenizer<byte, FalseConstant, TrueConstant> _avx512Byte = new(_dByteLF);
+    private readonly Avx512Tokenizer<char, FalseConstant, TrueConstant> _avx512Char = new(_dCharLF);
+    private readonly Avx512Tokenizer<byte, TrueConstant, TrueConstant> _avx512ByteCRLF = new(_dByteCRLF);
+    private readonly Avx512Tokenizer<char, TrueConstant, TrueConstant> _avx512CharCRLF = new(_dCharCRLF);
 
     private CsvTokenizer<char> Avx512Char => TokenizerIsLF ? _avx512Char : _avx512CharCRLF;
     private CsvTokenizer<byte> Avx512Byte => TokenizerIsLF ? _avx512Byte : _avx512ByteCRLF;
@@ -184,4 +184,39 @@ public class TokenizationBench
         }
     }
 #endif
+
+    // private static readonly Dictionary<(bool isLF, bool hasQuotes), CsvOptions<char>> _charOptsCache = [];
+    // private static readonly Dictionary<(bool isLF, bool hasQuotes), CsvOptions<byte>> _byteOptsCache = [];
+
+    // private static CsvTokenizer<char> CharTokenizer(DataSetType type, ParserNewline newline)
+    // {
+    //     var key = (isLF: newline == ParserNewline.LF, hasQuotes: type != DataSetType.Unquoted);
+    //     if (!_charOptsCache.TryGetValue(key, out var options))
+    //     {
+    //         options = new CsvOptions<char>
+    //         {
+    //             Delimiter = ',',
+    //             Quote = key.hasQuotes ? '"' : null,
+    //             Newline = key.isLF ? CsvNewline.LF : CsvNewline.CRLF,
+    //         };
+    //         _charOptsCache[key] = options;
+    //     }
+    //     return options.GetTokenizers().simd!;
+    // }
+
+    // private static CsvTokenizer<byte> ByteTokenizer(DataSetType type, ParserNewline newline)
+    // {
+    //     var key = (isLF: newline == ParserNewline.LF, hasQuotes: type != DataSetType.Unquoted);
+    //     if (!_byteOptsCache.TryGetValue(key, out var options))
+    //     {
+    //         options = new CsvOptions<byte>
+    //         {
+    //             Delimiter = ',',
+    //             Quote = key.hasQuotes ? '"' : null,
+    //             Newline = key.isLF ? CsvNewline.LF : CsvNewline.CRLF,
+    //         };
+    //         _byteOptsCache[key] = options;
+    //     }
+    //     return options.GetTokenizers().simd!;
+    // }
 }

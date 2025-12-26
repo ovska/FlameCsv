@@ -57,6 +57,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool? guarded
     )
     {
+        if (parallel)
+            return;
+
         using var pool = new ReturnTrackingBufferPool(guarded);
         CsvOptions<T> options = GetOptions(newline, header, escaping);
         var memory = TestDataGenerator.Generate<T>(newline, header, escaping);

@@ -142,8 +142,12 @@ public partial class CsvOptions<T>
             if (Avx512Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
-                    ? new Avx512Tokenizer<T, TrueConstant>(this)
-                    : new Avx512Tokenizer<T, FalseConstant>(this);
+                    ? _quote.HasValue
+                        ? new Avx512Tokenizer<T, TrueConstant, TrueConstant>(this)
+                        : new Avx512Tokenizer<T, TrueConstant, FalseConstant>(this)
+                    : _quote.HasValue
+                        ? new Avx512Tokenizer<T, FalseConstant, TrueConstant>(this)
+                        : new Avx512Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
             else
 #endif
