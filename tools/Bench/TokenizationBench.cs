@@ -43,8 +43,8 @@ public class TokenizationBench
     [Params(
         [ /**/
             DataSetType.Unquoted,
-            // DataSetType.QuotedA,
-            // DataSetType.QuotedB,
+            DataSetType.QuotedA,
+            DataSetType.QuotedB,
         ]
     )]
     public DataSetType Dataset { get; set; }
@@ -52,7 +52,7 @@ public class TokenizationBench
     [Params(
         [ /**/
             ParserNewline.LF,
-            // ParserNewline.LF_With_CRLF,
+            ParserNewline.LF_With_CRLF,
             ParserNewline.CRLF,
         ]
     )]
@@ -108,28 +108,18 @@ public class TokenizationBench
         Newline = CsvNewline.CRLF,
     };
 
-    private readonly SimdTokenizer<char, FalseConstant, FalseConstant> _t128LF = new(_dCharLF);
-    private readonly SimdTokenizer<byte, FalseConstant, FalseConstant> _t128bLF = new(_dByteLF);
-    private readonly SimdTokenizer<byte, TrueConstant, FalseConstant> _t128bCRLF = new(_dByteCRLF);
-    private readonly SimdTokenizer<char, TrueConstant, FalseConstant> _t128CRLF = new(_dCharCRLF);
-
-    private CsvTokenizer<char> SimdChar => TokenizerIsLF ? _t128LF : _t128CRLF;
-    private CsvTokenizer<byte> SimdByte => TokenizerIsLF ? _t128bLF : _t128bCRLF;
-
     [Benchmark(Baseline = true)]
     public void Simd()
     {
-        using var rb = new RecordBuffer(bufferSize: 24 * 65535);
-        var dst = rb.GetUnreadBuffer(0, out _);
         int c;
 
         if (Chars)
         {
-            c = SimdChar.Tokenize(dst, 0, CharData);
+            c = CharTokenizer(Dataset, Newline).Tokenize(_fieldBuffer, 0, CharData);
         }
         else
         {
-            c = SimdByte.Tokenize(dst, 0, ByteData);
+            c = ByteTokenizer(Dataset, Newline).Tokenize(_fieldBuffer, 0, ByteData);
         }
 
         // rb.SetFieldsRead(c);
@@ -160,7 +150,7 @@ public class TokenizationBench
     }
 #endif
 
-#if NET10_0_OR_GREATER
+#if false && NET10_0_OR_GREATER
     private readonly Avx512Tokenizer<byte, FalseConstant, TrueConstant> _avx512Byte = new(_dByteLF);
     private readonly Avx512Tokenizer<char, FalseConstant, TrueConstant> _avx512Char = new(_dCharLF);
     private readonly Avx512Tokenizer<byte, TrueConstant, TrueConstant> _avx512ByteCRLF = new(_dByteCRLF);
@@ -185,38 +175,38 @@ public class TokenizationBench
     }
 #endif
 
-    // private static readonly Dictionary<(bool isLF, bool hasQuotes), CsvOptions<char>> _charOptsCache = [];
-    // private static readonly Dictionary<(bool isLF, bool hasQuotes), CsvOptions<byte>> _byteOptsCache = [];
+    private static readonly Dictionary<(bool isLF, bool hasQuotes), CsvOptions<char>> _charOptsCache = [];
+    private static readonly Dictionary<(bool isLF, bool hasQuotes), CsvOptions<byte>> _byteOptsCache = [];
 
-    // private static CsvTokenizer<char> CharTokenizer(DataSetType type, ParserNewline newline)
-    // {
-    //     var key = (isLF: newline == ParserNewline.LF, hasQuotes: type != DataSetType.Unquoted);
-    //     if (!_charOptsCache.TryGetValue(key, out var options))
-    //     {
-    //         options = new CsvOptions<char>
-    //         {
-    //             Delimiter = ',',
-    //             Quote = key.hasQuotes ? '"' : null,
-    //             Newline = key.isLF ? CsvNewline.LF : CsvNewline.CRLF,
-    //         };
-    //         _charOptsCache[key] = options;
-    //     }
-    //     return options.GetTokenizers().simd!;
-    // }
+    private static CsvTokenizer<char> CharTokenizer(DataSetType type, ParserNewline newline)
+    {
+        var key = (isLF: newline == ParserNewline.LF, hasQuotes: type != DataSetType.Unquoted);
+        if (!_charOptsCache.TryGetValue(key, out var options))
+        {
+            options = new CsvOptions<char>
+            {
+                Delimiter = ',',
+                Quote = key.hasQuotes ? '"' : null,
+                Newline = key.isLF ? CsvNewline.LF : CsvNewline.CRLF,
+            };
+            _charOptsCache[key] = options;
+        }
+        return options.GetTokenizers().simd!;
+    }
 
-    // private static CsvTokenizer<byte> ByteTokenizer(DataSetType type, ParserNewline newline)
-    // {
-    //     var key = (isLF: newline == ParserNewline.LF, hasQuotes: type != DataSetType.Unquoted);
-    //     if (!_byteOptsCache.TryGetValue(key, out var options))
-    //     {
-    //         options = new CsvOptions<byte>
-    //         {
-    //             Delimiter = ',',
-    //             Quote = key.hasQuotes ? '"' : null,
-    //             Newline = key.isLF ? CsvNewline.LF : CsvNewline.CRLF,
-    //         };
-    //         _byteOptsCache[key] = options;
-    //     }
-    //     return options.GetTokenizers().simd!;
-    // }
+    private static CsvTokenizer<byte> ByteTokenizer(DataSetType type, ParserNewline newline)
+    {
+        var key = (isLF: newline == ParserNewline.LF, hasQuotes: type != DataSetType.Unquoted);
+        if (!_byteOptsCache.TryGetValue(key, out var options))
+        {
+            options = new CsvOptions<byte>
+            {
+                Delimiter = ',',
+                Quote = key.hasQuotes ? '"' : null,
+                Newline = key.isLF ? CsvNewline.LF : CsvNewline.CRLF,
+            };
+            _byteOptsCache[key] = options;
+        }
+        return options.GetTokenizers().simd!;
+    }
 }
