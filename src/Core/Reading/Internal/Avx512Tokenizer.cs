@@ -85,47 +85,21 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         uint quotesConsumed = 0;
         ulong crCarry = 0;
 
+        Vector512<byte> vector = AsciiVector.Load512(pData);
         Vector512<uint> indexVector;
-        Vector512<byte> vector;
 
-        // align the start
-        // TODO: benchmark whether unaligned loads are worth it on real-world buffer sizes and streaming;
-        // currently only optimized for fully buffered data
+        nint remainder = ((nint)pData % Vector512<byte>.Count) / sizeof(T);
+
+        if (remainder != 0)
         {
-            nint alignment = 64;
-            nint remainder = ((nint)pData % alignment) / sizeof(T);
-
-            if (remainder != 0)
-            {
-                nuint skip = (uint)alignment - (uint)remainder;
-
-                Inline64<T> temp = default; // default zero-inits
-
-                nuint idx = 0;
-                ref T src = ref Unsafe.AsRef<T>(start);
-                ref T dst = ref Unsafe.Add(ref temp.elem0, (nuint)remainder);
-
-                do
-                {
-                    Unsafe.Add(ref dst, idx) = Unsafe.Add(ref src, idx);
-                    idx++;
-                } while (idx < skip);
-
-                // safe AsPointer; stack allocated struct
-                vector = AsciiVector.Load512((T*)Unsafe.AsPointer(ref temp.elem0));
-
-                // adjust separately; we need both uint32 and (n)uint64 to wrap correctly
-                indexVector = Vector512.Create((uint)index - (uint)remainder);
-                index -= (nuint)remainder;
-                pData -= remainder;
-
-                Check.Positive((nint)index + 64, "Index should have rolled over correctly");
-            }
-            else
-            {
-                vector = AsciiVector.LoadAligned512(pData);
-                indexVector = Vector512.Create((uint)index);
-            }
+            vector = AsciiVector.ShiftItemsRight(vector, (int)remainder);
+            indexVector = Vector512.Create((uint)index - (uint)remainder);
+            index -= (nuint)remainder;
+            pData -= remainder;
+        }
+        else
+        {
+            indexVector = Vector512.Create((uint)index);
         }
 
         Vector512<byte> nextVector = AsciiVector.LoadAligned512(pData + (nuint)Vector512<byte>.Count);
@@ -134,9 +108,9 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         {
             Vector512<byte> hasLF = Vector512.Equals(vector, vecLF);
             Vector512<byte> hasDelimiter = Vector512.Equals(vector, vecDelim);
-            Vector512<byte> hasAny = hasLF | hasDelimiter;
+            Vector512<byte> hasControl = hasLF | hasDelimiter;
 
-            ulong maskControl = hasAny.ExtractMostSignificantBits();
+            ulong maskControl = hasControl.ExtractMostSignificantBits();
 
             // getting the mask instantly saves a bit so hasQuote isn't bounced between registers
             ulong maskQuote = TQuote.Value ? Vector512.Equals(vector, vecQuote).ExtractMostSignificantBits() : default;
@@ -199,9 +173,9 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             Vector512<byte> taggedIndices = (hasLF & bit7) | Vector512<byte>.Indices; // compiles to vpternlogd
 
             // pack the indexes of all matches to the front
-            Vector512<byte> packedAny = Avx512Vbmi2.Compress(
+            Vector512<byte> packedControlIndices = Avx512Vbmi2.Compress(
                 merge: Vector512<byte>.Zero,
-                mask: hasAny,
+                mask: hasControl,
                 value: taggedIndices
             );
 
@@ -211,7 +185,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 : msbAndBitsUpTo7;
 
             // we already verified that matchCount is low enough; pick the lowest 16 bytes...
-            Vector128<sbyte> lowestLane = Avx512F.ExtractVector128(packedAny, 0).AsSByte();
+            Vector128<sbyte> lowestLane = Avx512F.ExtractVector128(packedControlIndices, 0).AsSByte();
 
             // ...and sign extend to int32 to preserve bits above 7 if the match was an EOL
             Vector512<int> taggedIndexVector = Avx512F.ConvertToVector512Int32(lowestLane);
@@ -303,6 +277,13 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
 [InlineArray(64)]
 internal struct Inline64<T>
+    where T : unmanaged
+{
+    public T elem0;
+}
+
+[InlineArray(128)]
+internal struct Inline128<T>
     where T : unmanaged
 {
     public T elem0;

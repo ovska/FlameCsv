@@ -113,16 +113,33 @@ public static class AsciiVectorTests
     }
 
     [Fact]
-    public static void Should_Shift_First_Elements()
+    public static void Should_Shift_First_Elements_256()
     {
-        Assert.SkipUnless(Avx2.IsSupported, "AVX2 not supported");
+        Span<byte> result = stackalloc byte[Vector256<byte>.Count];
 
-        byte[] result = new byte[32];
-
-        for (int i = 1; i < 32; i++)
+        for (int i = 1; i < Vector256<byte>.Count; i++)
         {
             AsciiVector.ShiftItemsRight(Vector256<byte>.Indices, i).CopyTo(result);
-            byte[] expected = Enumerable.Range(0, 32).Select(x => (byte)Math.Max(0, x - i)).ToArray();
+            byte[] expected = Enumerable
+                .Range(0, Vector256<byte>.Count)
+                .Select(x => (byte)Math.Max(0, x - i))
+                .ToArray();
+            Assert.Equal(expected, result);
+        }
+    }
+
+    [Fact]
+    public static void Should_Shift_First_Elements_512()
+    {
+        Span<byte> result = stackalloc byte[Vector512<byte>.Count];
+
+        for (int i = 1; i < Vector512<byte>.Count; i++)
+        {
+            AsciiVector.ShiftItemsRight(Vector512<byte>.Indices, i).CopyTo(result);
+            byte[] expected = Enumerable
+                .Range(0, Vector512<byte>.Count)
+                .Select(x => (byte)Math.Max(0, x - i))
+                .ToArray();
             Assert.Equal(expected, result);
         }
     }

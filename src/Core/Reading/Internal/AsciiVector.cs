@@ -129,10 +129,11 @@ internal static class AsciiVector
             throw Token<T>.NotSupported;
         }
 
-        Vector512<short> v0 = Vector512.LoadAligned((short*)ptr);
-        Vector512<short> v1 = Vector512.LoadAligned((short*)ptr + Vector512<short>.Count);
-        Vector512<byte> packed = Avx512BW.PackUnsignedSaturate(v0, v1);
-        return Avx512F.PermuteVar8x64(packed.AsInt64(), Vector512.Create(0L, 2, 4, 6, 1, 3, 5, 7)).AsByte();
+        Vector512<ushort> v0 = Vector512.LoadAligned((ushort*)ptr);
+        Vector512<ushort> v1 = Vector512.LoadAligned((ushort*)ptr + Vector512<short>.Count);
+        Vector256<byte> lower = Avx512BW.ConvertToVector256ByteWithSaturation(v0);
+        Vector256<byte> upper = Avx512BW.ConvertToVector256ByteWithSaturation(v1);
+        return Vector512.Create(lower, upper);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -331,15 +332,21 @@ internal static class AsciiVector
         Check.OverZero(amount);
         Check.LessThan(amount, Vector256<byte>.Count);
 
-        if (Avx512Vbmi.VL.IsSupported)
-        {
-            Vector256<byte> indices = Vector256<byte>.Indices + Vector256.Create((byte)amount);
-            return Avx512Vbmi.VL.PermuteVar32x8(value, indices);
-        }
-
         Unsafe.SkipInit(out Inline64<byte> tmp);
         Vector256<byte>.Zero.StoreUnsafe(ref tmp.elem0); // zero init lower half
         value.StoreUnsafe(ref tmp.elem0, elementOffset: (nuint)amount);
         return Vector256.LoadUnsafe(ref tmp.elem0);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<byte> ShiftItemsRight(Vector512<byte> value, int amount)
+    {
+        Check.OverZero(amount);
+        Check.LessThan(amount, Vector512<byte>.Count);
+
+        Unsafe.SkipInit(out Inline128<byte> tmp);
+        Vector512<byte>.Zero.StoreUnsafe(ref tmp.elem0); // zero init lower half
+        value.StoreUnsafe(ref tmp.elem0, elementOffset: (nuint)amount);
+        return Vector512.LoadUnsafe(ref tmp.elem0);
     }
 }
