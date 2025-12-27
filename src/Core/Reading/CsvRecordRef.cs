@@ -36,16 +36,7 @@ public readonly ref struct CsvRecordRef<T>
             ref Unsafe.Add(ref MemoryMarshal.GetReference(reader._recordBuffer._fields), (uint)view.Start + 1),
             view.Length
         );
-#if DEBUG
-        _view = view;
     }
-
-#pragma warning disable IDE0052
-    private readonly RecordView _view;
-#pragma warning restore IDE0052
-#else
-    }
-#endif
 
     /// <summary>
     /// Gets the number of fields in the record.
@@ -106,7 +97,6 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetFieldUnsafe(int index)
     {
-        // call indexer first to get bounds checks
         ref uint fieldRef = ref MemoryMarshal.GetReference(_fields);
         uint previous = Unsafe.Add(ref fieldRef, index - 1);
         uint current = Unsafe.Add(ref fieldRef, (uint)index);
@@ -238,7 +228,7 @@ public readonly ref struct CsvRecordRef<T>
 #if DEBUG
     static CsvRecordRef()
     {
-        Check.Equal(Unsafe.SizeOf<CsvRecordRef<T>>(), 40);
+        Check.Equal(Unsafe.SizeOf<CsvRecordRef<T>>(), 32);
     }
 #endif
 }

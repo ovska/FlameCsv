@@ -217,14 +217,13 @@ internal static class Bithacks
     internal static T ComputeQuoteMaskSoftwareFallback<T>(T quoteBits)
         where T : unmanaged, IBinaryInteger<T>
     {
+        Check.True(typeof(T) == typeof(uint) || typeof(T) == typeof(ulong));
         T mask = quoteBits ^ (quoteBits << 1);
         mask ^= (mask << 2);
         mask ^= (mask << 4);
-        if (Unsafe.SizeOf<T>() >= sizeof(ushort))
-            mask ^= (mask << 8);
-        if (Unsafe.SizeOf<T>() >= sizeof(uint))
-            mask ^= (mask << 16);
-        if (Unsafe.SizeOf<T>() >= sizeof(ulong))
+        mask ^= (mask << 8);
+        mask ^= (mask << 16);
+        if (Unsafe.SizeOf<T>() == sizeof(ulong))
             mask ^= (mask << 32);
         return mask;
     }
