@@ -4,7 +4,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
-using CommunityToolkit.HighPerformance;
 using FlameCsv.Reading.Internal;
 using ArmAes = System.Runtime.Intrinsics.Arm.Aes;
 
@@ -88,7 +87,7 @@ internal static class Bithacks
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static uint GetSubractionFlag(bool noCR)
     {
-        int mask = noCR.ToByte() - 1;
+        int mask = Unsafe.BitCast<bool, byte>(noCR) - 1;
         uint flag = Field.IsEOL;
         flag ^= (uint)(mask & 0xC0000001u);
         return flag;
@@ -104,17 +103,16 @@ internal static class Bithacks
         if (Unsafe.SizeOf<T>() is sizeof(uint))
         {
             // handle pos=32 with zero extension to uint64 (tzcnt 0 returns)
-            bool set = (((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL) != 0;
-            return set ? flag : 0;
+            int mask = -(int)(((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL);
+            return flag & (uint)mask;
         }
 
         if (Unsafe.SizeOf<T>() is sizeof(ulong))
         {
             // handle pos=64 explicitly (tzcnt 0 returns)
-            ulong mask = Unsafe.BitCast<T, ulong>(maskNewline);
+            int mask = -(int)((Unsafe.BitCast<T, ulong>(maskNewline) >> (int)pos) & 1UL);
             int validMask = ((int)pos - 64) >> 31;
-            bool set = ((mask >> (int)pos) & 1UL & (uint)validMask) != 0;
-            return set ? flag : 0u;
+            return flag & (uint)(mask & validMask);
         }
 
         throw new NotSupportedException();

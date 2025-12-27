@@ -149,18 +149,18 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
 
-            // rare cases: quotes, or too many matches to fit in the compress path
             if (TQuote.Value && (quotesConsumed | maskQuote) != 0)
             {
                 goto SlowPath;
             }
 
-            // rare cases: quotes, or too many matches to fit in VPCOMPRESSB path
+            // too many matches to fit in VPCOMPRESSB path?
             if (matchCount > (uint)Vector512<int>.Count)
             {
                 if (!TCRLF.Value)
                 {
-                    maskLF = hasLF.ExtractMostSignificantBits(); // LF movemask not loaded yet
+                    // maskLF is loaded lazily with CRLF disabled
+                    maskLF = hasLF.ExtractMostSignificantBits();
                 }
 
                 uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;

@@ -13,14 +13,20 @@ public class BithackTests
         Assert.Equal(flag, Bithacks.ProcessFlag(1, pos: 0, flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: 1, flag));
         Assert.Equal(flag, Bithacks.ProcessFlag(1 << 31, uint.TrailingZeroCount(1u << 31), flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1 << 5, uint.TrailingZeroCount(1u << 5), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(~(1 << 5), uint.TrailingZeroCount(1u << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1 << 31, pos: uint.TrailingZeroCount(0), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(0), flag));
 
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: 0, flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: 1, flag));
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 63, (uint)ulong.TrailingZeroCount(1ul << 63), flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 5, (uint)ulong.TrailingZeroCount(1ul << 5), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(~(1ul << 5), (uint)ulong.TrailingZeroCount(1ul << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1ul << 63, pos: (uint)ulong.TrailingZeroCount(0), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(0), flag));
+
+        Assert.Throws<NotSupportedException>(() => Bithacks.ProcessFlag((ushort)1, 0, flag));
     }
 
     [Theory]
@@ -53,6 +59,28 @@ public class BithackTests
         Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b1011u));
         Assert.Equal(0b0001u, Bithacks.GetMaskUpToLowestSetBit(0b1111u));
         Assert.Equal(0b1111u, Bithacks.GetMaskUpToLowestSetBit(0b1000u));
+        Assert.Equal(0b0001ul, Bithacks.GetMaskUpToLowestSetBit(0b0001ul));
+        Assert.Equal(0b0011ul, Bithacks.GetMaskUpToLowestSetBit(0b0010ul));
+        Assert.Equal(0b0001ul, Bithacks.GetMaskUpToLowestSetBit(0b0011ul));
+        Assert.Equal(0b0111ul, Bithacks.GetMaskUpToLowestSetBit(0b0100ul));
+        Assert.Equal(0b0011ul, Bithacks.GetMaskUpToLowestSetBit(0b0110ul));
+        Assert.Equal(0b0001ul, Bithacks.GetMaskUpToLowestSetBit(0b0111ul));
+        Assert.Equal(0b1111ul, Bithacks.GetMaskUpToLowestSetBit(0b1000ul));
+        Assert.Equal(0b0011ul, Bithacks.GetMaskUpToLowestSetBit(0b1010ul));
+        Assert.Equal(0b0001ul, Bithacks.GetMaskUpToLowestSetBit(0b1011ul));
+        Assert.Equal(0b0001ul, Bithacks.GetMaskUpToLowestSetBit(0b1111ul));
+        Assert.Equal(0b1111ul, Bithacks.GetMaskUpToLowestSetBit(0b1000ul));
+        Assert.Equal((ushort)0b0001, Bithacks.GetMaskUpToLowestSetBit((ushort)0b0001));
+        Assert.Equal((ushort)0b0011, Bithacks.GetMaskUpToLowestSetBit((ushort)0b0010));
+        Assert.Equal((ushort)0b0001, Bithacks.GetMaskUpToLowestSetBit((ushort)0b0011));
+        Assert.Equal((ushort)0b0111, Bithacks.GetMaskUpToLowestSetBit((ushort)0b0100));
+        Assert.Equal((ushort)0b0011, Bithacks.GetMaskUpToLowestSetBit((ushort)0b0110));
+        Assert.Equal((ushort)0b0001, Bithacks.GetMaskUpToLowestSetBit((ushort)0b0111));
+        Assert.Equal((ushort)0b1111, Bithacks.GetMaskUpToLowestSetBit((ushort)0b1000));
+        Assert.Equal((ushort)0b0011, Bithacks.GetMaskUpToLowestSetBit((ushort)0b1010));
+        Assert.Equal((ushort)0b0001, Bithacks.GetMaskUpToLowestSetBit((ushort)0b1011));
+        Assert.Equal((ushort)0b0001, Bithacks.GetMaskUpToLowestSetBit((ushort)0b1111));
+        Assert.Equal((ushort)0b1111, Bithacks.GetMaskUpToLowestSetBit((ushort)0b1000));
     }
 
     [Fact]
@@ -66,16 +94,23 @@ public class BithackTests
     public static void Should_Check_if_Zero_or_One_Bits_Set()
     {
         Assert.True(Bithacks.ZeroOrOneBitsSet(0));
-        Assert.True(Bithacks.ZeroOrOneBitsSet(0ul));
         Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001u));
         Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000010u));
-        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000010ul));
-        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001ul));
         Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000000ul));
         Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011u));
-        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011ul));
         Assert.False(Bithacks.ZeroOrOneBitsSet(~0u));
+
+        Assert.False(Bithacks.ZeroOrOneBitsSet(0b00000011ul));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0ul));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000010ul));
+        Assert.True(Bithacks.ZeroOrOneBitsSet(0b00000001ul));
         Assert.False(Bithacks.ZeroOrOneBitsSet(~0ul));
+
+        Assert.False(Bithacks.ZeroOrOneBitsSet((ushort)0b00000011u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet((ushort)0u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet((ushort)0b00000010u));
+        Assert.True(Bithacks.ZeroOrOneBitsSet((ushort)0b00000001u));
+        Assert.False(Bithacks.ZeroOrOneBitsSet((ushort)0xFFFF));
 
         for (int i = 0; i < 8096; i++)
         {
@@ -87,18 +122,27 @@ public class BithackTests
     public static void Should_Check_if_Two_or_More_Bits_Set()
     {
         Assert.False(Bithacks.TwoOrMoreBitsSet(0));
-        Assert.False(Bithacks.TwoOrMoreBitsSet(0ul));
         Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000001u));
         Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000010u));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00000011u));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00101011u));
+        Assert.True(Bithacks.TwoOrMoreBitsSet(~0u));
+
+        Assert.False(Bithacks.TwoOrMoreBitsSet(0ul));
         Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000010ul));
         Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000001ul));
         Assert.False(Bithacks.TwoOrMoreBitsSet(0b00000000ul));
-        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00000011u));
         Assert.True(Bithacks.TwoOrMoreBitsSet(0b00000011ul));
         Assert.True(Bithacks.TwoOrMoreBitsSet(0b00101011ul));
-        Assert.True(Bithacks.TwoOrMoreBitsSet(0b00101011u));
-        Assert.True(Bithacks.TwoOrMoreBitsSet(~0u));
         Assert.True(Bithacks.TwoOrMoreBitsSet(~0ul));
+
+        Assert.False(Bithacks.TwoOrMoreBitsSet((ushort)0));
+        Assert.False(Bithacks.TwoOrMoreBitsSet((ushort)0b00000010));
+        Assert.False(Bithacks.TwoOrMoreBitsSet((ushort)0b00000001));
+        Assert.False(Bithacks.TwoOrMoreBitsSet((ushort)0b00000000));
+        Assert.True(Bithacks.TwoOrMoreBitsSet((ushort)0b00000011));
+        Assert.True(Bithacks.TwoOrMoreBitsSet((ushort)0b00101011));
+        Assert.True(Bithacks.TwoOrMoreBitsSet((ushort)0xFFFF));
 
         for (int i = 0; i < 8096; i++)
         {
