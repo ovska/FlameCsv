@@ -54,6 +54,53 @@ public static class ScalarTests
         Assert.Equal(fbScalar[..len], fbSimd[..len]);
     }
 
+    [Theory, InlineData(true), InlineData(false)]
+    public static void Should_Parse_Dense_Fields(bool useScalar)
+    {
+        using var apbw = new ArrayPoolBufferWriter<byte>();
+
+        for (int i = 0; i < 512; i++)
+        {
+            Span<byte> span = apbw.GetSpan(5);
+            span[0] = (byte)',';
+            span[1] = (byte)',';
+            span[2] = (byte)',';
+            span[3] = (byte)',';
+            span[4] = (byte)'\n';
+            apbw.Advance(5);
+        }
+
+        // fill with sentinel bytes
+        apbw.GetSpan(128).Slice(0, 128).Fill((byte)'^');
+        apbw.Advance(128);
+
+        using var rb = new RecordBuffer();
+
+        var (scalar, tokenizer) = CsvOptions<byte>.Default.GetTokenizers();
+        var dst = rb.GetUnreadBuffer(0, out int startIndex);
+        int count;
+
+        if (useScalar)
+        {
+            count = scalar.Tokenize(dst, startIndex, apbw.WrittenSpan, false);
+        }
+        else
+        {
+            Assert.SkipWhen(tokenizer is null, "SIMD tokenizer not supported on this platform");
+            count = tokenizer.Tokenize(dst, startIndex, apbw.WrittenSpan);
+        }
+
+        Assert.Equal(512 * 5, count);
+        int records = rb.SetFieldsRead(count);
+        Assert.Equal(512, records);
+
+        IEnumerable<uint> expected = Enumerable
+            .Range(0, 512 * 5)
+            .Select(i => (uint)i | ((i % 5) == 4 ? Field.IsEOL : 0u));
+
+        Assert.Equal(expected, rb._fields.Skip(1).Take(count));
+    }
+
     [Fact]
     public static void Should_Parse_Long_Field()
     {
