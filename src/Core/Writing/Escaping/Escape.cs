@@ -10,18 +10,17 @@ internal static class Escape
     /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
     /// possible escapes/quotes in the value.
     /// </summary>
-    /// <param name="escaper"></param>
+    /// <param name="quoteArg"></param>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer. Can be the same memory region as the source</param>
     /// <param name="specialCount">Number of quotes/escapes in the source</param>
-    public static void Scalar<T, TEscaper>(
-        TEscaper escaper,
+    public static void Scalar<T>(
+        T quoteArg,
         scoped ReadOnlySpan<T> source,
         scoped Span<T> destination,
         int specialCount
     )
         where T : unmanaged, IBinaryInteger<T>
-        where TEscaper : struct, IEscaper<T>
     {
         Check.GreaterThanOrEqual(destination.Length, source.Length + specialCount + 2);
         Check.True(
@@ -29,19 +28,21 @@ internal static class Escape
             "If src and dst overlap, they must have the same starting point in memory"
         );
 
+        T quote = quoteArg; // ensure loaded into register
+
         // Work backwards as the source and destination buffers might overlap
         nint srcRemaining = source.Length - 1;
         nint dstRemaining = source.Length + specialCount + 1;
         ref T src = ref MemoryMarshal.GetReference(source);
         ref T dst = ref MemoryMarshal.GetReference(destination);
 
-        Unsafe.Add(ref dst, dstRemaining) = escaper.Quote;
+        Unsafe.Add(ref dst, dstRemaining) = quote;
         dstRemaining--;
 
         if (specialCount == 0)
             goto End;
 
-        int lastIndex = escaper.LastIndexOfEscapable(source);
+        int lastIndex = source.LastIndexOf(quote);
 
         // either not found, or it was the last token
         if ((uint)lastIndex < srcRemaining)
@@ -51,7 +52,7 @@ internal static class Escape
 
             srcRemaining -= nonSpecialCount;
             dstRemaining -= nonSpecialCount;
-            Unsafe.Add(ref dst, dstRemaining) = escaper.Escape;
+            Unsafe.Add(ref dst, dstRemaining) = quote;
             dstRemaining--;
 
             if (--specialCount == 0)
@@ -60,10 +61,10 @@ internal static class Escape
 
         while (srcRemaining >= 0)
         {
-            if (escaper.NeedsEscaping(Unsafe.Add(ref src, srcRemaining)))
+            if (quote == Unsafe.Add(ref src, srcRemaining))
             {
                 Unsafe.Add(ref dst, dstRemaining) = Unsafe.Add(ref src, srcRemaining);
-                Unsafe.Add(ref dst, dstRemaining - 1) = escaper.Escape;
+                Unsafe.Add(ref dst, dstRemaining - 1) = quote;
 
                 srcRemaining -= 1;
                 dstRemaining -= 2;
@@ -85,7 +86,7 @@ internal static class Escape
         Copy(ref src, 0, ref dst, 1, (uint)srcRemaining + 1u);
 
         // the final quote must!! be written last since src and dst might occupy the same memory region
-        dst = escaper.Quote;
+        dst = quote;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void Copy(ref T src, nuint srcIndex, ref T dst, nuint dstIndex, uint length)

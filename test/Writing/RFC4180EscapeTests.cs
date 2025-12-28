@@ -2,38 +2,15 @@ using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Tests.Writing;
 
-file static class EscapeExt
-{
-    public static CsvOptions<char> Options
-    {
-        get
-        {
-            if (field is null)
-            {
-                field = new() { Delimiter = ',', Quote = '|' };
-                field.MakeReadOnly();
-            }
-
-            return field;
-        }
-    }
-
-    public static bool MustBeQuoted(this RFC4180Escaper<char> escaper, ReadOnlySpan<char> field, out int specialCount)
-    {
-        if (field.IndexOfAny(Options.NeedsQuoting) >= 0)
-        {
-            specialCount = escaper.CountEscapable(field);
-            return true;
-        }
-
-        specialCount = 0;
-        return false;
-    }
-}
-
 public static class RFC4180EscapeTests
 {
-    private static readonly RFC4180Escaper<char> _escaper = new(quote: EscapeExt.Options.Quote!.Value);
+    public static CsvOptions<char> Options { get; }
+
+    static RFC4180EscapeTests()
+    {
+        Options = new() { Delimiter = ',', Quote = '|' };
+        Options.MakeReadOnly();
+    }
 
     [Theory]
     [InlineData("", "||")]
@@ -44,31 +21,44 @@ public static class RFC4180EscapeTests
         Span<char> buffer = stackalloc char[expected.Length];
         input.CopyTo(buffer);
 
-        Escape.Scalar(_escaper, buffer[..input.Length], buffer, 0);
+        Escape.Scalar('|', buffer[..input.Length], buffer, 0);
         Assert.Equal(expected, buffer.ToString());
     }
 
-    [Theory]
-    [InlineData(",test", "|,test|")]
-    [InlineData("test,", "|test,|")]
-    [InlineData("\r\ntest", "|\r\ntest|")]
-    [InlineData("te|st", "|te||st|")]
-    [InlineData("||", "||||||")]
-    [InlineData("|", "||||")]
-    [InlineData("|a|", "|||a|||")]
-    [InlineData("a|a", "|a||a|")]
-    public static void Should_Escape(string input, string expected)
+    private static (string input, string expected)[] _data =
+    [
+        (",test", "|,test|"),
+        ("test,", "|test,|"),
+        ("\r\ntest", "|\r\ntest|"),
+        ("te|st", "|te||st|"),
+        ("||", "||||||"),
+        ("|", "||||"),
+        ("|a|", "|||a|||"),
+        ("a|a", "|a||a|"),
+    ];
+
+    public static TheoryData<string, string, PoisonPagePlacement> EscapeData() =>
+        [
+            .. from tuple in _data
+            from placement in GlobalData.PoisonPlacement
+            select (tuple.input, tuple.expected, placement),
+        ];
+
+    [Theory, MemberData(nameof(EscapeData))]
+    public static void Should_Escape(string input, string expected, PoisonPagePlacement placement)
     {
-        Assert.True(_escaper.MustBeQuoted(input, out int quoteCount));
+        Assert.True(input.AsSpan().ContainsAny(Options.NeedsQuoting));
+        int quoteCount = input.AsSpan().Count('|');
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
 
         // Escaping should work even if source and destination are on the same buffer
-        var sharedBuffer = new char[expectedLength].AsSpan();
+        using var owner = BoundedMemory.AllocateLoose<char>(expectedLength, placement);
+        Span<char> sharedBuffer = owner.Memory.Span[..expectedLength];
         input.CopyTo(sharedBuffer);
 
-        Escape.Scalar(_escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Scalar('|', sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -82,7 +72,8 @@ public static class RFC4180EscapeTests
     [InlineData("\n", "|\n|")]
     public static void Should_Escape_1Char_Newline(string input, string expected)
     {
-        int quoteCount = _escaper.CountEscapable(input);
+        Assert.True(input.AsSpan().ContainsAny(Options.NeedsQuoting));
+        int quoteCount = input.AsSpan().Count('|');
 
         int expectedLength = input.Length + quoteCount + 2;
         Assert.Equal(expected.Length, expectedLength);
@@ -91,7 +82,7 @@ public static class RFC4180EscapeTests
         var sharedBuffer = new char[expectedLength].AsSpan();
         input.CopyTo(sharedBuffer);
 
-        Escape.Scalar(_escaper, sharedBuffer[..input.Length], sharedBuffer, quoteCount);
+        Escape.Scalar('|', sharedBuffer[..input.Length], sharedBuffer, quoteCount);
         Assert.Equal(expected, new string(sharedBuffer));
 
         // Last sanity check
@@ -151,7 +142,7 @@ public static class RFC4180EscapeTests
         else
         {
             Assert.True(needsQuoting);
-            Assert.Equal(quotes.Value, _escaper.CountEscapable(input));
+            Assert.Equal(quotes.Value, input.AsSpan().Count('|'));
         }
     }
 }

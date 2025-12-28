@@ -169,7 +169,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
                 else
                 {
                     // escape value directly to the destination buffer
-                    Escape.Scalar(new RFC4180Escaper<T>(_quote), valueT, destination, result.SpecialCount);
+                    Escape.Scalar(_quote, valueT, destination, result.SpecialCount);
                 }
             }
             else
@@ -199,12 +199,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
                 else
                 {
                     bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination));
-                    Escape.Scalar(
-                        new RFC4180Escaper<T>(_quote),
-                        destination[..bytesWritten],
-                        destination,
-                        result.SpecialCount
-                    );
+                    Escape.Scalar(_quote, destination[..bytesWritten], destination, result.SpecialCount);
                 }
 
                 bytesWritten += (2 + result.SpecialCount);
@@ -255,7 +250,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
             }
             else
             {
-                Escape.Scalar(new RFC4180Escaper<T>(_quote), value, destination, result.SpecialCount);
+                Escape.Scalar(_quote, value, destination, result.SpecialCount);
             }
         }
         else
@@ -363,7 +358,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
                 destination = Writer.GetSpan(advanceBy);
             }
 
-            Escape.Scalar(new RFC4180Escaper<T>(_quote), written, destination, result.SpecialCount);
+            Escape.Scalar(_quote, written, destination, result.SpecialCount);
         }
         else
         {
