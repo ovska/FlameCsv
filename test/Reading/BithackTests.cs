@@ -33,6 +33,7 @@ public class BithackTests
     [InlineData("0", "0", false)]
     [InlineData("0", "1", false)]
     [InlineData("1", "1", false)]
+    [InlineData("1", "0", true)]
     [InlineData("000100", "000100", false)]
     [InlineData("000000", "000100", false)]
     [InlineData("000100", "010100", true)]

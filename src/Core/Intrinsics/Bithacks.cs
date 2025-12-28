@@ -51,9 +51,7 @@ internal static class Bithacks
     public static bool IsDisjointCR<T>(T maskLF, T shiftedCR)
         where T : unmanaged, IBinaryInteger<T>
     {
-        bool nonZeroCR = shiftedCR != T.Zero;
-        T xor = maskLF ^ shiftedCR;
-        return nonZeroCR & xor != T.Zero;
+        return (shiftedCR != T.Zero) & (shiftedCR != maskLF);
     }
 
     /// <summary>
