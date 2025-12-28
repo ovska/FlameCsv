@@ -11,20 +11,36 @@ namespace FlameCsv.Tests.Reading;
 
 public abstract class CsvReaderTestsBase
 {
-    private static IEnumerable<(CsvNewline, Header, int, Escaping, bool, Tokenizer, bool?)> BaseData =>
+    private static IEnumerable<(CsvNewline, Header, int, Escaping, bool, Tokenizer, PoisonPagePlacement)> BaseData =>
         from crlf in (CsvNewline[])[CsvNewline.CRLF, CsvNewline.LF]
         from writeHeader in GlobalData.Enum<Header>()
         from bufferSize in (int[])[-1, 256, 4096]
         from escaping in GlobalData.Enum<Escaping>()
         from sourceGen in GlobalData.Booleans
         from tokenizer in GlobalData.Enum<Tokenizer>()
-        from guarded in GlobalData.GuardedMemory
+        from guarded in GlobalData.PoisonPlacement
         select (crlf, writeHeader, bufferSize, escaping, sourceGen, tokenizer, guarded);
 
-    public static TheoryData<CsvNewline, Header, int, Escaping, bool, Tokenizer, bool?> RecordData { get; } =
-    [.. BaseData];
+    public static TheoryData<
+        CsvNewline,
+        Header,
+        int,
+        Escaping,
+        bool,
+        Tokenizer,
+        PoisonPagePlacement
+    > RecordData { get; } = [.. BaseData];
 
-    public static TheoryData<CsvNewline, Header, int, Escaping, bool, bool, Tokenizer, bool?> ObjectData { get; } =
+    public static TheoryData<
+        CsvNewline,
+        Header,
+        int,
+        Escaping,
+        bool,
+        bool,
+        Tokenizer,
+        PoisonPagePlacement
+    > ObjectData { get; } =
     [
         .. from tuple in BaseData
         from parallel in GlobalData.Booleans
@@ -56,13 +72,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool sourceGen,
         bool parallel,
         Tokenizer tokenizer,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
         if (parallel)
             return;
 
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
         var memory = TestDataGenerator.Generate<T>(newline, header is Header.Yes, escaping);
 
@@ -94,10 +110,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         Escaping escaping,
         bool sourceGen,
         Tokenizer tokenizer,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
@@ -128,10 +144,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         bool sourceGen,
         bool parallel,
         Tokenizer tokenizer,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         await Validate(Enumerate(), escaping, parallel);
 
         async IAsyncEnumerable<Obj> Enumerate()
@@ -189,10 +205,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         Escaping escaping,
         bool sourceGen,
         Tokenizer tokenizer,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()

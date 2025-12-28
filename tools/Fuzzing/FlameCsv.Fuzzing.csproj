@@ -17,5 +17,6 @@
             OutputItemType="Analyzer"
             PrivateAssets="all"
         />
+        <ProjectReference Include="..\..\test\Lib\FlameCsv.Tests.Lib.csproj" />
     </ItemGroup>
 </Project>

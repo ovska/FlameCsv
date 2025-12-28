@@ -7,15 +7,20 @@ namespace FlameCsv.Tests.Reading;
 
 public static class UnescapeTests
 {
-    [Fact]
-    public static void Should_Unescape()
+    [Theory, InlineData(PoisonPagePlacement.Before), InlineData(PoisonPagePlacement.After)]
+    public static void Should_Unescape(PoisonPagePlacement placement)
     {
         const int maxLen = 512;
 
-        Span<char> src = stackalloc char[maxLen];
-        Span<char> dst = stackalloc char[maxLen];
-        Span<byte> srcb = stackalloc byte[maxLen];
-        Span<byte> dstb = stackalloc byte[maxLen];
+        using var sourceChars = BoundedMemory.Allocate<char>(maxLen, placement);
+        using var sourceBytes = BoundedMemory.Allocate<byte>(maxLen, placement);
+        using var destinationChars = BoundedMemory.Allocate<char>(maxLen, placement);
+        using var destinationBytes = BoundedMemory.Allocate<byte>(maxLen, placement);
+
+        Span<char> src = sourceChars.Span;
+        Span<char> dst = destinationChars.Span;
+        Span<byte> srcb = sourceBytes.Span;
+        Span<byte> dstb = destinationBytes.Span;
 
         for (int iter = 0; iter < 256; iter++)
         {
@@ -63,22 +68,21 @@ public static class UnescapeTests
         }
     }
 
-    public static readonly TheoryData<string, string> Entries =
-    [
-        .. Data.ReplaceLineEndings("\n")
-            .Split('\n')
-            .Select(static line =>
-            {
-                return new TheoryDataRow<string, string>(line, line.Replace("\"\"", "\""));
-            }),
-    ];
+    public static TheoryData<string, string, PoisonPagePlacement> Entries =>
+        [
+            .. from line in Data.ReplaceLineEndings("\n").Split('\n')
+            from placement in GlobalData.PoisonPlacement
+            select new TheoryDataRow<string, string, PoisonPagePlacement>(line, line.Replace("\"\"", "\""), placement),
+        ];
 
     [Theory]
     [MemberData(nameof(Entries))]
-    public static void Should_Unescape_Field(string value, string expected)
+    public static void Should_Unescape_Field(string value, string expected, PoisonPagePlacement placement)
     {
         Assert.True(value.Length <= 128);
-        Span<char> buffer = stackalloc char[128];
+
+        using var memory = BoundedMemory.AllocateLoose<char>(128, placement);
+        Span<char> buffer = memory.Memory.Span;
 
         Field.Unescape(
             quote: '"',
@@ -91,10 +95,11 @@ public static class UnescapeTests
 
     [Theory]
     [MemberData(nameof(Entries))]
-    public static void Should_Unescape_Field_Utf8(string value, string expected)
+    public static void Should_Unescape_Field_Utf8(string value, string expected, PoisonPagePlacement placement)
     {
         Assert.True(value.Length <= 128);
-        Span<byte> buffer = stackalloc byte[128];
+        using var memory = BoundedMemory.AllocateLoose<byte>(128, placement);
+        Span<byte> buffer = memory.Memory.Span;
 
         Field.Unescape(quote: (byte)'"', destination: buffer, source: Encoding.UTF8.GetBytes(value));
 

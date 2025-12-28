@@ -5,7 +5,7 @@
 using System.Buffers;
 using System.Runtime.InteropServices;
 
-namespace FlameCsv.Fuzzing.Utilities;
+namespace FlameCsv.Tests;
 
 #nullable enable
 
@@ -14,8 +14,22 @@ namespace FlameCsv.Fuzzing.Utilities;
 /// </summary>
 public static unsafe partial class BoundedMemory
 {
+    public abstract class Manager<T> : MemoryManager<T>;
+    
     public static bool UnixBoundsEnabled { get; set; }
     private static readonly int SystemPageSize = Environment.SystemPageSize;
+    
+    public static IMemoryOwner<T> AllocateLoose<T>(int elementCount, PoisonPagePlacement placement) where T : unmanaged
+    {
+        if (placement is PoisonPagePlacement.Before or PoisonPagePlacement.After)
+        {
+            return BoundedMemory.Allocate<T>(elementCount, placement);
+        }
+        else
+        {
+            return MemoryPool<T>.Shared.Rent(elementCount);
+        }
+    }
 
     /// <summary>
     /// Allocates a new <see cref="BoundedMemory{T}"/> region which is immediately preceded by
@@ -41,7 +55,7 @@ public static unsafe partial class BoundedMemory
         }
 
         BoundedMemory<T> retVal = AllocateWithoutDataPopulation<T>(elementCount, placement);
-        FillRandom(MemoryMarshal.AsBytes(retVal.Span));
+        Random.Shared.NextBytes(MemoryMarshal.AsBytes(retVal.Span));
         return retVal;
     }
 
@@ -69,8 +83,6 @@ public static unsafe partial class BoundedMemory
     {
         return AllocateFromExistingData(new ReadOnlySpan<T>(data), placement);
     }
-
-    private static void FillRandom(Span<byte> buffer) => Random.Shared.NextBytes(buffer);
 
     private static BoundedMemory<T> AllocateWithoutDataPopulation<T>(int elementCount, PoisonPagePlacement placement) where T : unmanaged
     {
@@ -140,7 +152,7 @@ public static unsafe partial class BoundedMemory
             // no-op
         }
 
-        private sealed class BoundedMemoryManager : MemoryManager<T>
+        private sealed class BoundedMemoryManager : Manager<T>
         {
             private readonly UnixImplementation<T> _impl;
 
@@ -441,7 +453,7 @@ public static unsafe partial class BoundedMemory
             Protection = VirtualAllocProtection.PAGE_READWRITE;
         }
 
-        private sealed class BoundedMemoryManager : MemoryManager<T>
+        private sealed class BoundedMemoryManager : Manager<T>
         {
             private readonly WindowsImplementation<T> _impl;
 
@@ -588,6 +600,8 @@ public static unsafe partial class BoundedMemory
 /// </summary>
 public enum PoisonPagePlacement
 {
+    None = 0,
+    
     /// <summary>
     /// The poison page should be placed immediately after the memory region.
     /// Attempting to access the memory page immediately following the

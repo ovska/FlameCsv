@@ -10,7 +10,9 @@ namespace FlameCsv.Tests.Writing;
 
 public class CsvUtf8WriterTests : CsvWriterTestsBase
 {
-    public static IEnumerable<TheoryDataRow<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, bool, bool?>> SyncArgs
+    public static IEnumerable<
+        TheoryDataRow<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, bool, PoisonPagePlacement>
+    > SyncArgs
     {
         get => Args().Where(data => !data.Data.Item6); // can't sync write into pipewriter
     }
@@ -24,12 +26,12 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         int bufferSize,
         bool outputType,
         bool parallel,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
         Assert.False(outputType, "Synchronous writing to PipeWriter is not supported.");
 
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         var options = new CsvOptions<byte>
         {
             Newline = newline,
@@ -83,10 +85,10 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         int bufferSize,
         bool outputType,
         bool parallel,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         var options = new CsvOptions<byte>
         {
             Newline = newline,

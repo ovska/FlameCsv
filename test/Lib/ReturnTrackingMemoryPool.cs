@@ -13,10 +13,10 @@ public sealed class ReturnTrackingBufferPool : IBufferPool, IDisposable
     public readonly ReturnTrackingMemoryPool<byte> _bytePool;
     public readonly ReturnTrackingMemoryPool<char> _charPool;
 
-    public ReturnTrackingBufferPool(bool? guardedFromEnd = null)
+    public ReturnTrackingBufferPool(PoisonPagePlacement placement = PoisonPagePlacement.None)
     {
-        _bytePool = ReturnTrackingMemoryPool<byte>.Create(guardedFromEnd);
-        _charPool = ReturnTrackingMemoryPool<char>.Create(guardedFromEnd);
+        _bytePool = ReturnTrackingMemoryPool<byte>.Create(placement);
+        _charPool = ReturnTrackingMemoryPool<char>.Create(placement);
         // _bytePool.TrackStackTraces = true;
         // _charPool.TrackStackTraces = true;
     }
@@ -34,21 +34,20 @@ public sealed class ReturnTrackingBufferPool : IBufferPool, IDisposable
     }
 }
 
-[SupportedOSPlatform("windows")]
-file sealed class ReturnTrackingGuardedMemoryPool<T>(bool fromEnd) : ReturnTrackingMemoryPool<T>
+file sealed class ReturnTrackingGuardedMemoryPool<T>(PoisonPagePlacement placement) : ReturnTrackingMemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     public override int MaxBufferSize { get; } = Environment.SystemPageSize * 128;
 
     protected override Memory<T> Initialize(int length)
     {
-        var manager = new GuardedMemoryManager<T>(length, fromEnd);
+        var manager = BoundedMemory.Allocate<T>(length, placement);
         return manager.Memory;
     }
 
     protected override bool TryRelease(Memory<T> memory)
     {
-        if (MemoryMarshal.TryGetMemoryManager<T, GuardedMemoryManager<T>>(memory, out var manager))
+        if (MemoryMarshal.TryGetMemoryManager<T, BoundedMemory.Manager<T>>(memory, out var manager))
         {
             ((IDisposable)manager).Dispose();
             return true;
@@ -99,12 +98,11 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
 public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    public static ReturnTrackingMemoryPool<T> Create(bool? guardedFromEnd = null)
+    public static ReturnTrackingMemoryPool<T> Create(PoisonPagePlacement placement)
     {
-        return guardedFromEnd switch
+        return placement switch
         {
-            { } b when OperatingSystem.IsWindows() => new ReturnTrackingGuardedMemoryPool<T>(b),
-            not null => throw new NotSupportedException("Guarded memory is only supported on Windows."),
+            not PoisonPagePlacement.None => new ReturnTrackingGuardedMemoryPool<T>(placement),
             _ => new ReturnTrackingArrayMemoryPool<T>(),
         };
     }

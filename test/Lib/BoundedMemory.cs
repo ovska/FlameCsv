@@ -4,7 +4,7 @@
 
 using System.Buffers;
 
-namespace FlameCsv.Fuzzing.Utilities;
+namespace FlameCsv.Tests;
 
 #nullable enable
 

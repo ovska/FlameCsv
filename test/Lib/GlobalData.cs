@@ -13,11 +13,12 @@ public static class GlobalData
     /// <c>true</c> means data is guarded right after the memory region,
     /// <c>false</c> means the guarded data is right before.
     /// </summary>
-    public static bool?[] GuardedMemory { get; } =
-        OperatingSystem.IsWindows()
-        && Environment.GetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy") == "1"
-            ? [true, false, null]
-            : [null];
+    public static PoisonPagePlacement[] PoisonPlacement { get; } =
+    /**/
+    // Enum<PoisonPagePlacement>()
+    [PoisonPagePlacement.None]
+    /**/
+    ;
 
     public static T[] Enum<T>()
         where T : struct, Enum => System.Enum.GetValues<T>();

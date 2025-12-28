@@ -19,10 +19,10 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         int bufferSize,
         bool outputType,
         bool parallel,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         CsvIOOptions ioOptions = new() { BufferSize = bufferSize, BufferPool = pool };
 
         var options = new CsvOptions<char>
@@ -103,10 +103,10 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         int bufferSize,
         bool outputType,
         bool parallel,
-        bool? guarded
+        PoisonPagePlacement placement
     )
     {
-        using var pool = new ReturnTrackingBufferPool(guarded);
+        using var pool = new ReturnTrackingBufferPool(placement);
         CsvIOOptions ioOptions = new() { BufferSize = bufferSize, BufferPool = pool };
 
         var options = new CsvOptions<char>

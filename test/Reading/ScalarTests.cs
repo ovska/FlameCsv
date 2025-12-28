@@ -54,25 +54,44 @@ public static class ScalarTests
         Assert.Equal(fbScalar[..len], fbSimd[..len]);
     }
 
-    [Theory, InlineData(true), InlineData(false)]
-    public static void Should_Parse_Dense_Fields(bool useScalar)
+    public static TheoryData<bool, PoisonPagePlacement> DenseFieldData() =>
+        [.. from scalar in GlobalData.Booleans from placement in GlobalData.PoisonPlacement select (scalar, placement)];
+
+    [Theory, MemberData(nameof(DenseFieldData))]
+    public static void Should_Parse_Dense_Fields(bool useScalar, PoisonPagePlacement placement)
     {
-        using var apbw = new ArrayPoolBufferWriter<byte>();
+        using var owner = BoundedMemory.AllocateLoose<byte>(512 * 5 + 128, placement);
+        Span<byte> data;
 
-        for (int i = 0; i < 512; i++)
+        using (var apbw = new ArrayPoolBufferWriter<byte>())
         {
-            Span<byte> span = apbw.GetSpan(5);
-            span[0] = (byte)',';
-            span[1] = (byte)',';
-            span[2] = (byte)',';
-            span[3] = (byte)',';
-            span[4] = (byte)'\n';
-            apbw.Advance(5);
-        }
+            for (int i = 0; i < 512; i++)
+            {
+                Span<byte> span = apbw.GetSpan(5);
+                span[0] = (byte)',';
+                span[1] = (byte)',';
+                span[2] = (byte)',';
+                span[3] = (byte)',';
+                span[4] = (byte)'\n';
+                apbw.Advance(5);
+            }
 
-        // fill with sentinel bytes
-        apbw.GetSpan(128).Slice(0, 128).Fill((byte)'^');
-        apbw.Advance(128);
+            // fill with sentinel bytes
+            apbw.GetSpan(128).Slice(0, 128).Fill((byte)'^');
+            apbw.Advance(128);
+
+            if (placement is PoisonPagePlacement.After)
+            {
+                // copy to end
+                data = owner.Memory.Span.Slice(owner.Memory.Length - apbw.WrittenSpan.Length, apbw.WrittenSpan.Length);
+                apbw.WrittenSpan.CopyTo(data);
+            }
+            else
+            {
+                data = owner.Memory.Span.Slice(0, apbw.WrittenSpan.Length);
+                apbw.WrittenSpan.CopyTo(data);
+            }
+        }
 
         using var rb = new RecordBuffer();
 
@@ -82,12 +101,12 @@ public static class ScalarTests
 
         if (useScalar)
         {
-            count = scalar.Tokenize(dst, startIndex, apbw.WrittenSpan, false);
+            count = scalar.Tokenize(dst, startIndex, data, false);
         }
         else
         {
             Assert.SkipWhen(tokenizer is null, "SIMD tokenizer not supported on this platform");
-            count = tokenizer.Tokenize(dst, startIndex, apbw.WrittenSpan);
+            count = tokenizer.Tokenize(dst, startIndex, data);
         }
 
         Assert.Equal(512 * 5, count);

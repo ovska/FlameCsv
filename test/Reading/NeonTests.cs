@@ -16,7 +16,7 @@ public static class NeonTests
     [Fact]
     public static unsafe void Should_Load_Vector()
     {
-        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "Not AArch");
 
         fixed (char* charPtr = data)
         fixed (byte* bytePtr = dataBytes)
@@ -36,7 +36,7 @@ public static class NeonTests
     [Fact]
     public static unsafe void Should_Narrow_Correctly()
     {
-        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "ARM64 not supported");
+        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "Not AArch");
 
         Span<char> data = stackalloc char[Vector256<byte>.Count];
 
