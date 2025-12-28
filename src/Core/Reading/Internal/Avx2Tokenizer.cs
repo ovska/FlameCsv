@@ -165,19 +165,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 goto SlowPath;
             }
 
-            if (matchCount > (uint)Vector256<int>.Count)
-            {
-                if (!TCRLF.Value)
-                {
-                    maskLF = hasLF.ExtractMostSignificantBits();
-                }
-
-                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
-                ParseControls((uint)index, ref Unsafe.Add(ref firstField, fieldIndex), maskControl, maskLF, flag);
-                fieldIndex += matchCount;
-                goto ContinueRead;
-            }
-
             // build a mask to remove extra bits caused by sign-extension
             Vector256<int> fixup = TCRLF.Value
                 ? Vector256.Create(fixupScalar | ((shiftedCR != 0).ToByte() << 30))
@@ -220,7 +207,19 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             // note that the upper lane is offset to the correct position already, e.g.
             // < 1 2 0 0 0 ... 3 4 5 ... > will leave 2 items empty on the upper lane
             Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, pop1 * 8u);
-            Vector128<byte> combine1 = Vector128.LoadUnsafe(in shuffleCombine, (pop3 * 8u) - lowerCountOffset);
+
+            uint combine1Index = pop3 * 8u;
+            Vector128<byte> combine1;
+
+            if (lowerCountOffset <= combine1Index)
+            {
+                combine1 = Vector128.LoadUnsafe(in shuffleCombine, combine1Index - lowerCountOffset);
+            }
+            else
+            {
+                // No elements in upper lane; avoid underflow/OOB
+                combine1 = Vector128<byte>.Zero;
+            }
 
             // shuffle the indexes to their correct positions
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
@@ -259,6 +258,41 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             }
 
             result.StoreUnsafe(ref firstField, fieldIndex);
+
+            if (matchCount > (uint)Vector256<int>.Count)
+            {
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+
+                Check.Positive(maskControl, "There should be bits left in maskControl.");
+                Check.Equal(
+                    (uint)BitOperations.PopCount(maskControl),
+                    matchCount - (uint)Vector256<int>.Count,
+                    "Remaining match count mismatch."
+                );
+
+                if (!TCRLF.Value)
+                {
+                    maskLF = hasLF.ExtractMostSignificantBits();
+                }
+
+                uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
+
+                ParseControls(
+                    (uint)index,
+                    ref Unsafe.Add(ref firstField, fieldIndex + (uint)Vector256<int>.Count),
+                    maskControl,
+                    maskLF,
+                    flag
+                );
+            }
+
             fieldIndex += matchCount;
 
             ContinueRead:

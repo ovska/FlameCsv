@@ -231,7 +231,7 @@ internal static unsafe class CompressionTables
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector128<byte> LoadBlendMask(uint lowerLaneOffset)
     {
-        Check.LessThanOrEqual(lowerLaneOffset, 15u);
+        Check.LessThanOrEqual(lowerLaneOffset, 16u);
         return Vector128.LoadAligned(BlendMask + (lowerLaneOffset * Vector128<byte>.Count));
     }
 
@@ -256,10 +256,12 @@ internal static unsafe class CompressionTables
                0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x80, 0x80, 0x80,
                0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x80, 0x80,
                0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0, 0x80,
+               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
         };
-        Check.Equal(blendMaskArray.Length, 256);
+        const int len = 16 * 17;
+        Check.Equal(blendMaskArray.Length, len);
 
-        BlendMask = (byte*)NativeMemory.AlignedAlloc(byteCount: 256, alignment: 16);
-        blendMaskArray.CopyTo(new Span<byte>(BlendMask, 256));
+        BlendMask = (byte*)NativeMemory.AlignedAlloc(byteCount: len, alignment: 16);
+        blendMaskArray.CopyTo(new Span<byte>(BlendMask, len));
     }
 }
