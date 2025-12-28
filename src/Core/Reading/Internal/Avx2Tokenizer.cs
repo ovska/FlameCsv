@@ -58,8 +58,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         ReadOnlySpan<T> data = new(start, (int)(end - start));
 #endif
 
-        _ = CompressionTables.BlendMask; // ensure static ctor is run
-
         nuint index = (nuint)startIndex;
         T* pData = start + index;
 
@@ -197,27 +195,27 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             byte pop1 = Unsafe.Add(ref popCounts, (byte)mask1);
             byte pop3 = Unsafe.Add(ref popCounts, (byte)mask3);
 
+            // jit optimizes this to a constant address; the offset by 16 allows simpler blend later
+            ref readonly byte shuffleCombine = ref CompressionTables.ShuffleCombine[16];
+
             // tag the indices with the MSB if they are newlines (shift 0xFF to bit 7)
             Vector256<byte> taggedIndices = (hasLF << 7) | Vector256<byte>.Indices;
-
-            // jit optimizes this add to a constant address
-            ref byte shuffleCombine = ref Unsafe.Add(ref Unsafe.AsRef(in CompressionTables.ShuffleCombine[0]), 16);
 
             // Load the 128-bit masks from pshufb_combine_table
             // note that the upper lane is offset to the correct position already, e.g.
             // < 1 2 0 0 0 ... 3 4 5 ... > will leave 2 items empty on the upper lane
             Vector128<byte> combine0 = Vector128.LoadUnsafe(in shuffleCombine, pop1 * 8u);
 
-            uint combine1Index = pop3 * 8u;
+            uint combineIdx = pop3 * 8u;
             Vector128<byte> combine1;
 
-            if (lowerCountOffset <= combine1Index)
+            if (lowerCountOffset <= combineIdx)
             {
-                combine1 = Vector128.LoadUnsafe(in shuffleCombine, combine1Index - lowerCountOffset);
+                combine1 = Vector128.LoadUnsafe(in shuffleCombine, combineIdx - lowerCountOffset);
             }
             else
             {
-                // No elements in upper lane; avoid underflow/OOB
+                // No elements to keep in upper lane; avoid underflow/OOB
                 combine1 = Vector128<byte>.Zero;
             }
 
@@ -225,7 +223,11 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             Vector256<byte> pruned = Avx2.Shuffle(taggedIndices, shufmaskBytes);
 
             // get the blend mask to combine lower and upper lanes
-            Vector128<byte> blend = CompressionTables.LoadBlendMask(lowerCountOffset);
+            Check.LessThanOrEqual(lowerCountOffset, 16u);
+            Vector128<byte> blend = Vector128.LoadUnsafe(
+                in CompressionTables.BlendMask[0],
+                lowerCountOffset * (uint)Vector128<byte>.Count
+            );
 
             // arrange the results into two lanes
             Vector128<byte> lower = Ssse3.Shuffle(pruned.GetLower(), combine0);
