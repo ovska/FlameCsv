@@ -76,9 +76,10 @@ public class CsvOptionsTests
     [Fact]
     public static void Should_Initialize_NeedsQuoting()
     {
-        var def = CsvOptions<char>.Default;
-        Assert.True(def.NeedsQuoting.Contains(def.Delimiter));
-        Assert.True(def.NeedsQuoting.Contains(def.Quote!.Value));
+        CsvOptions<char> def = new();
+        def.MakeReadOnly();
+        Assert.True(def.NeedsQuoting.Contains(','));
+        Assert.True(def.NeedsQuoting.Contains('"'));
         Assert.True(def.NeedsQuoting.Contains('\r'));
         Assert.True(def.NeedsQuoting.Contains('\n'));
         Assert.False(def.NeedsQuoting.Contains('a'));
@@ -86,11 +87,11 @@ public class CsvOptionsTests
         Assert.Same(def.NeedsQuoting, def.NeedsQuoting); // cached
         Assert.Same(def.NeedsQuoting, def.NeedsQuotingChar); // same instance
 
-        // ensure CR is quoted as well <--- why?
+        // both CR and LF are always added for compatibility with other libraries
         var withSingleTokenNewline = new CsvOptions<char> { Newline = CsvNewline.LF };
         withSingleTokenNewline.MakeReadOnly();
         Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\n'));
-        Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\r')); // both always added
+        Assert.True(withSingleTokenNewline.NeedsQuoting.Contains('\r'));
 
         var byteOpts = new CsvOptions<byte> { Delimiter = ';', Quote = '\'' };
         byteOpts.MakeReadOnly();
@@ -100,6 +101,10 @@ public class CsvOptionsTests
 
         Assert.True(byteOpts.NeedsQuotingChar.Contains(';'));
         Assert.True(byteOpts.NeedsQuotingChar.Contains('\''));
+
+        var nullQuoteOpts = new CsvOptions<char> { Quote = null };
+        nullQuoteOpts.MakeReadOnly();
+        Assert.Throws<NotSupportedException>(() => _ = nullQuoteOpts.NeedsQuoting);
     }
 
     [Fact]

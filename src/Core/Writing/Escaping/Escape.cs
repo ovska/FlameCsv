@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace FlameCsv.Writing.Escaping;
@@ -25,7 +24,7 @@ internal static class Escape
         Check.GreaterThanOrEqual(destination.Length, source.Length + specialCount + 2);
         Check.True(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
-            "If src and dst overlap, they must have the same starting point in memory"
+            $"If src and dst overlap, they must have the same starting point in memory (was {elementOffset})"
         );
 
         T quote = quoteArg; // ensure loaded into register

@@ -137,15 +137,16 @@ public partial class CsvOptions<T>
             MakeReadOnly();
 
             bool isCRLF = Newline.IsCRLF();
+            bool hasQuote = _quote.HasValue;
 
 #if NET10_0_OR_GREATER
             if (Avx512Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
-                    ? _quote.HasValue
+                    ? hasQuote
                         ? new Avx512Tokenizer<T, TrueConstant, TrueConstant>(this)
                         : new Avx512Tokenizer<T, TrueConstant, FalseConstant>(this)
-                    : _quote.HasValue
+                    : hasQuote
                         ? new Avx512Tokenizer<T, FalseConstant, TrueConstant>(this)
                         : new Avx512Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
@@ -154,28 +155,32 @@ public partial class CsvOptions<T>
             if (Avx2Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
-                    ? _quote.HasValue
+                    ? hasQuote
                         ? new Avx2Tokenizer<T, TrueConstant, TrueConstant>(this)
                         : new Avx2Tokenizer<T, TrueConstant, FalseConstant>(this)
-                    : _quote.HasValue
+                    : hasQuote
                         ? new Avx2Tokenizer<T, FalseConstant, TrueConstant>(this)
                         : new Avx2Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
             else if (Vector.IsHardwareAccelerated) // SSE or newer, NEON, or WASM
             {
                 _simdTokenizer = isCRLF
-                    ? _quote.HasValue
+                    ? hasQuote
                         ? new SimdTokenizer<T, TrueConstant, TrueConstant>(this)
                         : new SimdTokenizer<T, TrueConstant, FalseConstant>(this)
-                    : _quote.HasValue
+                    : hasQuote
                         ? new SimdTokenizer<T, FalseConstant, TrueConstant>(this)
                         : new SimdTokenizer<T, FalseConstant, FalseConstant>(this);
                 ;
             }
 
             _scalarTokenizer = isCRLF
-                ? new ScalarTokenizer<T, TrueConstant>(this)
-                : new ScalarTokenizer<T, FalseConstant>(this);
+                ? hasQuote
+                    ? new ScalarTokenizer<T, TrueConstant, TrueConstant>(this)
+                    : new ScalarTokenizer<T, TrueConstant, FalseConstant>(this)
+                : hasQuote
+                    ? new ScalarTokenizer<T, FalseConstant, TrueConstant>(this)
+                    : new ScalarTokenizer<T, FalseConstant, FalseConstant>(this);
 
             _tokenizersCreated = true;
         }
@@ -297,25 +302,18 @@ file static class DialectHelper
     {
         if (quote is null)
         {
-            throw new UnreachableException("NeedsQuoting should not be accessed when Quote is null.");
+            throw new NotSupportedException("NeedsQuoting should not be accessed when Quote is null.");
         }
-
-        Span<T> values =
-        [
-            T.CreateTruncating(delimiter),
-            T.CreateTruncating(quote.Value),
-            T.CreateTruncating('\r'),
-            T.CreateTruncating('\n'),
-        ];
 
         if (typeof(T) == typeof(byte))
         {
-            return (SearchValues<T>)(object)SearchValues.Create(Unsafe.BitCast<Span<T>, Span<byte>>(values));
+            return (SearchValues<T>)
+                (object)SearchValues.Create((byte)delimiter, (byte)quote.Value, (byte)'\r', (byte)'\n');
         }
 
         if (typeof(T) == typeof(char))
         {
-            return (SearchValues<T>)(object)SearchValues.Create(Unsafe.BitCast<Span<T>, Span<char>>(values));
+            return (SearchValues<T>)(object)SearchValues.Create(delimiter, quote.Value, '\r', '\n');
         }
 
         throw Token<T>.NotSupported;

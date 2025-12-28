@@ -1,22 +1,27 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 
 [SkipLocalsInit]
-internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
+internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
+    where TQuote : struct, IConstant
 {
-    private readonly T? _quote;
+    private readonly T _quote;
     private readonly T _delimiter;
     private EnumeratorStack _lut;
 
     public ScalarTokenizer(CsvOptions<T> options)
     {
-        _quote = options.Quote is { } q ? T.CreateTruncating(q) : null;
+        Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
+        Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
+
+        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _delimiter = T.CreateTruncating(options.Delimiter);
 
         _lut = default; // zero init
@@ -76,8 +81,9 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             return 0;
         }
 
-        T? quote = _quote;
+        T quote = _quote;
         T delimiter = _delimiter;
+        ref byte lut = ref _lut.elem0;
 
         ref T first = ref MemoryMarshal.GetReference(data);
         nuint index = (nuint)startIndex;
@@ -94,24 +100,24 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
         {
             while (index < unrolledEnd)
             {
-                if (IsAny(Unsafe.Add(ref first, index)))
+                if (IsAny(ref lut, Unsafe.Add(ref first, index)))
                 {
                     goto Found;
                 }
 
-                if (IsAny(Unsafe.Add(ref first, index + 1)))
+                if (IsAny(ref lut, Unsafe.Add(ref first, index + 1)))
                 {
                     index += 1;
                     goto Found;
                 }
 
-                if (IsAny(Unsafe.Add(ref first, index + 2)))
+                if (IsAny(ref lut, Unsafe.Add(ref first, index + 2)))
                 {
                     index += 2;
                     goto Found;
                 }
 
-                if (IsAny(Unsafe.Add(ref first, index + 3)))
+                if (IsAny(ref lut, Unsafe.Add(ref first, index + 3)))
                 {
                     index += 3;
                     goto Found;
@@ -122,7 +128,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
 
             while (index <= searchSpaceEnd)
             {
-                if (IsAny(Unsafe.Add(ref first, index)))
+                if (IsAny(ref lut, Unsafe.Add(ref first, index)))
                 {
                     goto Found;
                 }
@@ -134,7 +140,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             goto EndOfData;
 
             Found:
-            if (Unsafe.Add(ref first, index) == quote)
+            if (TQuote.Value && Unsafe.Add(ref first, index) == quote)
             {
                 quotesConsumed++;
                 index++;
@@ -157,66 +163,74 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
             continue;
 
             FoundQuote:
-            Check.NotNull(quote, "Quote must be set if we reach this point!");
-
-            // found just a single quote in a string?
-            if (Unsafe.Add(ref first, index + 1) != quote)
+            Check.True(TQuote.Value, "Quote must be set if we reach FoundQuote.");
+            if (TQuote.Value)
             {
-                quotesConsumed++;
-                index++;
+                Check.NotNull(quote, "Quote must be set if we reach this point!");
 
-                T next = Unsafe.Add(ref first, index);
-
-                // quotes should be followed by delimiters or newlines
-                if (next == delimiter || IsAnyNewline(next))
+                // found just a single quote in a string?
+                if (Unsafe.Add(ref first, index + 1) != quote)
                 {
-                    goto FoundNonQuote;
+                    quotesConsumed++;
+                    index++;
+
+                    T next = Unsafe.Add(ref first, index);
+
+                    // quotes should be followed by delimiters or newlines
+                    if (next == delimiter || IsAnyNewline(next))
+                    {
+                        goto FoundNonQuote;
+                    }
+
+                    continue;
                 }
 
-                continue;
+                // two consecutive quotes, continue
+                Check.Equal(quotesConsumed % 2, 1u);
+                quotesConsumed += 2;
+                index += 2;
             }
-
-            // two consecutive quotes, continue
-            Check.Equal(quotesConsumed % 2, 1u);
-            quotesConsumed += 2;
-            index += 2;
 
             ReadString:
-            Check.Equal(quotesConsumed % 2, 1u);
-
-            while (index < unrolledEnd)
+            Check.True(TQuote.Value, "Quote must be set if we reach ReadString.");
+            if (TQuote.Value)
             {
-                if (quote == Unsafe.Add(ref first, index))
+                Check.Equal(quotesConsumed % 2, 1u);
+
+                while (index < unrolledEnd)
                 {
-                    goto FoundQuote;
+                    if (quote == Unsafe.Add(ref first, index))
+                    {
+                        goto FoundQuote;
+                    }
+
+                    if (quote == Unsafe.Add(ref first, index + 1))
+                    {
+                        index += 1;
+                        goto FoundQuote;
+                    }
+
+                    if (quote == Unsafe.Add(ref first, index + 2))
+                    {
+                        index += 2;
+                        goto FoundQuote;
+                    }
+
+                    if (quote == Unsafe.Add(ref first, index + 3))
+                    {
+                        index += 3;
+                        goto FoundQuote;
+                    }
+
+                    index += 4;
                 }
 
-                if (quote == Unsafe.Add(ref first, index + 1))
+                while (index <= searchSpaceEnd)
                 {
-                    index += 1;
-                    goto FoundQuote;
+                    if (Unsafe.Add(ref first, index) == quote)
+                        goto FoundQuote;
+                    index++;
                 }
-
-                if (quote == Unsafe.Add(ref first, index + 2))
-                {
-                    index += 2;
-                    goto FoundQuote;
-                }
-
-                if (quote == Unsafe.Add(ref first, index + 3))
-                {
-                    index += 3;
-                    goto FoundQuote;
-                }
-
-                index += 4;
-            }
-
-            while (index <= searchSpaceEnd)
-            {
-                if (Unsafe.Add(ref first, index) == quote)
-                    goto FoundQuote;
-                index++;
             }
 
             // ran out of data
@@ -256,7 +270,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
                     quotesConsumed = 0;
                     fieldIndex++;
                 }
-                else if (final == quote)
+                else if (TQuote.Value && final == quote)
                 {
                     quotesConsumed++;
                 }
@@ -273,12 +287,12 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsAny(T value)
+    private static bool IsAny(ref byte lut, T value)
     {
         // for bytes, valid values have a non-zero LUT entry
         if (typeof(T) == typeof(byte))
         {
-            return Unsafe.BitCast<byte, bool>(_lut[Unsafe.BitCast<T, byte>(value)]);
+            return Unsafe.BitCast<byte, bool>(Unsafe.Add(ref lut, (uint)Unsafe.BitCast<T, byte>(value)));
         }
 
         if (typeof(T) != typeof(char))
@@ -290,7 +304,7 @@ internal sealed class ScalarTokenizer<T, TCRLF> : CsvScalarTokenizer<T>
         // index the 256 byte LUT with the lowest 7 bits, and compare
         // this way weird chars like (',' | (',' << 8)) don't match
         uint c = Unsafe.BitCast<T, char>(value);
-        return Unsafe.Add(ref Unsafe.As<byte, char>(ref _lut.elem0), c & 127u) == c;
+        return Unsafe.Add(ref Unsafe.As<byte, char>(ref lut), c & 127u) == c;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
