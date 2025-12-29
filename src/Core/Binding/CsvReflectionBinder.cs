@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Reflection;
 using FastExpressionCompiler.LightExpression;
 using FlameCsv.Exceptions;

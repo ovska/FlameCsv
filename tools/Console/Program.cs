@@ -4,14 +4,11 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Formattable;
-using FlameCsv.IO;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
-using JetBrains.Profiler.Api;
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 

@@ -1,5 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using FlameCsv.IO;
 using FlameCsv.Reading;

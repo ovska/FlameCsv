@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using FlameCsv.Reading.Internal;
-using Xunit.Internal;
 
 namespace FlameCsv.Tests.Reading;
 

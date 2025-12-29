@@ -1,9 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-
-namespace FlameCsv.Intrinsics;
+﻿namespace FlameCsv.Intrinsics;
 
 /// <summary>
 /// Sources for ThinEpi8/PopCountMult2/ShuffleCombine method:<br/>

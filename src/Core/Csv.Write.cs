@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;

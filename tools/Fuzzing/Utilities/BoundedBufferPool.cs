@@ -1,5 +1,4 @@
 using System.Buffers;
-using FlameCsv.Tests;
 
 namespace FlameCsv.Fuzzing.Utilities;
 

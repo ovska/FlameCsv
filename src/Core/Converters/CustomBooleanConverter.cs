@@ -1,9 +1,7 @@
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
-using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Utilities.Comparers;
 

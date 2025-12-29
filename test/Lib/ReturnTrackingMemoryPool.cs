@@ -2,7 +2,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 

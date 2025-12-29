@@ -1,5 +1,4 @@
 #if NET10_0_OR_GREATER
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
