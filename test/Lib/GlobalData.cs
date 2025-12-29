@@ -14,11 +14,12 @@ public static class GlobalData
     /// <c>false</c> means the guarded data is right before.
     /// </summary>
     public static PoisonPagePlacement[] PoisonPlacement { get; } =
-    /**/
-    // Enum<PoisonPagePlacement>()
-    [PoisonPagePlacement.None]
-    /**/
-    ;
+    [
+        /**/
+        PoisonPagePlacement.None,
+        // PoisonPagePlacement.After,
+        // PoisonPagePlacement.Before,
+    ];
 
     public static T[] Enum<T>()
         where T : struct, Enum => System.Enum.GetValues<T>();

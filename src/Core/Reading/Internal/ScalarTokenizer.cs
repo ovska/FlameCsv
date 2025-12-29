@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
@@ -18,6 +17,11 @@ internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
 
     public ScalarTokenizer(CsvOptions<T> options)
     {
+        if (typeof(T) != typeof(byte) && typeof(T) != typeof(char))
+        {
+            throw Token<T>.NotSupported;
+        }
+
         Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
         Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
 
@@ -27,54 +31,23 @@ internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
         _lut = default; // zero init
         Span<byte> lut = _lut;
 
-        if (typeof(T) == typeof(byte))
+        // for bytes, store a value directly.
+        if (options.Quote.HasValue)
         {
-            Check.Equal(lut.Length, 256);
-
-            // for bytes, store a value directly.
-            if (options.Quote.HasValue)
-            {
-                lut[(byte)options.Quote.Value] = 1;
-            }
-
-            lut[(byte)options.Delimiter] = 1;
-            lut['\n'] = 1;
-
-            if (TCRLF.Value)
-            {
-                lut['\r'] = 1;
-            }
+            lut[(byte)options.Quote.Value] = 1;
         }
-        else
+
+        lut[(byte)options.Delimiter] = 1;
+        lut['\n'] = 1;
+
+        if (TCRLF.Value)
         {
-            if (typeof(T) != typeof(char))
-            {
-                throw Token<T>.NotSupported;
-            }
-
-            Span<char> span = MemoryMarshal.Cast<byte, char>((Span<byte>)_lut);
-            Check.Equal(span.Length, 128);
-
-            // for chars we need to ensure that high bits are zeroed out, so compare the value with itself
-            span[0] = char.MaxValue; // in case the data contains zeroes
-
-            if (options.Quote.HasValue)
-            {
-                span[options.Quote.Value & 127] = options.Quote.Value;
-            }
-
-            span[options.Delimiter & 127] = options.Delimiter;
-            span['\n'] = '\n';
-
-            if (TCRLF.Value)
-            {
-                span['\r'] = '\r';
-            }
+            lut['\r'] = 1;
         }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public override int Tokenize(Span<uint> buffer, int startIndex, ReadOnlySpan<T> data, bool readToEnd)
+    public override int Tokenize(Span<uint> destination, int startIndex, ReadOnlySpan<T> data, bool readToEnd)
     {
         if (data.IsEmpty || data.Length <= startIndex)
         {
@@ -89,14 +62,14 @@ internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
         nuint index = (nuint)startIndex;
         uint quotesConsumed = 0;
 
-        scoped ref uint dstField = ref MemoryMarshal.GetReference(buffer);
+        scoped ref uint dstField = ref MemoryMarshal.GetReference(destination);
         nuint fieldIndex = 0;
 
-        // offset ends -2 so we can check for \r\n and "" without bounds checks
-        nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 2);
-        nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 6);
+        // offset ends by 1 so quote pairs and CRLF can be checked
+        nuint searchSpaceEnd = (nuint)Math.Max(0, data.Length - 1);
+        nuint unrolledEnd = (nuint)Math.Max(0, data.Length - 5);
 
-        while (fieldIndex < (nuint)buffer.Length)
+        while (fieldIndex < (nuint)destination.Length)
         {
             while (index < unrolledEnd)
             {
@@ -126,7 +99,7 @@ internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
                 index += 4;
             }
 
-            while (index <= searchSpaceEnd)
+            while (index < searchSpaceEnd)
             {
                 if (IsAny(ref lut, Unsafe.Add(ref first, index)))
                 {
@@ -225,7 +198,7 @@ internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
                     index += 4;
                 }
 
-                while (index <= searchSpaceEnd)
+                while (index < searchSpaceEnd)
                 {
                     if (Unsafe.Add(ref first, index) == quote)
                         goto FoundQuote;
@@ -295,16 +268,16 @@ internal sealed class ScalarTokenizer<T, TCRLF, TQuote> : CsvScalarTokenizer<T>
             return Unsafe.BitCast<byte, bool>(Unsafe.Add(ref lut, (uint)Unsafe.BitCast<T, byte>(value)));
         }
 
-        if (typeof(T) != typeof(char))
+        if (typeof(T) == typeof(char))
         {
-            throw Token<T>.NotSupported;
+            // interleave LUT load with the ascii check
+            uint c = Unsafe.BitCast<T, char>(value);
+            bool x = Unsafe.BitCast<byte, bool>(Unsafe.Add(ref lut, (byte)c));
+            bool y = (c & 0xFF00) == 0; // ensure ASCII, compiles to test ecx, 0xff00
+            return x & y;
         }
 
-        // for chars, the LUT contains the char itself
-        // index the 256 byte LUT with the lowest 7 bits, and compare
-        // this way weird chars like (',' | (',' << 8)) don't match
-        uint c = Unsafe.BitCast<T, char>(value);
-        return Unsafe.Add(ref Unsafe.As<byte, char>(ref lut), c & 127u) == c;
+        throw Token<T>.NotSupported;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
