@@ -1,8 +1,10 @@
-﻿using System.Buffers;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
+using RecordParser.Builders.Reader;
+using RecordParser.Extensions;
+using RecordParser.Parsers;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;
@@ -10,16 +12,24 @@ namespace FlameCsv.Benchmark.Comparisons;
 [MemoryDiagnoser]
 public partial class PeekFields
 {
-    private static readonly byte[] _data = File.ReadAllBytes("Comparisons/Data/65K_Records_Data.csv");
+    private static StreamReader GetReader() => new(new MemoryStream(_data), Encoding.UTF8);
 
-    private static readonly CsvOptions<byte> _flameCsvOptions = new() { HasHeader = true, Newline = CsvNewline.LF };
+    private static readonly byte[] _data = Encoding.UTF8.GetBytes(
+        File.ReadAllText("Comparisons/Data/65K_Records_Data.csv").ReplaceLineEndings("\n")
+    );
+
+    private static readonly CsvOptions<byte> _flameCsvOptions = new()
+    {
+        HasHeader = true,
+        Newline = CsvNewline.LF,
+        Quote = null,
+    };
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
     {
         NewLine = "\n",
         HasHeaderRecord = true,
         Delimiter = ",",
-        Quote = '"',
     };
 
     private static readonly CsvDataReaderOptions _sylvanOptions = new()
@@ -31,39 +41,41 @@ public partial class PeekFields
     };
 
     [Benchmark(Baseline = true)]
-    public void _FlameCsv()
+    public double _FlameCsv()
     {
-        ReadOnlySequence<byte> sequence = new(_data);
+        using CsvReader<byte>.Enumerator enumerator = new CsvReader<byte>(_flameCsvOptions, _data)
+            .ParseRecords()
+            .GetEnumerator();
+
+        // skip header record
+        _ = enumerator.MoveNext();
 
         double sum = 0;
-
-        using var enumerator = new CsvReader<byte>(_flameCsvOptions, in sequence).ParseRecords().GetEnumerator();
-
-        // skip first record
-        _ = enumerator.MoveNext();
 
         while (enumerator.MoveNext())
         {
             ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(enumerator.Current[11], out double result),
+                csFastFloat.FastDoubleParser.TryParseDouble(enumerator.Current.GetRawSpan(11), out double result),
                 true
             );
 
             sum += result;
         }
 
-        _ = sum;
+        return sum;
     }
 
     [Benchmark]
-    public void _Sep()
+    public double _Sep()
     {
         using var reader = Sep.Reader(o =>
                 o with
                 {
                     Sep = new Sep(','),
-                    CultureInfo = System.Globalization.CultureInfo.InvariantCulture,
+                    CultureInfo = CultureInfo.InvariantCulture,
                     HasHeader = true,
+                    Unescape = false,
+                    DisableQuotesParsing = true,
                 }
             )
             .From(_data);
@@ -80,14 +92,13 @@ public partial class PeekFields
             sum += result;
         }
 
-        _ = sum;
+        return sum;
     }
 
     [Benchmark]
-    public void _Sylvan()
+    public double _Sylvan()
     {
-        using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        using var csv = Sylvan.Data.Csv.CsvDataReader.Create(reader, _sylvanOptions);
+        using var csv = CsvDataReader.Create(GetReader(), _sylvanOptions);
 
         double sum = 0;
 
@@ -101,18 +112,17 @@ public partial class PeekFields
             sum += result;
         }
 
-        _ = sum;
+        return sum;
     }
 
     [Benchmark]
-    public void _CsvHelper()
+    public double _CsvHelper()
     {
-        using var reader = new StreamReader(new MemoryStream(_data), Encoding.UTF8);
-        using var csv = new CsvHelper.CsvReader(reader, _helperConfig);
+        using var csv = new CsvHelper.CsvReader(GetReader(), _helperConfig);
 
         double sum = 0;
 
-        // skip first record
+        // skip header
         _ = csv.Read();
 
         while (csv.Read())
@@ -125,6 +135,40 @@ public partial class PeekFields
             sum += result;
         }
 
-        _ = sum;
+        return sum;
+    }
+
+    [Benchmark]
+    public double _RecordParser()
+    {
+        double sum = 0;
+
+        foreach (
+            var row in GetReader()
+                .ReadRecords(BuildRecordParserReader(), new() { HasHeader = true, ContainsQuotedFields = false })
+        )
+        {
+            sum += row.Item1;
+        }
+
+        return sum;
+    }
+
+    private static IVariableLengthReader<ValueTuple<double>> BuildRecordParserReader()
+    {
+        return new VariableLengthReaderBuilder<ValueTuple<double>>()
+            .Map(
+                x => x.Item1,
+                11,
+                s =>
+                {
+                    ArgumentOutOfRangeException.ThrowIfNotEqual(
+                        csFastFloat.FastDoubleParser.TryParseDouble(s, out double result),
+                        true
+                    );
+                    return result;
+                }
+            )
+            .Build(",", CultureInfo.InvariantCulture);
     }
 }

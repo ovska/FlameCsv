@@ -1,26 +1,36 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Sylvan.Data;
 using Sylvan.Data.Csv;
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
+using nietras.SeparatedValues;
+using RecordParser.Builders.Reader;
+using RecordParser.Extensions;
+using RecordParser.Parsers;
+#endif
 
 namespace FlameCsv.Benchmark.Comparisons;
 
 [MemoryDiagnoser]
-[SuppressMessage("Performance", "CA1859:Use concrete types when possible for improved performance")]
 public partial class ReadObjects
 {
-    public int Records { get; set; } = 20000;
-
-    [Params(false)]
+    // [Params(true, false)]
     public bool Async { get; set; }
 
-    private static readonly CsvOptions<char> _flameCsvOptions = new()
+    private MemoryStream GetStream() => new(_data, 0, _data.Length, writable: false, publiclyVisible: false);
+
+    private StreamReader GetReader() => new(GetStream(), Encoding.UTF8);
+
+    private readonly byte[] _data;
+
+    public ReadObjects()
     {
-        HasHeader = true,
-        Newline = CsvNewline.LF,
-        Converters = { new FloatTextParser(), new DoubleTextParser() },
-    };
+        _data = Encoding.UTF8.GetBytes(
+            File.ReadAllText("Comparisons/Data/SampleCSVFile_556kb_4x.csv").ReplaceLineEndings("\n")
+        );
+    }
+
+    private static readonly CsvOptions<char> _flameCsvOptions = new() { HasHeader = true, Newline = CsvNewline.LF };
 
     private static readonly CsvHelper.Configuration.CsvConfiguration _helperConfig = new(CultureInfo.InvariantCulture)
     {
@@ -41,16 +51,18 @@ public partial class ReadObjects
     [Benchmark(Baseline = true)]
     public async Task _FlameCsv()
     {
+        var builder = Csv.From(GetStream(), Encoding.UTF8);
+
         if (Async)
         {
-            await foreach (var entry in Csv.From(GetStream()).WithUtf8Encoding().ReadAsync<Entry>(_flameCsvOptions))
+            await foreach (var entry in builder.ReadAsync<Entry>(_flameCsvOptions))
             {
                 _ = entry;
             }
         }
         else
         {
-            foreach (var entry in Csv.From(GetStream()).WithUtf8Encoding().Read<Entry>(_flameCsvOptions))
+            foreach (var entry in builder.Read<Entry>(_flameCsvOptions))
             {
                 _ = entry;
             }
@@ -60,46 +72,55 @@ public partial class ReadObjects
     [Benchmark]
     public async Task _Flame_SrcGen()
     {
+        var builder = Csv.From(GetStream(), Encoding.UTF8);
+
         if (Async)
         {
-            await foreach (
-                var entry in Csv.From(GetStream())
-                    .WithUtf8Encoding()
-                    .ReadAsync<Entry>(EntryTypeMap.Default, _flameCsvOptions)
-            )
+            await foreach (var entry in builder.ReadAsync(EntryTypeMap.Default, _flameCsvOptions))
             {
                 _ = entry;
             }
         }
         else
         {
-            foreach (
-                var entry in Csv.From(GetStream())
-                    .WithUtf8Encoding()
-                    .Read<Entry>(EntryTypeMap.Default, _flameCsvOptions)
-            )
+            foreach (var entry in builder.Read(EntryTypeMap.Default, _flameCsvOptions))
             {
                 _ = entry;
             }
         }
     }
 
-    // [Benchmark]
-    public async Task _Parallel()
+    [Benchmark]
+    public async Task _FlameCsv_Reflection_Parallel()
     {
+        var builder = Csv.From(GetStream(), Encoding.UTF8).AsParallel();
+
         if (Async)
         {
-            await Csv.From(_string2)
-                .AsParallel()
-                .ForEachUnorderedAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
+            await builder.ForEachUnorderedAsync<Entry>((_, _) => ValueTask.CompletedTask);
         }
         else
         {
-            Csv.From(_string2).AsParallel().ForEachUnordered(EntryTypeMap.Default, _ => { });
+            builder.ForEachUnordered<Entry>(_ => { });
         }
     }
 
-    // [Benchmark]
+    [Benchmark]
+    public async Task _FlameCsv_SrcGen_Parallel()
+    {
+        var builder = Csv.From(GetStream(), Encoding.UTF8).AsParallel();
+
+        if (Async)
+        {
+            await builder.ForEachUnorderedAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
+        }
+        else
+        {
+            builder.ForEachUnordered(EntryTypeMap.Default, _ => { });
+        }
+    }
+
+    [Benchmark]
     public async Task _Sylvan()
     {
         using var reader = GetReader();
@@ -121,7 +142,7 @@ public partial class ReadObjects
         }
     }
 
-    // [Benchmark]
+    [Benchmark]
     public async Task _CsvHelper()
     {
         using var reader = GetReader();
@@ -143,27 +164,133 @@ public partial class ReadObjects
         }
     }
 
-    private Stream GetStream() =>
-        Records switch
-        {
-            100 => new MemoryStream(_data0, 0, _data0.Length, writable: false, publiclyVisible: false),
-            5000 => new MemoryStream(_data1, 0, _data1.Length, writable: false, publiclyVisible: false),
-            20_000 => new MemoryStream(_data2, 0, _data2.Length, writable: false, publiclyVisible: false),
-            _ => throw new ArgumentOutOfRangeException(nameof(Records), Records, null),
-        };
-
-    private TextReader GetReader() => new StreamReader(GetStream(), Encoding.UTF8);
-
-    private readonly byte[] _data0;
-    private readonly byte[] _data1;
-    private readonly byte[] _data2;
-    private readonly string _string2;
-
-    public ReadObjects()
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
+    [Benchmark]
+    public void _RecordParser()
     {
-        _data0 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_100records.csv");
-        _data1 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb.csv");
-        _data2 = File.ReadAllBytes("Comparisons/Data/SampleCSVFile_556kb_4x.csv");
-        _string2 = Encoding.UTF8.GetString(_data2);
+        if (Async)
+        {
+            throw new NotSupportedException();
+        }
+
+        using var reader = GetReader();
+        var rpReader = BuildRecordParserReader();
+
+        foreach (var entry in reader.ReadRecords(rpReader, new VariableLengthReaderOptions { HasHeader = true }))
+        {
+            _ = entry;
+        }
     }
+
+    [Benchmark]
+    public void _RecordParser_Parallel()
+    {
+        if (Async)
+        {
+            throw new NotSupportedException();
+        }
+
+        using var reader = GetReader();
+        var rpReader = BuildRecordParserReader();
+
+        foreach (
+            var entry in reader.ReadRecords(
+                rpReader,
+                new VariableLengthReaderOptions
+                {
+                    HasHeader = true,
+                    ParallelismOptions = new()
+                    {
+                        Enabled = true,
+                        MaxDegreeOfParallelism = 4,
+                        EnsureOriginalOrdering = false,
+                    },
+                }
+            )
+        )
+        {
+            _ = entry;
+        }
+    }
+
+    [Benchmark]
+    public async Task _Sep()
+    {
+        using var reader = SepCore();
+
+        if (Async)
+        {
+            await foreach (var r in reader)
+            {
+                _ = ParseSep(r);
+            }
+        }
+        else
+        {
+            foreach (var r in reader)
+            {
+                _ = ParseSep(r);
+            }
+        }
+    }
+
+    [Benchmark]
+    public async Task _Sep_Parallel()
+    {
+        if (Async)
+        {
+            throw new NotSupportedException();
+        }
+
+        using var reader = SepCore();
+        foreach (var _ in reader.ParallelEnumerate(ParseSep)) { }
+    }
+
+    private SepReader SepCore() =>
+        Sep.Reader(o =>
+                o with
+                {
+                    Sep = new Sep(','),
+                    CultureInfo = CultureInfo.InvariantCulture,
+                    HasHeader = true,
+                    Unescape = true,
+                    ColNameComparer = StringComparer.OrdinalIgnoreCase,
+                    DisableFastFloat = true, // keep libs in even footing re: parsing
+                }
+            )
+            .From(GetStream());
+
+    private static Entry ParseSep(SepReader.Row r)
+    {
+        return new Entry()
+        {
+            Index = r[0].Parse<int>(),
+            Name = r[1].ToString(),
+            Contact = r[2].ToString(),
+            Count = r[3].Parse<int>(),
+            Latitude = r[4].Parse<double>(),
+            Longitude = r[5].Parse<double>(),
+            Height = r[6].Parse<double>(),
+            Location = r[7].ToString(),
+            Category = r[8].ToString(),
+            Popularity = r[9].Span.IsEmpty ? null : r[9].Parse<double>(),
+        };
+    }
+
+    private static IVariableLengthReader<Entry> BuildRecordParserReader()
+    {
+        return new VariableLengthReaderBuilder<Entry>()
+            .Map(x => x.Index, 0)
+            .Map(x => x.Name, 1)
+            .Map(x => x.Contact, 2)
+            .Map(x => x.Count, 3)
+            .Map(x => x.Latitude, 4)
+            .Map(x => x.Longitude, 5)
+            .Map(x => x.Height, 6)
+            .Map(x => x.Location, 7)
+            .Map(x => x.Category, 8)
+            .Map(x => x.Popularity, 9)
+            .Build(",", CultureInfo.InvariantCulture);
+    }
+#endif
 }

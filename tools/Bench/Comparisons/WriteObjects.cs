@@ -1,30 +1,26 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using nietras.SeparatedValues;
 using Sylvan.Data;
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
+using nietras.SeparatedValues;
+using RecordParser.Builders.Writer;
+using RecordParser.Parsers;
+#endif
 
 namespace FlameCsv.Benchmark.Comparisons;
 
 [MemoryDiagnoser]
 public class WriteObjects
 {
-    [Params(20_000)]
-    public int Records { get; set; } = 5000;
-
     [Params(false, true)]
     public bool Async { get; set; }
 
+    // simulate actual yielding when writing to a disk etc. asynchronously
     private static readonly TextWriter _destination = new YieldingNullTextWriter();
 
-    private IEnumerable<Entry> Data =>
-        Records switch
-        {
-            100 => _data5000.Take(100),
-            5000 => _data5000,
-            20_000 => _data20000,
-            _ => throw new ArgumentOutOfRangeException(nameof(Records)),
-        };
+    private IEnumerable<Entry> Data { get; } =
+        Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb_4x.csv").Read<Entry>().ToArray();
 
     [Benchmark(Baseline = true)]
     public async Task _Flame_SrcGen()
@@ -40,7 +36,7 @@ public class WriteObjects
     }
 
     [Benchmark]
-    public async Task _Flame()
+    public async Task _Flame_Reflection()
     {
         if (Async)
         {
@@ -52,6 +48,63 @@ public class WriteObjects
         }
     }
 
+    [Benchmark]
+    public async Task _Flame_SrcGen_Parallel()
+    {
+        if (Async)
+        {
+            await Csv.To(_destination).AsParallel().WriteUnorderedAsync(EntryTypeMap.Default, Data);
+        }
+        else
+        {
+            Csv.To(_destination).AsParallel().WriteUnordered(EntryTypeMap.Default, Data);
+        }
+    }
+
+    [Benchmark]
+    public async Task _Flame_Reflection_Parallel()
+    {
+        if (Async)
+        {
+            await Csv.To(_destination).AsParallel().WriteUnorderedAsync(Data);
+        }
+        else
+        {
+            Csv.To(_destination).AsParallel().WriteUnordered(Data);
+        }
+    }
+
+    [Benchmark]
+    public async Task _Sylvan()
+    {
+        if (Async)
+        {
+            await using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
+            await writer.WriteAsync(Data.AsDataReader()).ConfigureAwait(false);
+        }
+        else
+        {
+            using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
+            writer.Write(Data.AsDataReader());
+        }
+    }
+
+    [Benchmark]
+    public async Task _CsvHelper()
+    {
+        if (Async)
+        {
+            await using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
+            await writer.WriteRecordsAsync(Data).ConfigureAwait(false);
+        }
+        else
+        {
+            using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
+            writer.WriteRecords(Data);
+        }
+    }
+
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
     [Benchmark]
     public async Task _Sep()
     {
@@ -95,7 +148,8 @@ public class WriteObjects
                 row.Dispose();
             }
 
-            if (++count == 100)
+            // flush periodically
+            if (++count == 50)
             {
                 if (Async)
                 {
@@ -123,44 +177,53 @@ public class WriteObjects
     }
 
     [Benchmark]
-    public async Task _Sylvan()
+    public void _RecordParser()
     {
         if (Async)
         {
-            await using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
-            await writer.WriteAsync(Data.AsDataReader()).ConfigureAwait(false);
+            throw new NotSupportedException();
         }
-        else
-        {
-            using var writer = Sylvan.Data.Csv.CsvDataWriter.Create(_destination);
-            writer.Write(Data.AsDataReader());
-        }
+
+        RecordParser.Extensions.WriterExtensions.WriteRecords(_destination, Data, BuildWriter().TryFormat);
     }
 
     [Benchmark]
-    public async Task _CsvHelper()
+    public void _RecordParser_Parallel()
     {
         if (Async)
         {
-            await using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
-            await writer.WriteRecordsAsync(Data).ConfigureAwait(false);
+            throw new NotSupportedException();
         }
-        else
-        {
-            using CsvHelper.CsvWriter writer = new(_destination, CultureInfo.InvariantCulture);
-            writer.WriteRecords(Data);
-        }
+
+        RecordParser.Extensions.WriterExtensions.WriteRecords(
+            _destination,
+            Data,
+            BuildWriter().TryFormat,
+            new RecordParser.Extensions.ParallelismOptions
+            {
+                Enabled = true,
+                EnsureOriginalOrdering = false,
+                MaxDegreeOfParallelism = 4,
+            }
+        );
     }
 
-    [GlobalSetup]
-    public void Setup()
+    private static IVariableLengthWriter<Entry> BuildWriter()
     {
-        _data5000 = Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb.csv").Read<Entry>().ToArray();
-        _data20000 = Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb_4x.csv").Read<Entry>().ToArray();
+        return new VariableLengthWriterBuilder<Entry>()
+            .Map(x => x.Index, 0)
+            .Map(x => x.Name, 1)
+            .Map(x => x.Contact, 2)
+            .Map(x => x.Count, 3)
+            .Map(x => x.Latitude, 4)
+            .Map(x => x.Longitude, 5)
+            .Map(x => x.Height, 6)
+            .Map(x => x.Location, 7)
+            .Map(x => x.Category, 8)
+            .Map(x => x.Popularity, 9)
+            .Build(",", CultureInfo.InvariantCulture);
     }
-
-    private Entry[] _data5000 = null!;
-    private Entry[] _data20000 = null!;
+#endif
 }
 
 // TextWriter.Null equivalent with forced async yielding

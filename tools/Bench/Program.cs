@@ -1,11 +1,12 @@
 ﻿// #define DISASM
+using System.Globalization;
+using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Exporters.Csv;
 using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
-using FlameCsv.Benchmark;
 using Perfolizer.Horology;
 #if DISASM
 using BenchmarkDotNet.Diagnosers;
@@ -22,7 +23,7 @@ using BenchmarkDotNet.Diagnosers;
 //     args
 // );
 
-BenchmarkRunner.Run<ScalarTokenBench>(new Config(), args);
+BenchmarkRunner.Run<PeekFields>(new Config());
 
 file class Config : ManualConfig
 {
@@ -37,7 +38,7 @@ file class Config : ManualConfig
             new CsvExporter(
                 CsvSeparator.Comma,
                 new SummaryStyle(
-                    cultureInfo: System.Globalization.CultureInfo.InvariantCulture,
+                    cultureInfo: CultureInfo.InvariantCulture,
                     printUnitsInHeader: true,
                     printUnitsInContent: false,
                     printZeroValuesInContent: true,
@@ -47,12 +48,12 @@ file class Config : ManualConfig
             )
         );
 
-        AddLogger(DefaultConfig.Instance.GetLoggers().ToArray());
-        AddAnalyser(DefaultConfig.Instance.GetAnalysers().ToArray());
-        AddValidator(DefaultConfig.Instance.GetValidators().ToArray());
+        AddLogger([.. DefaultConfig.Instance.GetLoggers()]);
+        AddAnalyser([.. DefaultConfig.Instance.GetAnalysers()]);
+        AddValidator([.. DefaultConfig.Instance.GetValidators()]);
         WithSummaryStyle(SummaryStyle.Default);
 
-        AddColumnProvider(BenchmarkDotNet.Columns.DefaultColumnProviders.Instance);
+        AddColumnProvider(DefaultColumnProviders.Instance);
 
         AddJob(
             Job.Default.WithMinWarmupCount(Iters)
