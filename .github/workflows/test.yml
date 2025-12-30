@@ -9,6 +9,8 @@ on:
 
 jobs:
   build-and-test:
+    env:
+      COMPlus_legacyCorruptedStateExceptionsPolicy: 1
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest] # windows-latest if needed
@@ -43,7 +45,7 @@ jobs:
       run: |
         for project in $TEST_PROJECTS; do
           echo "Building $project"
-          dotnet build --configuration Release --no-restore "$project"
+          dotnet build --configuration Release --no-restore -p:DefineConstants=FULL_TEST_SUITE%3b$(DefineConstants) "$project"
         done
 
     - name: Run tests
@@ -51,7 +53,7 @@ jobs:
       run: |
         for project in $TEST_PROJECTS; do
           echo "Testing $project"
-          dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo "$project" --collect:"XPlat Code Coverage"
+          dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo -p:DefineConstants=FULL_TEST_SUITE%3b$(DefineConstants) "$project" --collect:"XPlat Code Coverage"
         done
 
     - name: Upload coverage reports

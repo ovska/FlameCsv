@@ -15,10 +15,11 @@ public static class GlobalData
     /// </summary>
     public static PoisonPagePlacement[] PoisonPlacement { get; } =
     [
-        /**/
         PoisonPagePlacement.None,
+#if FULL_TEST_SUITE
         // PoisonPagePlacement.After,
         // PoisonPagePlacement.Before,
+#endif
     ];
 
     public static T[] Enum<T>()

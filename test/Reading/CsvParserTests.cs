@@ -301,7 +301,8 @@ public class CsvReaderTests
         });
     }
 
-    [Fact(Skip = "This test is pretty slow, enable it periodically to verify.")]
+#if FULL_TEST_SUITE
+    [Fact] // slow test, run only in CI
     public void Should_Throw_On_Too_Long_Record()
     {
         using var mo = MemoryOwner<byte>.Allocate(Field.MaxFieldEnd + 1);
@@ -316,4 +317,5 @@ public class CsvReaderTests
             foreach (var _ in Csv.From(mo.Memory).Enumerate(options)) { }
         });
     }
+#endif
 }
