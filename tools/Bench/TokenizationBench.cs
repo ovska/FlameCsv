@@ -42,18 +42,18 @@ public class TokenizationBench
 
     [Params(
         [ /**/
-            DataSetType.Unquoted,
+            // DataSetType.Unquoted,
             // DataSetType.QuotedA,
-            // DataSetType.QuotedB,
+            DataSetType.QuotedB,
         ]
     )]
     public DataSetType Dataset { get; set; }
 
     [Params(
         [ /**/
-            ParserNewline.LF,
+            // ParserNewline.LF,
             // ParserNewline.LF_With_CRLF,
-            // ParserNewline.CRLF,
+            ParserNewline.CRLF,
         ]
     )]
     public ParserNewline Newline { get; set; }

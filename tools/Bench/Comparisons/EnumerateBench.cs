@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Globalization;
 using System.Text;
-using FlameCsv.IO;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
 using RecordParser.Extensions;

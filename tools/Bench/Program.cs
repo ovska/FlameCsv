@@ -23,7 +23,7 @@ using BenchmarkDotNet.Diagnosers;
 //     args
 // );
 
-BenchmarkRunner.Run<FlameCsv.Benchmark.TokenizationBench>(new Config());
+BenchmarkRunner.Run<ReadObjects>(new Config());
 
 file class Config : ManualConfig
 {

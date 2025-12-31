@@ -166,7 +166,7 @@ public partial class ReadObjects
 
 #if BENCHMARK_INCLUDE_UNCONVENTIONAL
     [Benchmark]
-    public void _RecordParser()
+    public void _RecordParser_Hardcoded()
     {
         if (Async)
         {
@@ -183,7 +183,7 @@ public partial class ReadObjects
     }
 
     [Benchmark]
-    public void _RecordParser_Parallel()
+    public void _RecordParser_Parallel_Hardcoded()
     {
         if (Async)
         {
@@ -216,20 +216,20 @@ public partial class ReadObjects
     [Benchmark]
     public async Task _Sep()
     {
-        using var reader = SepCore();
+        using var reader = CreateSepReader();
 
         if (Async)
         {
             await foreach (var r in reader)
             {
-                _ = ParseSep(r);
+                _ = ParseSepDynamic(r);
             }
         }
         else
         {
             foreach (var r in reader)
             {
-                _ = ParseSep(r);
+                _ = ParseSepDynamic(r);
             }
         }
     }
@@ -242,11 +242,44 @@ public partial class ReadObjects
             throw new NotSupportedException();
         }
 
-        using var reader = SepCore();
-        foreach (var _ in reader.ParallelEnumerate(ParseSep)) { }
+        using var reader = CreateSepReader();
+        foreach (var _ in reader.ParallelEnumerate(ParseSepDynamic)) { }
     }
 
-    private SepReader SepCore() =>
+    [Benchmark]
+    public async Task _Sep_Hardcoded()
+    {
+        using var reader = CreateSepReader();
+
+        if (Async)
+        {
+            await foreach (var r in reader)
+            {
+                _ = ParseSepHardcoded(r);
+            }
+        }
+        else
+        {
+            foreach (var r in reader)
+            {
+                _ = ParseSepHardcoded(r);
+            }
+        }
+    }
+
+    [Benchmark]
+    public async Task _Sep_Parallel_Hardcoded()
+    {
+        if (Async)
+        {
+            throw new NotSupportedException();
+        }
+
+        using var reader = CreateSepReader();
+        foreach (var _ in reader.ParallelEnumerate(ParseSepHardcoded)) { }
+    }
+
+    private SepReader CreateSepReader() =>
         Sep.Reader(o =>
                 o with
                 {
@@ -260,7 +293,7 @@ public partial class ReadObjects
             )
             .From(GetStream());
 
-    private static Entry ParseSep(SepReader.Row r)
+    private static Entry ParseSepHardcoded(SepReader.Row r)
     {
         return new Entry()
         {
@@ -274,6 +307,23 @@ public partial class ReadObjects
             Location = r[7].ToString(),
             Category = r[8].ToString(),
             Popularity = r[9].Span.IsEmpty ? null : r[9].Parse<double>(),
+        };
+    }
+
+    private static Entry ParseSepDynamic(SepReader.Row r)
+    {
+        return new Entry()
+        {
+            Index = r["Index"].Parse<int>(),
+            Name = r["Name"].ToString(),
+            Contact = r["Contact"].ToString(),
+            Count = r["Count"].Parse<int>(),
+            Latitude = r["Latitude"].Parse<double>(),
+            Longitude = r["Longitude"].Parse<double>(),
+            Height = r["Height"].Parse<double>(),
+            Location = r["Location"].ToString(),
+            Category = r["Category"].ToString(),
+            Popularity = r["Popularity"].Span.IsEmpty ? null : r[9].Parse<double>(),
         };
     }
 

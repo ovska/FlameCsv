@@ -54,12 +54,7 @@ public partial class PeekFields
 
         while (enumerator.MoveNext())
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(enumerator.Current.GetRawSpan(11), out double result),
-                true
-            );
-
-            sum += result;
+            sum += csFastFloat.FastDoubleParser.ParseDouble(enumerator.Current.GetRawSpan(11));
         }
 
         return sum;
@@ -84,12 +79,7 @@ public partial class PeekFields
 
         foreach (var row in reader)
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(row[11].Span, out double result),
-                true
-            );
-
-            sum += result;
+            sum += csFastFloat.FastDoubleParser.ParseDouble(row[11].Span);
         }
 
         return sum;
@@ -104,12 +94,7 @@ public partial class PeekFields
 
         while (csv.Read())
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(csv.GetFieldSpan(11), out double result),
-                true
-            );
-
-            sum += result;
+            sum += csFastFloat.FastDoubleParser.ParseDouble(csv.GetFieldSpan(11));
         }
 
         return sum;
@@ -127,12 +112,7 @@ public partial class PeekFields
 
         while (csv.Read())
         {
-            ArgumentOutOfRangeException.ThrowIfNotEqual(
-                csFastFloat.FastDoubleParser.TryParseDouble(csv.GetField(11), out double result),
-                true
-            );
-
-            sum += result;
+            sum += csFastFloat.FastDoubleParser.ParseDouble(csv.GetField(11));
         }
 
         return sum;
@@ -157,18 +137,7 @@ public partial class PeekFields
     private static IVariableLengthReader<ValueTuple<double>> BuildRecordParserReader()
     {
         return new VariableLengthReaderBuilder<ValueTuple<double>>()
-            .Map(
-                x => x.Item1,
-                11,
-                s =>
-                {
-                    ArgumentOutOfRangeException.ThrowIfNotEqual(
-                        csFastFloat.FastDoubleParser.TryParseDouble(s, out double result),
-                        true
-                    );
-                    return result;
-                }
-            )
+            .Map(x => x.Item1, 11, s => csFastFloat.FastDoubleParser.ParseDouble(s))
             .Build(",", CultureInfo.InvariantCulture);
     }
 }
