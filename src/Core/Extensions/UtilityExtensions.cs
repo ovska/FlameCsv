@@ -12,40 +12,11 @@ namespace FlameCsv.Extensions;
 internal static class UtilityExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ReadOnlySpan<ulong> AsSpanUnsafe(this ArraySegment<ulong> segment)
-    {
-        ulong[] array = segment.Array!;
-        int start = segment.Offset;
-        int length = segment.Count;
-
-        return MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(array), (uint)start),
-            length
-        );
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsCRLF(this CsvNewline newline)
     {
         // hoisting the check to a local allows JIT to "see" the constant and eliminate one jump instruction
         bool isWindows = Environment.NewLine == "\r\n";
         return newline is CsvNewline.CRLF || (newline is CsvNewline.Platform && isWindows);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetTokens<T>(this CsvNewline newline, out T first, out T second)
-        where T : IBinaryInteger<T>
-    {
-        second = T.CreateTruncating('\n');
-
-        if (newline.IsCRLF())
-        {
-            first = T.CreateTruncating('\r');
-            return 2;
-        }
-
-        first = T.CreateTruncating('\n');
-        return 1;
     }
 
     public static void Rethrow(this Exception ex)

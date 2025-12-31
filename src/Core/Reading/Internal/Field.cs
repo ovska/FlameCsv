@@ -11,9 +11,15 @@ internal static partial class Field
     public const int MaxFieldEnd = (int)EndMask - 1;
 
     /*
+        Highest 2 bits encoding:
         00  - Delimiter
         10  - EOL
         11  - CRLF
+        
+        Next 2 bits:
+        00  - No quoting
+        10  - Only wrapping quotes
+        11  - Needs unescaping
     */
 
     /// <summary>
@@ -45,7 +51,7 @@ internal static partial class Field
     public static int End(uint field) => (int)(field & EndMask);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NeedsQuoting(uint field) => (int)(field << 2) < 0;
+    public static bool NeedsQuoting(uint field) => (int)(field << 2) < 0; // move quote bit to MSB
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static ReadOnlySpan<T> GetValue<T>(int start, uint endAndMasks, ref T data, RecordOwner<T> owner)

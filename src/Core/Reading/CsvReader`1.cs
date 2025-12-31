@@ -24,7 +24,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <summary>
     /// If available, SIMD tokenizer than can be used to parse the CSV data.
     /// </summary>
-    private readonly CsvTokenizer<T>? _tokenizer;
+    private CsvTokenizer<T>? _tokenizer;
 
     /// <summary>
     /// Scalar tokenizer that is used to parse the tail end of the data, or as a fallback if SIMD is not available.
@@ -131,6 +131,8 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         {
             Span<uint> destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
             fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd);
+
+            Check.Positive(fieldsRead, "Scalar tokenizer should never return negative field count");
         }
         else
         {
@@ -139,6 +141,13 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
                 out int startIndex
             );
             fieldsRead = _tokenizer.Tokenize(destination, startIndex, data);
+
+            // fall back to scalar parser on broken data
+            if (fieldsRead < 0)
+            {
+                _tokenizer = null;
+                goto Read;
+            }
         }
 
         if (fieldsRead != 0)

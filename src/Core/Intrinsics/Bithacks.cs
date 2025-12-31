@@ -125,6 +125,15 @@ internal static class Bithacks
         return before ^ mask;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ulong FindInverseQuoteMaskSingle(ulong maskQuote, uint quotesConsumed)
+    {
+        Check.Equal(BitOperations.PopCount(maskQuote), 1);
+        ulong before = maskQuote - 1ul;
+        ulong mask = 0ul - (quotesConsumed & 1u); // 0 or 0xFFFFFFFFFFFFFFFF
+        return before ^ mask;
+    }
+
     /// <summary>
     /// Finds the quote mask for the current iteration, where bits between quotes are all 1's.
     /// </summary>

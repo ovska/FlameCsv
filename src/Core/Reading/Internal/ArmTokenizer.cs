@@ -3,11 +3,21 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
+using static System.Runtime.Intrinsics.Arm.AdvSimd;
+using Mask = ulong;
+using V128 = System.Runtime.Intrinsics.Vector128<byte>;
+using V512 = System.Runtime.Intrinsics.Vector512<byte>;
+using V64 = System.Runtime.Intrinsics.Vector64<byte>;
 
 namespace FlameCsv.Reading.Internal;
 
+internal static class ArmTokenizer
+{
+    public static bool IsSupported => Arm64.IsSupported;
+}
+
 [SkipLocalsInit]
-internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
+internal sealed class ArmTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     where T : unmanaged, IBinaryInteger<T>
     where TCRLF : struct, IConstant
     where TQuote : struct, IConstant
@@ -15,25 +25,25 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     protected override int Overscan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count * 3;
+        get => V512.Count * 2;
     }
 
     public override int PreferredLength
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count * 4;
+        get => V512.Count * 2;
     }
 
     public override int MaxFieldsPerIteration
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Vector256<byte>.Count;
+        get => V512.Count;
     }
 
     private readonly byte _quote;
     private readonly byte _delimiter;
 
-    public SimdTokenizer(CsvOptions<T> options)
+    public ArmTokenizer(CsvOptions<T> options)
     {
         Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
         Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
@@ -44,7 +54,7 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
     {
-        if (!Vector128.IsHardwareAccelerated)
+        if (!Arm64.IsSupported)
         {
             // ensure the method is trimmed on NAOT
             throw new PlatformNotSupportedException();
@@ -62,62 +72,46 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         nuint fieldEnd = Math.Max(0, (nuint)destination.Length - (nuint)MaxFieldsPerIteration);
 
         uint quotesConsumed = 0;
-        uint crCarry = 0;
+        Mask crCarry = 0;
 
-        Vector256<byte> vecDelim = Vector256.Create(_delimiter);
-        Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(_quote) : default;
-        Vector256<byte> vecLF = Vector256.Create((byte)'\n');
-        Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
+        V128 vecDelim = Vector128.Create(byte.CreateTruncating(_delimiter));
+        V128 vecQuote = TQuote.Value ? Vector128.Create(byte.CreateTruncating(_quote)) : default;
+        V128 vecLF = Vector128.Create((byte)'\n');
+        V128 vecCR = TCRLF.Value ? Vector128.Create((byte)'\r') : default;
 
-        Vector256<byte> vector = AsciiVector.Load256(pData);
-
-        Vector256<byte> hasDelimiter = Vector256.Equals(vector, vecDelim);
-        Vector256<byte> hasLF = Vector256.Equals(vector, vecLF);
-        Vector256<byte> hasQuote = TQuote.Value ? Vector256.Equals(vector, vecQuote) : default;
-        Vector256<byte> hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
-        Vector256<byte> hasControl = hasLF | hasDelimiter;
-
-        (uint maskControl, uint maskLF, uint maskQuote, uint maskCR) = AsciiVector.MoveMask<TCRLF, TQuote>(
-            hasControl,
-            hasLF,
-            hasQuote,
-            hasCR
-        );
-
-        nuint alignment = (nuint)(Vector256<byte>.Count * sizeof(T));
-
-        // Align to 32 on bytes, 64 on chars (as every load reads 64 bytes)
-        if (((nuint)pData % alignment) / (uint)sizeof(T) is nuint remainder and not 0)
-        {
-            maskControl <<= (int)remainder;
-            maskLF <<= (int)remainder;
-            maskQuote <<= (int)remainder;
-
-            if (TCRLF.Value)
-            {
-                maskCR <<= (int)remainder;
-            }
-
-            index -= remainder;
-            pData -= remainder;
-        }
-
-        Vector256<byte> nextVector = AsciiVector.Load256(pData + (nuint)Vector256<byte>.Count);
+        V512 vector = AsciiVector.LoadZipped512(pData);
+        V512 nextVector;
 
         do
         {
-            // Prefetch the vector that will be needed 2 iterations ahead
-            Vector256<byte> prefetch = AsciiVector.Load256(pData + (nuint)(2 * Vector256<byte>.Count));
+            Mask maskControl,
+                maskLF,
+                maskCR,
+                maskQuote;
 
-            Unsafe.SkipInit(out uint shiftedCR); // this can be garbage on LF, it's never used
+            {
+                V512 hasDelimiter = V.Cmp(vector, vecDelim);
+                V512 hasLF = V.Cmp(vector, vecLF);
+                V512 hasCR = TCRLF.Value ? V.Cmp(vector, vecCR) : default;
+                V512 hasQuote = TQuote.Value ? V.Cmp(vector, vecQuote) : default;
 
-            vector = nextVector;
-            nextVector = prefetch;
+                (Mask maskDelimiter, maskLF, maskCR, maskQuote) = V.MoveMask4x<TCRLF, TQuote>(
+                    hasDelimiter,
+                    hasLF,
+                    hasCR,
+                    hasQuote
+                );
+                maskControl = maskDelimiter | maskLF;
+
+                nextVector = AsciiVector.LoadZipped512(pData + (nuint)V512.Count);
+            }
+
+            Unsafe.SkipInit(out Mask shiftedCR); // this can be garbage on LF, it's never used
 
             if (TCRLF.Value)
             {
                 shiftedCR = ((maskCR << 1) | crCarry);
-                crCarry = maskCR >> 31;
+                crCarry = maskCR >> ((sizeof(Mask) * 8) - 1);
 
                 if ((maskControl | shiftedCR) == 0)
                 {
@@ -191,7 +185,7 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
                 // thanks to 1-quote guarantee + XOR,
                 // controlsBeforeQuote is either 0 (quote before controls) or == maskControl (quote after)
-                uint controlsBeforeQuote = (maskQuote - 1u) & maskControl;
+                Mask controlsBeforeQuote = (maskQuote - 1u) & maskControl;
 
                 Check.True(controlsBeforeQuote == 0 || controlsBeforeQuote == maskControl);
 
@@ -203,7 +197,7 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 }
                 else if (quotesConsumed != 0)
                 {
-                    // string just ended?
+                    // string just ended? very rare
                     Check.Equal(quotesConsumed % 2, 0u);
                     quoteState = QuoteState.FlushAndCarry;
                 }
@@ -274,21 +268,9 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             }
 
             ContinueRead:
-            index += (nuint)Vector256<byte>.Count;
-            pData += Vector256<byte>.Count;
-
-            hasLF = Vector256.Equals(vector, vecLF);
-            hasCR = TCRLF.Value ? Vector256.Equals(vector, vecCR) : default;
-            hasDelimiter = Vector256.Equals(vector, vecDelim);
-            hasQuote = Vector256.Equals(vector, vecQuote);
-            hasControl = hasLF | hasDelimiter;
-
-            (maskControl, maskLF, maskQuote, maskCR) = AsciiVector.MoveMask<TCRLF, TQuote>(
-                hasControl,
-                hasLF,
-                hasQuote,
-                hasCR
-            );
+            vector = nextVector;
+            index += (nuint)V512.Count;
+            pData += V512.Count;
         } while (fieldIndex <= fieldEnd && pData < end);
 
         return (int)fieldIndex;
@@ -297,8 +279,8 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ParseDelimitersAndNewlines(
         uint count,
-        uint mask,
-        uint maskLF,
+        Mask mask,
+        Mask maskLF,
         uint flag,
         uint index,
         ref uint dst
@@ -307,34 +289,39 @@ internal sealed class SimdTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         // even on arm64, this pattern is quite a bit faster than using rbit once and clz after
         // perhaps due to less instructions (bit clearing takes much more on ARM)
 
-        const uint UnrollCount = 5; // optimal for 256bit, 3 for 128bit
+        const uint UnrollCount = 8; // optimal: 256=5, 128=3, 512=8
 
         uint lfPos = (uint)BitOperations.PopCount(mask & (maskLF - 1));
 
-        // reusing locals here causes regressions on x86
-        uint m2 = mask & mask - 1;
+        Mask m2 = mask & mask - 1;
         Unsafe.Add(ref dst, 0u) = index + (uint)BitOperations.TrailingZeroCount(mask);
-        uint m3 = m2 & m2 - 1;
+        Mask m3 = m2 & m2 - 1;
         Unsafe.Add(ref dst, 1u) = index + (uint)BitOperations.TrailingZeroCount(m2);
-        uint m4 = m3 & m3 - 1;
+        Mask m4 = m3 & m3 - 1;
         Unsafe.Add(ref dst, 2u) = index + (uint)BitOperations.TrailingZeroCount(m3);
-        uint m5 = m4 & m4 - 1;
+        Mask m5 = m4 & m4 - 1;
         Unsafe.Add(ref dst, 3u) = index + (uint)BitOperations.TrailingZeroCount(m4);
+        Mask m6 = m5 & m5 - 1;
         Unsafe.Add(ref dst, 4u) = index + (uint)BitOperations.TrailingZeroCount(m5);
+        Mask m7 = m6 & m6 - 1;
+        Unsafe.Add(ref dst, 5u) = index + (uint)BitOperations.TrailingZeroCount(m6);
+        Mask m8 = m7 & m7 - 1;
+        Unsafe.Add(ref dst, 6u) = index + (uint)BitOperations.TrailingZeroCount(m7);
+        Unsafe.Add(ref dst, 7u) = index + (uint)BitOperations.TrailingZeroCount(m8);
 
         if (count > UnrollCount)
         {
             ref uint dst2 = ref Unsafe.Add(ref dst, UnrollCount);
 
-            m5 &= m5 - 1;
+            m8 &= m8 - 1;
 
             do
             {
-                uint offset = (uint)BitOperations.TrailingZeroCount(m5);
-                m5 &= m5 - 1;
+                uint offset = (uint)BitOperations.TrailingZeroCount(m8);
+                m8 &= m8 - 1;
                 dst2 = index + offset;
                 dst2 = ref Unsafe.Add(ref dst2, 1u);
-            } while (m5 != 0);
+            } while (m8 != 0);
         }
 
         uint lfTz = (uint)BitOperations.TrailingZeroCount(maskLF);
@@ -348,4 +335,67 @@ file enum QuoteState
     None = 0,
     Flush = 0b1,
     FlushAndCarry = 0b11,
+}
+
+file static class V
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static V512 Cmp(V512 v, V128 needle)
+    {
+        return Vector512.Create(
+            Vector256.Create(
+                CompareEqual(v.GetLower().GetLower(), needle),
+                CompareEqual(v.GetLower().GetUpper(), needle)
+            ),
+            Vector256.Create(
+                CompareEqual(v.GetUpper().GetLower(), needle),
+                CompareEqual(v.GetUpper().GetUpper(), needle)
+            )
+        );
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static Mask MoveMask(V512 v)
+    {
+        V128 t0 = ShiftRightAndInsert(v.GetLower().GetUpper(), v.GetLower().GetLower(), 1);
+        V128 t1 = ShiftRightAndInsert(v.GetUpper().GetUpper(), v.GetUpper().GetLower(), 1);
+        V128 t2 = ShiftRightAndInsert(t1, t0, 2);
+        V128 t3 = ShiftRightAndInsert(t2, t2, 4);
+        V64 t4 = ShiftRightLogicalNarrowingLower(t3.AsUInt16(), 4);
+        return t4.AsUInt64().GetElement(0);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static (Mask, Mask, Mask, Mask) MoveMask4x<T2, T3>(V512 v0, V512 v1, V512 v2, V512 v3)
+        where T2 : struct, IConstant
+        where T3 : struct, IConstant
+    {
+        V128 a0 = ShiftRightAndInsert(v0.GetLower().GetUpper(), v0.GetLower().GetLower(), 1);
+        V128 a1 = ShiftRightAndInsert(v1.GetLower().GetUpper(), v1.GetLower().GetLower(), 1);
+        V128 a2 = T2.Value ? ShiftRightAndInsert(v2.GetLower().GetUpper(), v2.GetLower().GetLower(), 1) : default;
+        V128 a3 = T3.Value ? ShiftRightAndInsert(v3.GetLower().GetUpper(), v3.GetLower().GetLower(), 1) : default;
+        V128 b0 = ShiftRightAndInsert(v0.GetUpper().GetUpper(), v0.GetUpper().GetLower(), 1);
+        V128 b1 = ShiftRightAndInsert(v1.GetUpper().GetUpper(), v1.GetUpper().GetLower(), 1);
+        V128 b2 = T2.Value ? ShiftRightAndInsert(v2.GetUpper().GetUpper(), v2.GetUpper().GetLower(), 1) : default;
+        V128 b3 = T3.Value ? ShiftRightAndInsert(v3.GetUpper().GetUpper(), v3.GetUpper().GetLower(), 1) : default;
+        V128 c0 = ShiftRightAndInsert(b0, a0, 2);
+        V128 c1 = ShiftRightAndInsert(b1, a1, 2);
+        V128 c2 = T2.Value ? ShiftRightAndInsert(b2, a2, 2) : default;
+        V128 c3 = T3.Value ? ShiftRightAndInsert(b3, a3, 2) : default;
+        V128 d0 = ShiftRightAndInsert(c0, c0, 4);
+        V128 d1 = ShiftRightAndInsert(c1, c1, 4);
+        V128 d2 = T2.Value ? ShiftRightAndInsert(c2, c2, 4) : default;
+        V128 d3 = T3.Value ? ShiftRightAndInsert(c3, c3, 4) : default;
+        V64 e0 = ShiftRightLogicalNarrowingLower(d0.AsUInt16(), 4);
+        V64 e1 = ShiftRightLogicalNarrowingLower(d1.AsUInt16(), 4);
+        V64 e2 = T2.Value ? ShiftRightLogicalNarrowingLower(d2.AsUInt16(), 4) : default;
+        V64 e3 = T3.Value ? ShiftRightLogicalNarrowingLower(d3.AsUInt16(), 4) : default;
+
+        return (
+            e0.AsUInt64().GetElement(0),
+            e1.AsUInt64().GetElement(0),
+            T2.Value ? e2.AsUInt64().GetElement(0) : 0,
+            T3.Value ? e3.AsUInt64().GetElement(0) : 0
+        );
+    }
 }

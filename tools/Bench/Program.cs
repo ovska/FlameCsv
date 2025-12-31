@@ -1,4 +1,4 @@
-﻿// #define DISASM
+﻿#define DISASM
 using System.Globalization;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
@@ -23,7 +23,7 @@ using BenchmarkDotNet.Diagnosers;
 //     args
 // );
 
-BenchmarkRunner.Run<PeekFields>(new Config());
+BenchmarkRunner.Run<FlameCsv.Benchmark.TokenizationBench>(new Config());
 
 file class Config : ManualConfig
 {

@@ -34,15 +34,15 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         get => Vector256<byte>.Count;
     }
 
-    private readonly T _quote;
-    private readonly T _delimiter;
+    private readonly byte _quote;
+    private readonly byte _delimiter;
 
     public Avx2Tokenizer(CsvOptions<T> options)
     {
         Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
         Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
-        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
-        _delimiter = T.CreateTruncating(options.Delimiter);
+        _quote = (byte)options.Quote.GetValueOrDefault();
+        _delimiter = (byte)options.Delimiter;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -66,8 +66,8 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
         scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
 
-        Vector256<byte> vecDelim = Vector256.Create(byte.CreateTruncating(_delimiter));
-        Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(byte.CreateTruncating(_quote)) : default;
+        Vector256<byte> vecDelim = Vector256.Create(_delimiter);
+        Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(_quote) : default;
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
         Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
         Vector256<long> addCnst = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
@@ -139,9 +139,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
                 if (Bithacks.IsDisjointCR(maskLF, shiftedCR))
                 {
-                    // maskControl doesn't contain CR by default, add it so we can find lone CR's
-                    maskControl |= maskCR;
-                    goto PathologicalPath;
+                    return -1; // broken data
                 }
             }
             else
@@ -326,42 +324,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                     maskLF: maskLF,
                     maskQuote: ref maskQuote,
                     flag: flag
-                );
-            }
-
-            goto SumQuotesAndContinue;
-
-            PathologicalPath:
-            if (TCRLF.Value)
-            {
-                if (TQuote.Value)
-                {
-                    // clear the bits that are inside quotes
-                    maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
-                }
-                else
-                {
-                    maskQuote = 0;
-                }
-
-                CheckDanglingCR(
-                    maskControl: ref maskControl,
-                    data: ref Unsafe.AsRef<T>(pData),
-                    index: (uint)index,
-                    fieldIndex: ref fieldIndex,
-                    fieldRef: ref firstField,
-                    quotesConsumed: ref quotesConsumed
-                );
-
-                ParsePathological(
-                    maskControl: maskControl,
-                    maskQuote: ref maskQuote,
-                    data: ref Unsafe.AsRef<T>(pData),
-                    index: (uint)index,
-                    fieldIndex: ref fieldIndex,
-                    fieldRef: ref firstField,
-                    delimiter: _delimiter,
-                    quotesConsumed: ref quotesConsumed
                 );
             }
 

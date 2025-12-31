@@ -24,10 +24,19 @@ public static class ScalarTests
     {
         const int bufferSize = RecordBuffer.DefaultFieldBufferSize;
 
-        var options = new CsvOptions<char> { Newline = newline };
+        var options = new CsvOptions<char> { Newline = newline, Quote = escaping == Escaping.QuoteNull ? null : '"' };
         var (scalarTokenizer, simdTokenizer) = options.GetTokenizers();
 
         Assert.SkipWhen(simdTokenizer is null, "SIMD tokenizer not supported on this platform");
+
+        simdTokenizer =
+            newline == CsvNewline.CRLF
+                ? escaping == Escaping.QuoteNull
+                    ? new ArmTokenizer<char, TrueConstant, FalseConstant>(options)
+                    : new ArmTokenizer<char, TrueConstant, TrueConstant>(options)
+                : escaping == Escaping.QuoteNull
+                    ? new ArmTokenizer<char, FalseConstant, FalseConstant>(options)
+                    : new ArmTokenizer<char, FalseConstant, TrueConstant>(options);
 
         using RecordBuffer rbScalar = new(bufferSize);
         using RecordBuffer rbSimd = new(bufferSize);
@@ -45,10 +54,9 @@ public static class ScalarTests
         int resultScalar = scalarTokenizer.Tokenize(fbScalar, scalarStartIndex, data, readToEnd: false);
         int resultSimd = simdTokenizer.Tokenize(fbSimd, simdStartIndex, data);
 
-        // scalar can read the whole data
-        // simd always stops because of insufficient field buffer, as we have more data than can fit in one batch
+        // data doesn't fully fit in the buffer
         Assert.Equal(bufferSize - 1, resultScalar);
-        Assert.Equal(bufferSize - simdTokenizer.MaxFieldsPerIteration, resultSimd);
+        Assert.InRange(resultSimd, bufferSize - simdTokenizer.MaxFieldsPerIteration, bufferSize - 1);
 
         int len = resultSimd;
         Assert.Equal(fbScalar[..len], fbSimd[..len]);

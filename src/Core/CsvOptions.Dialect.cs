@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
@@ -139,8 +140,18 @@ public partial class CsvOptions<T>
             bool isCRLF = Newline.IsCRLF();
             bool hasQuote = _quote.HasValue;
 
+            if (ArmTokenizer.IsSupported)
+            {
+                _simdTokenizer = isCRLF
+                    ? hasQuote
+                        ? new ArmTokenizer<T, TrueConstant, TrueConstant>(this)
+                        : new ArmTokenizer<T, TrueConstant, FalseConstant>(this)
+                    : hasQuote
+                        ? new ArmTokenizer<T, FalseConstant, TrueConstant>(this)
+                        : new ArmTokenizer<T, FalseConstant, FalseConstant>(this);
+            }
 #if NET10_0_OR_GREATER
-            if (Avx512Tokenizer.IsSupported)
+            else if (Avx512Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
                     ? hasQuote
@@ -150,9 +161,8 @@ public partial class CsvOptions<T>
                         ? new Avx512Tokenizer<T, FalseConstant, TrueConstant>(this)
                         : new Avx512Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
-            else
 #endif
-            if (Avx2Tokenizer.IsSupported)
+            else if (Avx2Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
                     ? hasQuote
@@ -162,7 +172,7 @@ public partial class CsvOptions<T>
                         ? new Avx2Tokenizer<T, FalseConstant, TrueConstant>(this)
                         : new Avx2Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
-            else if (Vector.IsHardwareAccelerated) // SSE or newer, NEON, or WASM
+            else if (Vector.IsHardwareAccelerated) // SSE or WASM
             {
                 _simdTokenizer = isCRLF
                     ? hasQuote

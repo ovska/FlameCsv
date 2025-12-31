@@ -35,7 +35,7 @@ public class TokenizationBench
     [Params(
         [ /**/
             false,
-            true,
+            // true,
         ]
     )]
     public bool Chars { get; set; }
@@ -43,8 +43,8 @@ public class TokenizationBench
     [Params(
         [ /**/
             DataSetType.Unquoted,
-            DataSetType.QuotedA,
-            DataSetType.QuotedB,
+            // DataSetType.QuotedA,
+            // DataSetType.QuotedB,
         ]
     )]
     public DataSetType Dataset { get; set; }
@@ -52,8 +52,8 @@ public class TokenizationBench
     [Params(
         [ /**/
             ParserNewline.LF,
-            ParserNewline.LF_With_CRLF,
-            ParserNewline.CRLF,
+            // ParserNewline.LF_With_CRLF,
+            // ParserNewline.CRLF,
         ]
     )]
     public ParserNewline Newline { get; set; }

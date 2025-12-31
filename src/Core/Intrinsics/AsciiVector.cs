@@ -4,12 +4,44 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.Wasm;
 using System.Runtime.Intrinsics.X86;
+using FlameCsv.Reading.Internal;
 
-namespace FlameCsv.Reading.Internal;
+namespace FlameCsv.Intrinsics;
 
 [SkipLocalsInit]
 internal static class AsciiVector
 {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [DebuggerStepThrough]
+    public static unsafe Vector512<byte> LoadZipped512<T>(T* source)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            var (a, b, c, d) = AdvSimd.Arm64.Load4xVector128AndUnzip((byte*)source);
+            return Vector512.Create(Vector256.Create(a, b), Vector256.Create(c, d));
+        }
+
+        if (typeof(T) != typeof(char))
+        {
+            throw Token<T>.NotSupported;
+        }
+
+        var (u0, u1, u2, u3) = AdvSimd.Arm64.Load4xVector128AndUnzip((ushort*)source);
+        var (u4, u5, u6, u7) = AdvSimd.Arm64.Load4xVector128AndUnzip((ushort*)source + (Vector128<ushort>.Count * 4));
+        Vector128<byte> b0 = Narrow(u0, u4);
+        Vector128<byte> b1 = Narrow(u1, u5);
+        Vector128<byte> b2 = Narrow(u2, u6);
+        Vector128<byte> b3 = Narrow(u3, u7);
+        return Vector512.Create(Vector256.Create(b0, b1), Vector256.Create(b2, b3));
+
+        static Vector128<byte> Narrow(Vector128<ushort> v0, Vector128<ushort> v1)
+        {
+            var r0 = AdvSimd.ExtractNarrowingSaturateLower(v0);
+            return AdvSimd.ExtractNarrowingSaturateUpper(r0, v1);
+        }
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [DebuggerStepThrough]
     public static unsafe Vector256<byte> Load256<T>(T* source)

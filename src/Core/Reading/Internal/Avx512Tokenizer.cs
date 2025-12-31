@@ -37,15 +37,15 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         get => Vector512<byte>.Count;
     }
 
-    private readonly T _quote;
-    private readonly T _delimiter;
+    private readonly byte _quote;
+    private readonly byte _delimiter;
 
     public Avx512Tokenizer(CsvOptions<T> options)
     {
         Check.Equal(TCRLF.Value, options.Newline.IsCRLF(), "CRLF constant must match newline option.");
         Check.Equal(TQuote.Value, options.Quote.HasValue, "Quote constant must match presence of quote char.");
-        _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
-        _delimiter = T.CreateTruncating(options.Delimiter);
+        _quote = (byte)options.Quote.GetValueOrDefault();
+        _delimiter = (byte)options.Delimiter;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -70,8 +70,8 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
         nuint fieldIndex = 0;
 
-        Vector512<byte> vecDelim = Vector512.Create(byte.CreateTruncating(_delimiter));
-        Vector512<byte> vecQuote = TQuote.Value ? Vector512.Create(byte.CreateTruncating(_quote)) : default;
+        Vector512<byte> vecDelim = Vector512.Create(_delimiter);
+        Vector512<byte> vecQuote = TQuote.Value ? Vector512.Create(_quote) : default;
         Vector512<byte> vecLF = Vector512.Create((byte)'\n');
         Vector512<byte> vecCR = TCRLF.Value ? Vector512.Create((byte)'\r') : default;
 
@@ -141,9 +141,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
             if (TCRLF.Value && Bithacks.IsDisjointCR(maskLF, shiftedCR))
             {
-                // maskControl doesn't contain CR by default, add it so we can find lone CR's
-                maskControl |= maskCR;
-                goto PathologicalPath;
+                return -1; // broken data
             }
 
             uint matchCount = (uint)BitOperations.PopCount(maskControl);
@@ -229,41 +227,6 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 );
 
                 quotesConsumed += (uint)BitOperations.PopCount(maskQuote);
-            }
-            goto ContinueRead;
-
-            PathologicalPath:
-            if (TCRLF.Value)
-            {
-                if (TQuote.Value)
-                {
-                    // clear the bits that are inside quotes
-                    maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
-                }
-                else
-                {
-                    maskQuote = 0;
-                }
-
-                CheckDanglingCR(
-                    maskControl: ref maskControl,
-                    data: ref Unsafe.AsRef<T>(pData),
-                    index: (uint)index,
-                    fieldIndex: ref fieldIndex,
-                    fieldRef: ref firstField,
-                    quotesConsumed: ref quotesConsumed
-                );
-
-                ParsePathological(
-                    maskControl: maskControl,
-                    maskQuote: ref maskQuote,
-                    data: ref Unsafe.AsRef<T>(pData),
-                    index: (uint)index,
-                    fieldIndex: ref fieldIndex,
-                    fieldRef: ref firstField,
-                    delimiter: _delimiter,
-                    quotesConsumed: ref quotesConsumed
-                );
             }
 
             goto ContinueRead;

@@ -24,6 +24,11 @@ internal abstract class CsvTokenizer<T>
     protected abstract int Overscan { get; }
 
     /// <summary>
+    /// Indicates whether broken data was encountered during tokenization.
+    /// </summary>
+    public bool EncounteredBrokenData { get; protected set; }
+
+    /// <summary>
     /// Reads fields from the data into <paramref name="destination"/>.
     /// </summary>
     /// <param name="destination">Buffer for the packed field bits</param>
@@ -141,95 +146,5 @@ internal abstract class CsvTokenizer<T>
         }
 
         fieldIndex = fIdx;
-    }
-
-    /// <summary>
-    /// Handles a potential dangling CR at the end of the previous chunk.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static unsafe void CheckDanglingCR<TMask>(
-        scoped ref TMask maskControl,
-        scoped ref T data,
-        uint index,
-        ref nuint fieldIndex,
-        ref uint fieldRef,
-        scoped ref uint quotesConsumed
-    )
-        where TMask : unmanaged, IBinaryInteger<TMask>
-    {
-        if (index == 0)
-            return;
-
-        if (Unsafe.Add(ref data, -1) == T.CreateTruncating('\r'))
-        {
-            uint flag;
-
-            if (data == T.CreateTruncating('\n'))
-            {
-                flag = Field.IsCRLF;
-                maskControl = Bithacks.ResetLowestSetBit(maskControl);
-            }
-            else
-            {
-                flag = Field.IsEOL;
-            }
-
-            Unsafe.Add(ref fieldRef, fieldIndex) = (index - 1) | flag | Bithacks.GetQuoteFlags(quotesConsumed);
-
-            fieldIndex++;
-            quotesConsumed = 0;
-        }
-    }
-
-    /// <summary>
-    /// Parses chunks that have CR's without a following LF.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void ParsePathological<TMask>(
-        TMask maskControl,
-        scoped ref TMask maskQuote,
-        scoped ref T data,
-        uint index,
-        ref nuint fieldIndex,
-        ref uint fieldRef,
-        T delimiter,
-        scoped ref uint quotesConsumed
-    )
-        where TMask : unmanaged, IBinaryInteger<TMask>
-    {
-        while (maskControl != TMask.Zero)
-        {
-            uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
-            TMask maskUpToPos = Bithacks.GetMaskUpToLowestSetBit(maskControl);
-
-            ref T token = ref Unsafe.Add(ref data, tz);
-            TMask quoteBits = maskQuote & maskUpToPos;
-
-            uint flag = 0;
-            quotesConsumed += uint.CreateTruncating(TMask.PopCount(quoteBits));
-
-            if (delimiter != token)
-            {
-                if (Bithacks.IsCRLF(ref token))
-                {
-                    flag = Field.IsCRLF;
-                    maskUpToPos = (maskUpToPos << 1) | TMask.One;
-                }
-                else
-                {
-                    flag = Field.IsEOL;
-                }
-            }
-
-            maskControl &= ~maskUpToPos;
-            maskQuote &= ~maskUpToPos;
-
-            uint value = index + tz;
-            Unsafe.Add(ref fieldRef, fieldIndex) = value | flag | Bithacks.GetQuoteFlags(quotesConsumed);
-            fieldIndex++;
-            quotesConsumed = 0;
-        }
-
-        quotesConsumed += uint.CreateTruncating(TMask.PopCount(maskQuote));
     }
 }
