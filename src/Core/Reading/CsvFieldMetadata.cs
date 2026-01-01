@@ -1,0 +1,36 @@
+using FlameCsv.Reading.Internal;
+
+namespace FlameCsv.Reading;
+
+/// <summary>
+/// Metadata about a CSV field.
+/// </summary>
+public readonly struct CsvFieldMetadata
+{
+    private readonly uint _value;
+    private readonly int _start;
+
+    internal CsvFieldMetadata(uint value, int start)
+    {
+        _value = value;
+        _start = start;
+    }
+
+    /// <summary>
+    /// Length of the raw field, without unescaping and trimming.
+    /// </summary>
+    public int Length => (int)(_value & Field.EndMask) - _start;
+
+    /// <summary>
+    /// Returns <c>true</c> if the field has quotes; otherwise, <c>false</c>.
+    /// </summary>
+    public bool HasQuotes => (int)(_value << 2) < 0;
+
+    /// <summary>
+    /// Returns <c>true</c> if the field needs unescaping; otherwise, <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    /// If this is <c>true</c>, <see cref="HasQuotes"/> is also <c>true</c>.
+    /// </remarks>
+    public bool NeedsUnescaping => (int)(_value << 3) < 0;
+}

@@ -121,7 +121,7 @@ public readonly ref struct CsvRecordRef<T>
     /// </summary>
     /// <param name="index">Zero-based index of the field to get.</param>
     /// <remarks>
-    /// The returned span is only guaranteed to be valid until another field or the next record is read.
+    /// The returned span is only guaranteed to be valid until the next record is read.
     /// </remarks>
     /// <exception cref="IndexOutOfRangeException"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -179,6 +179,20 @@ public readonly ref struct CsvRecordRef<T>
         Check.GreaterThanOrEqual(end, start, "Malformed fields");
 
         return (int)(end - start);
+    }
+
+    /// <summary>
+    /// Returns metadata about the field at <paramref name="index"/>.
+    /// </summary>
+    /// <param name="index">Zero-based index of the field to get.</param>
+    /// <returns>
+    /// The raw length of the field, whether it has quotes, and whether it needs unescaping.
+    /// </returns>
+    public CsvFieldMetadata GetMetadata(int index)
+    {
+        uint current = _fields[index];
+        uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
+        return new CsvFieldMetadata(current, Field.NextStart(previous));
     }
 
     /// <summary>
