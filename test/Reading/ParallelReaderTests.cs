@@ -1,6 +1,9 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Threading.Channels;
 using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
+using FlameCsv.Exceptions;
 using FlameCsv.IO.Internal;
 using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
@@ -13,8 +16,6 @@ public class ParallelReaderTests
     [Fact]
     public void Should_Read()
     {
-        TestConsoleWriter.RedirectToTestOutput();
-
         ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, hasQuotes: false);
 
         Assert.Equal(Csv.From(data).Read<Obj>(), ReadSequential());
@@ -59,8 +60,6 @@ public class ParallelReaderTests
     [Fact]
     public void Should_Read_2()
     {
-        TestConsoleWriter.RedirectToTestOutput();
-
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
         List<Obj> list = [];
@@ -81,8 +80,6 @@ public class ParallelReaderTests
     [Fact]
     public async Task Should_Read_Async()
     {
-        TestConsoleWriter.RedirectToTestOutput();
-
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
         List<Obj> list = [];
@@ -108,8 +105,6 @@ public class ParallelReaderTests
     [Fact]
     public async Task Should_Read_Async_2()
     {
-        TestConsoleWriter.RedirectToTestOutput();
-
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
@@ -135,4 +130,46 @@ public class ParallelReaderTests
 
         Assert.Empty(expected.Except(list).Reverse());
     }
+
+    [Fact]
+    public async Task Should_Rethrow_Exceptions_On_Parse()
+    {
+        using var apbw = new ArrayPoolBufferWriter<byte>();
+
+        apbw.Write("id,name,value\n"u8);
+
+        for (int i = 0; i < 256; i++)
+        {
+            if (i == 123)
+            {
+                apbw.Write("invalid,row,data\n"u8);
+            }
+            else
+            {
+                apbw.Write("1,test,a\n"u8);
+            }
+        }
+
+        var builder = Csv.From(apbw.WrittenMemory).AsParallel(TestContext.Current.CancellationToken);
+
+        Assert.Throws<CsvParseException>(() =>
+        {
+            foreach (var _ in builder.ReadUnordered<Foo>()) { }
+        });
+
+        await Assert.ThrowsAsync<CsvParseException>(async () =>
+        {
+            await foreach (var _ in builder.ReadUnorderedAsync<Foo>().WithTestContext()) { }
+        });
+
+        await Assert.ThrowsAsync<CsvParseException>(async () =>
+        {
+            Channel<Foo> channel = Channel.CreateUnbounded<Foo>();
+            Task task = builder.WriteToChannelAsync(channel.Writer);
+            await foreach (var _ in channel.Reader.ReadAllAsync(TestContext.Current.CancellationToken)) { }
+            await task;
+        });
+    }
+
+    private record Foo(int Id, string Name, char Value);
 }

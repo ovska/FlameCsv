@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using FlameCsv.Binding;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
@@ -190,6 +191,7 @@ static partial class Csv
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <returns>A task that completes when all values have been written to the channel</returns>
         public Task ForEachUnorderedAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
@@ -202,6 +204,47 @@ static partial class Csv
                 options,
                 this,
                 action,
+                ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
+            );
+        }
+
+        /// <summary>
+        /// Reads CSV records in parallel, binding them using reflection, and writes them to the given channel.
+        /// </summary>
+        /// <param name="channelWriter">Channel to write the values to</param>
+        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <returns>A task that completes when all values have been written to the channel</returns>
+        [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
+        public Task WriteToChannelAsync<[DAM(Messages.ReflectionBound)] TValue>(
+            ChannelWriter<TValue> channelWriter,
+            CsvOptions<T>? options = null
+        )
+        {
+            ArgumentNullException.ThrowIfNull(channelWriter);
+            return CsvParallel.WriteToChannel(
+                channelWriter,
+                this,
+                ValueProducer<T, TValue>.Create(options ?? CsvOptions<T>.Default, ParallelOptions)
+            );
+        }
+
+        /// <summary>
+        /// Reads CSV records in parallel, binding them using the given type map, and writes them to the given channel.
+        /// </summary>
+        /// <param name="channelWriter">Channel to write the values to</param>
+        /// <param name="typeMap">Type map to use for binding</param>
+        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        public Task WriteToChannelAsync<TValue>(
+            ChannelWriter<TValue> channelWriter,
+            CsvTypeMap<T, TValue> typeMap,
+            CsvOptions<T>? options = null
+        )
+        {
+            ArgumentNullException.ThrowIfNull(channelWriter);
+            ArgumentNullException.ThrowIfNull(typeMap);
+            return CsvParallel.WriteToChannel(
+                channelWriter,
+                this,
                 ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
             );
         }

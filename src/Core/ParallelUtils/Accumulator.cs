@@ -23,4 +23,6 @@ internal sealed class Accumulator<T>(int chunkSize) : IConsumable
         Check.LessThan(_index, _array.Length);
         _array[_index++] = item;
     }
+
+    public void Dispose() { }
 }

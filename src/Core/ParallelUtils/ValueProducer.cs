@@ -1,5 +1,5 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Reading;
 
@@ -31,8 +31,9 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
             typeMap.GetMaterializer
         );
 
+    public CsvOptions<T> Options { get; }
+
     private readonly int _chunkSize;
-    private readonly CsvOptions<T> _options;
     private readonly Func<ImmutableArray<string>, CsvOptions<T>, IMaterializer<T, TValue>> _materializerFactory;
     private readonly ManualResetEventSlim? _headerRead;
     private IMaterializer<T, TValue>? _materializer;
@@ -48,7 +49,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);
 
         _chunkSize = chunkSize;
-        _options = options;
+        Options = options;
         _materializerFactory = materializerFactory;
 
         if (!options.HasHeader)
@@ -87,7 +88,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
             if (order == 0)
             {
                 ImmutableArray<string> headers = CsvHeader.Parse(input);
-                _materializer = _materializerFactory(headers, _options);
+                _materializer = _materializerFactory(headers, Options);
                 _headerRead!.Set();
                 return;
             }
@@ -99,5 +100,27 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
 
         TValue result = _materializer!.Parse(input);
         state.Add(result);
+    }
+
+    public bool TryProduceDirect(int order, CsvRecordRef<T> input, [MaybeNullWhen(false)] out TValue? value)
+    {
+        if (_materializer is null)
+        {
+            if (order == 0)
+            {
+                ImmutableArray<string> headers = CsvHeader.Parse(input);
+                _materializer = _materializerFactory(headers, Options);
+                _headerRead!.Set();
+                value = default;
+                return false;
+            }
+            else
+            {
+                _headerRead!.Wait(_cancellationToken);
+            }
+        }
+
+        value = _materializer!.Parse(input);
+        return true;
     }
 }
