@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.IO.Internal;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests.Reading;
@@ -27,8 +29,10 @@ public class ParallelReaderTests
 
             while (reader.Read() is Chunk<char> chunk)
             {
-                while (chunk.TryPop(out CsvRecordRef<char> record))
+                while (chunk.RecordBuffer.TryPop(out RecordView view))
                 {
+                    CsvRecordRef<char> record = new(chunk, ref MemoryMarshal.GetReference(chunk.Data.Span), view);
+
                     if (materializer is null)
                     {
                         List<string> headers = [];

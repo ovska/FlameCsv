@@ -1,5 +1,6 @@
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using FlameCsv.Intrinsics;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Reading;

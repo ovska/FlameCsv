@@ -36,6 +36,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
     private readonly Func<ImmutableArray<string>, CsvOptions<T>, IMaterializer<T, TValue>> _materializerFactory;
     private readonly ManualResetEventSlim? _headerRead;
     private IMaterializer<T, TValue>? _materializer;
+    private CancellationToken _cancellationToken;
 
     public ValueProducer(
         int chunkSize,
@@ -59,19 +60,16 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
         {
             _headerRead = new ManualResetEventSlim();
         }
-
-        ConcurrentStack<TValue[]> pool = new();
-        _pool = pool;
-        _release = pool.Push;
     }
 
-    private readonly ConcurrentStack<TValue[]> _pool;
-    private readonly Action<TValue[]> _release;
-
-    public void BeforeLoop() { }
+    public void BeforeLoop(CancellationToken cancellationToken)
+    {
+        _cancellationToken = cancellationToken;
+    }
 
     public ValueTask BeforeLoopAsync(CancellationToken cancellationToken)
     {
+        _cancellationToken = cancellationToken;
         return ValueTask.CompletedTask;
     }
 
@@ -79,7 +77,6 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
 
     public void Dispose()
     {
-        _pool.Clear(); // clear possible references
         _headerRead?.Dispose();
     }
 
@@ -96,7 +93,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Accu
             }
             else
             {
-                _headerRead!.Wait();
+                _headerRead!.Wait(_cancellationToken);
             }
         }
 

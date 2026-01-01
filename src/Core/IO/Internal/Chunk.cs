@@ -11,7 +11,6 @@ namespace FlameCsv.IO.Internal;
 /// <summary>
 /// Chunks for parallel CSV reading.
 /// </summary>
-/// <typeparam name="T"></typeparam>
 internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRecordRef<T>>, IHasOrder
     where T : unmanaged, IBinaryInteger<T>
 {
@@ -55,18 +54,6 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
         Data = data;
         _bufferPool = bufferPool;
         _owner = owner;
-    }
-
-    public bool TryPop(out CsvRecordRef<T> record)
-    {
-        if (RecordBuffer.TryPop(out RecordView view))
-        {
-            record = new(this, ref MemoryMarshal.GetReference(Data.Span), view);
-            return true;
-        }
-
-        record = default;
-        return false;
     }
 
     public void Dispose()

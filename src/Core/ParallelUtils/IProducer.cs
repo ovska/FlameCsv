@@ -11,7 +11,7 @@ internal interface IProducer<TInput, TState>
     /// <summary>
     /// A single task to run before the main loop is started.
     /// </summary>
-    void BeforeLoop();
+    void BeforeLoop(CancellationToken cancellationToken);
 
     /// <summary>
     /// An asynchronous single task to run before the main loop is started.

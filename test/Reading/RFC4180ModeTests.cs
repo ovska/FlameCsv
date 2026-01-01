@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
 
@@ -43,8 +44,9 @@ public class RFC4180ModeTests
     }
 
     [Fact]
-    public void Should_Handle_Alternating_Newlines()
+    public async Task Should_Handle_Alternating_Newlines()
     {
+        CsvOptions<char> options = new() { HasHeader = false, Newline = CsvNewline.CRLF };
         StringBuilder sb = new();
 
         foreach (int i in Enumerable.Range(0, 500))
@@ -63,12 +65,29 @@ public class RFC4180ModeTests
         // var cnt2 = tok2.Tokenize(dst2, start2, sb.ToString());
         // var min = Math.Min(cnt1, cnt2);
         // Assert.Equal(rb2._fields.AsSpan(0, min + 1), rb1._fields.AsSpan(0, min + 1));
+        var expected = Enumerable.Repeat(("field1", "field2", "field3"), 500);
 
-        var result = StringBuilderSegment.Create(sb).Read(CsvOptions<char>.Default);
-        Assert.Equal(
-            Enumerable.Repeat("field1,field2,field3", 500).ToArray(),
-            result.Select(r => string.Join(',', r)).ToArray()
-        );
+        var result = StringBuilderSegment.Create(sb).Read(options);
+        Assert.Equal(expected, Csv.From(sb).Read<(string, string, string)>(options));
+
+        // ensure parallel falls back correctly too
+        // TODO: remove rent when sequence can be used in parallel
+        using var mo = MemoryOwner<char>.Allocate(sb.Length);
+        sb.CopyTo(0, mo.Memory.Span, sb.Length);
+
+        var fromParallel = Csv.From(mo.Memory[..sb.Length])
+            .AsParallel(TestContext.Current.CancellationToken)
+            .ReadUnordered<(string, string, string)>(options)
+            .SelectMany(chunk => chunk);
+        Assert.Equal(expected, fromParallel);
+
+        fromParallel = (
+            await Csv.From(mo.Memory[..sb.Length])
+                .AsParallel(TestContext.Current.CancellationToken)
+                .ReadUnorderedAsync<(string, string, string)>(options)
+                .ToListAsync(cancellationToken: TestContext.Current.CancellationToken)
+        ).SelectMany(chunk => chunk);
+        Assert.Equal(expected, fromParallel);
     }
 
     [Theory]

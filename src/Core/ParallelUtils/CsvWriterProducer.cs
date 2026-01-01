@@ -44,13 +44,14 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
         _asyncSink = asyncSink;
     }
 
-    public void BeforeLoop()
+    public void BeforeLoop(CancellationToken cancellationToken)
     {
         if (_options.HasHeader)
         {
             using var writer = CreateState();
             _dematerializer.WriteHeader(in writer);
             writer.WriteNewline();
+            cancellationToken.ThrowIfCancellationRequested();
             writer.Writer.Flush();
             writer.Writer.Complete(null);
         }

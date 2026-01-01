@@ -28,9 +28,7 @@ internal static partial class CsvParallel
         where TProducer : IProducer<T, TState>
         where TState : IConsumable
     {
-        CancellationToken cancellationToken = cts.Token;
-
-        cancellationToken.ThrowIfCancellationRequested();
+        cts.Token.ThrowIfCancellationRequested();
 
         const int MaxQueuedConsumers = 2;
         using SemaphoreSlim producerSignal = new(initialCount: 0); // limits how many producers can be active
@@ -42,37 +40,39 @@ internal static partial class CsvParallel
 
         long activeProducers = 0;
 
-        producer.BeforeLoop();
+        producer.BeforeLoop(cts.Token);
 
         Task consumerTask = Task.Run(
             () =>
             {
-                while (!cancellationToken.IsCancellationRequested)
+                try
                 {
-                    consumerSignal.Wait(cancellationToken);
-
-                    while (!cancellationToken.IsCancellationRequested && consumerQueue.TryDequeue(out TState? state))
+                    while (!cts.Token.IsCancellationRequested)
                     {
-                        try
+                        consumerSignal.Wait(cts.Token);
+
+                        while (!cts.Token.IsCancellationRequested && consumerQueue.TryDequeue(out TState? state))
                         {
-                            consumer(in state, null);
+                            try
+                            {
+                                consumer(in state, null);
+                            }
+                            finally
+                            {
+                                producerSignal.Release();
+                            }
                         }
-                        catch (Exception e)
+
+                        if (Volatile.Read(ref activeProducers) == 0 && consumerQueue.IsEmpty)
                         {
-                            consumerException = e;
-                            cts.Cancel();
-                            break;
-                        }
-                        finally
-                        {
-                            producerSignal.Release();
+                            break; // All done, queue was empty
                         }
                     }
-
-                    if (Volatile.Read(ref activeProducers) == 0 && consumerQueue.IsEmpty)
-                    {
-                        break; // All done, queue was empty
-                    }
+                }
+                catch (Exception e)
+                {
+                    consumerException = e;
+                    cts.Cancel();
                 }
             },
             CancellationToken.None
@@ -85,7 +85,7 @@ internal static partial class CsvParallel
                 parallelOptions: new ParallelOptions
                 {
                     MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
-                    CancellationToken = cancellationToken,
+                    CancellationToken = cts.Token,
                 },
                 localInit: () =>
                 {
@@ -105,7 +105,7 @@ internal static partial class CsvParallel
                             {
                                 consumerQueue.Enqueue(state);
                                 consumerSignal.Release(); // signal that consumer should work
-                                producerSignal.Wait(cancellationToken); // wait until there's space for another producer
+                                producerSignal.Wait(cts.Token); // wait until there's space for another producer
 
                                 state = producer.CreateState();
                             }
@@ -187,9 +187,7 @@ internal static partial class CsvParallel
         where TProducer : IProducer<T, TState>
         where TState : IConsumable
     {
-        CancellationToken cancellationToken = cts.Token;
-
-        cancellationToken.ThrowIfCancellationRequested();
+        cts.Token.ThrowIfCancellationRequested();
 
         Exception? consumerException = null;
         Exception? producerException = null;
@@ -207,21 +205,21 @@ internal static partial class CsvParallel
             }
         );
 
-        await producer.BeforeLoopAsync(cancellationToken).ConfigureAwait(false);
+        await producer.BeforeLoopAsync(cts.Token).ConfigureAwait(false);
 
         Task consumerTask = Task.Run(
             async () =>
             {
                 while (
                     !cts.IsCancellationRequested
-                    && await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false)
+                    && await channel.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false)
                 )
                 {
                     while (channel.Reader.TryRead(out TState? state))
                     {
                         try
                         {
-                            await consumer(state, producerException, cancellationToken).ConfigureAwait(false);
+                            await consumer(state, producerException, cts.Token).ConfigureAwait(false);
                         }
                         catch (Exception e)
                         {
@@ -243,9 +241,9 @@ internal static partial class CsvParallel
                     parallelOptions: new ParallelOptions
                     {
                         MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
-                        CancellationToken = cancellationToken,
+                        CancellationToken = cts.Token,
                     },
-                    body: async (chunk, cancellationToken) =>
+                    body: async (chunk, innerToken) =>
                     {
                         var enumerator = chunk.GetEnumerator();
                         int order = chunk.Order;
@@ -261,7 +259,7 @@ internal static partial class CsvParallel
                             {
                                 if (state.ShouldConsume)
                                 {
-                                    await channel.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+                                    await channel.Writer.WriteAsync(state, innerToken).ConfigureAwait(false);
                                     state = producer.CreateState();
                                 }
 
@@ -292,7 +290,7 @@ internal static partial class CsvParallel
         // flush remaining states
         while (unconsumedStates.TryPop(out TState? remaining))
         {
-            await channel.Writer.WriteAsync(remaining, cancellationToken).ConfigureAwait(false);
+            await channel.Writer.WriteAsync(remaining, cts.Token).ConfigureAwait(false);
         }
 
         try

@@ -48,6 +48,15 @@ static partial class Csv
         {
             return new ReadParallelBuilder<T, TSelf>((TSelf)this, parallelOptions);
         }
+
+        /// <summary>
+        /// Configures the builder to read CSV data in parallel.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token to observe</param>
+        public IParallelReadBuilder<T> AsParallel(CancellationToken cancellationToken)
+        {
+            return new ReadParallelBuilder<T, TSelf>((TSelf)this, new() { CancellationToken = cancellationToken });
+        }
     }
 
     /// <summary>

@@ -5,7 +5,7 @@ namespace FlameCsv.IO.Internal;
 internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly CsvTokenizer<T>? _tokenizer;
+    private CsvTokenizer<T>? _tokenizer;
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
     private readonly CsvOptions<T> _options;
@@ -40,11 +40,20 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
             ReadOnlyMemory<T> remaining = _data.Slice(_position);
             ReadOnlySpan<T> data = remaining.Span;
 
+            Read:
             int fieldsRead = _tokenizer is null
                 ? _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: false)
                 : _tokenizer.Tokenize(destination, startIndex, data);
 
+            if (fieldsRead < 0)
+            {
+                Check.NotNull(_tokenizer);
+                _tokenizer = null;
+                goto Read;
+            }
+
             int recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
+            int addToPos = recordBuffer.BufferedRecordLength;
 
             // read tail if there is no more data and/or the SIMD path can't read it
             if (recordsRead == 0)
@@ -52,12 +61,13 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
                 fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: true);
                 recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
                 _position = _data.Length;
+                addToPos = 0;
             }
 
             if (recordsRead > 0)
             {
                 Chunk<T> chunk = new(_index++, _options, remaining, _bufferPool, owner: null, recordBuffer);
-                _position += recordBuffer.BufferedRecordLength;
+                _position += addToPos;
                 return chunk;
             }
         }

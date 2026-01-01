@@ -12,7 +12,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
     private readonly IBufferPool _pool;
     private readonly int _bufferSize;
 
-    private readonly CsvTokenizer<T>? _tokenizer;
+    private CsvTokenizer<T>? _tokenizer;
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
     private bool _isCompleted;
@@ -81,6 +81,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
                 memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
             }
 
+            // TODO: throw here and test that the exception bubbles up correctly
+
             _previousRead = totalRead;
 
             // ownership not passed to Chunk, dispose
@@ -124,6 +126,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
             _previousRead = totalRead;
 
+            // TODO: throw here and test that the exception bubbles up correctly
+
             // ownership not passed to Chunk, dispose
             owner.Dispose();
         }
@@ -161,9 +165,18 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
         ReadOnlySpan<T> data = memory.Span;
 
+        Read:
         int fieldsRead = _tokenizer is null
             ? _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: _isCompleted)
             : _tokenizer.Tokenize(destination, startIndex, data);
+
+        if (fieldsRead < 0)
+        {
+            // fall back to scalar parser for pathological data
+            Check.NotNull(_tokenizer);
+            _tokenizer = null;
+            goto Read;
+        }
 
         int recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
 
