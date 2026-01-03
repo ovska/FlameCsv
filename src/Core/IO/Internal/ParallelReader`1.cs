@@ -23,6 +23,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
     private int _recordBufferSize = 1024;
 
     private long _position;
+    private int _lineNumber;
     private int _index;
 
     protected ParallelReader(CsvOptions<T> options, CsvIOOptions ioOptions)
@@ -39,6 +40,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         _previousData = HeapMemoryOwner<T>.Empty;
         _previousRead = 0;
         _position = 0;
+        _lineNumber = 1;
         _index = 0;
 
         (_scalarTokenizer, _tokenizer) = options.GetTokenizers();
@@ -202,8 +204,9 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
                 _recordBufferSize = Math.Max(_recordBufferSize / 2, 256);
             }
 
-            chunk = new Chunk<T>(_index++, _options, memory, _pool, owner, recordBuffer);
+            chunk = new Chunk<T>(_index++, _lineNumber, _position, _options, memory, _pool, owner, recordBuffer);
             _position += recordBuffer.BufferedRecordLength;
+            _lineNumber += recordsRead;
             return true;
         }
 

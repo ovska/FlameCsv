@@ -16,9 +16,9 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// The 1-based line index of the current record.
+    /// Returns the 1-based line index of the current record.
     /// </summary>
-    public int Line { get; protected set; }
+    public int Line => _reader._recordBuffer.LineNumber;
 
     [HandlesResourceDisposal]
     private protected readonly CsvReader<T> _reader;
@@ -62,9 +62,8 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool CallMoveNextAndIncrementPosition(RecordView view)
+    private bool TrySkipOrMoveNext(RecordView view)
     {
-        Line++;
         bool result = false;
 
         if (_callback is null || !TrySkipRecord(view))
@@ -108,7 +107,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     {
         while (_reader.TryReadLine(out RecordView view))
         {
-            if (CallMoveNextAndIncrementPosition(view))
+            if (TrySkipOrMoveNext(view))
             {
                 return true;
             }
@@ -127,7 +126,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
 
         while (_reader.TryReadLine(out RecordView view))
         {
-            if (CallMoveNextAndIncrementPosition(view))
+            if (TrySkipOrMoveNext(view))
             {
                 return new ValueTask<bool>(true);
             }
@@ -158,12 +157,12 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         {
             while (_reader.TryReadLine(out view))
             {
-                if (CallMoveNextAndIncrementPosition(view))
+                if (TrySkipOrMoveNext(view))
                     return true;
             }
         }
 
-        return _reader.TryReadLine(out view) && CallMoveNextAndIncrementPosition(view);
+        return _reader.TryReadLine(out view) && TrySkipOrMoveNext(view);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -176,12 +175,12 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         {
             while (_reader.TryReadLine(out view))
             {
-                if (CallMoveNextAndIncrementPosition(view))
+                if (TrySkipOrMoveNext(view))
                     return true;
             }
         }
 
-        return _reader.TryReadLine(out view) && CallMoveNextAndIncrementPosition(view);
+        return _reader.TryReadLine(out view) && TrySkipOrMoveNext(view);
     }
 
     /// <summary>
@@ -191,7 +190,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     protected void ResetCore()
     {
         _reader.Reset();
-        Line = 0;
     }
 
     /// <inheritdoc />
@@ -216,16 +214,11 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         }
     }
 
-    internal long GetStartPosition(RecordView view)
-    {
-        return _reader._consumed + Field.NextStart(_reader._recordBuffer._fields[view.Start]);
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long GetStartPosition(RecordView view) => _reader._recordBuffer.GetPosition(view);
 
-    internal long GetEndPosition(RecordView view)
-    {
-        int end = Field.NextStartCRLFAware(_reader._recordBuffer._fields[view.Start + view.Length]);
-        return _reader._consumed + end;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long GetEndPosition(RecordView view) => _reader._recordBuffer.GetEnd(view);
 
     /// <summary>
     /// When overridden, disposes the underlying data source and internal states.

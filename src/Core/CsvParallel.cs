@@ -26,7 +26,7 @@ internal static partial class CsvParallel
     )
         where T : allows ref struct
         where TElement : IEnumerable<T>, IHasOrder
-        where TProducer : IProducer<T, TState>
+        where TProducer : IProducer<T, TState, TElement>
         where TState : IConsumable
     {
         cts.Token.ThrowIfCancellationRequested();
@@ -97,8 +97,6 @@ internal static partial class CsvParallel
                 {
                     try
                     {
-                        int order = chunk.Order;
-
                         foreach (var item in chunk)
                         {
                             if (state.ShouldConsume)
@@ -110,7 +108,7 @@ internal static partial class CsvParallel
                                 state = producer.CreateState();
                             }
 
-                            producer.Produce(order, item, ref state);
+                            producer.Produce(chunk, item, ref state);
                         }
                     }
                     catch (Exception e)
@@ -171,7 +169,7 @@ internal static partial class CsvParallel
     )
         where T : allows ref struct
         where TElement : IEnumerable<T>, IHasOrder
-        where TProducer : IProducer<T, TState>
+        where TProducer : IProducer<T, TState, TElement>
         where TState : IConsumable
     {
         return ForEachAsync<T, TElement, TProducer, TState>(
@@ -193,7 +191,7 @@ internal static partial class CsvParallel
     )
         where T : allows ref struct
         where TElement : IEnumerable<T>, IHasOrder
-        where TProducer : IProducer<T, TState>
+        where TProducer : IProducer<T, TState, TElement>
         where TState : IConsumable
     {
         cts.Token.ThrowIfCancellationRequested();
@@ -254,7 +252,6 @@ internal static partial class CsvParallel
                     body: async (chunk, innerToken) =>
                     {
                         var enumerator = chunk.GetEnumerator();
-                        int order = chunk.Order;
 
                         try
                         {
@@ -271,7 +268,7 @@ internal static partial class CsvParallel
                                     state = producer.CreateState();
                                 }
 
-                                producer.Produce(order, enumerator.Current, ref state);
+                                producer.Produce(chunk, enumerator.Current, ref state);
                             }
 
                             // state was left unfinalized
@@ -333,6 +330,8 @@ internal static partial class CsvParallel
         int maxDegreeOfParallelism = builder.ParallelOptions.ReadingMaxDegreeOfParallelism;
         int chunkSize = builder.ParallelOptions.EffectiveChunkSize;
 
+        producer.BeforeLoop(cancellationToken);
+
         try
         {
             await Parallel
@@ -347,7 +346,7 @@ internal static partial class CsvParallel
                     {
                         foreach (CsvRecordRef<T> record in chunk)
                         {
-                            if (producer.TryProduceDirect(chunk.Order, record, out TValue? value))
+                            if (producer.TryProduceDirect(chunk, record, out TValue? value))
                             {
                                 await channelWriter.WriteAsync(value!, innerToken).ConfigureAwait(false);
                             }

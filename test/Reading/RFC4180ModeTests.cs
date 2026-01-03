@@ -47,12 +47,12 @@ public class RFC4180ModeTests
     public async Task Should_Handle_Alternating_Newlines()
     {
         CsvOptions<char> options = new() { HasHeader = false, Newline = CsvNewline.CRLF };
-        StringBuilder sb = new();
+        using var apbw = new ArrayPoolBufferWriter<char>(initialCapacity: 1024 * 16);
 
         foreach (int i in Enumerable.Range(0, 500))
         {
-            sb.Append("field1,field2,field3");
-            sb.Append(i % 2 == 0 ? "\r\n" : "\n");
+            apbw.Write("field1,field2,field3");
+            apbw.Write(i % 2 == 0 ? "\r\n" : "\n");
         }
 
         // using var rb1 = new RecordBuffer();
@@ -67,22 +67,16 @@ public class RFC4180ModeTests
         // Assert.Equal(rb2._fields.AsSpan(0, min + 1), rb1._fields.AsSpan(0, min + 1));
         var expected = Enumerable.Repeat(("field1", "field2", "field3"), 500);
 
-        var result = StringBuilderSegment.Create(sb).Read(options);
-        Assert.Equal(expected, Csv.From(sb).Read<(string, string, string)>(options));
+        Assert.Equal(expected, Csv.From(apbw.WrittenMemory).Read<(string, string, string)>(options));
 
-        // ensure parallel falls back correctly too
-        // TODO: remove rent when sequence can be used in parallel
-        using var mo = MemoryOwner<char>.Allocate(sb.Length);
-        sb.CopyTo(0, mo.Memory.Span, sb.Length);
-
-        var fromParallel = Csv.From(mo.Memory[..sb.Length])
+        var fromParallel = Csv.From(apbw.WrittenMemory)
             .AsParallel(TestContext.Current.CancellationToken)
             .ReadUnordered<(string, string, string)>(options)
             .SelectMany(chunk => chunk);
         Assert.Equal(expected, fromParallel);
 
         fromParallel = (
-            await Csv.From(mo.Memory[..sb.Length])
+            await Csv.From(apbw.WrittenMemory)
                 .AsParallel(TestContext.Current.CancellationToken)
                 .ReadUnorderedAsync<(string, string, string)>(options)
                 .ToListAsync(cancellationToken: TestContext.Current.CancellationToken)

@@ -422,7 +422,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
             _index = 0;
         }
 
-        readonly object IEnumerator.Current => throw new NotSupportedException();
+        readonly object IEnumerator.Current => throw new NotSupportedException("ReadOnlySpan cannot be boxed");
     }
 
     [ExcludeFromCodeCoverage]

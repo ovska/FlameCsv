@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using FlameCsv.Reading;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Exceptions;
 
@@ -19,6 +20,27 @@ public class CsvReadException(string? message = null, Exception? innerException 
     /// The actual field count.
     /// </summary>
     public required int ActualFieldCount { get; init; }
+
+    /// <inheritdoc/>
+    public override string Message
+    {
+        get
+        {
+            if (GetType() != typeof(CsvReadException) || !RuntimeHelpers.TryEnsureSufficientExecutionStack())
+            {
+                return base.Message;
+            }
+
+            using var vsb = new ValueStringBuilder(stackalloc char[256]);
+            vsb.Append(base.Message);
+            vsb.Append(" - ");
+            vsb.Append("Line: ");
+            vsb.AppendFormatted(Line ?? -1);
+            vsb.Append(", Position: ");
+            vsb.AppendFormatted(RecordPosition ?? -1);
+            return vsb.ToString();
+        }
+    }
 
     /// <summary>
     /// Throws an exception for a CSV record having an invalid number of fields.

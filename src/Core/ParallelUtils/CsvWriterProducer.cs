@@ -7,10 +7,9 @@ namespace FlameCsv.ParallelUtils;
 /// <summary>
 /// Producer of CSV field writers.
 /// </summary>
-/// <typeparam name="T"></typeparam>
-/// <typeparam name="TValue"></typeparam>
-internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFieldWriter<T>>
+internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue, CsvFieldWriter<T>, TChunk>
     where T : unmanaged, IBinaryInteger<T>
+    where TChunk : IHasOrder
 {
     private readonly CsvOptions<T> _options;
     private readonly IDematerializer<T, TValue> _dematerializer;
@@ -46,12 +45,13 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
 
     public void BeforeLoop(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_options.HasHeader)
         {
             using var writer = CreateState();
             _dematerializer.WriteHeader(in writer);
             writer.WriteNewline();
-            cancellationToken.ThrowIfCancellationRequested();
             writer.Writer.Flush();
             writer.Writer.Complete(null);
         }
@@ -70,7 +70,7 @@ internal readonly struct CsvWriterProducer<T, TValue> : IProducer<TValue, CsvFie
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Produce(int order, TValue input, ref CsvFieldWriter<T> state)
+    public void Produce(TChunk _, TValue input, ref CsvFieldWriter<T> state)
     {
         _dematerializer.Write(ref state, input);
         state.WriteNewline();

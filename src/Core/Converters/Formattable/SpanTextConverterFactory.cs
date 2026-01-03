@@ -15,12 +15,14 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     public override CsvConverter<char> Create(Type type, CsvOptions<char> options)
     {
-        if (!CanConvertCore(type, out bool? isFloatingPoint))
+        if (!CanConvertCore(type, out bool? notNullIfNumberTrueIfFloat))
             throw new NotSupportedException("The type is not supported.");
 
-        Type toCreate = isFloatingPoint.HasValue ? typeof(NumberTextConverter<>) : typeof(SpanTextConverter<>);
+        Type toCreate = notNullIfNumberTrueIfFloat.HasValue
+            ? typeof(NumberTextConverter<>)
+            : typeof(SpanTextConverter<>);
 
-        object?[] parameters = isFloatingPoint switch
+        object?[] parameters = notNullIfNumberTrueIfFloat switch
         {
             true => [options, NumberStyles.Float],
             false => [options, NumberStyles.Integer],
@@ -30,11 +32,11 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
         return toCreate.MakeGenericType(type).CreateInstance<CsvConverter<char>>(parameters);
     }
 
-    private static bool CanConvertCore(Type type, out bool? isFloatingPoint)
+    private static bool CanConvertCore(Type type, out bool? notNullIfNumberTrueIfFloat)
     {
         bool formattable = false;
         bool parsable = false;
-        isFloatingPoint = null;
+        notNullIfNumberTrueIfFloat = null;
 
         foreach (var iface in type.GetInterfaces())
         {
@@ -53,14 +55,14 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
                 {
                     if (iface.GetGenericArguments()[0] == type)
                     {
-                        isFloatingPoint = false;
+                        notNullIfNumberTrueIfFloat = false;
                     }
                 }
                 else if (def == typeof(IFloatingPoint<>))
                 {
                     if (iface.GetGenericArguments()[0] == type)
                     {
-                        isFloatingPoint = true;
+                        notNullIfNumberTrueIfFloat = true;
                     }
                 }
             }
@@ -73,7 +75,7 @@ internal sealed class SpanTextConverterFactory : CsvConverterFactory<char>
         if (type == typeof(char))
         {
             // hack: we don't want to treat char as a number
-            isFloatingPoint = null;
+            notNullIfNumberTrueIfFloat = null;
         }
 
         return formattable && parsable;

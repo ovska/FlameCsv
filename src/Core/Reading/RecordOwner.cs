@@ -25,6 +25,11 @@ public abstract class RecordOwner<T>
     internal readonly RecordBuffer _recordBuffer;
 
     /// <summary>
+    /// Indicates whether the reader has been disposed.
+    /// </summary>
+    public abstract bool IsDisposed { get; }
+
+    /// <summary>
     /// Returns a buffer that can be used for unescaping field data.
     /// The buffer is not valid after disposing the reader.
     /// </summary>

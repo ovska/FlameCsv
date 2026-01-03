@@ -99,7 +99,7 @@ internal static class MaterializerExtensions
         if (write)
         {
             var fields = typeof(TTuple).GetFields();
-            fields.AsSpan().Sort(static (a, b) => StringComparer.Ordinal.Compare(a.Name, b.Name)); // ensure order Item1, Item2 etc.
+            fields.AsSpan().Sort(static (a, b) => string.CompareOrdinal(a.Name, b.Name)); // ensure order Item1, Item2 etc.
 
             bindingsList = new(fields.Length);
 

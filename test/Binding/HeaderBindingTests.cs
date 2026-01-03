@@ -21,11 +21,12 @@ public static partial class HeaderBindingTests
         var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { IgnoreHeaderCase = false });
         var materializer = binder.GetMaterializer<AssemblyScoped>(["_id", "_name"]);
 
-        var record = ConstantRecord.Create("5", "Test");
-        var result = materializer.Parse(record);
-
-        Assert.Equal(5, result.Id);
-        Assert.Equal("Test", result.Name);
+        using (ConstantRecord.Create(out var record, "5", "Test"))
+        {
+            var result = materializer.Parse(record);
+            Assert.Equal(5, result.Id);
+            Assert.Equal("Test", result.Name);
+        }
     }
 
     [Fact]
@@ -33,14 +34,17 @@ public static partial class HeaderBindingTests
     {
         var binder = new CsvReflectionBinder<char>(new CsvOptions<char> { IgnoreHeaderCase = false });
         var materializer = binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]);
-        var record = ConstantRecord.Create("Test", "true");
-        var result = materializer.Parse(record);
 
-        Assert.True(result.IsEnabled);
-        Assert.Equal("Test", result.Name);
+        using (ConstantRecord.Create(out var record, "Test", "true"))
+        {
+            var result = materializer.Parse(record);
 
-        // should cache
-        Assert.Same(materializer, binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]));
+            Assert.True(result.IsEnabled);
+            Assert.Equal("Test", result.Name);
+
+            // should cache
+            Assert.Same(materializer, binder.GetMaterializer<ShimWithCtor>(["Name", "_targeted"]));
+        }
     }
 
     [Fact]
@@ -51,15 +55,18 @@ public static partial class HeaderBindingTests
         var materializer = binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]);
 
         // should require exactly 3 fields
-        var record = ConstantRecord.Create("true", "Test", "1");
-        var result = materializer.Parse(record);
 
-        Assert.True(result.IsEnabled);
-        Assert.Equal("Test", result.DisplayName);
-        Assert.Equal(1, result.Targeted);
+        using (ConstantRecord.Create(out var record, "true", "Test", "1"))
+        {
+            var result = materializer.Parse(record);
 
-        // should cache
-        Assert.Same(materializer, binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]));
+            Assert.True(result.IsEnabled);
+            Assert.Equal("Test", result.DisplayName);
+            Assert.Equal(1, result.Targeted);
+
+            // should cache
+            Assert.Same(materializer, binder.GetMaterializer<Shim>(["IsEnabled", "Name", "_targeted"]));
+        }
     }
 
     [Fact]
@@ -78,13 +85,15 @@ public static partial class HeaderBindingTests
             ["IsEnabled", "Name", "Targeted"]
         );
 
-        var record = ConstantRecord.Create("true", "Test", "1");
-        ISomething result = materializer.Parse(record);
+        using (ConstantRecord.Create(out var record, "true", "Test", "1"))
+        {
+            ISomething result = materializer.Parse(record);
 
-        Assert.IsType<Something>(result);
-        Assert.True(result.IsEnabled);
-        Assert.Equal("Test", result.Name);
-        Assert.Equal(1, result.Targeted);
+            Assert.IsType<Something>(result);
+            Assert.True(result.IsEnabled);
+            Assert.Equal("Test", result.Name);
+            Assert.Equal(1, result.Targeted);
+        }
     }
 
     [Theory(Skip = "TODO"), InlineData(true), InlineData(false)]
@@ -104,13 +113,15 @@ public static partial class HeaderBindingTests
         var opts = CsvOptions<char>.Default;
         var bindings = opts.TypeBinder.GetMaterializer<ISomething>(["Name", "IsEnabled", "Targeted"]);
 
-        var record = ConstantRecord.Create("Test", "true", "1");
-        ISomething obj = bindings.Parse(record);
+        using (ConstantRecord.Create(out var record, "Test", "true", "1"))
+        {
+            ISomething obj = bindings.Parse(record);
 
-        Assert.IsType<Something>(obj);
-        Assert.True(obj.IsEnabled);
-        Assert.Equal("Test", obj.Name);
-        Assert.Equal(1, obj.Targeted);
+            Assert.IsType<Something>(obj);
+            Assert.True(obj.IsEnabled);
+            Assert.Equal("Test", obj.Name);
+            Assert.Equal(1, obj.Targeted);
+        }
     }
 
     // [CsvTypeMap<char, ISomething>]

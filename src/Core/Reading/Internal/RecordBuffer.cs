@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -47,6 +48,12 @@ internal sealed class RecordBuffer : IDisposable
     /// Number of fields that have been parsed to the buffer.
     /// </summary>
     internal int _fieldCount;
+
+    private int _lines;
+
+    public long Position { get; private set; }
+
+    public int LineNumber => _lines + _eolIndex;
 
     public RecordBuffer(int bufferSize = DefaultFieldBufferSize)
     {
@@ -132,6 +139,8 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public unsafe int SetFieldsRead(int count)
     {
+        Check.True(_fields.Length != 0, "Object disposed");
+
         if (count == 0)
         {
             return 0;
@@ -276,12 +285,16 @@ internal sealed class RecordBuffer : IDisposable
         int fieldIndex = FieldIndex;
 
         // no unread fields
+        _lines += _eolIndex;
         _fields[0] = FirstSentinel;
         _fieldCount = 0;
         _eolCount = 0;
         _eolIndex = 0;
 
-        return NextStartCRLFAware(_fields[fieldIndex]);
+        int next = NextStartCRLFAware(_fields[fieldIndex]);
+        Position += next;
+
+        return next;
     }
 
     /// <summary>
@@ -290,6 +303,8 @@ internal sealed class RecordBuffer : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPop(out RecordView view)
     {
+        Check.True(_fields.Length != 0, "Object disposed");
+
         ref ushort previous = ref Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_eols), (uint)_eolIndex);
 
         if (_eolIndex < _eolCount)
@@ -321,6 +336,8 @@ internal sealed class RecordBuffer : IDisposable
         _fields[0] = FirstSentinel;
         _eols.AsSpan().Clear();
 
+        Position = 0;
+        _lines = 0;
         _fieldCount = 0;
         _eolIndex = 0;
         _eolCount = 0;
@@ -358,14 +375,7 @@ internal sealed class RecordBuffer : IDisposable
 
                 if ((int)_fields[i] < 0)
                 {
-                    if ((_fields[i] & IsCRLF) == IsCRLF)
-                    {
-                        vsb.Append(" CRLF");
-                    }
-                    else
-                    {
-                        vsb.Append(" LF");
-                    }
+                    vsb.Append((_fields[i] & IsCRLF) == IsCRLF ? " CRLF" : " LF");
                 }
 
                 yield return vsb.ToString();
@@ -373,6 +383,35 @@ internal sealed class RecordBuffer : IDisposable
         }
     }
 #endif
+
+    internal long GetPosition(RecordView view) => GetPosition(view.Start);
+
+    internal long GetPosition(ReadOnlySpan<uint> fields)
+    {
+        if (_fields.Overlaps(fields, out int offset))
+        {
+            return GetPosition(offset - 1);
+        }
+
+        return 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long GetPosition(int startIndex)
+    {
+        ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
+        return Position + NextStart(Unsafe.Add(ref _fields[0], startIndex));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long GetEnd(RecordView view) => GetEnd(view.Start + view.Length);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal long GetEnd(int endIndex)
+    {
+        ObjectDisposedException.ThrowIf(_fields.Length == 0, this);
+        return Position + NextStartCRLFAware(Unsafe.Add(ref _fields[0], endIndex));
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal int GetLengthWithNewline(RecordView view)

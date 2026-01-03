@@ -748,4 +748,17 @@ delim/lf total  4679
 delim before lf 2205
 delim after lf  1078
 mixed           1104
+
+512bit vectors:
+1: 10
+2: 178
+3: 1067
+4: 4304
+5: 9067
+6: 15734
+7: 36865
+8: 45399
+9: 14723
+10: 314
+11: 7
 ```

@@ -74,7 +74,7 @@ public class ParallelReaderTests
 
         list.Sort();
 
-        Assert.Equal(Csv.From(data).Read<Obj>(), list);
+        Assert.Equal(Csv.From(data).Read<Obj>(), list, EqualityComparer<Obj>.Default);
     }
 
     [Fact]
@@ -98,15 +98,13 @@ public class ParallelReaderTests
         }
 
         list.Sort();
-
-        Assert.Equal(Csv.From(data).Read<Obj>(), list);
+        Assert.Equal(Csv.From(data).Read<Obj>(), list, EqualityComparer<Obj>.Default);
     }
 
     [Fact]
     public async Task Should_Read_Async_2()
     {
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
 
         ConcurrentBag<Obj> bag = new();
 
@@ -126,9 +124,7 @@ public class ParallelReaderTests
 
         List<Obj> list = bag.OrderBy(o => o.Id).ToList();
 
-        var expected = Csv.From(data).Read<Obj>().ToList();
-
-        Assert.Empty(expected.Except(list).Reverse());
+        Assert.Equal(Csv.From(data).Read<Obj>(), list, EqualityComparer<Obj>.Default);
     }
 
     [Fact]
@@ -136,39 +132,103 @@ public class ParallelReaderTests
     {
         using var apbw = new ArrayPoolBufferWriter<byte>();
 
-        apbw.Write("id,name,value\n"u8);
+        long invalidPosition = -1;
+        apbw.Write("name,id,value\n"u8);
 
         for (int i = 0; i < 256; i++)
         {
             if (i == 123)
             {
+                invalidPosition = apbw.WrittenCount;
                 apbw.Write("invalid,row,data\n"u8);
             }
             else
             {
-                apbw.Write("1,test,a\n"u8);
+                apbw.Write("test,1,a\n"u8);
             }
         }
 
         var builder = Csv.From(apbw.WrittenMemory).AsParallel(TestContext.Current.CancellationToken);
 
-        Assert.Throws<CsvParseException>(() =>
+        var ex = Assert.Throws<CsvParseException>(() =>
         {
-            foreach (var _ in builder.ReadUnordered<Foo>()) { }
+            foreach (var c in builder.ReadUnordered<Foo>())
+            {
+                AssertChunk(c);
+            }
         });
+        AssertEx();
 
-        await Assert.ThrowsAsync<CsvParseException>(async () =>
+        ex = Assert.Throws<CsvParseException>(() =>
         {
-            await foreach (var _ in builder.ReadUnorderedAsync<Foo>().WithTestContext()) { }
+            builder.ForEachUnordered<Foo>(AssertChunk);
         });
+        AssertEx();
 
-        await Assert.ThrowsAsync<CsvParseException>(async () =>
+        ex = await Assert.ThrowsAsync<CsvParseException>(async () =>
         {
-            Channel<Foo> channel = Channel.CreateUnbounded<Foo>();
-            Task task = builder.WriteToChannelAsync(channel.Writer);
-            await foreach (var _ in channel.Reader.ReadAllAsync(TestContext.Current.CancellationToken)) { }
-            await task;
+            await foreach (var c in builder.ReadUnorderedAsync<Foo>().WithTestContext())
+            {
+                AssertChunk(c);
+            }
         });
+        AssertEx();
+
+        ex = await Assert.ThrowsAsync<CsvParseException>(async () =>
+        {
+            await builder.ForEachUnorderedAsync<Foo>(
+                (c, _) =>
+                {
+                    AssertChunk(c);
+                    return ValueTask.CompletedTask;
+                }
+            );
+        });
+        AssertEx();
+
+        foreach (
+            var channel in (Channel<Foo>[])
+                [
+                    Channel.CreateUnbounded<Foo>(),
+                    Channel.CreateBounded<Foo>(
+                        new BoundedChannelOptions(5) { FullMode = BoundedChannelFullMode.DropWrite }
+                    ),
+                ]
+        )
+        {
+            ex = await Assert.ThrowsAsync<CsvParseException>(async () =>
+            {
+                Task task = builder.ToChannelAsync(channel.Writer);
+                await foreach (var f in channel.Reader.ReadAllAsync(TestContext.Current.CancellationToken))
+                {
+                    AssertSingle(f);
+                }
+                await task;
+            });
+            AssertEx();
+        }
+
+        static void AssertChunk(ArraySegment<Foo> chunk)
+        {
+            Assert.All(chunk, AssertSingle);
+        }
+
+        static void AssertSingle(Foo item)
+        {
+            Assert.Equal(1, item.Id);
+            Assert.Equal("test", item.Name);
+            Assert.Equal('a', item.Value);
+        }
+
+        void AssertEx()
+        {
+            Assert.Equal(125, ex.Line);
+            Assert.Equal(invalidPosition, ex.RecordPosition);
+            Assert.Equal(invalidPosition + 8, ex.FieldPosition);
+            Assert.Equal("invalid,row,data", ex.RecordValue);
+            Assert.Equal("id", ex.HeaderValue);
+            Assert.Equal(1, ex.FieldIndex);
+        }
     }
 
     private record Foo(int Id, string Name, char Value);

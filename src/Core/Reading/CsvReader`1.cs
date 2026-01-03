@@ -36,7 +36,6 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
     internal readonly ICsvBufferReader<T> _reader;
     internal ReadOnlyMemory<T> _buffer;
-    internal long _consumed;
 
     /// <summary>
     /// Whether the UTF-8 BOM should be skipped on the next (first) read.
@@ -47,6 +46,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// Current state of the parser.
     /// </summary>
     private State _state;
+
+    /// <inheritdoc/>
+    public override bool IsDisposed => _state >= State.Disposed;
 
     /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T},in CsvIOOptions)"/>
     public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv, in CsvIOOptions ioOptions = default)
@@ -270,7 +272,6 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             consumed = Math.Min(consumed, _buffer.Length);
             _reader.Advance(consumed);
             _buffer = _buffer.Slice(consumed);
-            _consumed += consumed;
         }
         else if (_state is State.DataExhausted && _buffer.Length >= maxLengthThreshold)
         {

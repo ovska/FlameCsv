@@ -58,7 +58,7 @@ internal readonly record struct EnumValueModel : IComparable<EnumValueModel>
     {
         int cmp = Value.CompareTo(other.Value);
         if (cmp == 0)
-            cmp = StringComparer.Ordinal.Compare(Name, other.Name); // fields cannot have the same name
+            cmp = string.CompareOrdinal(Name, other.Name); // fields cannot have the same name
         return cmp;
     }
 

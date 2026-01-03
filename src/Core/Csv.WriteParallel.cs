@@ -207,11 +207,11 @@ file static class Util
             CsvParallel.ForEach<
                 TValue,
                 ParallelChunker.HasOrderEnumerable<TValue>,
-                CsvWriterProducer<T, TValue>,
+                CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
                 CsvFieldWriter<T>
             >(
                 ParallelChunker.Chunk(source, parallelOptions.EffectiveChunkSize),
-                new CsvWriterProducer<T, TValue>(options, builder.IOOptions, dematerializer, sink),
+                new(options, builder.IOOptions, dematerializer, sink),
                 CsvWriterProducer<T>.Consume,
                 cts,
                 parallelOptions.MaxDegreeOfParallelism
@@ -236,11 +236,11 @@ file static class Util
                 .ForEachAsync<
                     TValue,
                     ParallelChunker.HasOrderEnumerable<TValue>,
-                    CsvWriterProducer<T, TValue>,
+                    CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
                     CsvFieldWriter<T>
                 >(
                     ParallelChunker.ChunkAsync(source, parallelOptions.EffectiveChunkSize),
-                    new CsvWriterProducer<T, TValue>(options, builder.IOOptions, dematerializer, sink),
+                    new(options, builder.IOOptions, dematerializer, sink),
                     CsvWriterProducer<T>.ConsumeAsync,
                     cts,
                     parallelOptions.MaxDegreeOfParallelism

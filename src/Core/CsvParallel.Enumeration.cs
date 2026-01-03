@@ -8,7 +8,7 @@ namespace FlameCsv;
 internal static partial class CsvParallel
 {
     internal sealed class ParallelEnumerable<T>(
-        Action<Consume<Accumulator<T>>, CancellationToken> runParallel,
+        Action<Consume<SlimList<T>>, CancellationToken> runParallel,
         CancellationToken userToken
     ) : IEnumerable<ArraySegment<T>>
     {
@@ -19,8 +19,8 @@ internal static partial class CsvParallel
 
     private sealed class ParallelEnumerator<T> : IEnumerator<ArraySegment<T>>
     {
-        private readonly BlockingCollection<Accumulator<T>> _blockingCollection;
-        private Accumulator<T>? _current;
+        private readonly BlockingCollection<SlimList<T>> _blockingCollection;
+        private SlimList<T>? _current;
 
         private readonly CancellationTokenSource _enumeratorCts;
         private readonly CancellationTokenSource _pipelineCts; // user + enumerator
@@ -30,7 +30,7 @@ internal static partial class CsvParallel
         private bool _done;
 
         public ParallelEnumerator(
-            Action<Consume<Accumulator<T>>, CancellationToken> parallelForEach,
+            Action<Consume<SlimList<T>>, CancellationToken> parallelForEach,
             CancellationToken userToken
         )
         {
@@ -106,7 +106,7 @@ internal static partial class CsvParallel
     }
 
     internal sealed class ParallelAsyncEnumerable<T>(
-        Func<ConsumeAsync<Accumulator<T>>, CancellationToken, Task> runParallel,
+        Func<ConsumeAsync<SlimList<T>>, CancellationToken, Task> runParallel,
         CancellationToken userToken
     ) : IAsyncEnumerable<ArraySegment<T>>
     {
@@ -118,7 +118,7 @@ internal static partial class CsvParallel
 
     private sealed class ParallelAsyncEnumerator<T> : IAsyncEnumerator<ArraySegment<T>>
     {
-        private readonly Channel<Accumulator<T>> _channel;
+        private readonly Channel<SlimList<T>> _channel;
 
         private readonly CancellationTokenSource _enumeratorCts;
         private readonly CancellationTokenSource _pipelineCts; // user + enumerator
@@ -128,10 +128,10 @@ internal static partial class CsvParallel
 
         public ArraySegment<T> Current => _current!.AsArraySegment();
 
-        private Accumulator<T>? _current;
+        private SlimList<T>? _current;
 
         public ParallelAsyncEnumerator(
-            Func<ConsumeAsync<Accumulator<T>>, CancellationToken, Task> parallelForEachAsync,
+            Func<ConsumeAsync<SlimList<T>>, CancellationToken, Task> parallelForEachAsync,
             CancellationToken userToken,
             CancellationToken getEnumeratorToken
         )
@@ -140,7 +140,7 @@ internal static partial class CsvParallel
             _pipelineCts = CancellationTokenSource.CreateLinked(userToken, getEnumeratorToken, _enumeratorCts.Token);
             _pipelineToken = _pipelineCts.Token;
 
-            _channel = Channel.CreateUnbounded<Accumulator<T>>(
+            _channel = Channel.CreateUnbounded<SlimList<T>>(
                 new UnboundedChannelOptions
                 {
                     SingleReader = true,

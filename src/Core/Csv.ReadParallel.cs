@@ -69,7 +69,7 @@ static partial class Csv
             return Util.AsEnumerableCore(
                 options,
                 this,
-                ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
+                ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions)
             );
         }
 
@@ -88,11 +88,7 @@ static partial class Csv
             CsvOptions<T>? options = null
         )
         {
-            return Util.AsAsyncEnumerableCore(
-                options,
-                this,
-                ValueProducer<T, TValue>.Create(options ?? CsvOptions<T>.Default, ParallelOptions)
-            );
+            return Util.AsAsyncEnumerableCore(options, this, ValueProducer<T, TValue>.Create(options, ParallelOptions));
         }
 
         /// <summary>
@@ -116,7 +112,7 @@ static partial class Csv
             return Util.AsAsyncEnumerableCore(
                 options,
                 this,
-                ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
+                ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions)
             );
         }
 
@@ -133,12 +129,7 @@ static partial class Csv
         )
         {
             ArgumentNullException.ThrowIfNull(action);
-            Util.ForEachCore(
-                options,
-                this,
-                action,
-                ValueProducer<T, TValue>.Create(options ?? CsvOptions<T>.Default, ParallelOptions)
-            );
+            Util.ForEachCore(options, this, action, ValueProducer<T, TValue>.Create(options, ParallelOptions));
         }
 
         /// <summary>
@@ -158,7 +149,7 @@ static partial class Csv
                 options,
                 this,
                 action,
-                ValueProducer<T, TValue>.Create(options ?? CsvOptions<T>.Default, ParallelOptions)
+                ValueProducer<T, TValue>.Create(options, ParallelOptions)
             );
         }
 
@@ -176,12 +167,7 @@ static partial class Csv
         )
         {
             ArgumentNullException.ThrowIfNull(action);
-            Util.ForEachCore(
-                options,
-                this,
-                action,
-                ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
-            );
+            Util.ForEachCore(options, this, action, ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions));
         }
 
         /// <summary>
@@ -204,18 +190,21 @@ static partial class Csv
                 options,
                 this,
                 action,
-                ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
+                ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions)
             );
         }
 
         /// <summary>
         /// Reads CSV records in parallel, binding them using reflection, and writes them to the given channel.
         /// </summary>
+        /// <remarks>
+        /// Cancellation token can be passed to <c>AsParallel()</c>.
+        /// </remarks>
         /// <param name="channelWriter">Channel to write the values to</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
         /// <returns>A task that completes when all values have been written to the channel</returns>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task WriteToChannelAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task ToChannelAsync<[DAM(Messages.ReflectionBound)] TValue>(
             ChannelWriter<TValue> channelWriter,
             CsvOptions<T>? options = null
         )
@@ -224,17 +213,20 @@ static partial class Csv
             return CsvParallel.WriteToChannel(
                 channelWriter,
                 this,
-                ValueProducer<T, TValue>.Create(options ?? CsvOptions<T>.Default, ParallelOptions)
+                ValueProducer<T, TValue>.Create(options, ParallelOptions)
             );
         }
 
         /// <summary>
         /// Reads CSV records in parallel, binding them using the given type map, and writes them to the given channel.
         /// </summary>
+        /// <remarks>
+        /// Cancellation token can be passed to <c>AsParallel()</c>.
+        /// </remarks>
         /// <param name="channelWriter">Channel to write the values to</param>
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        public Task WriteToChannelAsync<TValue>(
+        public Task ToChannelAsync<TValue>(
             ChannelWriter<TValue> channelWriter,
             CsvTypeMap<T, TValue> typeMap,
             CsvOptions<T>? options = null
@@ -245,7 +237,7 @@ static partial class Csv
             return CsvParallel.WriteToChannel(
                 channelWriter,
                 this,
-                ValueProducer<T, TValue>.Create(typeMap, options ?? CsvOptions<T>.Default, ParallelOptions)
+                ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions)
             );
         }
     }
@@ -302,7 +294,7 @@ file static class Util
                 using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
 
-                CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+                CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                     reader.AsEnumerable(),
                     producer,
                     consume,
@@ -332,7 +324,7 @@ file static class Util
                 using (var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken))
                 {
                     await CsvParallel
-                        .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+                        .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                             reader.AsAsyncEnumerable(),
                             producer,
                             consumeAsync,
@@ -358,7 +350,7 @@ file static class Util
 
         using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
-        CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+        CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
             reader.AsEnumerable(),
             producer,
             (in chunk, ex) =>
@@ -389,7 +381,7 @@ file static class Util
         using (var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken))
         {
             await CsvParallel
-                .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, Accumulator<TValue>>(
+                .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                     reader.AsAsyncEnumerable(),
                     producer,
                     (chunk, ex, ct) => ex is null ? action(chunk.AsArraySegment(), ct) : ValueTask.CompletedTask,

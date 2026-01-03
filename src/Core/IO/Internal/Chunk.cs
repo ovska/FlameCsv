@@ -29,6 +29,10 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
     /// </summary>
     public RecordBuffer RecordBuffer => _recordBuffer;
 
+    public long Position { get; init; }
+
+    public int LineNumber { get; init; }
+
     /// <summary>
     /// Memory owner for the chunk data.
     /// </summary>
@@ -40,8 +44,13 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
 
     internal byte _disposed;
 
+    /// <inheritdoc/>
+    public override bool IsDisposed => _disposed != 0;
+
     public Chunk(
         int order,
+        int lineNumber,
+        long position,
         CsvOptions<T> options,
         ReadOnlyMemory<T> data,
         IBufferPool bufferPool,
@@ -52,8 +61,11 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
     {
         Order = order;
         Data = data;
+        Position = position;
+        LineNumber = lineNumber;
         _bufferPool = bufferPool;
         _owner = owner;
+        _disposed = 0;
     }
 
     public void Dispose()

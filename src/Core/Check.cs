@@ -16,6 +16,17 @@ internal static class Check
     [Conditional("FUZZ")]
     [Conditional("DEBUG")]
     [StackTraceHidden]
+    public static void Fail(string message = "", [CallerArgumentExpression(nameof(message))] string expression = "")
+    {
+        var fullMessage = string.IsNullOrEmpty(message)
+            ? $"Check.Fail called: {expression}"
+            : $"Check.Fail called: {expression} - {message}";
+        throw new UnreachableException(fullMessage);
+    }
+
+    [Conditional("FUZZ")]
+    [Conditional("DEBUG")]
+    [StackTraceHidden]
     public static void True(
         [DoesNotReturnIf(false)] bool condition,
         string message = "",

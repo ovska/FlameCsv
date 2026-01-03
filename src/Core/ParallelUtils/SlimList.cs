@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.ParallelUtils;
 
-internal sealed class Accumulator<T>(int chunkSize) : IConsumable
+internal sealed class SlimList<T>(int chunkSize) : IConsumable
 {
     private readonly T[] _array = new T[chunkSize];
 

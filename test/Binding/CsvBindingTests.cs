@@ -1,19 +1,22 @@
+using System.Runtime.CompilerServices;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
+using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Binding;
 
 internal static class ConstantRecord
 {
-    public static CsvRecordRef<char> Create(params ReadOnlySpan<string> values)
+    public static IDisposable Create(out CsvRecordRef<char> record, params ReadOnlySpan<string> values)
     {
         string data = string.Join(",", values);
-        using var reader = new CsvReader<char>(CsvOptions<char>.Default, data.AsMemory());
+        var reader = new CsvReader<char>(CsvOptions<char>.Default, data.AsMemory());
         Assert.True(reader.TryAdvanceReader());
         Assert.True(reader.TryReadLine(out var view));
-        return new CsvRecordRef<char>(reader, view);
+        record = new CsvRecordRef<char>(reader, view);
+        return reader;
     }
 }
 
@@ -70,8 +73,11 @@ public static class CsvBindingTests
             ["Id", "Id", "Name"]
         );
 
-        var record = ConstantRecord.Create("!unparsable!", "2", "Test"); // only the bound one is actually parsed
-        Assert.Equal(new RecordTest(2, "Test"), valid.Parse(record)); // The last one wins
+        // only the bound one is actually parsed
+        using (ConstantRecord.Create(out var record, "!unparsable!", "2", "Test"))
+        {
+            Assert.Equal(new RecordTest(2, "Test"), valid.Parse(record)); // The last one wins
+        }
     }
 
     [Fact]
@@ -82,8 +88,10 @@ public static class CsvBindingTests
         var binder = new CsvReflectionBinder<char>(CsvOptions<char>.Default);
         var materializer = binder.GetMaterializer<RecordTest>(["Id", "Name"]);
 
-        var record = ConstantRecord.Create("1", "Test");
-        Assert.Equal(new RecordTest(1, "Test"), materializer.Parse(record));
+        using (ConstantRecord.Create(out var record, "1", "Test"))
+        {
+            Assert.Equal(new RecordTest(1, "Test"), materializer.Parse(record));
+        }
 
         var dematerializer = binder.GetDematerializer<RecordTest>();
 
@@ -171,9 +179,11 @@ public static class CsvBindingTests
         var m1 = Binder.GetMaterializer<MultipleAliases>(["alias1"]);
         var m2 = Binder.GetMaterializer<MultipleAliases>(["alias2"]);
 
-        var record = ConstantRecord.Create("1");
-        Assert.Equal(1, m1.Parse(record).Value);
-        Assert.Equal(1, m2.Parse(record).Value);
+        using (ConstantRecord.Create(out var record, "1"))
+        {
+            Assert.Equal(1, m1.Parse(record).Value);
+            Assert.Equal(1, m2.Parse(record).Value);
+        }
     }
 
     [CsvRequired(MemberName = nameof(Value))]

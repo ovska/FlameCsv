@@ -25,14 +25,15 @@ public readonly ref struct CsvRecordRef<T>
         : this(reader, ref MemoryMarshal.GetReference(reader._buffer.Span), view) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecordRef(RecordOwner<T> reader, ref T data, RecordView view)
+    internal CsvRecordRef(RecordOwner<T> owner, ref T data, RecordView view)
     {
         view.AssertInvariants();
+        Check.False(owner.IsDisposed, "Cannot create CsvRecordRef from disposed reader.");
 
         _data = ref data;
-        _owner = reader;
+        _owner = owner;
         _fields = MemoryMarshal.CreateReadOnlySpan(
-            ref Unsafe.Add(ref MemoryMarshal.GetReference(reader._recordBuffer._fields), (uint)view.Start + 1),
+            ref Unsafe.Add(ref MemoryMarshal.GetReference(owner._recordBuffer._fields), (uint)view.Start + 1),
             view.Length
         );
     }
@@ -59,6 +60,8 @@ public readonly ref struct CsvRecordRef<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
+            Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+
             // call indexer first to get bounds checks
             uint current = _fields[index];
             uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
@@ -96,6 +99,8 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetFieldUnsafe(int index)
     {
+        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+
         ref uint fieldRef = ref MemoryMarshal.GetReference(_fields);
         uint previous = Unsafe.Add(ref fieldRef, index - 1);
         uint current = Unsafe.Add(ref fieldRef, (uint)index);
@@ -127,6 +132,8 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
+        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+
         // call indexer first to get bounds checks
         uint current = _fields[index];
         uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
@@ -148,6 +155,8 @@ public readonly ref struct CsvRecordRef<T>
     {
         get
         {
+            Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+
             if (_fields.IsEmpty)
             {
                 return [];
@@ -168,6 +177,8 @@ public readonly ref struct CsvRecordRef<T>
     /// </summary>
     public int GetRecordLength()
     {
+        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+
         if (_fields.IsEmpty)
         {
             return 0;
@@ -190,6 +201,8 @@ public readonly ref struct CsvRecordRef<T>
     /// </returns>
     public CsvFieldMetadata GetMetadata(int index)
     {
+        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+
         uint current = _fields[index];
         uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
         return new CsvFieldMetadata(current, Field.NextStart(previous));
@@ -208,6 +221,11 @@ public readonly ref struct CsvRecordRef<T>
             return $"{{ CsvRecordRef<{Token<T>.Name}>[0]: Uninitialized }}";
         }
 
+        if (_owner.IsDisposed)
+        {
+            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: Disposed }}";
+        }
+
         if (typeof(T) == typeof(byte))
         {
             return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Raw))}\" }}";
@@ -223,6 +241,13 @@ public readonly ref struct CsvRecordRef<T>
 
         public DebugProxy(CsvRecordRef<T> record)
         {
+            if (record._owner.IsDisposed)
+            {
+                Raw = "<owner disposed>";
+                Fields = [];
+                return;
+            }
+
             Raw = Transcode.ToString(record.Raw);
             Fields = new string[record.FieldCount];
 

@@ -122,6 +122,8 @@ public class GetFieldBench
 
     private sealed class NoOpOwner(CsvOptions<byte> options) : RecordOwner<byte>(options, null!)
     {
+        public override bool IsDisposed => false;
+
         internal override Span<byte> GetUnescapeBuffer(int length)
         {
             throw new NotImplementedException();

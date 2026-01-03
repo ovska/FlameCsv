@@ -1,7 +1,7 @@
 namespace FlameCsv.ParallelUtils;
 
 /// <summary>
-/// Indicates that type type can be consumed in a parallel loop.
+/// Indicates that type can be consumed in a parallel loop.
 /// </summary>
 internal interface IConsumable : IDisposable
 {

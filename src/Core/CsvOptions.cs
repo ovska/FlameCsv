@@ -298,7 +298,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     /// <summary>
     /// Delegate that is called when an exception is thrown when parsing a record.<br/>
-    /// Not used with `Enumerate()` or `AsParallel()`.
+    /// Not used with `Enumerate()`.
     /// </summary>
     public CsvExceptionHandler<T>? ExceptionHandler
     {

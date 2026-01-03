@@ -11,6 +11,7 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
     private readonly CsvOptions<T> _options;
     private readonly ReadOnlyMemory<T> _data;
     private int _position;
+    private int _lineNumber;
     private int _index;
 
     private readonly IBufferPool _bufferPool;
@@ -60,13 +61,23 @@ internal sealed class ParallelMemoryReader<T> : IParallelReader<T>
             {
                 fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: true);
                 recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
-                _position = _data.Length;
-                addToPos = 0;
+                addToPos = _data.Length - _position; // consume all remaining data
             }
 
             if (recordsRead > 0)
             {
-                Chunk<T> chunk = new(_index++, _options, remaining, _bufferPool, owner: null, recordBuffer);
+                Chunk<T> chunk = new(
+                    _index++,
+                    _position,
+                    _lineNumber,
+                    _options,
+                    remaining,
+                    _bufferPool,
+                    owner: null,
+                    recordBuffer
+                );
+
+                _lineNumber += recordsRead;
                 _position += addToPos;
                 return chunk;
             }
