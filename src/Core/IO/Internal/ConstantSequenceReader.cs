@@ -38,6 +38,9 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
 
     protected override ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken)
     {
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled<int>(cancellationToken);
+
         return new ValueTask<int>(ReadCore(buffer.Span));
     }
 

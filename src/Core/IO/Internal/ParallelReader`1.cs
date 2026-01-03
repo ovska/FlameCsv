@@ -40,7 +40,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         _previousData = HeapMemoryOwner<T>.Empty;
         _previousRead = 0;
         _position = 0;
-        _lineNumber = 1;
+        _lineNumber = 0;
         _index = 0;
 
         (_scalarTokenizer, _tokenizer) = options.GetTokenizers();

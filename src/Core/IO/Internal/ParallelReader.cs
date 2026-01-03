@@ -1,25 +1,24 @@
+using System.Buffers;
 using System.Text;
 
 namespace FlameCsv.IO.Internal;
 
 internal static class ParallelReader
 {
-    public static IParallelReader<char> Create(
-        ReadOnlyMemory<char> csv,
-        CsvOptions<char> options,
-        IBufferPool? bufferPool
-    )
+    public static IParallelReader<T> Create<T>(ReadOnlyMemory<T> csv, CsvOptions<T> options, in CsvIOOptions ioOptions)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        return new ParallelMemoryReader<char>(csv, options, bufferPool);
+        return new ParallelSequenceReader<T>(new ReadOnlySequence<T>(csv), options, in ioOptions);
     }
 
-    public static IParallelReader<byte> Create(
-        ReadOnlyMemory<byte> csv,
-        CsvOptions<byte> options,
-        IBufferPool? bufferPool
+    public static IParallelReader<T> Create<T>(
+        in ReadOnlySequence<T> csv,
+        CsvOptions<T> options,
+        in CsvIOOptions ioOptions
     )
+        where T : unmanaged, IBinaryInteger<T>
     {
-        return new ParallelMemoryReader<byte>(csv, options, bufferPool);
+        return new ParallelSequenceReader<T>(in csv, options, in ioOptions);
     }
 
     public static IParallelReader<byte> Create(Stream stream, CsvOptions<byte> options, CsvIOOptions ioOptions)

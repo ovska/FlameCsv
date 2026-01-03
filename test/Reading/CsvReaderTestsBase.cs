@@ -75,9 +75,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         PoisonPagePlacement placement
     )
     {
-        if (parallel)
-            return;
-
         using var pool = new ReturnTrackingBufferPool(placement);
         CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
         var memory = TestDataGenerator.Generate<T>(newline, header is Header.Yes, escaping);
@@ -88,8 +85,12 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
             if (parallel)
             {
-                Assert.Skip("Parallel reading is not supported yet with sequences.");
-                return;
+                var parallelBuilder = Csv.From(in sequence).AsParallel(GetParallelOptions());
+                enumerable = (
+                    sourceGen
+                        ? parallelBuilder.ReadUnordered<Obj>(TypeMap, options)
+                        : parallelBuilder.ReadUnordered<Obj>(options)
+                ).SelectMany(s => s);
             }
             else
             {
@@ -125,9 +126,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             {
                 var builder = Csv.From(in sequence);
 
-                var items = await GetItems(builder, options, sourceGen, header, newline, isAsync: false);
-
-                foreach (var item in items)
+                await foreach (var item in GetItems(builder, options, sourceGen, header, newline, isAsync: false))
                 {
                     yield return item;
                 }
@@ -165,13 +164,19 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             {
                 source = ParallelCore();
 
-                async IAsyncEnumerable<Obj> ParallelCore()
+#if !NET10_0_OR_GREATER
+                async
+#endif
+                IAsyncEnumerable<Obj> ParallelCore()
                 {
                     var parallelBuilder = builder.AsParallel(GetParallelOptions());
                     var enumerable = sourceGen
                         ? parallelBuilder.ReadUnorderedAsync<Obj>(TypeMap, options)
                         : parallelBuilder.ReadUnorderedAsync<Obj>(options);
 
+#if NET10_0_OR_GREATER
+                    return enumerable.SelectMany(s => s);
+#else
                     await foreach (var segment in enumerable.WithTestContext())
                     {
                         await Task.Yield();
@@ -181,6 +186,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                             yield return item;
                         }
                     }
+#endif
                 }
             }
             else
@@ -219,9 +225,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             await using var stream = data.AsStream();
             var builder = GetBuilder(stream, options, bufferSize, pool);
 
-            var items = await GetItems(builder, options, sourceGen, header, newline, isAsync: true);
-
-            foreach (var item in items)
+            await foreach (var item in GetItems(builder, options, sourceGen, header, newline, isAsync: true))
             {
                 yield return item;
             }
@@ -234,9 +238,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         if (parallel)
         {
+#if NET10_0_OR_GREATER
+            enumerable = enumerable.Order();
+#else
             List<Obj> list = await SyncAsyncEnumerable.ToListAsync(enumerable);
             list.Sort();
             enumerable = SyncAsyncEnumerable.Create(list);
+#endif
         }
 
         await foreach (var obj in enumerable.WithTestContext())
@@ -253,7 +261,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         Assert.Equal(1_000, i);
     }
 
-    protected async Task<List<Obj>> GetItems(
+    protected async IAsyncEnumerable<Obj> GetItems(
         Csv.IReadBuilder<T> builder,
         CsvOptions<T> options,
         bool sourceGen,
@@ -279,18 +287,16 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         {
             await foreach (var record in new CsvRecordAsyncEnumerable<T>(builder, options).WithTestContext())
             {
-                items.Add(Core(in record));
+                yield return Core(in record);
             }
         }
         else
         {
             foreach (var record in new CsvRecordEnumerable<T>(builder, options))
             {
-                items.Add(Core(in record));
+                yield return Core(in record);
             }
         }
-
-        return items;
 
         Obj Core(in CsvRecord<T> record)
         {

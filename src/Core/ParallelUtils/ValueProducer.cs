@@ -88,11 +88,11 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
     {
         if (TryProduceDirect(chunk, input, out TValue? result))
         {
-            state.Add(result!);
+            state.Add(result);
         }
     }
 
-    public bool TryProduceDirect(Chunk<T> chunk, CsvRecordRef<T> input, [MaybeNullWhen(false)] out TValue? value)
+    public bool TryProduceDirect(Chunk<T> chunk, CsvRecordRef<T> input, [MaybeNullWhen(false)] out TValue value)
     {
         if (_materializer is null)
         {

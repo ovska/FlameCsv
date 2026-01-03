@@ -37,8 +37,7 @@ static partial class Csv
         /// </param>
         ICsvBufferReader<T> CreateReader(bool isAsync);
 
-        internal IParallelReader<T> CreateParallelReader(CsvOptions<T> options, bool isAsync) =>
-            throw new NotSupportedException(GetType().FullName + " does not support parallel reading.");
+        internal IParallelReader<T> CreateParallelReader(CsvOptions<T> options, bool isAsync);
 
         /// <summary>
         /// Configures the builder to read CSV data in parallel.
@@ -214,7 +213,7 @@ static partial class Csv
             bool isAsync
         )
         {
-            return new ParallelMemoryReader<T>(_memory, options, _ioOptions.EffectiveBufferPool);
+            return ParallelReader.Create(_memory, options, in _ioOptions);
         }
 
         public IReadBuilder<T> WithIOOptions(in CsvIOOptions ioOptions)
@@ -246,7 +245,7 @@ static partial class Csv
             bool isAsync
         )
         {
-            throw new NotSupportedException($"Parallel reading of ReadOnlySequence<{Token<T>.Name}> is not supported.");
+            return ParallelReader.Create(in _sequence, options, in _ioOptions);
         }
     }
 

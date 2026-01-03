@@ -8,24 +8,21 @@ namespace FlameCsv;
 [ExcludeFromCodeCoverage]
 internal static class Check
 {
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [Obsolete("Call Check.Equal instead", true)]
     public static new void Equals(object? a, object? b) => throw new UnreachableException();
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void Fail(string message = "", [CallerArgumentExpression(nameof(message))] string expression = "")
     {
         var fullMessage = string.IsNullOrEmpty(message)
             ? $"Check.Fail called: {expression}"
-            : $"Check.Fail called: {expression} - {message}";
+            : $"Check.Fail called: {expression} | {message}";
         throw new UnreachableException(fullMessage);
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void True(
         [DoesNotReturnIf(false)] bool condition,
@@ -37,21 +34,19 @@ internal static class Check
         {
             var fullMessage = string.IsNullOrEmpty(message)
                 ? $"Check.True failed: {expression}"
-                : $"Check.True failed: {expression} - {message}";
+                : $"Check.True failed: {expression} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void True(
         [DoesNotReturnIf(false)] bool condition,
         [InterpolatedStringHandlerArgument(nameof(condition))] ref CheckInterpolatedStringHandler message
     ) => True(condition, message.ToStringAndClear());
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void False(
         [DoesNotReturnIf(true)] bool condition,
@@ -63,21 +58,19 @@ internal static class Check
         {
             var fullMessage = string.IsNullOrEmpty(message)
                 ? $"Check.False failed: {expression}"
-                : $"Check.False failed: {expression} - {message}";
+                : $"Check.False failed: {expression} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void False(
         [DoesNotReturnIf(true)] bool condition,
         [InterpolatedStringHandlerArgument(nameof(condition))] ref CheckInterpolatedStringHandler message
     ) => False(condition, message.ToStringAndClear());
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void Equal<T>(
         T value,
@@ -89,14 +82,13 @@ internal static class Check
         if (!EqualityComparer<T>.Default.Equals(value, expected))
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.Equal failed: {expression} - Expected: {expected}, Actual: {value}"
-                : $"Check.Equal failed: {expression} - Expected: {expected}, Actual: {value} - {message}";
+                ? $"Check.Equal failed: {expression} | Expected: {expected}, Actual: {value}"
+                : $"Check.Equal failed: {expression} | Expected: {expected}, Actual: {value} - {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void NotEqual<T>(
         T value,
@@ -108,14 +100,13 @@ internal static class Check
         if (EqualityComparer<T>.Default.Equals(value, notExpected))
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.NotEqual failed: {expression} - Not Expected: {notExpected}, Actual: {value}"
-                : $"Check.NotEqual failed: {expression} - Not Expected: {notExpected}, Actual: {value} - {message}";
+                ? $"Check.NotEqual failed: {expression} | Not Expected: {notExpected}, Actual: {value}"
+                : $"Check.NotEqual failed: {expression} | Not Expected: {notExpected}, Actual: {value} - {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void Positive<T>(
         T value,
@@ -127,14 +118,13 @@ internal static class Check
         if (value < T.Zero)
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.Positive failed: {expression} - Value: {value}"
-                : $"Check.Positive failed: {expression} - Value: {value} - {message}";
+                ? $"Check.Positive failed: {expression} | Value: {value}"
+                : $"Check.Positive failed: {expression} | Value: {value} - {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void OverZero<T>(
         T value,
@@ -146,14 +136,13 @@ internal static class Check
         if (value <= T.Zero)
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.OverZero failed: {expression} - Value: {value}"
-                : $"Check.OverZero failed: {expression} - Value: {value} - {message}";
+                ? $"Check.OverZero failed: {expression} | Value: {value}"
+                : $"Check.OverZero failed: {expression} | Value: {value} - {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void NotNull(
         [NotNull] object? value,
@@ -165,13 +154,12 @@ internal static class Check
         {
             var fullMessage = string.IsNullOrEmpty(message)
                 ? $"Check.NotNull failed: {expression}"
-                : $"Check.NotNull failed: {expression} - {message}";
+                : $"Check.NotNull failed: {expression} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void IsNull(
         object? value,
@@ -183,13 +171,12 @@ internal static class Check
         {
             var fullMessage = string.IsNullOrEmpty(message)
                 ? $"Check.IsNull failed: {expression}"
-                : $"Check.IsNull failed: {expression} - {message}";
+                : $"Check.IsNull failed: {expression} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void GreaterThan<T>(
         T value,
@@ -202,14 +189,13 @@ internal static class Check
         if (value.CompareTo(threshold) <= 0)
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.GreaterThan failed: {expression} - Value: {value}, Threshold: {threshold}"
-                : $"Check.GreaterThan failed: {expression} - Value: {value}, Threshold: {threshold} - {message}";
+                ? $"Check.GreaterThan failed: {expression} | {value} > {threshold}"
+                : $"Check.GreaterThan failed: {expression} | {value} > {threshold} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void GreaterThanOrEqual<T>(
         T value,
@@ -222,14 +208,13 @@ internal static class Check
         if (value.CompareTo(threshold) < 0)
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.GreaterThanOrEqual failed: {expression} - Value: {value}, Threshold: {threshold}"
-                : $"Check.GreaterThanOrEqual failed: {expression} - Value: {value}, Threshold: {threshold} - {message}";
+                ? $"Check.GreaterThanOrEqual failed: {expression} | {value} >= {threshold}"
+                : $"Check.GreaterThanOrEqual failed: {expression} | {value} >= {threshold} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void LessThan<T>(
         T value,
@@ -242,14 +227,13 @@ internal static class Check
         if (value.CompareTo(threshold) >= 0)
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.LessThan failed: {expression} - Value: {value}, Threshold: {threshold}"
-                : $"Check.LessThan failed: {expression} - Value: {value}, Threshold: {threshold} - {message}";
+                ? $"Check.LessThan failed: {expression} | {value} < {threshold}"
+                : $"Check.LessThan failed: {expression} | {value} < {threshold} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
 
-    [Conditional("FUZZ")]
-    [Conditional("DEBUG")]
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
     public static void LessThanOrEqual<T>(
         T value,
@@ -262,8 +246,8 @@ internal static class Check
         if (value.CompareTo(threshold) > 0)
         {
             var fullMessage = string.IsNullOrEmpty(message)
-                ? $"Check.LessThanOrEqual failed: {expression} - Value: {value}, Threshold: {threshold}"
-                : $"Check.LessThanOrEqual failed: {expression} - Value: {value}, Threshold: {threshold} - {message}";
+                ? $"Check.LessThanOrEqual failed: {expression} | {value} <= {threshold}"
+                : $"Check.LessThanOrEqual failed: {expression} | {value} <= {threshold} | {message}";
             throw new UnreachableException(fullMessage);
         }
     }
