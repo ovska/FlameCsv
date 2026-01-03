@@ -29,15 +29,6 @@ public static class ScalarTests
 
         Assert.SkipWhen(simdTokenizer is null, "SIMD tokenizer not supported on this platform");
 
-        simdTokenizer =
-            newline == CsvNewline.CRLF
-                ? escaping == Escaping.QuoteNull
-                    ? new ArmTokenizer<char, TrueConstant, FalseConstant>(options)
-                    : new ArmTokenizer<char, TrueConstant, TrueConstant>(options)
-                : escaping == Escaping.QuoteNull
-                    ? new ArmTokenizer<char, FalseConstant, FalseConstant>(options)
-                    : new ArmTokenizer<char, FalseConstant, TrueConstant>(options);
-
         using RecordBuffer rbScalar = new(bufferSize);
         using RecordBuffer rbSimd = new(bufferSize);
 
