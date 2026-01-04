@@ -171,7 +171,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
             Check.True(
                 consumed <= buffer.Length,
-                $"Consumed more data than available in buffer? {consumed} vs {buffer.Length} (read {fieldsRead} fields and {recordsRead} records)"
+                $"Consumed more data than available in buffer? {consumed} vs {buffer.Length}, {fieldsRead} f, {recordsRead} r, completed: {_isCompleted}, index: {_index}, line: {_lineNumber}, pos: {_position}"
             );
 
             _position += consumed;
