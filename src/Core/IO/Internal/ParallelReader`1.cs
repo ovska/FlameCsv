@@ -145,6 +145,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         // read tail if there is no more data and the SIMD path can't read it
         if (recordsRead == 0 && _tokenizer is not null && _isCompleted)
         {
+            recordBuffer.Initialize(_recordBufferSize);
+            destination = recordBuffer.GetUnreadBuffer(_tokenizer?.MaxFieldsPerIteration ?? 0, out startIndex);
             fieldsRead = _scalarTokenizer.Tokenize(destination, startIndex, data, readToEnd: true);
             recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
         }
