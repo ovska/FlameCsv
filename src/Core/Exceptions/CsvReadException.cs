@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using FlameCsv.Extensions;
 using FlameCsv.Reading;
 using FlameCsv.Utilities;
 
@@ -21,6 +22,8 @@ public class CsvReadException(string? message = null, Exception? innerException 
     /// </summary>
     public required int ActualFieldCount { get; init; }
 
+    internal int? ChunkOrder { get; set; }
+
     /// <inheritdoc/>
     public override string Message
     {
@@ -38,6 +41,13 @@ public class CsvReadException(string? message = null, Exception? innerException 
             vsb.AppendFormatted(Line ?? -1);
             vsb.Append(", Position: ");
             vsb.AppendFormatted(RecordPosition ?? -1);
+
+            if (ChunkOrder.HasValue)
+            {
+                vsb.Append(", Parallel chunk: ");
+                vsb.AppendFormatted(ChunkOrder.Value);
+            }
+
             return vsb.ToString();
         }
     }
@@ -51,7 +61,7 @@ public class CsvReadException(string? message = null, Exception? innerException 
         where T : unmanaged, IBinaryInteger<T>
     {
         throw new CsvReadException(
-            $"Expected {expected} fields, but the record had {record.FieldCount}: {Transcode.ToString(record.Raw)}"
+            $"Expected {expected} fields, but the record had {record.FieldCount}: {record.Raw.AsPrintableString()}"
         )
         {
             ExpectedFieldCount = expected,

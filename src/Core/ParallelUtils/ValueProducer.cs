@@ -122,17 +122,18 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            cfe.Enrich(chunk.RecordBuffer.LineNumber, chunk.RecordBuffer.GetPosition(input._fields), input);
+            cfe.Enrich(chunk._recordBuffer.LineNumber, chunk._recordBuffer.GetPosition(input._fields), input);
             throw;
         }
         catch (Exception ex)
         {
             Check.WrapParseError(ref ex);
 
-            long position = chunk.RecordBuffer.GetPosition(input._fields);
-            int line = chunk.LineNumber + chunk.RecordBuffer.LineNumber;
+            long position = chunk._recordBuffer.GetPosition(input._fields);
+            int line = chunk.LineNumber + chunk._recordBuffer.LineNumber;
             (ex as CsvReadExceptionBase)?.Enrich(line, position, input);
             (ex as CsvParseException)?.WithHeader(_headers);
+            (ex as CsvReadException)?.ChunkOrder = chunk.Order;
 
             if (
                 Options.ExceptionHandler?.Invoke(

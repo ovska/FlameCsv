@@ -213,7 +213,7 @@ static partial class Csv
             bool isAsync
         )
         {
-            return ParallelReader.Create(_memory, options, in _ioOptions);
+            return new ParallelSequenceReader<T>(new ReadOnlySequence<T>(_memory), options, in _ioOptions);
         }
 
         public IReadBuilder<T> WithIOOptions(in CsvIOOptions ioOptions)
@@ -245,7 +245,7 @@ static partial class Csv
             bool isAsync
         )
         {
-            return ParallelReader.Create(in _sequence, options, in _ioOptions);
+            return new ParallelSequenceReader<T>(in _sequence, options, in _ioOptions);
         }
     }
 

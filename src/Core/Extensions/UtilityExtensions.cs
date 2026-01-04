@@ -47,21 +47,20 @@ internal static class UtilityExtensions
 
         if (typeof(T) == typeof(byte) && !Utf8.IsValid(MemoryMarshal.AsBytes(value)))
         {
-            return Convert.ToHexString(MemoryMarshal.AsBytes(value));
+            return $"Hex: [{Convert.ToHexString(MemoryMarshal.AsBytes(value))}]";
         }
 
         StringBuilder result = new(value.Length);
 
         foreach (T item in value)
         {
-            AppendSingle(result, item);
+            AppendSingle(result, (char)ushort.CreateTruncating(item));
         }
 
         return result.ToString();
 
-        static void AppendSingle(StringBuilder sb, T value)
+        static void AppendSingle(StringBuilder sb, char c)
         {
-            char c = (char)ushort.CreateTruncating(value);
             switch (c)
             {
                 case '\0':
@@ -85,7 +84,7 @@ internal static class UtilityExtensions
                 case '\\':
                     sb.Append(@"\\");
                     break;
-                case < (char)32 or (char)127:
+                case < (char)32 or >= (char)127:
                     sb.Append($@"\u{(uint)c:X4}");
                     break;
                 default:

@@ -59,16 +59,19 @@ file sealed class ReturnTrackingGuardedMemoryPool<T>(PoisonPagePlacement placeme
 file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
+    private static readonly ArrayPool<T> _arrayPool = ArrayPool<T>.Create();
+    private static T Sentinel => T.AllBitsSet;
+
     public override int MaxBufferSize => Array.MaxLength;
 
-    private const int Boundaries = 128;
+    private const int Boundaries = 256;
 
     protected override Memory<T> Initialize(int length)
     {
-        T[] array = ArrayPool<T>.Shared.Rent(length + Boundaries * 2);
-
-        array.AsSpan().Fill(T.AllBitsSet);
-
+        T[] array = _arrayPool.Rent(length + Boundaries * 2);
+        array.AsSpan(..Boundaries).Fill(Sentinel);
+        array.AsSpan(Boundaries, length).Fill(T.CreateTruncating(0xEEEE_EEEE)); // fill usable range with recognizable pattern
+        array.AsSpan(Boundaries + length).Fill(Sentinel);
         return array.AsMemory(Boundaries, length);
     }
 
@@ -77,16 +80,15 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
         if (MemoryMarshal.TryGetArray<T>(memory, out var segment))
         {
             T[] array = segment.Array!;
+            bool before = array.AsSpan(..Boundaries).ContainsAnyExcept(Sentinel);
+            bool after = array.AsSpan(Boundaries + memory.Length).ContainsAnyExcept(Sentinel);
 
-            if (
-                array.AsSpan(..Boundaries).ContainsAnyExcept(T.AllBitsSet)
-                || array.AsSpan(Boundaries + memory.Length).ContainsAnyExcept(T.AllBitsSet)
-            )
+            if (before || after)
             {
-                throw new InvalidOperationException($"OOB write detected");
+                throw new InvalidOperationException($"OOB write detected: before={before}, after={after}");
             }
 
-            ArrayPool<T>.Shared.Return(segment.Array!);
+            _arrayPool.Return(segment.Array!);
             return true;
         }
 
@@ -117,11 +119,26 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
     protected abstract Memory<T> Initialize(int length);
     protected abstract bool TryRelease(Memory<T> memory);
 
-    public sealed class Owner(ReturnTrackingMemoryPool<T> pool, int minimumLength) : IMemoryOwner<T>
+    public sealed class Owner : IMemoryOwner<T>
     {
+        private readonly ReturnTrackingMemoryPool<T> _pool;
+        internal readonly Memory<T> _memory;
         private bool _disposed;
 
-        public Memory<T> Memory { get; private set; } = pool.Initialize(minimumLength);
+        public Owner(ReturnTrackingMemoryPool<T> pool, int minimumLength)
+        {
+            _pool = pool;
+            _memory = pool.Initialize(minimumLength);
+        }
+
+        public Memory<T> Memory
+        {
+            get
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                return _memory;
+            }
+        }
 
         public void Dispose()
         {
@@ -130,14 +147,7 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
                 throw new Exception("Memory disposed twice");
             }
 
-            try
-            {
-                pool.Return(this);
-            }
-            finally
-            {
-                Memory = default;
-            }
+            _pool.Return(this);
         }
     }
 
@@ -161,17 +171,15 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
 
     protected override void Dispose(bool disposing)
     {
-        var sw = new SpinWait();
-
-        for (int i = 0; i < 100; i++)
-        {
-            if (Volatile.Read(ref _rentedCount) == Volatile.Read(ref _returnedCount) && _values.IsEmpty)
+        SpinWait.SpinUntil(
+            () =>
             {
-                break;
-            }
-
-            sw.SpinOnce();
-        }
+                int rented = Volatile.Read(ref _rentedCount);
+                int returned = Volatile.Read(ref _returnedCount);
+                return _values.IsEmpty && rented == returned;
+            },
+            millisecondsTimeout: 500
+        );
 
         int rented = Volatile.Read(ref _rentedCount);
         int returned = Volatile.Read(ref _returnedCount);
@@ -184,7 +192,7 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
                     + Environment.NewLine
                     + string.Join(
                         Environment.NewLine + Environment.NewLine,
-                        _values.Select(kvp => $"IDX: {kvp.Value.index}{Environment.NewLine}{kvp.Value.stackTrace}")
+                        _values.Select(kvp => $"Index: {kvp.Value.index}{Environment.NewLine}{kvp.Value.stackTrace}")
                     )
             );
         }
@@ -192,16 +200,16 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
 
     internal void Return(Owner instance)
     {
-        if (instance.Memory.Length == 0 || !_values.TryRemove(instance, out _))
+        var memory = instance._memory;
+
+        if (memory.Length == 0 || !_values.TryRemove(instance, out _))
         {
             throw new InvalidOperationException(
-                $"The returned memory was not rented from the pool (length: {instance.Memory.Length})."
+                $"The returned memory was not rented from the pool (length: {memory.Length})."
             );
         }
 
         Interlocked.Increment(ref _returnedCount);
-
-        var memory = instance.Memory;
 
         if (!TryRelease(memory))
         {
