@@ -56,7 +56,7 @@ jobs:
         fail=0
         for project in $TEST_PROJECTS; do
           echo "Testing $project"
-          if ! dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo -p:StopTestsOnFail=false -p:DefineConstants='FULL_TEST_SUITE%3b$(DefineConstants)' "$project" --collect:"XPlat Code Coverage"; then
+          if ! dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo -p:StopTestsOnFail=false -p:DefineConstants='FULL_TEST_SUITE%3b$(DefineConstants)' "$project" --blame-hang --blame-hang-timeout 2m --collect:"XPlat Code Coverage"; then
             echo "Tests failed in $project"
             fail=1
           fi
