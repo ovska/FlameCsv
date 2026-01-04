@@ -162,6 +162,7 @@ public partial class CsvOptions<T>
                         : new Avx512Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
 #endif
+#if false
             else if (Avx2Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
@@ -172,6 +173,7 @@ public partial class CsvOptions<T>
                         ? new Avx2Tokenizer<T, FalseConstant, TrueConstant>(this)
                         : new Avx2Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
+#endif
             else if (Vector.IsHardwareAccelerated) // SSE or WASM
             {
                 _simdTokenizer = isCRLF
