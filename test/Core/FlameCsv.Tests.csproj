@@ -16,9 +16,6 @@
         <ProjectReference Include="..\Lib\FlameCsv.Tests.Lib.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
-    </ItemGroup>
-    <ItemGroup>
         <Compile Update="Converters\EnumReflectionByteTests.cs">
             <DependentUpon>EnumTests.cs</DependentUpon>
         </Compile>

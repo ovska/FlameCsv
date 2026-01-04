@@ -127,6 +127,8 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         }
         catch (Exception ex)
         {
+            Check.WrapParseError(ref ex);
+
             long position = chunk.RecordBuffer.GetPosition(input._fields);
             int line = chunk.LineNumber + chunk.RecordBuffer.LineNumber;
             (ex as CsvReadExceptionBase)?.Enrich(line, position, input);

@@ -12,9 +12,4 @@
     <ItemGroup>
         <PackageReference Include="CsvHelper" Version="33.0.1" />
     </ItemGroup>
-    <ItemGroup>
-        <Content Update="xunit.runner.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Content>
-    </ItemGroup>
 </Project>

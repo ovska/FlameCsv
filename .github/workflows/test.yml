@@ -51,10 +51,16 @@ jobs:
     - name: Run tests
       shell: bash
       run: |
+        set +e
+        fail=0
         for project in $TEST_PROJECTS; do
           echo "Testing $project"
-          dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo -p:DefineConstants=FULL_TEST_SUITE%3b$(DefineConstants) "$project" --collect:"XPlat Code Coverage"
+          if ! dotnet test --configuration Release --no-build --verbosity minimal --logger "console;verbosity=minimal" --nologo -p:StopTestsOnFail=false -p:DefineConstants=FULL_TEST_SUITE%3b$(DefineConstants) "$project" --collect:"XPlat Code Coverage"; then
+            echo "Tests failed in $project"
+            fail=1
+          fi
         done
+        exit $fail
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@v4

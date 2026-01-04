@@ -6,7 +6,7 @@ namespace FlameCsv.Exceptions;
 /// <summary>
 /// Base class for exceptions thrown while reading CSV data.
 /// </summary>
-public abstract class CsvReadExceptionBase(string? message = null, Exception? innerException = null)
+public class CsvReadExceptionBase(string? message = null, Exception? innerException = null)
     : Exception(message, innerException)
 {
     /// <summary>

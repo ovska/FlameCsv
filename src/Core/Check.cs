@@ -315,4 +315,17 @@ internal static class Check
         public void AppendFormatted(object? value, int alignment = 0, string? format = null) =>
             _stringBuilderHandler.AppendFormatted(value, alignment, format);
     }
+
+    /// <summary>
+    /// Wraps an assertion failure to a CsvReadExceptionBase.
+    /// </summary>
+    /// <param name="ex"></param>
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
+    public static void WrapParseError(ref Exception ex)
+    {
+        if (ex is UnreachableException)
+        {
+            ex = new Exceptions.CsvReadExceptionBase("Assertion failed", ex);
+        }
+    }
 }

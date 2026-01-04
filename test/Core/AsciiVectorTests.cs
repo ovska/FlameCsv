@@ -53,7 +53,7 @@ public static class AsciiVectorTests
     [Fact]
     public static unsafe void Should_Narrow_512()
     {
-        Assert.SkipUnless(Vector512.IsHardwareAccelerated, "Vector512 not supported");
+        Assert.SkipUnless(System.Runtime.Intrinsics.X86.Avx512F.IsSupported, "Vector512 not supported");
 
         Span<char> data = stackalloc char[Vector512<byte>.Count];
         data.Fill((char)(',' | (',' << 8)));
