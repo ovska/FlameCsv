@@ -1,4 +1,6 @@
-﻿namespace FlameCsv.Tests;
+﻿using System.Diagnostics;
+
+namespace FlameCsv.Tests;
 
 public static class GlobalData
 {
@@ -13,15 +15,21 @@ public static class GlobalData
     /// <c>true</c> means data is guarded right after the memory region,
     /// <c>false</c> means the guarded data is right before.
     /// </summary>
-    public static PoisonPagePlacement[] PoisonPlacement { get; } =
-    [
-        PoisonPagePlacement.None,
-#if FULL_TEST_SUITE
-        // PoisonPagePlacement.After,
-        // PoisonPagePlacement.Before,
-#endif
-    ];
+    public static PoisonPagePlacement[] PoisonPlacement { get; } = InitializePlacement();
 
     public static T[] Enum<T>()
         where T : struct, Enum => System.Enum.GetValues<T>();
+
+    private static PoisonPagePlacement[] InitializePlacement()
+    {
+        PoisonPagePlacement[] arr = [PoisonPagePlacement.None];
+        Smoke(ref arr);
+        return arr;
+
+        [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
+        static void Smoke(ref PoisonPagePlacement[] arr)
+        {
+            arr = [PoisonPagePlacement.None, PoisonPagePlacement.After, PoisonPagePlacement.Before];
+        }
+    }
 }

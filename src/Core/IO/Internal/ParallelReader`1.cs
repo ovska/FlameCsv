@@ -17,8 +17,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     private bool _isCompleted;
 
-    private IMemoryOwner<T> _previousData;
-    private int _previousRead;
+    private ReadOnlyMemory<T> _previousRead;
+    private IMemoryOwner<T> _leftoverOwner;
 
     private int _recordBufferSize = 1024;
 
@@ -37,8 +37,8 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         _bufferSize = ioOptions.BufferSize;
         _pool = ioOptions.EffectiveBufferPool;
 
-        _previousData = HeapMemoryOwner<T>.Empty;
-        _previousRead = 0;
+        _previousRead = ReadOnlyMemory<T>.Empty;
+        _leftoverOwner = HeapMemoryOwner<T>.Empty;
         _position = 0;
         _lineNumber = 0;
         _index = 0;
@@ -53,42 +53,31 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     public Chunk<T>? Read()
     {
-        while (!_isCompleted || _previousRead > 0)
+        while (!_isCompleted || !_previousRead.IsEmpty)
         {
             IMemoryOwner<T> owner = GetBufferForReading(out int startIndex);
-            Memory<T> memory = owner.Memory;
-            int read = ReadCore(memory.Slice(startIndex).Span);
-            int totalRead = read + startIndex;
 
-            if (read == 0)
+            try
             {
-                _isCompleted = true;
-            }
+                Memory<T> memory = owner.Memory;
+                int read = ReadCore(memory.Slice(startIndex).Span);
 
-            if (TryAdvance(owner, memory.Slice(0, totalRead), out Chunk<T>? chunk))
+                if (read == 0)
+                {
+                    _isCompleted = true;
+                }
+
+                if (TryReadCore(owner, memory.Slice(0, read + startIndex)) is { } chunk)
+                {
+                    return chunk;
+                }
+            }
+            catch
             {
-                int leftover = totalRead - chunk.RecordBuffer.BufferedRecordLength;
-                _pool.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
-
-                memory.Slice(chunk.RecordBuffer.BufferedRecordLength, leftover).CopyTo(_previousData.Memory);
-                _previousRead = leftover;
-
-                return chunk;
+                // ownership not passed to caller yet
+                owner.Dispose();
+                throw;
             }
-
-            // keep leftover for next read
-            if (totalRead > 0)
-            {
-                _pool.EnsureCapacity(ref _previousData, totalRead, copyOnResize: false);
-                memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
-            }
-
-            // TODO: throw here and test that the exception bubbles up correctly
-
-            _previousRead = totalRead;
-
-            // ownership not passed to Chunk, dispose
-            owner.Dispose();
         }
 
         return null;
@@ -96,67 +85,37 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     public async ValueTask<Chunk<T>?> ReadAsync(CancellationToken cancellationToken = default)
     {
-        while (!_isCompleted || _previousRead > 0)
+        while (!_isCompleted || !_previousRead.IsEmpty)
         {
             IMemoryOwner<T> owner = GetBufferForReading(out int startIndex);
-            Memory<T> memory = owner.Memory;
-            int read = await ReadAsyncCore(memory.Slice(startIndex), cancellationToken).ConfigureAwait(false);
-            int totalRead = read + startIndex;
 
-            if (read == 0)
+            try
             {
-                _isCompleted = true;
-            }
+                Memory<T> memory = owner.Memory;
+                int read = await ReadAsyncCore(memory.Slice(startIndex), cancellationToken).ConfigureAwait(false);
 
-            if (TryAdvance(owner, memory.Slice(0, totalRead), out Chunk<T>? chunk))
+                if (read == 0)
+                {
+                    _isCompleted = true;
+                }
+
+                if (TryReadCore(owner, memory.Slice(0, read + startIndex)) is { } chunk)
+                {
+                    return chunk;
+                }
+            }
+            catch
             {
-                int leftover = totalRead - chunk.RecordBuffer.BufferedRecordLength;
-                _pool.EnsureCapacity(ref _previousData, leftover, copyOnResize: false);
-
-                memory.Slice(chunk.RecordBuffer.BufferedRecordLength, leftover).CopyTo(_previousData.Memory);
-                _previousRead = leftover;
-
-                return chunk;
+                // ownership not passed to caller yet
+                owner.Dispose();
+                throw;
             }
-
-            // keep leftover for next read
-            if (totalRead > 0)
-            {
-                _pool.EnsureCapacity(ref _previousData, totalRead, copyOnResize: false);
-                memory.Slice(0, totalRead).CopyTo(_previousData.Memory);
-            }
-
-            _previousRead = totalRead;
-
-            // TODO: throw here and test that the exception bubbles up correctly
-
-            // ownership not passed to Chunk, dispose
-            owner.Dispose();
         }
 
         return null;
     }
 
-    private IMemoryOwner<T> GetBufferForReading(out int startIndex)
-    {
-        int bufferSize = _bufferSize;
-
-        // over half of the buffer is full but there is no fully formed record there?
-        if (_previousRead >= bufferSize / 2)
-        {
-            bufferSize *= 2;
-        }
-
-        IMemoryOwner<T> memory = _pool.Rent<T>(bufferSize);
-        startIndex = _previousRead;
-
-        _previousData.Memory.Slice(0, _previousRead).CopyTo(memory.Memory);
-        _previousRead = 0;
-
-        return memory;
-    }
-
-    private bool TryAdvance(IMemoryOwner<T> owner, ReadOnlyMemory<T> memory, [NotNullWhen(true)] out Chunk<T>? chunk)
+    private Chunk<T>? TryReadCore(IMemoryOwner<T> owner, Memory<T> buffer)
     {
         RecordBuffer recordBuffer = new(_recordBufferSize);
 
@@ -165,7 +124,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
             out int startIndex
         );
 
-        ReadOnlySpan<T> data = memory.Span;
+        ReadOnlySpan<T> data = buffer.Span;
 
         Read:
         int fieldsRead = _tokenizer is null
@@ -189,6 +148,9 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
             recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
         }
 
+        Chunk<T>? chunk = null;
+        int consumed;
+
         if (recordsRead > 0)
         {
             // Adjust the next buffer's size based on utilization
@@ -204,35 +166,65 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
                 _recordBufferSize = Math.Max(_recordBufferSize / 2, 256);
             }
 
-            chunk = new Chunk<T>(_index++, _lineNumber, _position, _options, memory, _pool, owner, recordBuffer);
-            _position += recordBuffer.BufferedRecordLength;
+            chunk = new Chunk<T>(_index++, _lineNumber, _position, _options, buffer, _pool, owner, recordBuffer);
+            consumed = recordBuffer.BufferedRecordLength;
+
+            Check.True(
+                consumed <= buffer.Length,
+                $"Consumed more data than available in buffer? {consumed} vs {buffer.Length} (read {fieldsRead} fields and {recordsRead} records)"
+            );
+
+            _position += consumed;
             _lineNumber += recordsRead;
-            return true;
+        }
+        else
+        {
+            // no records here, store all data for next read
+            consumed = 0;
+            owner.Dispose(); // ownership not passed to caller
         }
 
-        chunk = default;
-        return false;
+        _pool.EnsureCapacity(ref _leftoverOwner, buffer.Length - consumed);
+        buffer.Slice(consumed).CopyTo(_leftoverOwner.Memory);
+        _previousRead = _leftoverOwner.Memory.Slice(0, buffer.Length - consumed);
+
+        return chunk;
+    }
+
+    private IMemoryOwner<T> GetBufferForReading(out int startIndex)
+    {
+        int bufferSize = _bufferSize;
+
+        // over half of the buffer is full but there is no fully formed record there?
+        if (_previousRead.Length >= bufferSize / 2)
+        {
+            bufferSize = Math.Max(_previousRead.Length + bufferSize, bufferSize * 2);
+        }
+
+        Check.GreaterThan(bufferSize, _previousRead.Length);
+
+        IMemoryOwner<T> memory = _pool.Rent<T>(bufferSize);
+        _previousRead.CopyTo(memory.Memory);
+
+        startIndex = _previousRead.Length;
+        return memory;
     }
 
     public void Dispose()
     {
-        if (_position == -1)
+        if (Interlocked.Exchange(ref _position, -1) == -1)
             return;
 
-        _position = -1;
-
-        _previousData.Dispose();
+        _leftoverOwner.Dispose();
         DisposeCore();
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_position == -1)
+        if (Interlocked.Exchange(ref _position, -1) == -1)
             return;
 
-        _position = -1;
-
-        _previousData.Dispose();
+        _leftoverOwner.Dispose();
         await DisposeAsyncCore().ConfigureAwait(false);
     }
 }

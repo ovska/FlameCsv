@@ -14,50 +14,6 @@ namespace FlameCsv.Tests.Reading;
 public class ParallelReaderTests
 {
     [Fact]
-    public void Should_Read()
-    {
-        ReadOnlyMemory<byte> data = TestDataGenerator.GenerateBytes(CsvNewline.CRLF, true, hasQuotes: false);
-
-        Assert.Equal(Csv.From(data).Read<Obj>(), ReadSequential());
-
-        IEnumerable<Obj> ReadSequential()
-        {
-            using var pool = new ReturnTrackingBufferPool();
-
-            using var sr = new StreamReader(data.AsStream());
-            using var reader = new ParallelTextReader(sr, CsvOptions<char>.Default, new() { BufferPool = pool });
-            IMaterializer<char, Obj>? materializer = null;
-
-            while (reader.Read() is Chunk<char> chunk)
-            {
-                while (chunk.RecordBuffer.TryPop(out RecordView view))
-                {
-                    CsvRecordRef<char> record = new(chunk, ref MemoryMarshal.GetReference(chunk.Data.Span), view);
-
-                    if (materializer is null)
-                    {
-                        List<string> headers = [];
-
-                        for (int i = 0; i < record.FieldCount; i++)
-                        {
-                            headers.Add(record[i].ToString());
-                        }
-
-                        materializer = CsvOptions<char>.Default.TypeBinder.GetMaterializer<Obj>([.. headers]);
-                    }
-                    else
-                    {
-                        var obj = materializer.Parse(record);
-                        yield return obj;
-                    }
-                }
-
-                chunk.Dispose();
-            }
-        }
-    }
-
-    [Fact]
     public void Should_Read_2()
     {
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
