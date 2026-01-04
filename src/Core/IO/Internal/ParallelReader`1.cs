@@ -184,12 +184,20 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         {
             // no records here, store all data for next read
             consumed = 0;
-            owner.Dispose(); // ownership not passed to caller
+
+            // ownerships not passed to chunk
+            recordBuffer.Dispose();
+            owner.Dispose();
         }
 
-        _pool.EnsureCapacity(ref _leftoverOwner, buffer.Length - consumed);
-        buffer.Slice(consumed).CopyTo(_leftoverOwner.Memory);
-        _previousRead = _leftoverOwner.Memory.Slice(0, buffer.Length - consumed);
+        int leftover = buffer.Length - consumed;
+
+        if (leftover > 0)
+        {
+            _pool.EnsureCapacity(ref _leftoverOwner, leftover);
+            buffer.Slice(consumed).CopyTo(_leftoverOwner.Memory);
+            _previousRead = _leftoverOwner.Memory.Slice(0, leftover);
+        }
 
         return chunk;
     }
@@ -208,8 +216,9 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
         IMemoryOwner<T> memory = _pool.Rent<T>(bufferSize);
         _previousRead.CopyTo(memory.Memory);
-
         startIndex = _previousRead.Length;
+
+        _previousRead = ReadOnlyMemory<T>.Empty;
         return memory;
     }
 
