@@ -26,7 +26,7 @@ public static class GlobalData
         Smoke(ref arr);
         return arr;
 
-        [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
+        [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE")]
         static void Smoke(ref PoisonPagePlacement[] arr)
         {
             arr = [PoisonPagePlacement.None, PoisonPagePlacement.After, PoisonPagePlacement.Before];

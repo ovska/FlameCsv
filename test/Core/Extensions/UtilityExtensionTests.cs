@@ -10,11 +10,11 @@ public static class UtilityExtensionTests
     public static void Should_Print()
     {
         string input = "\0\r\n\t\f\v\\abc\u0010";
-        var actual = input.AsSpan().AsPrintableString();
         string expected = @"\0\r\n\t\f\v\\abc\u0010";
-        Assert.Equal(expected, actual);
+        Assert.Equal(expected, input.AsSpan().AsPrintableString());
+        Assert.Equal("m\\u00E4\\u00F6", "mäö".AsSpan().AsPrintableString());
         Assert.Equal(expected, Encoding.UTF8.GetBytes(input).AsSpan().AsPrintableString());
-        Assert.Equal("8182838D", ((ReadOnlySpan<byte>)([129, 130, 131, 141])).AsPrintableString());
+        Assert.Equal("Hex: [8182838D]", ((ReadOnlySpan<byte>)([129, 130, 131, 141])).AsPrintableString());
         Assert.Equal("<empty>", Span<char>.Empty.AsPrintableString());
         Assert.Equal("<empty>", Span<byte>.Empty.AsPrintableString());
     }

@@ -132,9 +132,6 @@ public static class TestDataGenerator
                 {
                     token.ThrowIfCancellationRequested();
 
-                    if (i != 0)
-                        writer.Append(newLine);
-
                     if (hasQuotes)
                     {
                         writer.Append($"\"{i}\"");
@@ -161,9 +158,8 @@ public static class TestDataGenerator
                     writer.Append($"{DateTimeOffset.UnixEpoch.AddDays(i):O}");
                     writer.Append(',');
                     writer.Append($"{new Guid(i, 0, 0, GuidBytes)}");
+                    writer.Append(newLine);
                 }
-
-                writer.Append(newLine);
 
                 return writer.ToString();
             })
