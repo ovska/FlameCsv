@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.IO.Internal;
@@ -171,7 +172,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
             Check.True(
                 consumed <= buffer.Length,
-                $"Consumed more data than available in buffer? {consumed} vs {buffer.Length}, {fieldsRead} f, {recordsRead} r, completed: {_isCompleted}, index: {_index}, line: {_lineNumber}, pos: {_position}, buffer: {buffer}"
+                $"Consumed more data than available in buffer? {consumed} vs {buffer.Length}, {fieldsRead} f, {recordsRead} r, completed: {_isCompleted}, index: {_index}, line: {_lineNumber}, pos: {_position}, buffer: {buffer.Span.AsPrintableString()}"
             );
 
             _position += consumed;
