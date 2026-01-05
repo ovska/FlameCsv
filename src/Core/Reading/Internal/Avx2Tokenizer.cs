@@ -82,6 +82,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         Vector256<byte> vector = AsciiVector.Load256(pData);
         Vector256<uint> indexVector;
 
+#if ALIGN_VECTORS
         nint remainder = ((nint)pData % Vector256<byte>.Count) / sizeof(T);
 
         // only align if we plausibly have enough data to make it worth it
@@ -93,6 +94,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             pData -= remainder;
         }
         else
+#endif
         {
             indexVector = Vector256.Create((uint)index);
         }
@@ -110,7 +112,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             Vector256<byte> hasControl = hasLF | hasDelimiter;
 
             uint maskControl = hasControl.ExtractMostSignificantBits();
-            uint maskQuote  = TQuote.Value ? hasQuote.ExtractMostSignificantBits() : 0;
+            uint maskQuote = TQuote.Value ? hasQuote.ExtractMostSignificantBits() : 0;
 
             Unsafe.SkipInit(out uint maskLF); // calculated only on-demand for LF newlines
             Unsafe.SkipInit(out uint shiftedCR); // never used on LF newlines

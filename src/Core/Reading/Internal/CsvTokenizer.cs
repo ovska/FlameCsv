@@ -24,11 +24,6 @@ internal abstract class CsvTokenizer<T>
     protected abstract int Overscan { get; }
 
     /// <summary>
-    /// Indicates whether broken data was encountered during tokenization.
-    /// </summary>
-    public bool EncounteredBrokenData { get; protected set; }
-
-    /// <summary>
     /// Reads fields from the data into <paramref name="destination"/>.
     /// </summary>
     /// <param name="destination">Buffer for the packed field bits</param>

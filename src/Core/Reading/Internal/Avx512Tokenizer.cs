@@ -87,6 +87,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         Vector512<byte> vector = AsciiVector.Load512(pData);
         Vector512<uint> indexVector;
 
+#if ALIGN_VECTORS
         nint remainder = ((nint)pData % Vector512<byte>.Count) / sizeof(T);
 
         // only align if we plausibly have enough data to make it worth it
@@ -98,6 +99,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             pData -= remainder;
         }
         else
+#endif
         {
             indexVector = Vector512.Create((uint)index);
         }

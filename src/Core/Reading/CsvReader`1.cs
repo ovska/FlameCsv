@@ -126,9 +126,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     {
         ReadOnlySpan<T> data = _buffer.Span;
 
-        Read:
         int fieldsRead;
 
+        Read:
         if (readToEnd || _tokenizer is null)
         {
             Span<uint> destination = _recordBuffer.GetUnreadBuffer(minimumLength: 0, out int startIndex);
