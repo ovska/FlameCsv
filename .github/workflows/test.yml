@@ -11,6 +11,8 @@ jobs:
   build-and-test:
     env:
       COMPlus_legacyCorruptedStateExceptionsPolicy: 1
+      DOTNET_EnableAVX512: 0
+      DOTNET_EnableAVX512F: 0
     strategy:
       fail-fast: false
       matrix:

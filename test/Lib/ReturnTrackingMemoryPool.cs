@@ -70,7 +70,7 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
     {
         T[] array = _arrayPool.Rent(length + Boundaries * 2);
         array.AsSpan(..Boundaries).Fill(Sentinel);
-        array.AsSpan(Boundaries, length).Fill(T.CreateTruncating(0xEEEE_EEEE)); // fill usable range with recognizable pattern
+        array.AsSpan(Boundaries, length).Fill(T.AllBitsSet - T.One); // fill usable range with a different pattern
         array.AsSpan(Boundaries + length).Fill(Sentinel);
         return array.AsMemory(Boundaries, length);
     }

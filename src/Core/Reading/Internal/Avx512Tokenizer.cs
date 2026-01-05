@@ -89,7 +89,8 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
         nint remainder = ((nint)pData % Vector512<byte>.Count) / sizeof(T);
 
-        if (remainder != 0)
+        // only align if we plausibly have enough data to make it worth it
+        if (remainder != 0 && (sizeof(T) * ((nint)end - (nint)pData)) >= PreferredLength)
         {
             vector = AsciiVector.ShiftItemsRight(vector, (int)remainder);
             indexVector = Vector512.Create((uint)index - (uint)remainder);
@@ -101,7 +102,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             indexVector = Vector512.Create((uint)index);
         }
 
-        Vector512<byte> nextVector = AsciiVector.LoadAligned512(pData + (nuint)Vector512<byte>.Count);
+        Vector512<byte> nextVector = AsciiVector.Load512(pData + (nuint)Vector512<byte>.Count);
 
         do
         {
@@ -128,7 +129,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
             // prefetch 2 vectors ahead
             vector = nextVector;
-            nextVector = AsciiVector.LoadAligned512(pData + (nuint)(2 * Vector512<byte>.Count));
+            nextVector = AsciiVector.Load512(pData + (nuint)(2 * Vector512<byte>.Count));
 
             if ((TCRLF.Value ? (maskControl | shiftedCR) : maskControl) == 0)
             {

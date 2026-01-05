@@ -20,6 +20,7 @@
     </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\src\Core\FlameCsv.Core.csproj" />
+        <ProjectReference Include="..\..\test\Lib\FlameCsv.Tests.Lib.csproj" />
         <ProjectReference
             Include="..\..\src\SourceGen\FlameCsv.SourceGen.csproj"
             OutputItemType="Analyzer"

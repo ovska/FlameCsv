@@ -84,7 +84,8 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
         nint remainder = ((nint)pData % Vector256<byte>.Count) / sizeof(T);
 
-        if (remainder != 0)
+        // only align if we plausibly have enough data to make it worth it
+        if (remainder != 0 && (sizeof(T) * ((nint)end - (nint)pData)) >= PreferredLength)
         {
             vector = AsciiVector.ShiftItemsRight(vector, (int)remainder);
             indexVector = Vector256.Create((uint)index - (uint)remainder);
@@ -98,7 +99,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
         Vector256<byte> nextVector = AsciiVector.Load256(pData + Vector256<byte>.Count);
 
-        do
+        while (fieldIndex <= fieldEnd && pData <= end)
         {
             // Prefetch the vector that will be needed 2 iterations ahead
             Vector256<byte> prefetchVector = AsciiVector.Load256(pData + (2 * Vector256<byte>.Count));
@@ -109,15 +110,10 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             Vector256<byte> hasControl = hasLF | hasDelimiter;
 
             uint maskControl = hasControl.ExtractMostSignificantBits();
+            uint maskQuote  = TQuote.Value ? hasQuote.ExtractMostSignificantBits() : 0;
 
-            Unsafe.SkipInit(out uint maskQuote);
             Unsafe.SkipInit(out uint maskLF); // calculated only on-demand for LF newlines
             Unsafe.SkipInit(out uint shiftedCR); // never used on LF newlines
-
-            if (TQuote.Value)
-            {
-                maskQuote = hasQuote.ExtractMostSignificantBits();
-            }
 
             if (TCRLF.Value)
             {
@@ -334,7 +330,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             }
 
             goto ContinueRead;
-        } while (fieldIndex <= fieldEnd && pData <= end);
+        }
 
         return (int)fieldIndex;
     }

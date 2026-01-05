@@ -43,7 +43,7 @@ internal static class AsciiVector
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
+    // [DebuggerStepThrough]
     public static unsafe Vector256<byte> Load256<T>(T* source)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -66,14 +66,13 @@ internal static class AsciiVector
 
         if (AdvSimd.Arm64.IsSupported)
         {
-            var (a0, a1) = AdvSimd.Arm64.LoadPairVector128((short*)source);
-            Vector64<byte> lo01 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(a0); // UQXTN
-            Vector128<byte> out01 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo01, a1); // UQXTN2
+            var (a0, a1) = AdvSimd.Arm64.LoadPairVector128((ushort*)source);
+            Vector64<byte> lo01 = AdvSimd.ExtractNarrowingSaturateLower(a0); // UQXTN
+            Vector128<byte> out01 = AdvSimd.ExtractNarrowingSaturateUpper(lo01, a1); // UQXTN2
 
-            var (a2, a3) = AdvSimd.Arm64.LoadPairVector128((short*)source + (2 * Vector128<short>.Count));
-            Vector64<byte> lo23 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(a2); // UQXTN
-            Vector128<byte> out23 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo23, a3); // UQXTN2
-
+            var (a2, a3) = AdvSimd.Arm64.LoadPairVector128((ushort*)source + (2 * Vector128<ushort>.Count));
+            Vector64<byte> lo23 = AdvSimd.ExtractNarrowingSaturateLower(a2); // UQXTN
+            Vector128<byte> out23 = AdvSimd.ExtractNarrowingSaturateUpper(lo23, a3); // UQXTN2
             return Vector256.Create(out01, out23);
         }
 
@@ -111,12 +110,11 @@ internal static class AsciiVector
 
         if (AdvSimd.IsSupported)
         {
-            Vector64<byte> lo01 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(x0); // UQXTN
-            Vector128<byte> out01 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo01, x1); // UQXTN2
+            Vector64<byte> lo01 = AdvSimd.ExtractNarrowingSaturateLower(x0.AsUInt16()); // UQXTN
+            Vector128<byte> out01 = AdvSimd.ExtractNarrowingSaturateUpper(lo01, x1.AsUInt16()); // UQXTN2
 
-            Vector64<byte> lo23 = AdvSimd.ExtractNarrowingSaturateUnsignedLower(y0); // UQXTN
-            Vector128<byte> out23 = AdvSimd.ExtractNarrowingSaturateUnsignedUpper(lo23, y1); // UQXTN2
-
+            Vector64<byte> lo23 = AdvSimd.ExtractNarrowingSaturateLower(y0.AsUInt16()); // UQXTN
+            Vector128<byte> out23 = AdvSimd.ExtractNarrowingSaturateUpper(lo23, y1.AsUInt16()); // UQXTN2
             return Vector256.Create(out01, out23);
         }
 

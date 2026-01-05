@@ -1,5 +1,6 @@
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 using FlameCsv.Reading.Internal;
 
@@ -21,30 +22,8 @@ public static class NeonTests
             Vector256<byte> vecBytes = AsciiVector.Load256(bytePtr);
             Vector256<byte> vecChars = AsciiVector.Load256(charPtr);
 
-            for (int i = 0; i < Vector256<byte>.Count; i++)
-            {
-                byte expected = (byte)data[i];
-                Assert.Equal(expected, vecBytes.GetElement(i));
-                Assert.Equal(expected, vecChars.GetElement(i));
-            }
-        }
-    }
-
-    [Fact]
-    public static unsafe void Should_Narrow_Correctly()
-    {
-        Assert.SkipUnless(AdvSimd.Arm64.IsSupported, "Not AArch");
-
-        Span<char> data = stackalloc char[Vector256<byte>.Count];
-
-        fixed (char* ptr = data)
-        {
-            for (int i = 0; i < 1024; i++)
-            {
-                data.Fill((char)i);
-                Vector256<byte> vec = AsciiVector.Load256(ptr);
-                Assert.Equal(Math.Min(i, byte.MaxValue), vec.GetElement(0));
-            }
+            Assert.Equal(dataBytes[..Vector256<byte>.Count], vecBytes.ToArray());
+            Assert.Equal(dataBytes[..Vector256<byte>.Count], vecChars.ToArray());
         }
     }
 

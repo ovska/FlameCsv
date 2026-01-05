@@ -11,6 +11,7 @@ public static class AsciiVectorTests
     public static unsafe void Should_Narrow_256()
     {
         Assert.SkipUnless(Vector128.IsHardwareAccelerated, "Vector128 not supported");
+        Assert.SkipUnless(BitConverter.IsLittleEndian, "Big-endian not supported");
 
         Span<char> data = stackalloc char[Vector256<byte>.Count];
         data.Fill((char)(',' | (',' << 8)));
@@ -28,6 +29,7 @@ public static class AsciiVectorTests
         // spray & pray test
         byte[] bytes = new byte[Vector256<byte>.Count * sizeof(char)];
         byte[] buffer = new byte[Vector256<byte>.Count];
+        List<string> invalid = [];
 
         fixed (byte* ptr = bytes)
         {
@@ -36,16 +38,21 @@ public static class AsciiVectorTests
                 Random.Shared.NextBytes(bytes);
                 var vec = AsciiVector.Load256((char*)ptr);
                 vec.CopyTo(buffer);
-                Assert.All(
-                    buffer,
-                    (b, i) =>
+
+                for (int j = 0; j < buffer.Length; j++)
+                {
+                    if (buffer[j] != bytes[j * 2] && buffer[j] is < 127 and not 0)
                     {
-                        if (b != bytes[i * 2])
-                        {
-                            Assert.True(b is 0 or >= 128, $"Expected 0 or 255 but got {b} at index {i}");
-                        }
+                        invalid.Add($"[{j}]: {buffer[j]} != {bytes[j * 2]}");
                     }
-                );
+                }
+
+                if (invalid.Count > 0)
+                {
+                    Assert.Fail(
+                        $"Invalid narrowing (iteration {i}): {Convert.ToHexStringLower(bytes)}\n{string.Join('\n', invalid)}"
+                    );
+                }
             }
         }
     }
@@ -54,6 +61,7 @@ public static class AsciiVectorTests
     public static unsafe void Should_Narrow_512()
     {
         Assert.SkipUnless(System.Runtime.Intrinsics.X86.Avx512F.IsSupported, "Vector512 not supported");
+        Assert.SkipUnless(BitConverter.IsLittleEndian, "Big-endian not supported");
 
         Span<char> data = stackalloc char[Vector512<byte>.Count];
         data.Fill((char)(',' | (',' << 8)));
@@ -71,6 +79,7 @@ public static class AsciiVectorTests
         // spray & pray test
         byte[] bytes = new byte[Vector512<byte>.Count * sizeof(char)];
         byte[] buffer = new byte[Vector512<byte>.Count];
+        List<string> invalid = [];
 
         fixed (byte* ptr = bytes)
         {
@@ -79,19 +88,21 @@ public static class AsciiVectorTests
                 Random.Shared.NextBytes(bytes);
                 var vec = AsciiVector.Load512(ptr);
                 vec.CopyTo(buffer);
-                Assert.All(
-                    buffer,
-                    (b, i) =>
+
+                for (int j = 0; j < buffer.Length; j++)
+                {
+                    if (buffer[j] != bytes[j * 2] && buffer[j] < 127)
                     {
-                        if (b != bytes[i * 2])
-                        {
-                            Assert.True(
-                                b is 0 or >= 128,
-                                $"Expected 0 or 255 but got {b:x2} at index {i} (input was {bytes[i]:x2})"
-                            );
-                        }
+                        invalid.Add($"[{j}]: {buffer[j]} != {bytes[j * 2]}");
                     }
-                );
+                }
+
+                if (invalid.Count > 0)
+                {
+                    Assert.Fail(
+                        $"Invalid narrowing (iteration {i}): {Convert.ToHexStringLower(bytes)}\n{string.Join('\n', invalid)}"
+                    );
+                }
             }
         }
     }
