@@ -16,7 +16,8 @@ public class BithackTests
         Assert.Equal(flag, Bithacks.ProcessFlag(1 << 5, uint.TrailingZeroCount(1u << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(~(1 << 5), uint.TrailingZeroCount(1u << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1 << 31, pos: uint.TrailingZeroCount(0), flag));
-        Assert.Equal(0u, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(0), flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(0b10, pos: uint.TrailingZeroCount(0), flag));
 
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: 0, flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: 1, flag));
@@ -24,7 +25,8 @@ public class BithackTests
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 5, (uint)ulong.TrailingZeroCount(1ul << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(~(1ul << 5), (uint)ulong.TrailingZeroCount(1ul << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1ul << 63, pos: (uint)ulong.TrailingZeroCount(0), flag));
-        Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(0), flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(0b10ul, pos: uint.TrailingZeroCount(0), flag));
 
         Assert.Throws<NotSupportedException>(() => Bithacks.ProcessFlag((ushort)1, 0, flag));
     }

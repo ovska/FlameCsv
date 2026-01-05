@@ -101,7 +101,7 @@ internal static class Bithacks
         if (Unsafe.SizeOf<T>() is sizeof(uint))
         {
             // handle pos=32 with zero extension to uint64 (tzcnt 0 returns)
-            int mask = -(int)(((ulong)Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL);
+            int mask = -(int)((Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL);
             return flag & (uint)mask;
         }
 
@@ -109,8 +109,7 @@ internal static class Bithacks
         {
             // handle pos=64 explicitly (tzcnt 0 returns)
             int mask = -(int)((Unsafe.BitCast<T, ulong>(maskNewline) >> (int)pos) & 1UL);
-            int validMask = ((int)pos - 64) >> 31;
-            return flag & (uint)(mask & validMask);
+            return flag & (uint)mask;
         }
 
         throw new NotSupportedException();
