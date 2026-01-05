@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Tests.Reading;
@@ -89,8 +90,10 @@ public class BithackTests
     [Fact]
     public static void Should_Get_Quote_Mask_Single()
     {
-        Assert.Equal(0b00001111u, Bithacks.FindInverseQuoteMaskSingle(0b00010000, 0));
-        Assert.Equal(~0b00001111u, Bithacks.FindInverseQuoteMaskSingle(0b00010000, 1));
+        Assert.Equal(0b00001111u, Bithacks.FindInverseQuoteMaskSingle(0b00010000u, 0));
+        Assert.Equal(~0b00001111u, Bithacks.FindInverseQuoteMaskSingle(0b00010000u, 1));
+        Assert.Equal(0b00001111ul, Bithacks.FindInverseQuoteMaskSingle(0b00010000ul, 0));
+        Assert.Equal(~0b00001111ul, Bithacks.FindInverseQuoteMaskSingle(0b00010000ul, 1));
     }
 
     [Fact]
@@ -292,5 +295,26 @@ public class BithackTests
 
             return value;
         }
+    }
+
+    [Fact]
+    public static void Should_Check_if_CRLF()
+    {
+        const string data = "\r\n\r\n\r\n\r\n";
+        ref char ptr = ref MemoryMarshal.GetReference(data.AsSpan());
+
+        Assert.True(Bithacks.IsCRLF(ref Unsafe.Add(ref ptr, 0)));
+        Assert.True(Bithacks.IsCRLF(ref Unsafe.Add(ref ptr, 2)));
+        Assert.False(Bithacks.IsCRLF(ref Unsafe.Add(ref ptr, 1)));
+        Assert.False(Bithacks.IsCRLF(ref Unsafe.Add(ref ptr, 3)));
+
+        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(data);
+        ref byte bptr = ref bytes[0];
+        Assert.True(Bithacks.IsCRLF(ref Unsafe.Add(ref bptr, 0)));
+        Assert.True(Bithacks.IsCRLF(ref Unsafe.Add(ref bptr, 2)));
+        Assert.False(Bithacks.IsCRLF(ref Unsafe.Add(ref bptr, 1)));
+        Assert.False(Bithacks.IsCRLF(ref Unsafe.Add(ref bptr, 3)));
+
+        Assert.Throws<NotSupportedException>(() => Bithacks.IsCRLF(ref Unsafe.As<byte, uint>(ref bytes[0])));
     }
 }

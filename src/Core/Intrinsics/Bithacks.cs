@@ -255,37 +255,4 @@ internal static class Bithacks
 
         throw Token<T>.NotSupported;
     }
-
-    /// <summary>
-    /// Reverses the bits in the given value.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static T ReverseBits<T>(T v)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        return Unsafe.SizeOf<T>() switch
-        {
-            sizeof(uint) => Unsafe.BitCast<uint, T>(ArmBase.ReverseElementBits(Unsafe.BitCast<T, uint>(v))),
-            sizeof(ulong) => Unsafe.BitCast<ulong, T>(ArmBase.Arm64.ReverseElementBits(Unsafe.BitCast<T, ulong>(v))),
-            _ => throw new NotSupportedException(typeof(T).FullName),
-        };
-    }
-
-    /// <summary>
-    /// Isolates the lowest <paramref name="count"/> bits in an <see cref="UInt32"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [DebuggerStepThrough]
-    public static T IsolateLowestBits<T>(T value, uint count)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        if (Unsafe.SizeOf<T>() is sizeof(uint))
-        {
-            ulong result = (ulong)Unsafe.BitCast<T, uint>(value) << (int)(32u - count);
-            return Unsafe.BitCast<uint, T>((uint)result);
-        }
-
-        throw new NotSupportedException(typeof(T).FullName);
-    }
 }
