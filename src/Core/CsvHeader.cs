@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -106,6 +107,38 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
     }
 
     /// <summary>
+    /// Returns the header name at the specified index.
+    /// </summary>
+    public string this[int index]
+    {
+        get
+        {
+            if (!TryGetName(index, out string? value))
+            {
+                Throw.Argument_FieldIndex(index, Values.Length);
+            }
+
+            return value;
+        }
+    }
+
+    /// <summary>
+    /// Returns the index of the specified header name.
+    /// </summary>
+    public int this[string headerName]
+    {
+        get
+        {
+            if (!TryGetValue(headerName, out int index))
+            {
+                Throw.Argument_HeaderNameNotFound(headerName, Values);
+            }
+
+            return index;
+        }
+    }
+
+    /// <summary>
     /// Copy constructor for <see cref="CsvHeader"/>.
     /// </summary>
     public CsvHeader(CsvHeader other)
@@ -160,6 +193,23 @@ public sealed class CsvHeader : IEquatable<CsvHeader>
         }
 
         value = -1;
+        return false;
+    }
+
+    /// <summary>
+    /// Attempts to return the header name at the specified index.
+    /// </summary>
+    public bool TryGetName(int index, [NotNullWhen(true)] out string? value)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+
+        if ((uint)index < (uint)Values.Length)
+        {
+            value = Values[index];
+            return true;
+        }
+
+        value = null;
         return false;
     }
 

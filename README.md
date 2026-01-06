@@ -5,7 +5,7 @@
     title="FlameCsv logo"
     src="docs/data/logo.png" />
   <h1 align="center">FlameCsv</h1>
-  <p align="center">High-performance RFC 4180-compliant CSV library for .NET 10 with trimming/AOT support</p>
+  <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9/10 with trimming/AOT support</p>
   <p align="center" style="text-decoration:none">
     <a href="https://www.nuget.org/packages/FlameCsv/" target="_blank" style="text-decoration:none">
       <img src="https://img.shields.io/nuget/v/FlameCsv" alt="NuGet version" style="text-decoration:none"/>
@@ -21,32 +21,27 @@
 # Features
 - **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
 - **Ease of Use**
-  - Simple API for reading and writing CSV
-  - Built-in support for common CLR types
-  - Supports both synchronous and asynchronous operations
-  - Flexible; read or write almost any data source
-  - Automatic newline detection
-  - UTF-8/ASCII support to read/write bytes directly without additional transcoding
-  - Supports hot reload
+  - Fluent API to read/write CSV from/to almost any source/destination
+  - Built-in support for common CLR types and interfaces like I(Utf8)SpanParsable
+  - Full feature parity with sync and async APIs
+  - UTF-8/ASCII support to read/write bytes directly from a stream without additional transcoding
+  - Hot reload support for internal caches
 - **High Performance**
-  - Optimized for speed and low memory usage
-  - SIMD-accelerated parsing routines with hardware intrinsics
-  - Batteries-included internal caching and memory pooling for near-zero allocations
-  - Reflection code paths that rival manually written code in performance
+  - SIMD parsers tuned for each platform (AVX2, AVX512, ARM64)
+  - Near-zero allocations
+  - Parallel APIs to read/write records unordered with multiple threads
+  - Low-level APIs to handle raw CSV field spans directly
 - **Deep Customization**
-  - Read or write either .NET objects, or raw CSV records and fields
-  - Attribute configuration for header names, constructors, field order, and more
-  - Support for custom converters and converter factories
+  - Attribute configuration for header names, constructors, field order, etc.
+  - Support for custom converters and converter factories (like System.Text.Json)
   - Read or write multiple CSV documents from/to a single data stream
-- **Source Generator**
-  - Fully annotated and compatible with NativeAOT
-  - Supports trimming to reduce application size
-  - View and debug the code instead of opaque reflection
-  - Compile-time diagnostics instead of runtime errors
+- **Source Generators**
+  - Library is fully annotated for NativeAOT and trimming
+  - Source generated type maps for reflection-free reading and writing
+  - Source generated enum converters with up to 10x better performance than Enum.TryParse/TryFormat
 
 # Examples
 
-## Reading records
 ```csharp
 record User(int Id, string Name, DateTime LastLogin, int? Age = null);
 
@@ -84,37 +79,21 @@ CsvOptions<char> options = new()
 
 foreach (CsvRecord<char> record in Csv.From(data).Enumerate(options))
 {
-    // get fields by index or header name
     var u1 = new User(
         Id:        record.GetField<int>("Id"),
         Name:      record.GetField<string>("Name"),
         LastLogin: record.GetField<DateTime>("LastLogin"),
         Age:       record.FieldCount >= 3 ? record.GetField<int?>("Age") : null);
 
+    // fields can also be fetched via index
     var u2 = new User(
         Id:        record.GetField<int>(0),
         Name:      record.GetField<string>(1),
         LastLogin: record.GetField<DateTime>(2),
         Age:       record.FieldCount >= 3 ? record.GetField<int?>(3) : null);
-}
-```
-
-## Reading headerless CSV
-```csharp
-class User
-{
-    [CsvIndex(0)] public int Id { get; set; }
-    [CsvIndex(1)] public string? Name { get; set; }
-    [CsvIndex(2)] public DateTime LastLogin { get; set; }
-}
-
-string data = "1,Bob,2010-01-01\n2,Alice,2024-05-22";
-
-var options = new CsvOptions<char> { HasHeader = false };
-
-foreach (var user in Csv.From(data).Read<User>(options))
-{
-    Console.WriteLine(user);
+    
+    // or get them once and reuse
+    int nameIndex = record.Header["Name"];
 }
 ```
 
@@ -123,7 +102,7 @@ foreach (var user in Csv.From(data).Read<User>(options))
 User[] data = [new(1, "Bob", DateTime.Now, 42), new(2, "Alice", DateTime.UnixEpoch, null)];
 StringBuilder builder = new StringBuilder();
 Csv.To(builder).Write(data);
-Console.WriteLine(builder);
+await Csv.To(stream).WithUtf8Encoding().WriteAsync(data);
 ```
 
 ## Writing manually
