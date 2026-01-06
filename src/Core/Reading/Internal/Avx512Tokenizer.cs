@@ -1,5 +1,5 @@
 #if NET10_0_OR_GREATER
-#define ALIGN_VECTORS
+// #define ALIGN_VECTORS
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
