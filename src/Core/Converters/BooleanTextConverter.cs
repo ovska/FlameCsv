@@ -9,7 +9,7 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
 
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
     {
-        // JIT doesn't unroll writes like byte as of .NET 10, and TryCopyTo produces slightly worse codegen than this
+        // JIT doesn't unroll char writes like it does for byte as of .NET 10, and TryCopyTo produces slightly worse codegen than this
         if (value)
         {
             if (destination.Length >= 4)

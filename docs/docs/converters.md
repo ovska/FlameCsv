@@ -208,7 +208,7 @@ CsvOptions<char> options = new()
 };
 ```
 
-> [!INFO]
+> [!NOTE]
 > The attribute supports case-sensitivity configuration on a per-member basis with
 > @"FlameCsv.Attributes.CsvBooleanValuesAttribute.IgnoreCase?displayProperty=nameWithType".
 >
