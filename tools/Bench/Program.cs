@@ -1,4 +1,4 @@
-﻿#define DISASM
+﻿// #define DISASM
 using System.Globalization;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
@@ -12,22 +12,23 @@ using Perfolizer.Horology;
 using BenchmarkDotNet.Diagnosers;
 #endif
 
-// BenchmarkRunner.Run(
-//     [
-//         /**/
-//         typeof(ReadObjects),
-//         typeof(WriteObjects),
-//         typeof(EnumerateBench),
-//     ],
-//     new Config(),
-//     args
-// );
+BenchmarkRunner.Run(
+    [
+        /**/
+        typeof(ReadObjects),
+        typeof(WriteObjects),
+        typeof(EnumerateBench),
+        typeof(PeekFields),
+    ],
+    new Config(),
+    args
+);
 
-BenchmarkRunner.Run<ReadObjects>(new Config());
+// BenchmarkRunner.Run<ReadObjects>(new Config());
 
 file class Config : ManualConfig
 {
-    const int Iters = 4;
+    const int Iters = 16;
 
     public Config()
     {

@@ -24,7 +24,7 @@ Default options are only available for @"System.Char?text=char" (UTF-16) and @"S
 The field separator is configured with @"FlameCsv.CsvOptions`1.Delimiter?displayProperty=nameWithType". The default value is `,` (comma). Other common values include `\t` and `;`.
 
 ### Quote
-The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is`"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`. If you know your data does not contain quoted fields, you can improve performance by setting the value to`null`(this also requires that @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" is disabled).
+The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`. If you know your data does not contain quoted fields, you can improve performance by setting the value to `null` (this also requires that @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" is disabled).
 
 ### Newline
 The newline type (record separator) is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`, which will also accept lone `\n` or `\r` when reading. The configured value is used as-is while writing. You can also configure it to be platform-specific. If you know your data only contains `\n`, you can improve performance by configuring the dialect accordingly. Otherwise, the safe choice is to leave it as the default.
@@ -52,7 +52,7 @@ CsvOptions<byte> options = new()
 
 ## Header
 
-The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is`true`by default, which expects a header record on the first line/record. The comparison is case-insensitive by default (configured via @"FlameCsv.CsvOptions`1.IgnoreHeaderCase"). A delegate @"FlameCsv.CsvOptions`1.NormalizeHeader" can be used to process header names before they are compared (note that this disables the header string value pooling).
+The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is `true` by default, which expects a header record on the first line/record. The comparison is case-insensitive by default (configured via @"FlameCsv.CsvOptions`1.IgnoreHeaderCase"). A delegate @"FlameCsv.CsvOptions`1.NormalizeHeader" can be used to process header names before they are compared (note that this disables the header string value pooling).
 
 ```cs
 const string csv = "id,name\n1,Bob\n2,Alice\n";

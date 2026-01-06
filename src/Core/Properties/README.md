@@ -83,7 +83,7 @@ await Csv
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios. This is only an issue if you've inherited the I/O types
 - *Breaking:* The record parameter to `IMaterializer<T>` is no longer `ref` (the record struct is now only 32 bytes)
 - Added a huge amount of parsing performance improvements on all architectures
-- Added support for NET10 and new AVX512 mask instructions
+- Added support for .NET 10
 - Added support for headerless CSV with the source generator
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
 - Added specialized ARM64/NEON parser
