@@ -208,8 +208,8 @@ CsvOptions<char> options = new()
 };
 ```
 
-> [!WARNING]
-> When using global custom boolean values, @"FlameCsv.CsvOptions`1.Comparer?displayProperty=nameWithType" **must** be either @"System.StringComparer.Ordinal?displayProperty=nameWithType" or @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
->
+> [!INFO]
 > The attribute supports case-sensitivity configuration on a per-member basis with
 > @"FlameCsv.Attributes.CsvBooleanValuesAttribute.IgnoreCase?displayProperty=nameWithType".
+>
+> When using global custom boolean values, @"FlameCsv.CsvOptions`1.IgnoreHeaderCase?displayProperty=nameWithType" is used to determine case-sensitivity.

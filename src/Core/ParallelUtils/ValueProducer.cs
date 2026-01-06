@@ -94,6 +94,28 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
 
     public bool TryProduceDirect(Chunk<T> chunk, CsvRecordRef<T> input, [MaybeNullWhen(false)] out TValue value)
     {
+        if (Options.RecordCallback is { } callback)
+        {
+            bool skip = false;
+            bool headerRead = !_headers.IsDefaultOrEmpty;
+            CsvRecordCallbackArgs<T> args = new(
+                input,
+                _headers,
+                chunk._recordBuffer.LineNumber,
+                chunk._recordBuffer.GetPosition(input._fields),
+                ref skip,
+                ref headerRead
+            );
+
+            callback(in args);
+
+            if (skip)
+            {
+                value = default;
+                return false;
+            }
+        }
+
         if (_materializer is null)
         {
             Check.True(Options.HasHeader, "Options must be configured to read with a header");

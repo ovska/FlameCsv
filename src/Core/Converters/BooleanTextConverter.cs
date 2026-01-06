@@ -9,11 +9,11 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
 
     public override bool TryFormat(Span<char> destination, bool value, out int charsWritten)
     {
+        // JIT doesn't unroll writes like byte as of .NET 10, and TryCopyTo produces slightly worse codegen than this
         if (value)
         {
             if (destination.Length >= 4)
             {
-                // JIT doesn't yet unroll successive char writes, so do it manually
                 Unsafe.WriteUnaligned(
                     ref Unsafe.As<char, byte>(ref destination[0]),
                     MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes<char>("true"))
@@ -26,7 +26,6 @@ internal sealed class BooleanTextConverter : CsvConverter<char, bool>
         {
             if (destination.Length >= 5)
             {
-                // JIT doesn't unroll successive char writes, so do it manually
                 Unsafe.WriteUnaligned(
                     ref Unsafe.As<char, byte>(ref destination[0]),
                     MemoryMarshal.Read<ulong>(MemoryMarshal.AsBytes<char>("fals"))
