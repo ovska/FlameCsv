@@ -61,10 +61,8 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         nuint index = (nuint)startIndex;
         T* pData = start + index;
 
-        nuint fieldEnd = (nuint)destination.Length - (nuint)MaxFieldsPerIteration;
-        nuint fieldIndex = 0;
-
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
+        scoped ref uint dst = ref MemoryMarshal.GetReference(destination);
+        scoped ref readonly uint fieldEnd = ref Unsafe.Add(ref dst, destination.Length - MaxFieldsPerIteration);
 
         Vector256<byte> vecDelim = Vector256.Create(_delimiter);
         Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(_quote) : default;
@@ -101,7 +99,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
         Vector256<byte> nextVector = AsciiVector.Load256(pData + Vector256<byte>.Count);
 
-        while (fieldIndex <= fieldEnd && pData <= end)
+        while (pData < end && Unsafe.IsAddressLessThanOrEqualTo(in dst, in fieldEnd))
         {
             // Prefetch the vector that will be needed 2 iterations ahead
             Vector256<byte> prefetchVector = AsciiVector.Load256(pData + (2 * Vector256<byte>.Count));
@@ -151,7 +149,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 }
             }
 
-            uint matchCount = (uint)BitOperations.PopCount(maskControl);
+            uint controlCount = (uint)BitOperations.PopCount(maskControl);
 
             // rare cases: quotes, or too many matches to fit in the compress path
             if (TQuote.Value && (quotesConsumed | maskQuote) != 0)
@@ -255,9 +253,9 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 result -= crlfShift;
             }
 
-            result.StoreUnsafe(ref firstField, fieldIndex);
+            result.StoreUnsafe(ref dst);
 
-            if (matchCount > (uint)Vector256<int>.Count)
+            if (controlCount > (uint)Vector256<int>.Count)
             {
                 maskControl = Bmi1.ResetLowestSetBit(maskControl);
                 maskControl = Bmi1.ResetLowestSetBit(maskControl);
@@ -271,7 +269,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 Check.Positive(maskControl, "There should be bits left in maskControl.");
                 Check.Equal(
                     (uint)BitOperations.PopCount(maskControl),
-                    matchCount - (uint)Vector256<int>.Count,
+                    controlCount - (uint)Vector256<int>.Count,
                     "Remaining match count mismatch."
                 );
 
@@ -284,14 +282,14 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
                 ParseControls(
                     (uint)index,
-                    ref Unsafe.Add(ref firstField, fieldIndex + (uint)Vector256<int>.Count),
+                    ref Unsafe.Add(ref dst, (uint)Vector256<int>.Count),
                     maskControl,
                     maskLF,
                     flag
                 );
             }
 
-            fieldIndex += matchCount;
+            dst = ref Unsafe.Add(ref dst, controlCount);
 
             ContinueRead:
             index += (nuint)Vector256<byte>.Count;
@@ -313,10 +311,9 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
                 uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-                ParseAny(
+                dst = ref ParseAny(
                     index: (uint)index,
-                    firstField: ref firstField,
-                    fieldIndex: ref fieldIndex,
+                    dst: ref dst,
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
                     maskLF: maskLF,
@@ -334,6 +331,6 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             goto ContinueRead;
         }
 
-        return (int)fieldIndex;
+        return Unsafe.ElementOffset(in MemoryMarshal.GetReference(destination), in dst);
     }
 }

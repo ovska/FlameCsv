@@ -77,6 +77,8 @@ internal abstract class CsvTokenizer<T>
     )
         where TMask : unmanaged, IBinaryInteger<TMask>
     {
+        Check.NotEqual(maskControl, TMask.Zero, "Control mask cannot be zero!");
+
         do
         {
             uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
@@ -94,18 +96,17 @@ internal abstract class CsvTokenizer<T>
     /// Parses any control characters and quotes.
     /// </summary>
     /// <param name="index">Position of the mask in the data</param>
-    /// <param name="firstField">Reference where to write the fields to</param>
-    /// <param name="fieldIndex">Index of the current field</param>
+    /// <param name="dst">Packed field buffer to write fields to</param>
     /// <param name="quotesConsumed">Running counter of previously read quotes</param>
     /// <param name="maskControl">Bitmask for all control characters</param>
     /// <param name="maskLF">Bitmask for LFs</param>
     /// <param name="maskQuote">Bitmask for quotes</param>
     /// <param name="flag">Flag to use for EOLs</param>
+    /// <returns>Reference to the next empty position in the field buffer</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected static void ParseAny<TMask>(
+    protected static ref uint ParseAny<TMask>(
         uint index,
-        scoped ref uint firstField,
-        scoped ref nuint fieldIndex,
+        ref uint dst,
         scoped ref uint quotesConsumed,
         TMask maskControl,
         TMask maskLF,
@@ -114,8 +115,6 @@ internal abstract class CsvTokenizer<T>
     )
         where TMask : unmanaged, IBinaryInteger<TMask>
     {
-        nuint fIdx = fieldIndex;
-
         while (maskControl != TMask.Zero)
         {
             uint tz = uint.CreateTruncating(TMask.TrailingZeroCount(maskControl));
@@ -132,14 +131,12 @@ internal abstract class CsvTokenizer<T>
 
             pos -= eolFlag;
 
-            ref uint dstField = ref Unsafe.Add(ref firstField, fIdx);
+            dst = pos | Bithacks.GetQuoteFlags(quotesConsumed);
+            dst = ref Unsafe.Add(ref dst, 1);
 
-            dstField = pos | Bithacks.GetQuoteFlags(quotesConsumed);
-
-            fIdx++;
             quotesConsumed = 0;
         }
 
-        fieldIndex = fIdx;
+        return ref dst;
     }
 }

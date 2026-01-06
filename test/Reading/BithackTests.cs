@@ -16,18 +16,18 @@ public class BithackTests
         Assert.Equal(flag, Bithacks.ProcessFlag(1 << 31, uint.TrailingZeroCount(1u << 31), flag));
         Assert.Equal(flag, Bithacks.ProcessFlag(1 << 5, uint.TrailingZeroCount(1u << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(~(1 << 5), uint.TrailingZeroCount(1u << 5), flag));
-        Assert.Equal(0u, Bithacks.ProcessFlag(1 << 31, pos: uint.TrailingZeroCount(0), flag));
-        Assert.Equal(flag, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(0), flag));
-        Assert.Equal(0u, Bithacks.ProcessFlag(0b10, pos: uint.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1 << 31, pos: uint.TrailingZeroCount(1u << 30), flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1, pos: uint.TrailingZeroCount(1), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(0b10, pos: uint.TrailingZeroCount(1), flag));
 
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: 0, flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(1ul, pos: 1, flag));
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 63, (uint)ulong.TrailingZeroCount(1ul << 63), flag));
         Assert.Equal(flag, Bithacks.ProcessFlag(1ul << 5, (uint)ulong.TrailingZeroCount(1ul << 5), flag));
         Assert.Equal(0u, Bithacks.ProcessFlag(~(1ul << 5), (uint)ulong.TrailingZeroCount(1ul << 5), flag));
-        Assert.Equal(0u, Bithacks.ProcessFlag(1ul << 63, pos: (uint)ulong.TrailingZeroCount(0), flag));
-        Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(0), flag));
-        Assert.Equal(0u, Bithacks.ProcessFlag(0b10ul, pos: uint.TrailingZeroCount(0), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(1ul << 63, pos: (uint)ulong.TrailingZeroCount(1ul << 62), flag));
+        Assert.Equal(flag, Bithacks.ProcessFlag(1ul, pos: (uint)ulong.TrailingZeroCount(1), flag));
+        Assert.Equal(0u, Bithacks.ProcessFlag(0b10ul, pos: uint.TrailingZeroCount(1), flag));
 
         Assert.Throws<NotSupportedException>(() => Bithacks.ProcessFlag((ushort)1, 0, flag));
     }
@@ -316,5 +316,31 @@ public class BithackTests
         Assert.False(Bithacks.IsCRLF(ref Unsafe.Add(ref bptr, 3)));
 
         Assert.Throws<NotSupportedException>(() => Bithacks.IsCRLF(ref Unsafe.As<byte, uint>(ref bytes[0])));
+    }
+
+    [Fact]
+    public static void Should_Get_Element_Offset()
+    {
+        uint[] arr = [1, 2, 3, 4];
+        var result = Unsafe.ElementOffset(in arr[0], in arr[2]);
+        Assert.Equal(2, result);
+    }
+
+    [Fact]
+    public static void Should_Return_GTE()
+    {
+        uint[] arr = [1, 2, 3, 4];
+        Assert.False(Unsafe.IsAddressGreaterThanOrEqualTo(in arr[0], in arr[2]));
+        Assert.True(Unsafe.IsAddressGreaterThanOrEqualTo(in arr[2], in arr[0]));
+        Assert.True(Unsafe.IsAddressGreaterThanOrEqualTo(in arr[0], in arr[0]));
+    }
+
+    [Fact]
+    public static void Should_Return_LTE()
+    {
+        uint[] arr = [1, 2, 3, 4];
+        Assert.True(Unsafe.IsAddressLessThanOrEqualTo(in arr[0], in arr[2]));
+        Assert.False(Unsafe.IsAddressLessThanOrEqualTo(in arr[2], in arr[0]));
+        Assert.True(Unsafe.IsAddressLessThanOrEqualTo(in arr[0], in arr[0]));
     }
 }

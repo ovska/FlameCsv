@@ -64,11 +64,8 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         nuint index = (uint)startIndex;
         T* pData = start + index;
 
-        nuint fieldEnd = (nuint)destination.Length - (nuint)MaxFieldsPerIteration;
-
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
-
-        nuint fieldIndex = 0;
+        scoped ref uint dst = ref MemoryMarshal.GetReference(destination);
+        scoped ref readonly uint fieldEnd = ref Unsafe.Add(ref dst, destination.Length - MaxFieldsPerIteration);
 
         Vector512<byte> vecDelim = Vector512.Create(_delimiter);
         Vector512<byte> vecQuote = TQuote.Value ? Vector512.Create(_quote) : default;
@@ -147,7 +144,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 return -1; // broken data
             }
 
-            uint matchCount = (uint)BitOperations.PopCount(maskControl);
+            uint controlCount = (uint)BitOperations.PopCount(maskControl);
 
             if (TQuote.Value && (quotesConsumed | maskQuote) != 0)
             {
@@ -155,7 +152,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             }
 
             // too many matches to fit in VPCOMPRESSB path?
-            if (matchCount > (uint)Vector512<int>.Count)
+            if (controlCount > (uint)Vector512<int>.Count)
             {
                 if (!TCRLF.Value)
                 {
@@ -164,9 +161,8 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 }
 
                 uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
-                ParseControls((uint)index, ref Unsafe.Add(ref firstField, fieldIndex), maskControl, maskLF, flag);
-                fieldIndex += matchCount;
-                goto ContinueRead;
+                ParseControls((uint)index, ref dst, maskControl, maskLF, flag);
+                goto IncrementAndContinueRead;
             }
 
             // get an iota vector with the MSB set on newline positions
@@ -195,8 +191,10 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
             // add the base index to the iota to get the final field indexes
             Vector512<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
-            result.StoreUnsafe(ref firstField, fieldIndex);
-            fieldIndex += matchCount;
+            result.StoreUnsafe(ref dst);
+
+            IncrementAndContinueRead:
+            dst = ref Unsafe.Add(ref dst, controlCount);
 
             ContinueRead:
             index += (nuint)Vector512<byte>.Count;
@@ -218,10 +216,9 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
                 uint flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-                ParseAny(
+                dst = ref ParseAny(
                     index: (uint)index,
-                    firstField: ref firstField,
-                    fieldIndex: ref fieldIndex,
+                    dst: ref dst,
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
                     maskLF: maskLF,
@@ -233,23 +230,9 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             }
 
             goto ContinueRead;
-        } while (fieldIndex <= fieldEnd && pData < end);
+        } while (pData < end && Unsafe.IsAddressLessThanOrEqualTo(in dst, in fieldEnd));
 
-        return (int)fieldIndex;
+        return Unsafe.ElementOffset(in MemoryMarshal.GetReference(destination), in dst);
     }
 }
 #endif
-
-[InlineArray(64)]
-internal struct Inline64<T>
-    where T : unmanaged
-{
-    public T elem0;
-}
-
-[InlineArray(128)]
-internal struct Inline128<T>
-    where T : unmanaged
-{
-    public T elem0;
-}

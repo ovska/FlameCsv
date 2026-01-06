@@ -1,8 +1,6 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Reading.Internal;
 using ArmAes = System.Runtime.Intrinsics.Arm.Aes;
@@ -100,14 +98,14 @@ internal static class Bithacks
     {
         if (Unsafe.SizeOf<T>() is sizeof(uint))
         {
-            // handle pos=32 with zero extension to uint64 (tzcnt 0 returns)
+            Check.LessThan(pos, 32u, "Position out of range for uint");
             int mask = -(int)((Unsafe.BitCast<T, uint>(maskNewline) >> (int)pos) & 1UL);
             return flag & (uint)mask;
         }
 
         if (Unsafe.SizeOf<T>() is sizeof(ulong))
         {
-            // handle pos=64 explicitly (tzcnt 0 returns)
+            Check.LessThan(pos, 64u, "Position out of range for ulong");
             int mask = -(int)((Unsafe.BitCast<T, ulong>(maskNewline) >> (int)pos) & 1UL);
             return flag & (uint)mask;
         }
@@ -254,5 +252,35 @@ internal static class Bithacks
         }
 
         throw Token<T>.NotSupported;
+    }
+
+    extension(Unsafe)
+    {
+        /// <summary>
+        /// Returns the number of elements between <paramref name="start"/> and <paramref name="end"/>.<br/>
+        /// That is: <c>((byte*)end - (byte*)start) / sizeof(T)</c>.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ElementOffset<T>(ref readonly T start, ref readonly T end)
+            where T : unmanaged
+        {
+            return (int)(Unsafe.ByteOffset(in start, in end) / Unsafe.SizeOf<T>());
+        }
+
+#if !NET10_0_OR_GREATER
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsAddressGreaterThanOrEqualTo<T>(ref readonly T left, ref readonly T right)
+            where T : unmanaged
+        {
+            return !Unsafe.IsAddressLessThan(in left, in right);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsAddressLessThanOrEqualTo<T>(ref readonly T left, ref readonly T right)
+            where T : unmanaged
+        {
+            return !Unsafe.IsAddressGreaterThan(in left, in right);
+        }
+#endif
     }
 }

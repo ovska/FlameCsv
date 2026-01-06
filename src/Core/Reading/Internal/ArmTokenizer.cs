@@ -67,9 +67,8 @@ internal sealed class ArmTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         nuint index = (uint)startIndex;
         T* pData = start + index;
 
-        scoped ref uint firstField = ref MemoryMarshal.GetReference(destination);
-        nuint fieldIndex = 0;
-        nuint fieldEnd = Math.Max(0, (nuint)destination.Length - (nuint)MaxFieldsPerIteration);
+        scoped ref uint dst = ref MemoryMarshal.GetReference(destination);
+        scoped ref readonly uint fieldEnd = ref Unsafe.Add(ref dst, destination.Length - MaxFieldsPerIteration);
 
         uint quotesConsumed = 0;
         Mask crCarry = 0;
@@ -219,27 +218,21 @@ internal sealed class ArmTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                     maskLF: maskLF,
                     flag: flag,
                     index: (uint)index,
-                    dst: ref Unsafe.Add(ref firstField, fieldIndex)
+                    dst: ref dst
                 );
             }
             else
             {
-                ParseControls(
-                    index: (uint)index,
-                    dst: ref Unsafe.Add(ref firstField, fieldIndex),
-                    maskControl: maskControl,
-                    maskLF: maskLF,
-                    flag: flag
-                );
+                ParseControls(index: (uint)index, dst: ref dst, maskControl: maskControl, maskLF: maskLF, flag: flag);
             }
 
             if (TQuote.Value && quoteState != 0)
             {
-                Unsafe.Add(ref firstField, fieldIndex) |= Bithacks.GetQuoteFlags(quotesConsumed);
+                dst |= Bithacks.GetQuoteFlags(quotesConsumed);
                 quotesConsumed = (uint)quoteState >> 1;
             }
 
-            fieldIndex += controlCount;
+            dst = ref Unsafe.Add(ref dst, controlCount);
             goto ContinueRead;
 
             SlowPath:
@@ -249,10 +242,9 @@ internal sealed class ArmTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
                 maskControl &= ~Bithacks.FindQuoteMask(maskQuote, quotesConsumed);
                 flag = TCRLF.Value ? Bithacks.GetSubractionFlag(shiftedCR == 0) : Field.IsEOL;
 
-                ParseAny(
+                dst = ref ParseAny(
                     index: (uint)index,
-                    firstField: ref firstField,
-                    fieldIndex: ref fieldIndex,
+                    dst: ref dst,
                     quotesConsumed: ref quotesConsumed,
                     maskControl: maskControl,
                     maskLF: maskLF,
@@ -271,9 +263,9 @@ internal sealed class ArmTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             vector = nextVector;
             index += (nuint)V512.Count;
             pData += V512.Count;
-        } while (fieldIndex <= fieldEnd && pData < end);
+        } while (pData < end && Unsafe.IsAddressLessThanOrEqualTo(in dst, in fieldEnd));
 
-        return (int)fieldIndex;
+        return Unsafe.ElementOffset(in MemoryMarshal.GetReference(destination), in dst);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

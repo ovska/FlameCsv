@@ -7,6 +7,7 @@ using System.Runtime.Intrinsics.Arm;
 using System.Text;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
+using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Reading.Internal;
 
@@ -240,25 +241,3 @@ internal static partial class Field
         throw new CsvFormatException($"Failed to unescape invalid data ({field.Count(quote)} quotes): {error}");
     }
 }
-
-#if !NET10_0_OR_GREATER
-file static class Polyfill
-{
-    extension(Unsafe)
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAddressGreaterThanOrEqualTo<T>(ref T left, ref T right)
-            where T : unmanaged
-        {
-            return !Unsafe.IsAddressLessThan(ref left, ref right);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAddressLessThanOrEqualTo<T>(ref T left, ref T right)
-            where T : unmanaged
-        {
-            return !Unsafe.IsAddressGreaterThan(ref left, ref right);
-        }
-    }
-}
-#endif
