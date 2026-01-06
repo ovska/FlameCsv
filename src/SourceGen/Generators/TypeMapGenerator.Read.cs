@@ -170,6 +170,7 @@ partial class TypeMapGenerator
 
                 writer.WriteLine();
 
+                writer.DebugLine("Writing required members..");
                 foreach (var member in typeMap.AllMembers.Readable())
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -345,11 +346,18 @@ partial class TypeMapGenerator
         }
 
         writer.WriteLine(";");
+        foreach (var property in typeMap.Properties)
+        {
+            if (property.IsRequired && property.ExplicitInterfaceOriginalDefinitionName is not null)
+            {
+                WriteSetter(property, writer);
+            }
+        }
 
         foreach (var property in typeMap.Properties)
         {
             // required already written above
-            if (!property.IsParsable || property is { IsRequired: true, ExplicitInterfaceOriginalDefinitionName: null })
+            if (!property.IsParsable || property.IsRequired)
             {
                 continue;
             }
@@ -375,6 +383,11 @@ partial class TypeMapGenerator
                 writer.WriteLine("goto FailedParse;");
             }
 
+            WriteSetter(property, writer);
+        }
+
+        static void WriteSetter(PropertyModel property, IndentedTextWriter writer)
+        {
             if (!string.IsNullOrEmpty(property.ExplicitInterfaceOriginalDefinitionName))
             {
                 writer.Write($"(({property.ExplicitInterfaceOriginalDefinitionName})obj).");

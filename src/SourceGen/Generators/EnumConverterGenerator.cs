@@ -127,7 +127,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             writer.WriteLine("private readonly string? _format;");
 
             writer.WriteLine();
-            writer.WriteLine($"public {model.ConverterTypeName}(CsvOptions<{model.Token}> options)");
+            writer.WriteLine($"public {model.ConverterTypeName}(global::FlameCsv.CsvOptions<{model.Token}> options)");
             using (writer.WriteBlock())
             {
                 writer.WriteLine("global::System.ArgumentNullException.ThrowIfNull(options);");
