@@ -54,14 +54,13 @@ FlameCSV supports reading from a wide range of sources:
 
 - Files
 - @"System.ReadOnlyMemory`1" (arrays, strings)
-- @"System.Buffers.ReadOnlySequence`1"
-- @"System.Text.StringBuilder"
-- @"System.IO.TextReader"
 - @"System.IO.Stream"
+- @"System.IO.TextReader"
+- @"System.Text.StringBuilder"
+- @"System.Buffers.ReadOnlySequence`1"
 - @"System.IO.Pipelines.PipeReader" (async only)
 
-When using streaming sources such as `Stream`, `TextReader`, or `PipeReader`, data is read lazily as the enumerator is advanced, allowing processing of large files without loading everything into memory.
-Buffer sizes, memory pools, and other I/O options can be configured using @"FlameCsv.IO.CSVIOOptions".
+When using streaming sources such as `Stream`, `TextReader`, or `PipeReader`, data is read lazily as the enumerator is advanced, allowing processing of large files without loading everything into memory. See @"FlameCsv.IO.CSVIOOptions" for configuring buffer sizes.
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -175,7 +174,7 @@ foreach (CsvRecordRef<byte> record in new CsvReader<byte>(CsvOptions<byte>, stre
 ---
 
 Only one field may be read at a time, as unescaping the fields uses a shared buffer, and you should process fields one by one before reading the next one.
-Fields that don't need escaping or are fetched with `GetRawSpan` can be handled concurrently.
+Fields that don't need escaping or are fetched with `GetRawSpan` can be handled concurrently (until the next record is read).
 
 ## Writing
 
@@ -261,7 +260,7 @@ or `ForEachUnordered` to process the batches directly with a callback (the callb
 
 To read or write headerless CSV:
 
-1. Annotate types with @"FlameCsv.Attributes.CsvIndexAttribute"
+1. Annotate types with @"FlameCsv.Attributes.CsvIndexAttribute" (required)
 2. Set @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" to `false`
 
 
@@ -479,4 +478,4 @@ class EnumerableConverterFactory<T, TElement>(CsvOptions<T> options) : CsvConver
 ```
 ---
 
-Note how the @"System.Numerics.IBinaryInteger`1" constraint allows us to use the same character for both UTF16 and UTF8.
+Note how the @"System.Numerics.IBinaryInteger`1" constraint allows us to use generics to write a single converter for both UTF8 and UTF16.

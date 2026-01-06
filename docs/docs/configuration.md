@@ -6,7 +6,9 @@ uid: configuration
 
 ## Overview
 
-Aside from [attributes](attributes.md), configuration is mainly done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, options instances should be configured once and reused for the application lifetime. After an options instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options instances are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure thread safety by making the options instance immutable.
+Aside from [attributes](attributes.md), configuration is mainly done through the @"FlameCsv.CsvOptions`1" class. Similar to `System.Text.Json`, options instances should be configured once and reused for the application lifetime. Creating a new options instance for every operation is not catastrophic, but will have a slight performance impact.
+
+After an options instance is used to read or write CSV, it cannot be modified (see @"FlameCsv.CsvOptions`1.IsReadOnly"). The options instances are thread-safe to *use*, but not to *configure*. You can call @"FlameCsv.CsvOptions`1.MakeReadOnly?displayProperty=nameWithType" to ensure thread safety by making the options instance immutable.
 
 For convenience, a copy-constructor @"FlameCsv.CsvOptions`1.%23ctor(FlameCsv.CsvOptions{`0})" is available, for example if you need slightly different configuration for reading and writing. This copies over all the configurable properties.
 
@@ -16,28 +18,24 @@ The static @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" propert
 
 Default options are only available for @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8).
 
-```cs
-CsvConverter<byte, int> intConverter = CsvOptions<byte>.Default.GetConverter<int>();
-```
-
 ## Dialect
 
 ### Delimiter
 The field separator is configured with @"FlameCsv.CsvOptions`1.Delimiter?displayProperty=nameWithType". The default value is `,` (comma). Other common values include `\t` and `;`.
 
 ### Quote
-The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is `"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`.
+The string delimiter is configured with @"FlameCsv.CsvOptions`1.Quote?displayProperty=nameWithType". The default value is`"` (double-quote). CSV fields wrapped in quotes (also referred to as strings) can contain otherwise special characters such as delimiters. A quote inside a string is escaped with another quote, e.g. `"James ""007"" Bond"`. If you know your data does not contain quoted fields, you can improve performance by setting the value to`null`(this also requires that @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" is disabled).
 
 ### Newline
-The record separator is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`. FlameCsv is lenient when parsing newlines, and a `\r\n`-configured reader can read only `\n` or `\r`. The value is used as-is when writing. If you know the data is always in a specific format, you can set the value to `\n` or `\r` to squeeze out an extra 1-2% of performance. You can use any custom newline as well, as long as it is 1 or 2 characters long, and does not contain two of the same character (such as `\r\r` or `\n\n`).
+The newline type (record separator) is configured with @"FlameCsv.CsvOptions`1.Newline?displayProperty=nameWithType". The default value is `\r\n`, which will also accept lone `\n` or `\r` when reading. The configured value is used as-is while writing. You can also configure it to be platform-specific. If you know your data only contains `\n`, you can improve performance by configuring the dialect accordingly. Otherwise, the safe choice is to leave it as the default.
 
 ### Trimming
-The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both. For compliance with other CSV libraries, other whitespace characters are not trimmed.
+The @"FlameCsv.CsvOptions`1.Trimming?displayProperty=nameWithType" property is used to configure whether spaces are trimmed from fields when reading. The default value is @"FlameCsv.CsvFieldTrimming.None?displayProperty=nameWithType". The flags-enum supports trimming leading and trailing spaces, or both. For compliance with other CSV libraries, whitespace characters other than ASCII-space (0x20) are not trimmed.
 
 This property is only used when reading CSV, and has no effect when writing, see @"FlameCsv.CsvOptions`1.FieldQuoting?displayProperty=nameWithType" for writing.
 
 > [!WARNING]
-> For performance reasons, all the dialect characters must be non-alphanumeric ASCII (value 127 or lower). A runtime exception is thrown if the configured dialect contains non-ASCII characters.
+> For performance reasons, all the dialect characters must be non-alphanumeric ASCII (numeric value 1..127 inclusive).
 
 ### Example
 
@@ -48,12 +46,13 @@ CsvOptions<byte> options = new()
     Quote = '"',
     Newline = CsvNewline.LF,
     Trimming = CsvFieldTrimming.Both,
+    FieldQuoting = CsvFieldQuoting.Auto | CsvFieldQuoting.LeadingOrTrailingSpaces,
 };
 ```
 
 ## Header
 
-The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is `true` by default, which expects a header record on the first line/record. Header names are matched using the @"FlameCsv.CsvOptions`1.Comparer"-property, which defaults to @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
+The @"FlameCsv.CsvOptions`1.HasHeader?displayProperty=nameWithType" property is`true`by default, which expects a header record on the first line/record. The comparison is case-insensitive by default (configured via @"FlameCsv.CsvOptions`1.IgnoreHeaderCase"). A delegate @"FlameCsv.CsvOptions`1.NormalizeHeader" can be used to process header names before they are compared (note that this disables the header string value pooling).
 
 ```cs
 const string csv = "id,name\n1,Bob\n2,Alice\n";
@@ -74,7 +73,7 @@ The @"FlameCsv.CsvFieldQuoting" enumeration and @"FlameCsv.CsvOptions`1.FieldQuo
 return new CsvOptions<char>() { FieldQuoting = CsvFieldQuoting.Always };
 ```
 
-If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvFieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted.
+If you are 100% sure your data does not contain any special characters, you can set it to @"FlameCsv.CsvFieldQuoting.Never?displayProperty=nameWithType" to squeeze out a little bit of performance by omitting the check if each written field needs to be quoted. If @"FlameCsv.CsvOptions`1.Quote" is set to `null`, an exception is thrown if this setting is not @"FlameCsv.CsvFieldQuoting.Never?displayProperty=nameWithType".
 
 
 ## Skipping records or resetting headers
@@ -105,19 +104,7 @@ CsvOptions<char> options = new()
 ```
 
 > [!WARNING]
-> Comment records are not supported. Even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes). 
-
-
-## Field count validation
-
-@"FlameCsv.CsvOptions`1.ValidateFieldCount?displayProperty=nameWithType" can be used to validate the field count both when reading and writing.
-
-When reading @"FlameCsv.CsvRecord`1", setting the property to `true` ensures that all records have the same field count as the first record.
-The expected field count is reset if you [reset the headers with a callback](#skipping-records-or-resetting-headers).
-
-This property also ensures that all records written with `Csv.To().Write/Async()` have the same field count.
-Alternatively, you can use the @"FlameCsv.CsvWriter`1.ExpectedFieldCount"-property. The property can also be used to reset the expected count by setting it to `null`,
-for example when writing multiple CSV documents into one output.
+> Comment lines are not supported! Even if you configure the callback to skip rows that start with `#`, the rows are still parsed and expected to be properly structured CSV (e.g., no unbalanced quotes).
 
 ## Advanced topics
 
@@ -133,16 +120,13 @@ CsvConverter<char, int?> c1 = options.Aot.GetOrCreateNullable(static o => o.Aot.
 CsvConverter<char, DayOfWeek> c2 = options.Aot.GetOrCreateEnum<DayOfWeek>();
 ```
 
-### Memory pooling
+### Buffer sizes and memory pooling
 
-You can configure the @"System.Buffers.MemoryPool`1" instance used internally with the @"FlameCsv.CsvOptions`1.MemoryPool?displayProperty=nameWithType" property. Pooled memory is used to handle escaping, unescaping, and buffers to read data from streaming sources. The default value is @"System.Buffers.MemoryPool`1.Shared?displayProperty=nameWithType".
+You can configure the I/O options with @"FlameCsv.IO.CsvIOOptions" when using streamed reading/writing, including buffer sizes (defaulting to 16 kB, and 32 kB for file I/O) and whether to close the Stream/TextWriter passed.
 
-If set to `null`, no pooled memory is used and all temporary buffers are heap allocated.
+You can configure how memory is allocated by assigning a custom @"FlameCsv.IO.IBufferPool". This memory is used to handle escaping, unescaping, and buffers to read data from streaming sources. The default value uses the shared array pool.
 
-Further reading: @"architecture".
-
-The library also maintains a small pool of @"System.String"-instances of previously encountered headers,
-so unless your data is exceptionally varied, the allocation cost is paid only once.
+The library also maintains a small pool of @"System.String"-instances of previously encountered headers, so unless your data is exceptionally varied, the allocation cost is paid only once.
 
 ### Custom binding
 

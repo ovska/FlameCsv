@@ -71,10 +71,10 @@ Example of custom configuration:
 CsvOptions<char> options = new()
 {
     Delimiter = ';',
-    Quote = '"',
+    Newline = CsvNewline.Platform, // CRLF or LF depending on OS
     Trimming = CsvFieldTrimming.Leading,
     HasHeader = true,
-    Comparer = StringComparer.Ordinal,
+    NormalizeHeader = static h => h.Trim().ToString().Replace("_", ""),
 };
 ```
 

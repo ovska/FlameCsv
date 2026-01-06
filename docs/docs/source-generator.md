@@ -6,16 +6,17 @@ uid: source-generator
 
 ## Foreword
 
-_There is nothing inherently bad about reflection and compiled expressions._
+For 99% of applications, reflection works perfectly and is straightforward to set up with minimal configuration.
+However, reflection and compiled expressions are incompatible with AOT compilation, trimming, and platforms without JIT.
 
-For 99% of applications, they work perfectly and are straightforward to set up with minimal configuration.
-However, reflection and compiled expressions are incompatible with AOT compilation and trimming, so an alternative API is provided.
+The performance differences between reflection and source generation in FlameCsv are extremely small, and you should pick
+the approach that best fits your application's needs.
 
-Aside from the start-up cost, performance differences between reflection and source generation in FlameCsv are
-relatively small.
+The source-generated [enum converter](#enum-converter-generator) however is significantly faster than `Enum.TryParse` and `TryFormat`,
+especially when reading UTF-8 (bytes). For more details, see the [benchmarks](benchmarks.md#enums).
 
-The source-generated [enum converter](#enum-converter-generator) is significantly faster than `Enum.TryParse` and `TryFormat`,
-especially when reading UTF-8 bytes. For more details, see the [benchmarks](benchmarks.md#enums).
+All source generators in FlameCSV are implemented as low-footprint incremental generators, and they include diagnostics
+for common pitfalls and configuration problems.
 
 ## Type Map Generator
 
@@ -23,7 +24,9 @@ FlameCsv includes a source generator that creates code for binding .NET types to
 This enables writing [trimmable code](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/trim-self-contained)
 without any reflection or dynamic code generation — a necessity for [Native AOT](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot) applications.
 
-To use the source generator, create a `partial class` and apply @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
+To use the source generator, create a `partial class` and apply @"FlameCsv.Attributes.CsvTypeMapAttribute`2". The source generator
+will inherit from @"FlameCsv.Binding.CsvTypeMap`2" and generate the required code based on the attributes on the target type,
+including a static property to get a thread-safe singleton instance of the type map.
 
 ```cs
 [CsvTypeMap<char, User>]
@@ -33,36 +36,13 @@ partial class UserTypeMap;
 IEnumerable<User> users = CsvReader.Read(csv, UserTypeMap.Default);
 ```
 
-The source generator implements @"FlameCsv.Binding.CsvTypeMap`2" on the target type, and generates a static
-`Default`-property that can be used to get a thread-safe singleton instance of the type map.
-
-Source generation offers many advantages, such as improved performance due to no reflection and improved JIT
-optimization, and easier development as you can debug the code as if you wrote it yourself. On the other hand, while great care has
-been given to the performance of the incremental source generator to keep the impact as small as possible,
-it still has _some_ effect on compile-times and CPU use during development.
-
-### Configuration
-
-The source generator uses [attribute configuration](attributes.md) to determine the generated code.
-All features of the reflection-based API are supported.
-
-The code generation can be configured with these properties on @"FlameCsv.Attributes.CsvTypeMapAttribute`2":
-
- - @"FlameCsv.Attributes.CsvTypeMapAttribute`2.SupportsAssemblyAttributes": Configures the source generator to scan the assembly for configuration attributes. By default, only attributes directly on the type and its members are scanned.
-
-```cs
-[CsvTypeMap<char, User>(SupportsAssemblyAttributes = true)]
-partial class UserTypeMap;
-```
-
-> [!NOTE]
-> These properties on the attribute affect only the generated `Default` instance. If you create a typemap manually with `new()`,
-> you need to configure it separately.
+The source generator has lower startup overhead than reflection, and allows debugging the code as if you wrote it yourself.
+All configuration is done via the options as normal.
 
 ### Limitations
 
 Due to how generic constraints and @"FlameCsv.CsvConverterFactory`1" work, converter factories are not supported by the source generator.
-However, since the type is known at compile time, you can add the required converters explicitly beforehand.
+However, since the types are known at compile time, you can add the required converters explicitly beforehand, e.g.: `[CsvConverter<char, MyListConverter>]`.
 
 ### Example
 
@@ -631,9 +611,9 @@ partial class UserTypeMap : global::FlameCsv.Binding.CsvTypeMap<byte, global::Us
 @"FlameCsv.Attributes.CsvEnumConverterAttribute`2" can be used to generate extremely performant enum converters
 that are essentially hyper-optimized hand-written implementations specific to the enum. The implementations
 use @"System.Runtime.CompilerServices.Unsafe" and @"System.Runtime.InteropServices.MemoryMarshal" to avoid allocations and
-optimize for performance, and they are fuzz-tested to ensure correctness.
+optimize for performance.
 
-Simply apply the attribute to a `partial class`. The generated converter supports parsing and formatting numbers, enum names,
+Simply apply the attribute to a `partial class`. The generated converter supports parsing and formatting numbers, enum names, flags,
 @"System.Runtime.Serialization.EnumMemberAttribute", and case-insensitive parsing of both UTF-16 and UTF-8 data.
 The converter also correctly handles oddities on both UTF-8 and UTF-16, such as surrogates and non-ASCII data like emojis,
 and intelligently switches between raw byte/memory manipulation and transcoding to chars when necessary.
@@ -647,7 +627,7 @@ partial class DayOfWeekConverter;
 
 - Hex-formatted values are not supported; the generator will defer to `Enum.TryFormat` and `Enum.TryParse`
 - Custom enum names must not start with a digit or a dash (minus sign)
-- Custom names cannot be empty, or the same as another enum's name or custom name
+- Custom names must not be empty, or have duplicates among enum names.
 
 ### Example
 

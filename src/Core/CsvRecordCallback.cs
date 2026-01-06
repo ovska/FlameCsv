@@ -8,6 +8,13 @@ using JetBrains.Annotations;
 namespace FlameCsv;
 
 /// <summary>
+/// Callback called for every record (line) before it is processed by the library.
+/// </summary>
+[PublicAPI]
+public delegate void CsvRecordCallback<T>(ref readonly CsvRecordCallbackArgs<T> args)
+    where T : unmanaged, IBinaryInteger<T>;
+
+/// <summary>
 /// Arguments for <see cref="CsvRecordCallback{T}"/>.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
@@ -115,7 +122,8 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// </summary>
     /// <remarks>
     /// If the set to false while reading headered CSV, this record will be considered the header unless
-    /// <see cref="SkipRecord"/> is also true, in which case it will be first unskipped record.
+    /// <see cref="SkipRecord"/> is also true, in which case it will be first unskipped record.<br/>
+    /// Modifying the value does nothing in parallel workloads, as the order of records is not guaranteed.
     /// </remarks>
     public bool HeaderRead
     {
@@ -128,11 +136,3 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// </summary>
     public ReadOnlySpan<string> Header { get; }
 }
-
-/// <summary>
-/// Callback called for every record (line) before it is returned or parsed into an object/struct.
-/// </summary>
-/// <typeparam name="T">Token type</typeparam>
-[PublicAPI]
-public delegate void CsvRecordCallback<T>(ref readonly CsvRecordCallbackArgs<T> args)
-    where T : unmanaged, IBinaryInteger<T>;

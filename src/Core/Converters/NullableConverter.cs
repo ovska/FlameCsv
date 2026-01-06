@@ -35,8 +35,7 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         }
 
         value = null;
-
-        return _null.IsEmpty && source.IsEmpty || _null.Span.SequenceEqual(source);
+        return (_null.IsEmpty && source.IsEmpty) || _null.Span.SequenceEqual(source);
     }
 
     /// <inheritdoc />
@@ -48,20 +47,7 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
             return _converter.TryFormat(destination, v, out charsWritten);
         }
 
-        if (_null.IsEmpty)
-        {
-            charsWritten = 0;
-            return true;
-        }
-
-        if (_null.Length <= destination.Length)
-        {
-            _null.Span.CopyTo(destination);
-            charsWritten = _null.Length;
-            return true;
-        }
-
-        charsWritten = 0;
-        return false;
+        charsWritten = _null.Length;
+        return _null.IsEmpty || _null.Span.TryCopyTo(destination);
     }
 }
