@@ -12,29 +12,26 @@ See the [documentation](https://ovska.github.io/FlameCsv) for more information a
 
 # Features
 
+- **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
 - **Ease of Use**
-    - Simple API for reading and writing CSV
-    - Built-in support for common CLR types
-    - Supports both synchronous and asynchronous operations
-    - Flexible; read or write almost any data source
-    - UTF-8/ASCII support to read/write bytes directly without additional transcoding
-    - Supports hot reload
+  - Fluent API to read/write CSV from/to almost any source/destination
+  - Built-in support for common CLR types and interfaces like I(Utf8)SpanParsable
+  - Full feature parity with sync and async APIs
+  - UTF-8/ASCII support to read/write bytes directly from a stream without additional transcoding
+  - Hot reload support for internal caches
 - **High Performance**
-    - Optimized for speed and low memory usage
-    - Specialized SIMD-accelerated parsing and unescaping
-    - Batteries-included internal caching and memory pooling for near-zero allocations
-    - Reflection code paths that rival and exceed manually written code in performance
+  - SIMD parsers tuned for each platform (AVX2, AVX512, ARM64)
+  - Near-zero allocations
+  - Parallel APIs to read/write records unordered with multiple threads
+  - Low-level APIs to handle raw CSV field spans directly
 - **Deep Customization**
-    - Read or write either .NET objects, or raw CSV records and fields
-    - Attribute configuration for header names, constructors, field order, and more
-    - Support for custom converters and converter factories
-    - Read or write multiple CSV documents from/to a single data stream
-- **Source Generator**
-    - Fully annotated and compatible with NativeAOT
-    - Supports trimming to reduce application size
-    - Debuggable source code instead of compiled expressions
-    - Compile-time diagnostics instead of runtime errors
-    - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting
+  - Attribute configuration for header names, constructors, field order, etc.
+  - Support for custom converters and converter factories (like System.Text.Json)
+  - Read or write multiple CSV documents from/to a single data stream
+- **Source Generators**
+  - Library is fully annotated for NativeAOT and trimming
+  - Source generated type maps for reflection-free reading and writing
+  - Source generated enum converters with up to 10x better performance than Enum.TryParse/TryFormat
 
 # Example
 
@@ -84,13 +81,14 @@ await Csv
 - *Breaking:* Renamed `CsvRecord` -> `CsvPreservedRecord` and `CsvValueRecord` -> `CsvRecord`
 - *Breaking:* Calling `Complete` or `CompleteAsync` on `ICsvBufferWriter<T>` no longer throws the passed exception
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios. This is only an issue if you've inherited the I/O types
-- *Breaking:* The record parameter to `IMaterializer<T>` is now `ref readonly` instead of `ref`
+- *Breaking:* The record parameter to `IMaterializer<T>` is no longer `ref` (the record struct is now only 32 bytes)
+- Added a huge amount of parsing performance improvements on all architectures
 - Added support for NET10 and new AVX512 mask instructions
 - Added support for headerless CSV with the source generator
 - Added support for `ISpanParsable<T>` and `ISpanFormattable` to the source generator
+- Added specialized ARM64/NEON parser
 - Added explicit UTF8 reader and writer types for up to 2x faster I/O compared to TextReader/TextWriter when using ASCII or UTF8 encoding
 - Added hot reload support for enum changes (if they are eventually supported by the runtime)
-- Numerous parsing performance improvements on all architectures (especially Avx512BW when reading `char`)
 - Removed explicit dependency to `System.IO.Pipelines` package
 - Fixed potential problems when escaping fields with quotes near the end
 - Fixed unreachable code warnings in some source generated enum byte converters

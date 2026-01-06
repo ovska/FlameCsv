@@ -6,41 +6,36 @@ _layout: landing
 
 🔥 FlameCsv 🔥 is a fully-featured high performance CSV library for .NET with a simple API, deep customization options, and built-in support for UTF8, nativeAOT, and more.
 
-FlameCsv can be thought to be the System.Text.Json of CSV libraries. It is designed to be fast, easy to use, and extensible, while supporting low-level operations for advances use-cases. It is consistently the fastest .NET CSV library in reading, writing, and enumerating CSV data, and does this while also allocating the least memory.
+FlameCsv can be thought to be the System.Text.Json of CSV libraries. It is designed to be fast, easy to use, and extensible, while supporting low-level operations for advances use-cases. As well as being extremely fast, it is also the most memory-efficient .NET CSV library in the world.
 
 FlameCsv can read CSV at [multiple gigabytes per second](docs/benchmarks.md#reading-without-processing-all-fields) on consumer hardware, and write arbitrarily large amounts of CSV with [near-zero allocations](docs/benchmarks.md#writing-net-objects) irrespective of the dataset's size.
-FlameCsv leverages modern .NET patterns such as spans, SIMD hardware intrinsics, memory/string pooling, and buffer writers, and is built from the ground up to provide an easy-to-use high performance experience.
 
-The library has thousands of tests, and critical paths have been fuzz-tested with SharpFuzz.
+The library has thousands of unit tests and has been fuzz-tested.
 
 See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?text=API Reference".
 
 # Features
 
-- **[Ease of Use](docs/examples.md)**
-  - Simple API for reading and writing CSV
-  - Built-in support for common CLR types
-  - Supports both synchronous and asynchronous operations
-  - Flexible; read or write almost any data source
-  - UTF-8/ASCII support to read/write bytes directly without additional transcoding
-  - Supports hot reload
-- **[High Performance](docs/benchmarks.md)**
-  - Optimized for speed and low memory usage
-  - Specialized SIMD-accelerated parsing and unescaping
-  - Batteries-included internal caching and memory pooling for near-zero allocations
-  - Reflection code paths that rival and exceed manually written code in performance
-- **[Deep Customization](docs/configuration.md)**
-  - Read or write either .NET objects, or raw CSV records and fields
-  - Attribute configuration for header names, constructors, field order, and more
-  - Support for custom converters and converter factories
+- **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library
+- **Ease of Use**
+  - Fluent API to read/write CSV from/to almost any source/destination
+  - Built-in support for common CLR types and interfaces like I(Utf8)SpanParsable
+  - Full feature parity with sync and async APIs
+  - UTF-8/ASCII support to read/write bytes directly from a stream without additional transcoding
+  - Hot reload support for internal caches
+- **High Performance**
+  - SIMD parsers tuned for each platform (AVX2, AVX512, ARM64)
+  - Near-zero allocations
+  - Parallel APIs to read/write records unordered with multiple threads
+  - Low-level APIs to handle raw CSV field spans directly
+- **Deep Customization**
+  - Attribute configuration for header names, constructors, field order, etc.
+  - Support for custom converters and converter factories (like System.Text.Json)
   - Read or write multiple CSV documents from/to a single data stream
-- **[Source Generator](docs/source-generator.md)**
-  - Fully annotated and compatible with NativeAOT
-  - Supports trimming to reduce application size
-  - Debuggable source code instead of compiled expressions
-  - Compile-time diagnostics instead of runtime errors
-  - Feature parity with reflection-based code paths
-  - Enum converter generator for up to 10x faster enum parsing and 7x faster formatting (than Enum.TryParse/Format)
+- **Source Generators**
+  - Library is fully annotated for NativeAOT and trimming
+  - Source generated type maps for reflection-free reading and writing
+  - Source generated enum converters with up to 10x better performance than Enum.TryParse/TryFormat
 
 # Example
 
