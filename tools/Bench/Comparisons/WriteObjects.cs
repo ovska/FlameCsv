@@ -23,19 +23,6 @@ public class WriteObjects
         Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb_4x.csv").Read<Entry>().ToArray();
 
     [Benchmark(Baseline = true)]
-    public async Task _Flame_SrcGen()
-    {
-        if (Async)
-        {
-            await Csv.To(_destination).WriteAsync(EntryTypeMap.Default, Data);
-        }
-        else
-        {
-            Csv.To(_destination).Write(EntryTypeMap.Default, Data);
-        }
-    }
-
-    [Benchmark]
     public async Task _Flame_Reflection()
     {
         if (Async)
@@ -45,6 +32,19 @@ public class WriteObjects
         else
         {
             Csv.To(_destination).Write(Data);
+        }
+    }
+
+    [Benchmark]
+    public async Task _Flame_SrcGen()
+    {
+        if (Async)
+        {
+            await Csv.To(_destination).WriteAsync(EntryTypeMap.Default, Data);
+        }
+        else
+        {
+            Csv.To(_destination).Write(EntryTypeMap.Default, Data);
         }
     }
 

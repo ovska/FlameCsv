@@ -14,7 +14,7 @@ namespace FlameCsv.Benchmark.Comparisons;
 [MemoryDiagnoser]
 public partial class ReadObjects
 {
-    // [Params(true, false)]
+    [Params(true, false)]
     public bool Async { get; set; }
 
     private MemoryStream GetStream() => new(_data, 0, _data.Length, writable: false, publiclyVisible: false);

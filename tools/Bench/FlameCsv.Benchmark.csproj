@@ -4,6 +4,7 @@
         <NoWarn>$(NoWarn);IDE0008;IDE0011;IDE0040;CA1822;CS1591;CA2007;CS8002</NoWarn>
         <AnalysisLevel>latest-minimum</AnalysisLevel>
         <ReportAnalyzer>true</ReportAnalyzer>
+        <DefineConstants>$(DefineConstants);BENCHMARK_INCLUDE_UNCONVENTIONAL</DefineConstants>
         <!--For ETW profiler-->
         <DebugSymbols>true</DebugSymbols>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

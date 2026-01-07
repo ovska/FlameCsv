@@ -4,7 +4,6 @@ using FlameCsv.Reading;
 using nietras.SeparatedValues;
 using RecordParser.Builders.Reader;
 using RecordParser.Extensions;
-using RecordParser.Parsers;
 using Sylvan.Data.Csv;
 
 namespace FlameCsv.Benchmark.Comparisons;
@@ -47,7 +46,7 @@ public partial class PeekFields
             .ParseRecords()
             .GetEnumerator();
 
-        // skip header record
+        // skip header
         _ = enumerator.MoveNext();
 
         double sum = 0;
@@ -123,21 +122,15 @@ public partial class PeekFields
     {
         double sum = 0;
 
-        foreach (
-            var row in GetReader()
-                .ReadRecords(BuildRecordParserReader(), new() { HasHeader = true, ContainsQuotedFields = false })
-        )
+        var reader = new VariableLengthReaderBuilder<ValueTuple<double>>()
+            .Map(x => x.Item1, 11, s => csFastFloat.FastDoubleParser.ParseDouble(s))
+            .Build(",", CultureInfo.InvariantCulture);
+
+        foreach (var row in GetReader().ReadRecords(reader, new() { HasHeader = true, ContainsQuotedFields = false }))
         {
             sum += row.Item1;
         }
 
         return sum;
-    }
-
-    private static IVariableLengthReader<ValueTuple<double>> BuildRecordParserReader()
-    {
-        return new VariableLengthReaderBuilder<ValueTuple<double>>()
-            .Map(x => x.Item1, 11, s => csFastFloat.FastDoubleParser.ParseDouble(s))
-            .Build(",", CultureInfo.InvariantCulture);
     }
 }

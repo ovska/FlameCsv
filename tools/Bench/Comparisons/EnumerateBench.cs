@@ -3,7 +3,9 @@ using System.Globalization;
 using System.Text;
 using FlameCsv.Reading;
 using nietras.SeparatedValues;
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
 using RecordParser.Extensions;
+#endif
 
 namespace FlameCsv.Benchmark.Comparisons;
 
@@ -51,6 +53,7 @@ public class EnumerateBench
                 DisableQuotesParsing = !Quoted,
             };
 
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
         _rpOptions = new VariableLengthReaderRawOptions
         {
             HasHeader = true,
@@ -72,6 +75,7 @@ public class EnumerateBench
                 MaxDegreeOfParallelism = 4,
             },
         };
+#endif
     }
 
     private byte[] _data = null!;
@@ -79,8 +83,10 @@ public class EnumerateBench
     private CsvHelper.Configuration.CsvConfiguration _helperConfig = null!;
     private Sylvan.Data.Csv.CsvDataReaderOptions _sylvanOptions = null!;
     private Func<SepReaderOptions, SepReaderOptions> _configureSep = null!;
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
     private VariableLengthReaderRawOptions _rpOptions = null!;
     private VariableLengthReaderRawOptions _rpParallelOptions = null!;
+#endif
 
     private byte[] GetData() => _data;
 
@@ -201,6 +207,7 @@ public class EnumerateBench
         }
     }
 
+#if BENCHMARK_INCLUDE_UNCONVENTIONAL
     [Benchmark]
     public void _RecordParser()
     {
@@ -253,4 +260,5 @@ public class EnumerateBench
             );
         foreach (var _ in r) { }
     }
+#endif
 }
