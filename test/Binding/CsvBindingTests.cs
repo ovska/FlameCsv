@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
@@ -49,6 +50,42 @@ public static class CsvBindingTests
     }
 
     private record RecordTest(int Id, string Name);
+
+    private class ExplicitOrder
+    {
+        [CsvOrder(50)]
+        public int A { get; set; }
+
+        [CsvOrder(-1)]
+        public int B { get; set; }
+
+        [CsvOrder(10)]
+        public int C { get; set; }
+        public int D { get; set; }
+
+        [CsvOrder(40)]
+        public int E { get; set; }
+    }
+
+    [Fact]
+    public static void Should_Respect_Order()
+    {
+        StringBuilder sb = new();
+        Csv.To(sb)
+            .Write(
+                [
+                    new ExplicitOrder
+                    {
+                        A = 1,
+                        B = 2,
+                        C = 3,
+                        D = 4,
+                        E = 5,
+                    },
+                ]
+            );
+        Assert.Equal("B,D,C,E,A\r\n2,4,3,5,1\r\n", sb.ToString());
+    }
 
     [Fact]
     public static void Should_Require_One_Match()

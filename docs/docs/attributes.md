@@ -6,7 +6,7 @@ uid: attributes
 
 Configuration attributes can be applied on a member, type, or assembly. Attributes on a type can be used to configure classes that you have no direct control over, such as on partial types in auto-generated code. Assembly scoped attributes can be used to configure types in other namespaces or assemblies that you cannot directly modify.
 
-All three attributes in the example below do the same thing. For clarity, it is preferred to annotate the type directly whenever possible.
+All three attributes in the example below do the same thing. You should annotate directly on the type/member when possible, and use type or assembly scoped attributes only when necessary (e.g. auto-generated code or third party classes).
 
 ```cs
 [assembly: CsvHeader("is_admin", TargetType = typeof(User), MemberName = nameof(User.IsAdmin))]
@@ -37,29 +37,23 @@ public int Id { get; set; }
 
 @"FlameCsv.Attributes.CsvConstructorAttribute" is used to explicitly choose which constructor is used to instantiate a type. The selection process follows these rules:
 
-1. @"FlameCsv.Attributes.CsvConstructorAttribute" is present, that constructor is used
-2. No attribute is present, and a public parameterless constructor exists, it is used
-3. If the type has exactly one public constructor, it is used
+1. Constructor with @"FlameCsv.Attributes.CsvConstructorAttribute"
+2. Public parameterless constructor
+3. A single public constructor (if there are multiple or none, an exception is thrown)
 
 Priority for attributes is assembly > type > constructor.
+If used on a type or assembly, specify the parameter types of the specific constructor.
 
 ```cs
+// all configurations are equivalent
 public class User
 {
     [CsvConstructor]
-    public User(int id, string name)
-    {
-    }
+    public User(int id, string name) { /* ... */ }
 
-    public User(int id)
-    {
-    }
+    public User(int id) : this(id, "Guest") { /* ... */ }
 }
-```
 
-If used on a type or assembly, specify the parameter types of the specific constructor:
-
-```cs
 [CsvConstructor(ParameterTypes = [typeof(int), typeof(string)])]
 partial class User;
 
@@ -84,13 +78,12 @@ public class User
 > [!NOTE]
 > The following are implicitly treated as required:
 > - Properties with `init` setter
+> - Properties with `required` modifier
 > - Constructor parameters without default values
-
-The `required`-keyword is not recognized by the library. Create an issue if you have a need for it.
 
 ## Field order
 
-@"FlameCsv.Attributes.CsvOrderAttribute" can be used to explicitly set the order of fields in CSV. When omitted, 0 is used. Fields are sorted from smallest to largest, with equal values having no guarantees about their order.
+@"FlameCsv.Attributes.CsvOrderAttribute" can be used to explicitly set the order of fields in CSV. When omitted, 0 is used. Fields are sorted from smallest to largest, with equal values having no guarantees about their order. This attribute also effects the order in which headers are matched to members/parameters.
 
 ```cs
 public class User
@@ -133,7 +126,7 @@ public class User
     public int Id { get; set; }
     
     [CsvIgnore]
-    public DateTime LastModified { get; set; } // This field will be invisible to the library
+    public DateTime LastModified { get; set; } // This property will be invisible to the library
 }
 ```
 
@@ -169,7 +162,7 @@ class Transaction
 }
 ```
 
-The type must implement @"FlameCsv.CsvConverter`1" of the member type. The type can be either a converter or a factory.
+You can override either with a converter, or with a factory.
 
 ## Reading interfaces or abstract classes
 
@@ -186,4 +179,3 @@ public interface IUser
 
 > [!NOTE]
 > This feature is still under development and its behavior may change in future releases.
-
