@@ -4,7 +4,7 @@ try {
     const module = await import('../data/shiki.js');
     highlighter = module?.default?.highlighter;
     jsEngine = module?.default?.jsEngine;
-} catch (error) {2
+} catch (error) {
     console.warn('Failed to load shiki, falling back to highlightjs', error);
 }
 

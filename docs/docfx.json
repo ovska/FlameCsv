@@ -10,7 +10,7 @@
           ]
         }
       ],
-      "dest": "api",
+      "output": "api",
       "filter": "filterConfig.yml",
       "disableDefaultFilter": true
     }
