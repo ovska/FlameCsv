@@ -125,8 +125,7 @@ public abstract class CsvReflectionBinder
             parameters[i + 2] = lambda.CompileLambda<Delegate>(throwIfClosure: false);
         }
 
-        IDematerializer<T, TValue> dematerializer = (IDematerializer<T, TValue>)ctor.Invoke(parameters);
-        return dematerializer;
+        return (IDematerializer<T, TValue>)ctor.Invoke(parameters);
     }
 
     [RDC(Messages.Reflection)]
