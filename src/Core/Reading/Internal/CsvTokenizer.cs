@@ -21,7 +21,7 @@ internal abstract class CsvTokenizer<T>
     /// <summary>
     /// Number of extra elements the tokenizer reads beyond the last processed chunk.
     /// </summary>
-    protected abstract int Overscan { get; }
+    public abstract int Overscan { get; }
 
     /// <summary>
     /// Reads fields from the data into <paramref name="destination"/>.

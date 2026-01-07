@@ -25,7 +25,7 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     // vector count to avoid reading past the buffer
     // vector count for prefetching
     // and 1 for reading past the current vector to check two token sequences
-    protected override int Overscan
+    public override int Overscan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Vector512<byte>.Count * 3;
