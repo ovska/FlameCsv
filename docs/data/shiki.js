@@ -1,5 +1,4 @@
-import { createHighlighter, createJavaScriptRegexEngine } from 'https://esm.sh/shiki@2.3.2'
-// https://esm.sh/@shikijs/transformers@2.3.2
+import { createHighlighter, createJavaScriptRegexEngine } from 'https://cdn.jsdelivr.net/npm/shiki@3.20.0/+esm'
 
 const highlighter = await createHighlighter({
     themes: ['light-plus', 'dark-plus'],
