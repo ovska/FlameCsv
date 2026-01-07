@@ -1,33 +1,34 @@
+using System.Buffers;
+using System.Runtime.Intrinsics;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
+using Xunit.Sdk;
 
 namespace FlameCsv.Tests.Reading;
 
 public static class ScalarTests
 {
-    public static TheoryData<CsvNewline, Escaping> NewlineEscapingData =>
-        new()
-        {
-            { CsvNewline.CRLF, Escaping.None },
-            { CsvNewline.CRLF, Escaping.Quote },
-            { CsvNewline.CRLF, Escaping.QuoteNull },
-            { CsvNewline.LF, Escaping.None },
-            { CsvNewline.LF, Escaping.Quote },
-            { CsvNewline.LF, Escaping.QuoteNull },
-        };
+    public static TheoryData<Type, CsvNewline, Escaping> ParsingData() =>
+        [
+            .. from type in TokenizerTypes
+            from newline in new[] { CsvNewline.CRLF, CsvNewline.LF }
+            from escaping in new[] { Escaping.None, Escaping.Quote, Escaping.QuoteNull }
+            select (type, newline, escaping),
+        ];
 
-    [Theory, MemberData(nameof(NewlineEscapingData))]
-    public static void Should_Parse_Identically(CsvNewline newline, Escaping escaping)
+    [Theory, MemberData(nameof(ParsingData))]
+    public static void Should_Parse_Identically(Type type, CsvNewline newline, Escaping escaping)
     {
+        SkipIfNotSupported(type);
+
         const int bufferSize = RecordBuffer.DefaultFieldBufferSize;
 
         var options = new CsvOptions<char> { Newline = newline, Quote = escaping == Escaping.QuoteNull ? null : '"' };
-        var (scalarTokenizer, simdTokenizer) = options.GetTokenizers();
-
-        Assert.SkipWhen(simdTokenizer is null, "SIMD tokenizer not supported on this platform");
+        var scalarTokenizer = options.GetTokenizers().scalar;
+        var simdTokenizer = GetTokenizer<char>(type, options);
 
         using RecordBuffer rbScalar = new(bufferSize);
         using RecordBuffer rbSimd = new(bufferSize);
@@ -46,8 +47,8 @@ public static class ScalarTests
         int resultSimd = simdTokenizer.Tokenize(fbSimd, simdStartIndex, data);
 
         // data doesn't fully fit in the buffer
-        // Assert.Equal(bufferSize - 1, resultScalar);
-        // Assert.InRange(resultSimd, bufferSize - simdTokenizer.MaxFieldsPerIteration, bufferSize - 1);
+        Assert.Equal(bufferSize - 1, resultScalar);
+        Assert.InRange(resultSimd, bufferSize - simdTokenizer.MaxFieldsPerIteration, bufferSize - 1);
 
         int len = resultSimd;
         Assert.Equal(fbScalar[..len], fbSimd[..len]);
@@ -119,44 +120,43 @@ public static class ScalarTests
         Assert.Equal(expected, rb._fields.Skip(1).Take(count));
     }
 
-    [Fact]
-    public static void Should_Parse_Long_Field()
+    [Theory, MemberData(nameof(TokenizerTypes))]
+    public static void Should_Parse_Long_Field(Type type)
     {
+        SkipIfNotSupported(type);
+
         using var rb = new RecordBuffer();
         using var rb2 = new RecordBuffer();
-        var (scalar, tokenizer) = CsvOptions<char>.Default.GetTokenizers();
+        var (scalar, _) = CsvOptions<char>.Default.GetTokenizers();
+        var tokenizer = GetTokenizer<char>(type);
+        int backstop = tokenizer.Overscan * 2;
 
-        Assert.SkipWhen(tokenizer is null, "SIMD tokenizer not supported on this platform");
+        using var apbw = new ArrayPoolBufferWriter<char>();
 
-        char[] data;
-
-        using (var apbw = new ArrayPoolBufferWriter<char>())
+        for (int i = 0; i < 64; i++)
         {
-            for (int i = 0; i < 64; i++)
-            {
-                int fieldLength = i + 3;
-                var span = apbw.GetSpan(fieldLength);
-                span = span[..fieldLength];
-                span.Fill('a');
-                span[0] = '"';
-                span[fieldLength - 2] = '"';
-                span[fieldLength - 1] = '\n';
-                apbw.Advance(fieldLength);
-            }
-
-            apbw.GetSpan(128).Slice(0, 128).Fill('^');
-            apbw.Advance(128);
-            data = apbw.WrittenSpan.ToArray();
+            int fieldLength = i + 3;
+            var span = apbw.GetSpan(fieldLength);
+            span = span[..fieldLength];
+            span.Fill('a');
+            span[0] = '"';
+            span[fieldLength - 2] = '"';
+            span[fieldLength - 1] = '\n';
+            apbw.Advance(fieldLength);
         }
 
-        string[] values = Csv.From(data.AsMemory(..^128))
+        apbw.GetSpan(backstop).Slice(0, backstop).Fill('^');
+        apbw.Advance(backstop);
+
+        string[] values = Csv.From(apbw.WrittenMemory[..^backstop])
             .Enumerate(new CsvOptions<char> { HasHeader = false })
             .Select(
                 static (r, i) =>
                 {
                     // len + quotes
+                    Assert.Equal(1, r.FieldCount);
                     Assert.Equal(i + 2, r.Raw.Length);
-                    return r[0].ToString();
+                    return StringPool.Shared.GetOrAdd(r[0]);
                 }
             )
             .ToArray();
@@ -164,7 +164,8 @@ public static class ScalarTests
 
         Span<uint> fb = rb.GetUnreadBuffer(0, out int startIndex);
         fb.Clear();
-        int result = tokenizer.Tokenize(fb, startIndex, data);
+        int result = tokenizer.Tokenize(fb, startIndex, apbw.WrittenSpan);
+
         Assert.Equal(64, result);
 
         int recordsRead = rb.SetFieldsRead(result);
@@ -172,7 +173,7 @@ public static class ScalarTests
 
         Span<uint> fb2 = rb2.GetUnreadBuffer(0, out int startIndex2);
         fb2.Clear();
-        int result2 = scalar.Tokenize(fb2, startIndex2, data, readToEnd: false);
+        int result2 = scalar.Tokenize(fb2, startIndex2, apbw.WrittenSpan, readToEnd: false);
         Assert.Equal(64, result2);
         int recordsRead2 = rb2.SetFieldsRead(result2);
         Assert.Equal(64, recordsRead2);
@@ -198,5 +199,68 @@ public static class ScalarTests
 
             apbw2.Write('a');
         }
+    }
+
+    [Theory, MemberData(nameof(TokenizerTypes))]
+    public static void Should_Bail_On_Disjoint_CRLF(Type type)
+    {
+        SkipIfNotSupported(type);
+
+        using var rb = new RecordBuffer();
+        using var apbw = new ArrayPoolBufferWriter<char>();
+
+        for (int i = 0; i < 50; i++)
+        {
+            apbw.Write("field1,field2");
+            apbw.Write(i % 2 == 0 ? "\r\n" : "\n");
+        }
+
+        var tokenizer = GetTokenizer<char>(type);
+
+        int res = tokenizer.Tokenize(rb.GetUnreadBuffer(0, out int startIndex), startIndex, apbw.WrittenSpan);
+        Assert.Equal(-1, res);
+    }
+
+    private static CsvTokenizer<T> GetTokenizer<T>(Type type, CsvOptions<T>? options = null)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        options ??= CsvOptions<T>.Default;
+        return (CsvTokenizer<T>)
+            type.MakeGenericType(
+                    typeof(T),
+                    options.Newline.IsCRLF() ? typeof(TrueConstant) : typeof(FalseConstant),
+                    options.Quote.HasValue ? typeof(TrueConstant) : typeof(FalseConstant)
+                )
+                .GetConstructors()[0]
+                .Invoke(new object[] { options })!;
+    }
+
+    public static TheoryData<Type> TokenizerTypes { get; } =
+        new()
+        {
+            typeof(SimdTokenizer<,,>),
+            typeof(Avx2Tokenizer<,,>),
+#if NET10_0_OR_GREATER
+            typeof(Avx512Tokenizer<,,>),
+#endif
+            typeof(ArmTokenizer<,,>),
+        };
+
+    private static void SkipIfNotSupported(Type type)
+    {
+        bool supported = false;
+
+        if (type == typeof(SimdTokenizer<,,>))
+            supported = Vector128.IsHardwareAccelerated;
+        else if (type == typeof(Avx2Tokenizer<,,>))
+            supported = Avx2Tokenizer.IsSupported;
+#if NET10_0_OR_GREATER
+        else if (type == typeof(Avx512Tokenizer<,,>))
+            supported = Avx512Tokenizer.IsSupported;
+#endif
+        else if (type == typeof(ArmTokenizer<,,>))
+            supported = ArmTokenizer.IsSupported;
+
+        Assert.SkipUnless(supported, $"{type.Name[..(type.Name.IndexOf('`'))]} not supported on this platform");
     }
 }

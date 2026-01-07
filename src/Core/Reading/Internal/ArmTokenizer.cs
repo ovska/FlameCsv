@@ -22,7 +22,7 @@ internal sealed class ArmTokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     where TCRLF : struct, IConstant
     where TQuote : struct, IConstant
 {
-    protected override int Overscan
+    public override int Overscan
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => V512.Count * 2;
