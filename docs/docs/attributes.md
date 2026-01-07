@@ -23,7 +23,7 @@ class User
 
 @"FlameCsv.Attributes.CsvHeaderAttribute" is used to configure the header name used when reading and writing CSV. The first parameter specifies the primary header name. Additional aliases can be provided as follow-up arguments to allow matching the member to alternative header values. The first parameter is always used when writing.
 
-The default header value used it the member's name, e.g., `"IsAdmin"`.
+The default header value used it the member's name, e.g., `"IsAdmin"`. See also: @"FlameCsv.CsvOptions`1.IgnoreHeaderCase?displayProperty=nameWithType" and @"FlameCsv.CsvOptions`1.NormalizeHeader?displayProperty=nameWithType".
 
 ```cs
 [CsvHeader("is_admin")]
@@ -32,9 +32,6 @@ public bool IsAdmin { get; set; }
 [CsvHeader("id", "user_id")] // allow matching to user_id header
 public int Id { get; set; }
 ```
-
-> [!NOTE]
-> Case sensitivity is configured on per-options basis with @"FlameCsv.CsvOptions`1.Comparer?displayProperty=nameWithType", with the default being @"System.StringComparer.OrdinalIgnoreCase?displayProperty=nameWithType".
 
 ## Constructor
 

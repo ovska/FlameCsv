@@ -78,7 +78,6 @@ await Csv
 - *Breaking:* Deleted `CsvAsyncWriter<T>` (combined with `CsvWriter<T>`), renamed `ColumnIndex` to `FieldIndex`, moved configuration to instance instead of factory method
 - *Breaking:* `CsvOptions<T>` is now sealed
 - *Breaking:* Removed `in` and `ref struct` modifier from exception handler
-- *Breaking:* Renamed `CsvRecord` -> `CsvPreservedRecord` and `CsvValueRecord` -> `CsvRecord`
 - *Breaking:* Calling `Complete` or `CompleteAsync` on `ICsvBufferWriter<T>` no longer throws the passed exception
 - *Breaking:* Refactored the internal streaming I/O for performance improvements in real-world scenarios. This is only an issue if you've inherited the I/O types
 - *Breaking:* The record parameter to `IMaterializer<T>` is no longer `ref` (the record struct is now only 32 bytes)

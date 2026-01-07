@@ -97,7 +97,7 @@ The following primitive types are supported by default:
 - @"System.Guid"
 - @"System.Char?text=char" (not considered a numeric type in FlameCsv)
 - Any type implementing both @"System.ISpanParsable`1" and @"System.ISpanFormattable",
-  or @"System.IUtf8SpanFormattable" and/r @"System.IUtf8SpanParsable`1" when converting to/from @"System.Byte?text=byte".
+  or @"System.IUtf8SpanFormattable" and/r @"System.IUtf8SpanParsable`1" when converting to/from UTF8 bytes.
 
 Most of these types can be configured using @"FlameCsv.CsvOptions`1.FormatProviders?displayProperty=nameWithType"
 and @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType".
@@ -108,19 +108,7 @@ Conversion of numeric types can be further configured with @"FlameCsv.CsvOptions
 The default is @"System.Globalization.NumberStyles.Integer?displayProperty=nameWithType" for integer types,
 and @"System.Globalization.NumberStyles.Float?displayProperty=nameWithType" for floating point types.
 
-The following numeric types are supported by default:
-
-- @"System.Int32?text=int"
-- @"System.Double?text=double"
-- @"System.Byte?text=byte"
-- @"System.SByte?text=sbyte"
-- @"System.Int16?text=short"
-- @"System.UInt16?text=ushort"
-- @"System.UInt32?text=uint"
-- @"System.Int64?text=long"
-- @"System.UInt64?text=ulong"
-- @"System.Single?text=float"
-- @"System.Decimal?text=decimal"
+All types implementing @"System.Numerics.IBinaryInteger`1" and @"System.Numerics.IFloatingPoint`1" are supported by default.
 
 ```cs
 CsvOptions<char> options = new()

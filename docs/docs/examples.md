@@ -26,7 +26,7 @@ Configure the CSV format using these @"FlameCsv.CsvOptions`1" properties:
 - @"FlameCsv.CsvOptions`1.Quote"
 - @"FlameCsv.CsvOptions`1.Newline"
 - @"FlameCsv.CsvOptions`1.Trimming"
-- @"FlameCsv.CsvOptions`1.Escape"
+- @"FlameCsv.CsvOptions`1.FieldQuoting"
 
 Example for reading semicolon-delimited CSV with linefeed separators and space/tab trimming:
 
@@ -40,7 +40,7 @@ CsvOptions<char> options = new()
 };
 ```
 
-For more details, see @"configuration#dialect". The configuration is identical between @"System.Char?text=char" and @"System.Byte?text=byte"; the options-instance internally converts the UTF16 values into UTF8.
+For more details, see @"configuration#dialect". The dialect configuration is identical between `byte` and `char`; the options-instance internally converts the UTF16 values into UTF8.
 
 ## Reading objects
 
@@ -48,11 +48,11 @@ For more details, see @"configuration#dialect". The configuration is identical b
 
 Use the static @"FlameCsv.Csv" class for reading CSV data. The `From`-methods accept various data sources and can be used with `foreach`, `await foreach`, or LINQ. When `options` is omitted (or `null`), @"FlameCsv.CsvOptions`1.Default?displayProperty=nameWithType" is used.
 
-The library supports both @"System.Char?text=char" (UTF-16) and @"System.Byte?text=byte" (UTF-8) data through C# generics. For bytes, the library expects UTF-8 encoded text (which includes ASCII).
+The library supports both `char` (UTF-16) and `byte` (UTF-8) data through C# generics. For bytes, the library expects UTF-8 or ASCII encoded text.
 
-FlameCSV supports reading from a wide range of sources:
+FlameCSV supports reading from a wide range of sources, which is the reason why a fluent API was chosen; the number of overloads would be unmanageable otherwise.
 
-- Files
+- Files (`FromFile`)
 - @"System.ReadOnlyMemory`1" (arrays, strings)
 - @"System.IO.Stream"
 - @"System.IO.TextReader"
@@ -60,7 +60,7 @@ FlameCSV supports reading from a wide range of sources:
 - @"System.Buffers.ReadOnlySequence`1"
 - @"System.IO.Pipelines.PipeReader" (async only)
 
-When using streaming sources such as `Stream`, `TextReader`, or `PipeReader`, data is read lazily as the enumerator is advanced, allowing processing of large files without loading everything into memory. See @"FlameCsv.IO.CSVIOOptions" for configuring buffer sizes.
+When using streaming sources such as `Stream`, `TextReader`, or `PipeReader`, data is read lazily as the enumerator is advanced, allowing processing of large files without loading everything into memory. See @"FlameCsv.IO.CsvIOOptions" for configuring buffer sizes.
 
 # [UTF-16](#tab/utf16)
 ```cs
@@ -141,7 +141,7 @@ foreach (ref readonly CsvRecord<char> record in Csv.From(csv).Enumerate())
 ---
 
 > [!WARNING]
-> A @"FlameCsv.CsvRecord`1" instance is only valid until `MoveNext()` is called on the enumerator. The struct is a thin wrapper around the actual data, and may use invalid or pooled memory if used after its intended lifetime. A runtime exception will be thrown if it is accessed after the enumeration has continued or ended. See @"FlameCsv.CsvPreservedRecord`1" for an alternative.
+> A @"FlameCsv.CsvRecord`1" instance is only valid until `MoveNext()` is called on the enumerator. The struct is a thin wrapper around the actual data, and may use invalid or pooled memory if used after its intended lifetime. A runtime exception will be thrown if it is accessed after the enumeration has continued or ended.
 
 ### Reading raw CSV data
 
@@ -241,7 +241,7 @@ using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 After writing, @"FlameCsv.CsvWriter`1.Complete(System.Exception)" or @"FlameCsv.CsvWriter`1.CompleteAsync(System.Exception,System.Threading.CancellationToken)" should be called to flush buffered data and properly dispose of resources used by the writer instance.
 
 > [!NOTE]
-> The @"System.Exception" parameter is used to suppress flushing any remaining data if the write operation errored. A `using`-statement or `Dispose` can be used to clean up the writer instance similarly, but you lose the aforementioned benefit by only disposing. You can safely wrap a manually completed writer in a `using` block, since multiple completions are harmless.
+> The exception parameter is used to suppress flushing any remaining data if the write operation errored. A `using`-statement or `Dispose` can be used to clean up the writer instance similarly, but you lose the aforementioned benefit by only disposing. You can safely wrap a manually completed writer in a `using` block, since multiple completions are harmless.
 
 ## Parallel reading and writing
 

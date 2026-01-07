@@ -26,18 +26,15 @@ await foreach (User user in Csv.FromFile("users.csv").ReadAsync<User>(cancellati
     Console.WriteLine(user.Name);
 }
 
-// Peeking fields directly from the underlying data
-double sum = 0;
-
-foreach (CsvRecordRef<byte> record in new CsvReader<byte>(options, (ReadOnlyMemory<byte>)csv).ParseRecords())
-{
-    ReadOnlySpan<byte> field = record[3];
-
-    if (double.TryParse(field, out double value))
-    {
-        sum += value;
-    }
-}
+// Processing records in parallel
+await Csv.From(x)
+    .AsParallel(cancellationToken)
+    .ForEachUnorderedAsync<Obj>(
+        async (ArraySegment<Obj> records, CancellationToken ct) =>
+        {
+            await ProcessBatch(records, ct);
+        }
+    );
 ```
 
 Writing CSV is just as easy:
@@ -56,6 +53,15 @@ return destination.ToString();
 
 // Writing to a file
 await Csv.ToFile("users.csv").WriteAsync(users, cancellationToken);
+
+// Write streamed in parallel
+await Csv.To(stream)
+    .WithUtf8Encoding()
+    .AsParallel(new CsvParallelOptions{ChunkSize = 256, CancellationToken = cancellationToken})
+    .WriteUnorderedAsync(
+        GetUsersAsIAsyncEnumerable(),
+        CsvOptions<char>.Default
+    );
 ```
 
 ## Configuration
