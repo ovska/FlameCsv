@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Utilities;
 using JetBrains.Annotations;
 
@@ -20,21 +21,24 @@ public static class CsvFieldWritingExtensions
     /// <param name="value">The value to format.</param>
     /// <param name="format">The format to use.</param>
     /// <param name="formatProvider">The format provider to use.</param>
+    /// <param name="skipEscaping">Don't quote or escape the value</param>
     /// <remarks>
     /// Does not write a trailing delimiter or newline.<br/>
-    /// Null values are not written, use <see cref="CsvFieldWriter{T}.WriteField{TValue}"/> instead.
+    /// Null values are written according to <see cref="CsvFieldWriter{T}.Options"/>.
     /// </remarks>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<char> writer,
-        T value,
+        in T value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null
+        IFormatProvider? formatProvider = null,
+        bool skipEscaping = false
     )
         where T : ISpanFormattable
     {
         // JITed out for value types
         if (value is null)
         {
+            writer.WriteNull<T>();
             return;
         }
 
@@ -46,21 +50,30 @@ public static class CsvFieldWritingExtensions
             destination = writer.Writer.GetSpan(destination.Length * 2);
         }
 
-        writer.EscapeAndAdvance(destination, charsWritten);
+        if (skipEscaping)
+        {
+            writer.Writer.Advance(charsWritten);
+        }
+        else
+        {
+            writer.EscapeAndAdvance(destination, charsWritten);
+        }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
+    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<byte> writer,
-        T value,
+        in T value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null
+        IFormatProvider? formatProvider = null,
+        bool skipEscaping = false
     )
         where T : ISpanFormattable
     {
         // JITed out for value types
         if (value is null)
         {
+            writer.WriteNull<T>();
             return;
         }
 
@@ -86,36 +99,55 @@ public static class CsvFieldWritingExtensions
             }
         }
 
-        writer.EscapeAndAdvance(destination, bytesWritten);
+        if (skipEscaping)
+        {
+            writer.Writer.Advance(bytesWritten);
+        }
+        else
+        {
+            writer.EscapeAndAdvance(destination, bytesWritten);
+        }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
+    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<char> writer,
         T? value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null
+        IFormatProvider? formatProvider = null,
+        bool skipEscaping = false
     )
         where T : struct, ISpanFormattable
     {
         if (value.HasValue)
         {
-            FormatValue(in writer, value.Value, format, formatProvider);
+            FormatValue(in writer, in Nullable.GetValueRefOrDefaultRef(in value), format, formatProvider, skipEscaping);
+        }
+        else
+        {
+            writer.WriteNull<T>();
         }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},T,ReadOnlySpan{char},IFormatProvider?)"/>
+    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void FormatValue<T>(
         ref readonly this CsvFieldWriter<byte> writer,
         T? value,
         ReadOnlySpan<char> format = default,
-        IFormatProvider? formatProvider = null
+        IFormatProvider? formatProvider = null,
+        bool skipEscaping = false
     )
         where T : struct, ISpanFormattable
     {
         if (value.HasValue)
         {
-            FormatValue(in writer, value.Value, format, formatProvider);
+            FormatValue(in writer, in Nullable.GetValueRefOrDefaultRef(in value), format, formatProvider, skipEscaping);
+        }
+        else
+        {
+            writer.WriteNull<T>();
         }
     }
 }
