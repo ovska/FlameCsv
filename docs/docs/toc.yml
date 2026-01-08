@@ -12,3 +12,5 @@
   href: source-generator.md
 - name: Benchmarks
   href: benchmarks.md
+- name: Architecture
+  href: architecture.md
