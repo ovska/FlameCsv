@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>FlameCsv.Benchmark.Comparisons.WriteObjects-20260108-104855</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.2 (25C56) [Darwin 25.2.0]
+Apple M4 Max, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 10.0.100
+  [Host]     : .NET 10.0.0 (10.0.0, 10.0.25.52411), Arm64 RyuJIT armv8.0-a
+  Job-CASMLP : .NET 10.0.0 (10.0.0, 10.0.25.52411), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code>MinIterationTime=1s  Server=True  MaxIterationCount=48  
+MaxWarmupIterationCount=32  MinIterationCount=16  MinWarmupIterationCount=16  
+</code></pre>
+
+<table>
+<thead><tr><th>Method              </th><th>Async</th><th>Mean  </th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>_Flame_Reflection</td><td>False</td><td>4,859.4 &mu;s</td><td>17.20 &mu;s</td><td>16.90 &mu;s</td><td>4,859.4 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>280 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen</td><td>False</td><td>4,633.8 &mu;s</td><td>31.41 &mu;s</td><td>30.85 &mu;s</td><td>4,622.1 &mu;s</td><td>0.95</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>280 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen_Parallel</td><td>False</td><td>527.7 &mu;s</td><td>9.53 &mu;s</td><td>12.39 &mu;s</td><td>523.6 &mu;s</td><td>0.11</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>78409 B</td><td>280.03</td>
+</tr><tr><td>_Flame_Reflection_Parallel</td><td>False</td><td>559.2 &mu;s</td><td>11.22 &mu;s</td><td>21.63 &mu;s</td><td>548.0 &mu;s</td><td>0.12</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>78552 B</td><td>280.54</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>5,339.7 &mu;s</td><td>70.48 &mu;s</td><td>69.22 &mu;s</td><td>5,303.9 &mu;s</td><td>1.10</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>33600 B</td><td>120.00</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>8,931.5 &mu;s</td><td>12.23 &mu;s</td><td>11.44 &mu;s</td><td>8,930.1 &mu;s</td><td>1.84</td><td>0.01</td><td>46.8750</td><td>-</td><td>-</td><td>7919967 B</td><td>28,285.60</td>
+</tr><tr><td>_Sep</td><td>False</td><td>4,967.3 &mu;s</td><td>19.62 &mu;s</td><td>16.39 &mu;s</td><td>4,968.7 &mu;s</td><td>1.02</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>478640 B</td><td>1,709.43</td>
+</tr><tr><td>_RecordParser</td><td>False</td><td>14,983.3 &mu;s</td><td>87.57 &mu;s</td><td>86.00 &mu;s</td><td>14,992.3 &mu;s</td><td>3.08</td><td>0.02</td><td>54.6875</td><td>23.4375</td><td>-</td><td>37799861 B</td><td>134,999.50</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>False</td><td>9,271.6 &mu;s</td><td>45.99 &mu;s</td><td>45.17 &mu;s</td><td>9,270.7 &mu;s</td><td>1.91</td><td>0.01</td><td>39.0625</td><td>31.2500</td><td>31.2500</td><td>31690597 B</td><td>113,180.70</td>
+</tr><tr><td>_Flame_Reflection</td><td>True</td><td>5,489.1 &mu;s</td><td>10.41 &mu;s</td><td>10.22 &mu;s</td><td>5,491.1 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>28392 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen</td><td>True</td><td>5,507.9 &mu;s</td><td>10.05 &mu;s</td><td>9.40 &mu;s</td><td>5,509.8 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>-</td><td>28392 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen_Parallel</td><td>True</td><td>623.2 &mu;s</td><td>1.25 &mu;s</td><td>1.17 &mu;s</td><td>623.1 &mu;s</td><td>0.11</td><td>0.00</td><td>1.9531</td><td>-</td><td>-</td><td>326744 B</td><td>11.51</td>
+</tr><tr><td>_Flame_Reflection_Parallel</td><td>True</td><td>634.1 &mu;s</td><td>1.32 &mu;s</td><td>1.23 &mu;s</td><td>633.9 &mu;s</td><td>0.12</td><td>0.00</td><td>1.9531</td><td>-</td><td>-</td><td>326327 B</td><td>11.49</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>6,881.6 &mu;s</td><td>73.72 &mu;s</td><td>72.40 &mu;s</td><td>6,888.9 &mu;s</td><td>1.25</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>83143 B</td><td>2.93</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>14,453.1 &mu;s</td><td>105.97 &mu;s</td><td>104.08 &mu;s</td><td>14,409.6 &mu;s</td><td>2.63</td><td>0.02</td><td>85.9375</td><td>7.8125</td><td>-</td><td>14321643 B</td><td>504.43</td>
+</tr><tr><td>_Sep</td><td>True</td><td>116,183.3 &mu;s</td><td>944.48 &mu;s</td><td>927.61 &mu;s</td><td>116,142.1 &mu;s</td><td>21.17</td><td>0.17</td><td>444.4444</td><td>-</td><td>-</td><td>74754250 B</td><td>2,632.93</td>
+</tr><tr><td>_RecordParser</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr></tbody></table>
+</body>
+</html>

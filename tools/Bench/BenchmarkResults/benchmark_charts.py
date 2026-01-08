@@ -27,8 +27,12 @@ def adjust_color_lightness(hex_color, factor):
 CPU_SUBTITLES = {
     'AVX2': 'AMD Ryzen 7 3700X',
     'ARM': 'Apple M4 Max 16c',
+    'Neon': 'Apple M4 Max 16c',
     'AVX512': 'AMD Ryzen 7 PRO 7840U'
 }
+
+# Directories to process
+BENCHMARK_DIRS = ['AVX2', 'Neon']
 
 # Define benchmark configurations
 # Each config specifies: filepath, title, throughput_value, throughput_unit, and parameters
@@ -36,7 +40,7 @@ CPU_SUBTITLES = {
 # throughput_value can be a number or a dict like {'Quoted': {'False': 8.2, 'True': 17.2}} for per-parameter values
 BENCHMARK_CONFIGS = [
     {
-        "filepath": "AVX2/FlameCsv.Benchmark.Comparisons.EnumerateBench-report.csv",
+        "filepath": "FlameCsv.Benchmark.Comparisons.EnumerateBench-report.csv",
         "title": "Enumerating CSV fields",
         "throughput_value": {"Quoted": {"False": 8.2, "True": 17.2}},  # Different file sizes
         "throughput_unit": "MB/s",
@@ -47,7 +51,7 @@ BENCHMARK_CONFIGS = [
         },
     },
     {
-        "filepath": "AVX2/FlameCsv.Benchmark.Comparisons.WriteObjects-report.csv",
+        "filepath": "FlameCsv.Benchmark.Comparisons.WriteObjects-report.csv",
         "title": "Writing objects to CSV",
         "throughput_value": 20000,  # Number of records
         "throughput_unit": "million records/s",
@@ -56,7 +60,7 @@ BENCHMARK_CONFIGS = [
         "parameters": {"Async": {"False": "Sync", "True": "Async"}},
     },
     {
-        "filepath": "AVX2/FlameCsv.Benchmark.Comparisons.PeekFields-report.csv",
+        "filepath": "FlameCsv.Benchmark.Comparisons.PeekFields-report.csv",
         "title": "Sum the value of one column",
         "throughput_value": 65536,  # Number of records
         "throughput_unit": "million records/s",
@@ -65,7 +69,7 @@ BENCHMARK_CONFIGS = [
         "parameters": {},
     },
     {
-        "filepath": "AVX2/FlameCsv.Benchmark.Comparisons.ReadObjects-report.csv",
+        "filepath": "FlameCsv.Benchmark.Comparisons.ReadObjects-report.csv",
         "title": "Reading objects from CSV",
         "throughput_value": 20000,  # Number of records
         "throughput_unit": "million records/s",
@@ -80,8 +84,24 @@ def parse_benchmark_results(filepath, param_columns):
     # Read CSV file
     df = pd.read_csv(filepath)
     
+    # Detect time column and unit
+    if 'Mean [ms]' in df.columns:
+        time_col = 'Mean [ms]'
+        time_divisor = 1000  # ms to seconds
+    elif 'Mean [μs]' in df.columns:
+        time_col = 'Mean [μs]'
+        time_divisor = 1_000_000  # μs to seconds
+    elif 'Mean [us]' in df.columns:
+        time_col = 'Mean [us]'
+        time_divisor = 1_000_000  # μs to seconds
+    elif 'Mean [ns]' in df.columns:
+        time_col = 'Mean [ns]'
+        time_divisor = 1_000_000_000  # ns to seconds
+    else:
+        raise ValueError(f"Could not find Mean time column in {filepath}. Columns: {list(df.columns)}")
+    
     # Select only the columns we need
-    columns_to_select = ['Method', 'Mean [ms]'] + list(param_columns)
+    columns_to_select = ['Method', time_col] + list(param_columns)
     df = df[columns_to_select].copy()
     
     # Trim leading underscore from Method names
@@ -96,11 +116,14 @@ def parse_benchmark_results(filepath, param_columns):
         if pd.isna(time_val) or time_val == 'NA':
             return np.nan
         try:
-            return float(time_val) / 1000  # CSV has values in ms
+            # Handle quoted values with thousand separators (e.g., "24,387.6")
+            if isinstance(time_val, str):
+                time_val = time_val.replace(',', '').strip('"')
+            return float(time_val) / time_divisor
         except (ValueError, TypeError):
             return np.nan
     
-    df['MeanSeconds'] = df['Mean [ms]'].apply(parse_time)
+    df['MeanSeconds'] = df[time_col].apply(parse_time)
     return df
 
 def create_throughput_chart(df, param_filters, output_file, throughput_value=100, throughput_unit='MB/s', throughput_divisor=1, decimal_places=1, mode='light', subtitle=None, title='Benchmark'):
@@ -279,69 +302,73 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     print(f"Saved: {output_file}")
 
 def main():
-    for config in BENCHMARK_CONFIGS:
-        filepath = config['filepath']
-        title = config['title']
-        throughput_value_config = config['throughput_value']
-        throughput_unit = config['throughput_unit']
-        throughput_divisor = config.get('throughput_divisor', 1)  # Default to 1 (no scaling)
-        decimal_places = config.get('decimal_places', 1)  # Default to 1 decimal place
-        parameters = config['parameters']
+    for benchmark_dir in BENCHMARK_DIRS:
+        print(f"\nProcessing {benchmark_dir}...")
         
-        # Determine subtitle based on folder
-        subtitle = None
-        for folder, cpu_name in CPU_SUBTITLES.items():
-            if folder in filepath:
-                subtitle = cpu_name
-                break
-        
-        # Parse results
-        df = parse_benchmark_results(filepath, list(parameters.keys()))
-        
-        # Generate all combinations of parameter values
-        param_names = list(parameters.keys())
-        param_value_lists = [list(parameters[name].keys()) for name in param_names]
-        
-        for param_values in product(*param_value_lists):
-            # Build param_filters dict: {column: (value, display_name)}
-            param_filters = {}
-            for name, value in zip(param_names, param_values):
-                param_filters[name] = (value, parameters[name][value])
+        for config in BENCHMARK_CONFIGS:
+            filepath = f"{benchmark_dir}/{config['filepath']}"
+            title = config['title']
+            throughput_value_config = config['throughput_value']
+            throughput_unit = config['throughput_unit']
+            throughput_divisor = config.get('throughput_divisor', 1)  # Default to 1 (no scaling)
+            decimal_places = config.get('decimal_places', 1)  # Default to 1 decimal place
+            parameters = config['parameters']
             
-            # Resolve throughput_value (can be a number or a dict keyed by parameter values)
-            if isinstance(throughput_value_config, dict):
-                # Find the first matching parameter key
-                throughput_value = None
-                for param_name, param_val in zip(param_names, param_values):
-                    if param_name in throughput_value_config:
-                        throughput_value = throughput_value_config[param_name][param_val]
-                        break
-                if throughput_value is None:
-                    raise ValueError(f"Could not resolve throughput_value for {param_filters}")
-            else:
-                throughput_value = throughput_value_config
+            # Check if file exists
+            if not Path(filepath).exists():
+                print(f"  Skipping {filepath} (file not found)")
+                continue
             
-            # Build filename suffix from display names (lowercase, underscores)
-            suffix_parts = [parameters[name][value].lower().replace(' ', '_') 
-                           for name, value in zip(param_names, param_values)]
-            suffix = '_'.join(suffix_parts)
+            # Determine subtitle based on folder
+            subtitle = CPU_SUBTITLES.get(benchmark_dir)
             
-            # Generate base filename from benchmark title
-            base_name = title.lower().replace(' ', '_')
+            # Parse results
+            df = parse_benchmark_results(filepath, list(parameters.keys()))
             
-            # Use the same folder as the input CSV for output
-            input_path = Path(filepath)
-            output_dir = input_path.parent
+            # Generate all combinations of parameter values
+            param_names = list(parameters.keys())
+            param_value_lists = [list(parameters[name].keys()) for name in param_names]
             
-            # Light mode version
-            output_file_light = output_dir / f'{base_name}_{suffix}_light.svg'
-            create_throughput_chart(df, param_filters, output_file_light, throughput_value, 
-                                   throughput_unit, throughput_divisor, decimal_places, mode='light', subtitle=subtitle, title=title)
-            
-            # Dark mode version
-            output_file_dark = output_dir / f'{base_name}_{suffix}_dark.svg'
-            create_throughput_chart(df, param_filters, output_file_dark, throughput_value, 
-                                   throughput_unit, throughput_divisor, decimal_places, mode='dark', subtitle=subtitle, title=title)
+            for param_values in product(*param_value_lists):
+                # Build param_filters dict: {column: (value, display_name)}
+                param_filters = {}
+                for name, value in zip(param_names, param_values):
+                    param_filters[name] = (value, parameters[name][value])
+                
+                # Resolve throughput_value (can be a number or a dict keyed by parameter values)
+                if isinstance(throughput_value_config, dict):
+                    # Find the first matching parameter key
+                    throughput_value = None
+                    for param_name, param_val in zip(param_names, param_values):
+                        if param_name in throughput_value_config:
+                            throughput_value = throughput_value_config[param_name][param_val]
+                            break
+                    if throughput_value is None:
+                        raise ValueError(f"Could not resolve throughput_value for {param_filters}")
+                else:
+                    throughput_value = throughput_value_config
+                
+                # Build filename suffix from display names (lowercase, underscores)
+                suffix_parts = [parameters[name][value].lower().replace(' ', '_') 
+                               for name, value in zip(param_names, param_values)]
+                suffix = '_'.join(suffix_parts)
+                
+                # Generate base filename from benchmark title
+                base_name = title.lower().replace(' ', '_')
+                
+                # Use the same folder as the input CSV for output
+                input_path = Path(filepath)
+                output_dir = input_path.parent
+                
+                # Light mode version
+                output_file_light = output_dir / f'{base_name}_{suffix}_light.svg'
+                create_throughput_chart(df, param_filters, output_file_light, throughput_value, 
+                                       throughput_unit, throughput_divisor, decimal_places, mode='light', subtitle=subtitle, title=title)
+                
+                # Dark mode version
+                output_file_dark = output_dir / f'{base_name}_{suffix}_dark.svg'
+                create_throughput_chart(df, param_filters, output_file_dark, throughput_value, 
+                                       throughput_unit, throughput_divisor, decimal_places, mode='dark', subtitle=subtitle, title=title)
     
     print("\nAll charts generated successfully!")
 

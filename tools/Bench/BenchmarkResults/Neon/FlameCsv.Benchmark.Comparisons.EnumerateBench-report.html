@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>FlameCsv.Benchmark.Comparisons.EnumerateBench-20260108-110255</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, macOS Tahoe 26.2 (25C56) [Darwin 25.2.0]
+Apple M4 Max, 1 CPU, 16 logical and 16 physical cores
+.NET SDK 10.0.100
+  [Host]     : .NET 10.0.0 (10.0.0, 10.0.25.52411), Arm64 RyuJIT armv8.0-a
+  Job-CASMLP : .NET 10.0.0 (10.0.0, 10.0.25.52411), Arm64 RyuJIT armv8.0-a
+</code></pre>
+<pre><code>MinIterationTime=1s  Server=True  MaxIterationCount=48  
+MaxWarmupIterationCount=32  MinIterationCount=16  MinWarmupIterationCount=16  
+</code></pre>
+
+<table>
+<thead><tr><th>Method          </th><th>Quoted</th><th>Async</th><th>Mean </th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>_FlameCsv</td><td>False</td><td>False</td><td>890.1 &mu;s</td><td>4.52 &mu;s</td><td>4.23 &mu;s</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>512 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>False</td><td>False</td><td>2,371.4 &mu;s</td><td>15.16 &mu;s</td><td>14.89 &mu;s</td><td>2.66</td><td>0.02</td><td>-</td><td>-</td><td>5856 B</td><td>11.44</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>False</td><td>9,319.4 &mu;s</td><td>50.47 &mu;s</td><td>49.57 &mu;s</td><td>10.47</td><td>0.07</td><td>-</td><td>-</td><td>8618 B</td><td>16.83</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>False</td><td>23,369.4 &mu;s</td><td>42.85 &mu;s</td><td>42.09 &mu;s</td><td>26.26</td><td>0.13</td><td>218.7500</td><td>-</td><td>37466888 B</td><td>73,177.52</td>
+</tr><tr><td>_RecordParser</td><td>False</td><td>False</td><td>5,673.3 &mu;s</td><td>24.79 &mu;s</td><td>24.35 &mu;s</td><td>6.37</td><td>0.04</td><td>230.4688</td><td>35.1563</td><td>38405141 B</td><td>75,010.04</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>False</td><td>False</td><td>6,455.8 &mu;s</td><td>22.67 &mu;s</td><td>22.27 &mu;s</td><td>7.25</td><td>0.04</td><td>226.5625</td><td>7.8125</td><td>37519703 B</td><td>73,280.67</td>
+</tr><tr><td>_FlameCsv</td><td>False</td><td>True</td><td>1,063.7 &mu;s</td><td>1.78 &mu;s</td><td>1.75 &mu;s</td><td>1.00</td><td>0.00</td><td>-</td><td>-</td><td>552 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>False</td><td>True</td><td>2,472.9 &mu;s</td><td>12.96 &mu;s</td><td>12.72 &mu;s</td><td>2.32</td><td>0.01</td><td>-</td><td>-</td><td>5856 B</td><td>10.61</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>True</td><td>9,565.2 &mu;s</td><td>29.01 &mu;s</td><td>24.23 &mu;s</td><td>8.99</td><td>0.03</td><td>-</td><td>-</td><td>44618 B</td><td>80.83</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>True</td><td>24,387.6 &mu;s</td><td>34.99 &mu;s</td><td>34.37 &mu;s</td><td>22.93</td><td>0.05</td><td>218.7500</td><td>-</td><td>37612760 B</td><td>68,139.06</td>
+</tr><tr><td>_RecordParser</td><td>False</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>False</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_FlameCsv</td><td>True</td><td>False</td><td>2,267.6 &mu;s</td><td>16.03 &mu;s</td><td>15.75 &mu;s</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>512 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>True</td><td>False</td><td>4,232.0 &mu;s</td><td>19.58 &mu;s</td><td>19.23 &mu;s</td><td>1.87</td><td>0.01</td><td>-</td><td>-</td><td>5576 B</td><td>10.89</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>False</td><td>20,332.0 &mu;s</td><td>75.68 &mu;s</td><td>74.32 &mu;s</td><td>8.97</td><td>0.07</td><td>-</td><td>-</td><td>8059 B</td><td>15.74</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>False</td><td>45,591.4 &mu;s</td><td>96.82 &mu;s</td><td>95.09 &mu;s</td><td>20.11</td><td>0.14</td><td>375.0000</td><td>-</td><td>62892032 B</td><td>122,836.00</td>
+</tr><tr><td>_RecordParser</td><td>True</td><td>False</td><td>9,679.4 &mu;s</td><td>95.55 &mu;s</td><td>93.84 &mu;s</td><td>4.27</td><td>0.05</td><td>390.6250</td><td>70.3125</td><td>65003287 B</td><td>126,959.54</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>True</td><td>False</td><td>10,813.1 &mu;s</td><td>22.72 &mu;s</td><td>22.31 &mu;s</td><td>4.77</td><td>0.03</td><td>375.0000</td><td>15.6250</td><td>62102184 B</td><td>121,293.33</td>
+</tr><tr><td>_FlameCsv</td><td>True</td><td>True</td><td>2,402.4 &mu;s</td><td>9.63 &mu;s</td><td>9.46 &mu;s</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>552 B</td><td>1.00</td>
+</tr><tr><td>_Sep</td><td>True</td><td>True</td><td>4,478.1 &mu;s</td><td>34.00 &mu;s</td><td>33.40 &mu;s</td><td>1.86</td><td>0.02</td><td>-</td><td>-</td><td>5576 B</td><td>10.10</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>True</td><td>21,032.6 &mu;s</td><td>63.50 &mu;s</td><td>62.37 &mu;s</td><td>8.75</td><td>0.04</td><td>-</td><td>-</td><td>84091 B</td><td>152.34</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>True</td><td>46,854.6 &mu;s</td><td>86.63 &mu;s</td><td>85.08 &mu;s</td><td>19.50</td><td>0.08</td><td>375.0000</td><td>-</td><td>63201416 B</td><td>114,495.32</td>
+</tr><tr><td>_RecordParser</td><td>True</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>True</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr></tbody></table>
+</body>
+</html>
