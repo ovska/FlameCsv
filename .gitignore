@@ -373,5 +373,6 @@ FodyWeavers.xsd
 # Docfx
 docs/_site/
 docs/api/
+!docs/data/charts/**
 
 **/.DS_Store

@@ -100,8 +100,23 @@ def parse_benchmark_results(filepath, param_columns):
     else:
         raise ValueError(f"Could not find Mean time column in {filepath}. Columns: {list(df.columns)}")
     
+    # Detect allocated memory column and unit
+    alloc_col = None
+    alloc_divisor = 1  # to convert to MB
+    if 'Allocated [MB]' in df.columns:
+        alloc_col = 'Allocated [MB]'
+        alloc_divisor = 1
+    elif 'Allocated [kB]' in df.columns:
+        alloc_col = 'Allocated [kB]'
+        alloc_divisor = 1024  # kB to MB
+    elif 'Allocated [B]' in df.columns:
+        alloc_col = 'Allocated [B]'
+        alloc_divisor = 1024 * 1024  # B to MB
+    
     # Select only the columns we need
     columns_to_select = ['Method', time_col] + list(param_columns)
+    if alloc_col:
+        columns_to_select.append(alloc_col)
     df = df[columns_to_select].copy()
     
     # Trim leading underscore from Method names
@@ -124,6 +139,23 @@ def parse_benchmark_results(filepath, param_columns):
             return np.nan
     
     df['MeanSeconds'] = df[time_col].apply(parse_time)
+    
+    # Parse allocated memory (convert to MB)
+    def parse_alloc(alloc_val):
+        if pd.isna(alloc_val) or alloc_val == 'NA':
+            return np.nan
+        try:
+            if isinstance(alloc_val, str):
+                alloc_val = alloc_val.replace(',', '').strip('"')
+            return float(alloc_val) / alloc_divisor
+        except (ValueError, TypeError):
+            return np.nan
+    
+    if alloc_col:
+        df['AllocatedMB'] = df[alloc_col].apply(parse_alloc)
+    else:
+        df['AllocatedMB'] = np.nan
+    
     return df
 
 def create_throughput_chart(df, param_filters, output_file, throughput_value=100, throughput_unit='MB/s', throughput_divisor=1, decimal_places=1, mode='light', subtitle=None, title='Benchmark'):
@@ -192,7 +224,7 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     for i, (idx, row) in enumerate(filtered.iterrows()):
         # Insert separator between parallel and non-parallel groups
         if has_parallel and has_non_parallel and not separator_inserted and i == parallel_count:
-            bar_data.append(('', 0, 'none', None, True))  # separator
+            bar_data.append(('', 0, 'none', None, True, np.nan))  # separator
             separator_inserted = True
         
         method = row['Method']
@@ -244,13 +276,14 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
         if is_hardcoded:
             hatch = (hatch or '') + 'oo'
 
-        bar_data.append((display_name, row['Throughput'], color, hatch, False))
+        alloc_mb = row.get('AllocatedMB', np.nan)
+        bar_data.append((display_name, row['Throughput'], color, hatch, False, alloc_mb))
 
     # Create bars from bar_data
     bars = []
     labels = []
     separator_y = None
-    for i, (display_name, throughput, color, hatch, is_separator) in enumerate(bar_data):
+    for i, (display_name, throughput, color, hatch, is_separator, alloc_mb) in enumerate(bar_data):
         if is_separator:
             # Add empty space for separator
             labels.append('')
@@ -290,11 +323,29 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     for spine in ax.spines.values():
         spine.set_color(text_color)
 
-    # Add value labels
-    for i, (display_name, throughput, color, hatch, is_separator) in enumerate(bar_data):
+    # Get max throughput for positioning
+    max_throughput = max(t for _, t, _, _, is_sep, _ in bar_data if not is_sep)
+    
+    # Add value labels (throughput right after bar)
+    for i, (display_name, throughput, color, hatch, is_separator, alloc_mb) in enumerate(bar_data):
         if not is_separator:
             ax.text(throughput, i, f" {throughput:.{decimal_places}f}", 
                     va='center', fontsize=10, fontweight='bold', color=text_color)
+
+    # Add memory labels outside the chart on the right
+    # Use axes transform to place text at fixed position relative to axes
+    for i, (display_name, throughput, color, hatch, is_separator, alloc_mb) in enumerate(bar_data):
+        if not is_separator and not pd.isna(alloc_mb):
+            if alloc_mb >= 1:
+                mem_str = f"{alloc_mb:.1f} MB"
+            elif alloc_mb * 1024 >= 1:
+                mem_str = f"{alloc_mb * 1024:.0f} KB"
+            else:
+                mem_str = f"{alloc_mb * 1024 * 1024:.0f} B"
+            # Position outside chart area (x=1.02 in axes coordinates = just past right edge)
+            ax.annotate(mem_str, xy=(1.02, i), xycoords=('axes fraction', 'data'),
+                       va='center', ha='left', fontsize=9, color=text_color, alpha=0.7,
+                       annotation_clip=False)
 
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight', transparent=True)
@@ -322,8 +373,38 @@ def main():
             # Determine subtitle based on folder
             subtitle = CPU_SUBTITLES.get(benchmark_dir)
             
-            # Parse results
+            # Parse results from the benchmark file
             df = parse_benchmark_results(filepath, list(parameters.keys()))
+            
+            # Always load memory data from Neon (has complete data)
+            neon_filepath = f"Neon/{config['filepath']}"
+            if Path(neon_filepath).exists() and benchmark_dir != 'Neon':
+                neon_df = parse_benchmark_results(neon_filepath, list(parameters.keys()))
+                # Merge memory data from Neon into main df
+                # Create a key from Method + parameters for matching
+                param_cols = list(parameters.keys())
+                merge_cols = ['Method'] + param_cols
+                
+                # Normalize method names for matching (handle naming differences between datasets)
+                def normalize_method(m):
+                    # _FlameCsv_Reflection -> _FlameCsv, _FlameCsv -> _FlameCsv
+                    # But keep _Flame_SrcGen, _FlameCsv_SrcGen_Parallel etc.
+                    if m == 'FlameCsv_Reflection':
+                        return 'FlameCsv'
+                    return m
+                
+                if 'AllocatedMB' in neon_df.columns:
+                    memory_data = neon_df[merge_cols + ['AllocatedMB']].copy()
+                    # Add normalized method column for matching
+                    df['_norm_method'] = df['Method'].apply(normalize_method)
+                    memory_data['_norm_method'] = memory_data['Method'].apply(normalize_method)
+                    
+                    # Merge on normalized method + params
+                    norm_merge_cols = ['_norm_method'] + param_cols
+                    memory_data = memory_data.drop(columns=['Method']).rename(columns={'_norm_method': '_norm_method'})
+                    df = df.drop(columns=['AllocatedMB'], errors='ignore')
+                    df = df.merge(memory_data[norm_merge_cols + ['AllocatedMB']], on=norm_merge_cols, how='left')
+                    df = df.drop(columns=['_norm_method'])
             
             # Generate all combinations of parameter values
             param_names = list(parameters.keys())
