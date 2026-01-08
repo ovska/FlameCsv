@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>FlameCsv.Benchmark.Comparisons.ReadObjects-20260107-212033</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.8, Linux Arch Linux
+AMD Ryzen 7 3700X 1.76GHz, 1 CPU, 16 logical and 8 physical cores
+.NET SDK 10.0.100
+  [Host]     : .NET 10.0.0 (10.0.0, 42.42.42.42424), X64 RyuJIT x86-64-v3
+  Job-CASMLP : .NET 10.0.0 (10.0.0, 42.42.42.42424), X64 RyuJIT x86-64-v3
+</code></pre>
+<pre><code>MinIterationTime=1s  Server=True  MaxIterationCount=48  
+MaxWarmupIterationCount=32  MinIterationCount=16  MinWarmupIterationCount=16  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                    </th><th>Async</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>_FlameCsv</td><td>False</td><td>8.100 ms</td><td>0.1587 ms</td><td>0.1484 ms</td><td>8.161 ms</td><td>1.00</td><td>0.03</td><td>437.5000</td><td>7.8125</td><td>7.8125</td><td>-</td><td>NA</td>
+</tr><tr><td>_Flame_SrcGen</td><td>False</td><td>8.102 ms</td><td>0.0288 ms</td><td>0.0283 ms</td><td>8.092 ms</td><td>1.00</td><td>0.02</td><td>265.6250</td><td>7.8125</td><td>7.8125</td><td>-</td><td>NA</td>
+</tr><tr><td>_FlameCsv_Reflection_Parallel</td><td>False</td><td>2.570 ms</td><td>0.0246 ms</td><td>0.0241 ms</td><td>2.580 ms</td><td>0.32</td><td>0.01</td><td>199.2188</td><td>27.3438</td><td>-</td><td>7204739 B</td><td>NA</td>
+</tr><tr><td>_FlameCsv_SrcGen_Parallel</td><td>False</td><td>2.644 ms</td><td>0.0229 ms</td><td>0.0225 ms</td><td>2.633 ms</td><td>0.33</td><td>0.01</td><td>199.2188</td><td>29.2969</td><td>-</td><td>7204807 B</td><td>NA</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>11.080 ms</td><td>0.1317 ms</td><td>0.1294 ms</td><td>11.122 ms</td><td>1.37</td><td>0.03</td><td>289.0625</td><td>-</td><td>-</td><td>10961814 B</td><td>NA</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>23.456 ms</td><td>0.0511 ms</td><td>0.0453 ms</td><td>23.440 ms</td><td>2.90</td><td>0.05</td><td>5312.5000</td><td>46.8750</td><td>-</td><td>13891630 B</td><td>NA</td>
+</tr><tr><td>_RecordParser_Hardcoded</td><td>False</td><td>6.964 ms</td><td>0.0271 ms</td><td>0.0266 ms</td><td>6.964 ms</td><td>0.86</td><td>0.02</td><td>199.2188</td><td>85.9375</td><td>3.9063</td><td>7392662 B</td><td>NA</td>
+</tr><tr><td>_RecordParser_Parallel_Hardcoded</td><td>False</td><td>7.568 ms</td><td>0.0474 ms</td><td>0.0465 ms</td><td>7.553 ms</td><td>0.93</td><td>0.02</td><td>226.5625</td><td>35.1563</td><td>7.8125</td><td>34259077 B</td><td>NA</td>
+</tr><tr><td>_Sep</td><td>False</td><td>8.713 ms</td><td>0.1703 ms</td><td>0.2798 ms</td><td>8.836 ms</td><td>1.08</td><td>0.04</td><td>203.1250</td><td>7.8125</td><td>7.8125</td><td>-</td><td>NA</td>
+</tr><tr><td>_Sep_Parallel</td><td>False</td><td>2.583 ms</td><td>0.0104 ms</td><td>0.0102 ms</td><td>2.583 ms</td><td>0.32</td><td>0.01</td><td>125.0000</td><td>123.0469</td><td>-</td><td>7021098 B</td><td>NA</td>
+</tr><tr><td>_Sep_Hardcoded</td><td>False</td><td>7.593 ms</td><td>0.1770 ms</td><td>0.3493 ms</td><td>7.475 ms</td><td>0.94</td><td>0.05</td><td>1351.5625</td><td>7.8125</td><td>-</td><td>6939912 B</td><td>NA</td>
+</tr><tr><td>_Sep_Parallel_Hardcoded</td><td>False</td><td>2.522 ms</td><td>0.0063 ms</td><td>0.0062 ms</td><td>2.521 ms</td><td>0.31</td><td>0.01</td><td>126.9531</td><td>125.0000</td><td>-</td><td>7020940 B</td><td>NA</td>
+</tr><tr><td>_FlameCsv</td><td>True</td><td>8.078 ms</td><td>0.0110 ms</td><td>0.0103 ms</td><td>8.076 ms</td><td>1.00</td><td>0.00</td><td>179.6875</td><td>-</td><td>-</td><td>6935888 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen</td><td>True</td><td>7.776 ms</td><td>0.0207 ms</td><td>0.0203 ms</td><td>7.776 ms</td><td>0.96</td><td>0.00</td><td>179.6875</td><td>-</td><td>-</td><td>6935904 B</td><td>1.00</td>
+</tr><tr><td>_FlameCsv_Reflection_Parallel</td><td>True</td><td>2.563 ms</td><td>0.0165 ms</td><td>0.0162 ms</td><td>2.563 ms</td><td>0.32</td><td>0.00</td><td>277.3438</td><td>48.8281</td><td>-</td><td>7219783 B</td><td>1.04</td>
+</tr><tr><td>_FlameCsv_SrcGen_Parallel</td><td>True</td><td>2.499 ms</td><td>0.0169 ms</td><td>0.0166 ms</td><td>2.494 ms</td><td>0.31</td><td>0.00</td><td>255.8594</td><td>42.9688</td><td>-</td><td>7219996 B</td><td>1.04</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>12.407 ms</td><td>0.2815 ms</td><td>0.5556 ms</td><td>12.725 ms</td><td>1.54</td><td>0.07</td><td>2140.6250</td><td>85.9375</td><td>7.8125</td><td>10971997 B</td><td>1.58</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>25.699 ms</td><td>0.5054 ms</td><td>0.7565 ms</td><td>26.128 ms</td><td>3.18</td><td>0.09</td><td>375.0000</td><td>-</td><td>-</td><td>13929976 B</td><td>2.01</td>
+</tr><tr><td>_RecordParser_Hardcoded</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_RecordParser_Parallel_Hardcoded</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_Sep</td><td>True</td><td>9.106 ms</td><td>0.0947 ms</td><td>0.0930 ms</td><td>9.133 ms</td><td>1.13</td><td>0.01</td><td>257.8125</td><td>15.6250</td><td>15.6250</td><td>19752765 B</td><td>2.85</td>
+</tr><tr><td>_Sep_Parallel</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>_Sep_Hardcoded</td><td>True</td><td>8.206 ms</td><td>0.0274 ms</td><td>0.0269 ms</td><td>8.198 ms</td><td>1.02</td><td>0.00</td><td>210.9375</td><td>7.8125</td><td>7.8125</td><td>-</td><td>0.00</td>
+</tr><tr><td>_Sep_Parallel_Hardcoded</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr></tbody></table>
+</body>
+</html>

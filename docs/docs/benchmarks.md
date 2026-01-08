@@ -5,21 +5,15 @@ uid: benchmarks
 # Benchmarks
 
 This page contains benchmarks comparing the performance of FlameCsv with other popular CSV libraries.
-If a library doesn't provide built-in data binding, it is not benchmarked for reading full records as .NET objects.
-RecordParser is not in the benchmarks; it does not support async, and was very unergonomic to use compared to the other libraries. Its performance generally falls between Sylvan and CsvHelper.
+Some libraries lack async support for all/any operations, or they have profound feature gaps in certain workloads. These are noted where applicable.
 
-The benchmarks below are done with the following setup
-using the default configuration in BenchmarkDotNet v0.14.0 (unless otherwise stated).
-Benchmarks for 0.3.0 with AVX-512 support are coming soon.
-```
-BenchmarkDotNet v0.14.0, Windows 10 (10.0.19045.5608/22H2/2022Update)
-AMD Ryzen 7 3700X, 1 CPU, 16 logical and 8 physical cores
-.NET SDK 9.0.100
-  [Host]     : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
-  DefaultJob : .NET 9.0.0 (9.0.24.52809), X64 RyuJIT AVX2
-```
+The benchmarks use varied sample CSV datasets, and can be downloaded from the repository.
 
-The benchmarks use commonly used CSV datasets, and can be downloaded from the repository.
+> TODO: commit where datasets are stored and benchmark code was run
+
+> ![NOTE]
+> AVX-512 benchmarks will be added if I can get a suitable CPU for testing.
+> An older version of FlameCsv could tokenize a 8.2MB CSV file in 688.8 μs (at nearly 12 GB/s) single threaded.
 
 ## Results
 
@@ -112,7 +106,7 @@ highly optimized read/write operations specific to the enum. The comparisons bel
 Generating the enum converter at compile-time allows the enum to be analyzed, and specific optimizations to be made
 regarding different values and names.
 The generated converter especially excels at small enums that start from 0 without any gaps, and have only ASCII
-characters in their name. More esoteric configurations such as emojis as display names are supported as well.
+characters in their name. More complex configurations such as flags and non-ASCII display names are supported as well.
 
 The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`) or UTF16 (`char`).
 
@@ -180,75 +174,14 @@ The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`)
 | Reflection | True    | True  |   298.9 ns | 0.45 ns |  0.35 |
 | SourceGen  | True    | True  |   156.2 ns | 2.35 ns |  0.18 |
 
-## About performance
-
-Performance has been a key consideration for FlameCsv since the beginning. This means:
-- Maximum CPU utilization through SIMD hardware intrinsics
-- Minimal data copying
-- Minimal allocations
-- Performance parity between synchronous and asynchronous operations
-
-Performance isn't just about records processed per second. Allocations and garbage collection can significantly impact workloads, especially in highly parallel scenarios like web servers. Similarly, streaming capabilities are crucial when reading large files, particularly in server environments.
-
-When writing CSV data, performance is primarily bottlenecked by:
-- Data copying I/O
-- UTF16-UTF8 transcoding
-- Formatting numbers and other formattable types
-
-### Throughput
-
-The most basic performance metric: how quickly does the library process data.
-
-Raw reading throughput benchmarks use pre-allocated data (e.g., an array) to minimize code execution outside the measured operations. We benchmark:
-- Parsing raw CSV records/fields
-- Different methods of reading records as .NET types
-
-Asynchronous reading of pre-allocated data can reveal performance overhead in async implementations, which is surprisingly large in some CSV libraries.
-
-Benchmarking writes using no-op destinations like @"System.IO.Stream.Null?displayProperty=nameWithType" or @"System.IO.TextWriter.Null?displayProperty=nameWithType" helps measure the library's overhead, though real-world performance may vary due to buffer size differences (which are typically configurable).
-
-
-### Memory Usage
-
-Fewer allocations result in less garbage collector overhead. This is particularly important in web servers handling concurrent operations.
-Memory usage is best evaluated by _comparing_ libraries, since some operations (like creating strings) inherently require allocations,
-so looking at the allocation numbers in isolation may not be useful.
-
-Streaming is another crucial factor. While important for servers, it's essential for handling large files that cannot fit in memory.
-This includes I/O and `I(Async)Enumerable`. A well-implemented streaming library can handle workloads of any size without issues
-by reading and writing without having to buffer the entire dataset in memory.
-
-
-### Cold start vs. long-running
-
-BenchmarkDotNet typically runs code multiple times to eliminate startup overhead, JIT compilation, and other variables.
-FlameCsv benchmarks follow this approach unless specified otherwise.
-
-However, cold start performance matters more for:
-- Serverless applications (Azure Functions / AWS Lambda)
-- Desktop/CLI applications performing one-off operations
-
-Reflection-based code (like compiled expression delegates) typically performs poorly on cold starts compared to handwritten or source-generated code,
-though these differences diminish in long-running operations.
-
 ### Why not NCsvPerf
 
-While the NCsvPerf benchmarks are commonly used for CSV library comparisons, it has several limitations:
+While NCsvPerf benchmarks are commonly used for CSV library comparisons, it has several limitations:
 
 1. String Conversion: All fields are converted to strings, which:
-   - Creates unnecessary transcoding overhead
-   - Stresses the garbage collector needlessly
+   - Creates unnecessary transcoding and GC overhead
    - Doesn't reflect modern libraries' ability to work with memory spans directly
-   - Significantly impacts CPU and memory measurements
+2. List Accumulation: Records are collected into a list before returning, which adds unnecessary overhead, and is not representative of how large datasets would be consumed
+3. Data Homogeneity: The test data lacks real-world complexity like quoted and escaped fields
 
-2. List Accumulation: Records are collected into a list before returning, which:
-   - Adds unnecessary CPU and memory overhead
-   - Doesn't reflect streaming capabilities which are critical when reading large files
-
-3. Data Homogeneity: The test data lacks real-world complexity like:
-   - Quoted values
-   - Escaped characters
-   - Mixed data types
-
-While NCsvPerf provides some insights into CSV parsing performance, it's not ideal for comprehensive real-world comparisons.
-
+NCsvPerf doesn't really stress the capabilities of modern CSV libraries effectively; with the speed of modern CSV libraries it's mostly a test of "how many strings can the .NET runtime create in a second".
