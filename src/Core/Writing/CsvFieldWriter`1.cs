@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
+using FlameCsv.Intrinsics;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 using FlameCsv.Writing.Escaping;
@@ -33,7 +34,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
 
     private readonly T _delimiter;
     private readonly T _quote;
-    private readonly bool _isCRLF;
+    private readonly uint _newlineValue;
+    private readonly int _newlineLength;
     private readonly IQuoter<T> _quoter;
     private readonly Allocator<T> _allocator;
     private readonly object? _defaultStringConverter;
@@ -55,7 +57,8 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
         _delimiter = T.CreateTruncating(options.Delimiter);
         _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
         _quoter = Quoter.Create(options);
-        _isCRLF = options.Newline.IsCRLF();
+        _newlineValue = Bithacks.InitializeCRLFRegister<T>(options.Newline.IsCRLF());
+        _newlineLength = options.Newline.IsCRLF() ? 2 : 1;
         _allocator = new Allocator<T>(writer.BufferPool);
         _defaultStringConverter =
             typeof(T) == typeof(char) ? Converters.StringTextConverter.Instance
@@ -303,34 +306,18 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
 
         if (typeof(T) == typeof(byte))
         {
-            ReadOnlySpan<byte> data = "\n\0\r\n"u8;
-            ushort value = Unsafe.ReadUnaligned<ushort>(
-                ref Unsafe.Add(
-                    ref Unsafe.AsRef(in data[0]),
-                    (uint)(sizeof(ushort) * Unsafe.BitCast<bool, byte>(_isCRLF))
-                )
-            );
-
-            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), value);
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), (ushort)_newlineValue);
         }
         else if (typeof(T) == typeof(char))
         {
-            ReadOnlySpan<char> data = "\n\0\r\n".AsSpan();
-            uint value = Unsafe.ReadUnaligned<uint>(
-                ref Unsafe.Add(
-                    ref Unsafe.As<char, byte>(ref Unsafe.AsRef(in data[0])),
-                    (uint)(sizeof(uint) * Unsafe.BitCast<bool, byte>(_isCRLF))
-                )
-            );
-
-            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), value);
+            Unsafe.WriteUnaligned(ref Unsafe.As<T, byte>(ref destination[0]), _newlineValue);
         }
         else
         {
             throw Token<T>.NotSupported;
         }
 
-        Writer.Advance(1 + Unsafe.BitCast<bool, byte>(_isCRLF));
+        Writer.Advance(_newlineLength);
     }
 
     /// <summary>
