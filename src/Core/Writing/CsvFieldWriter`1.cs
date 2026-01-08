@@ -96,6 +96,12 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
         }
         else
         {
+            if (_usesDefaultOptions)
+            {
+                // default options have an empty null
+                return;
+            }
+
             ReadOnlySpan<T> nullValue = Options.GetNullSpan(typeof(TValue));
             destination = Writer.GetSpan(nullValue.Length);
             nullValue.CopyTo(destination);
@@ -142,6 +148,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
     /// <param name="skipEscaping">Don't quote or escape the value</param>
     public void WriteText(ReadOnlySpan<char> value, bool skipEscaping = false)
     {
+        if (value.IsEmpty)
+        {
+            return;
+        }
+
         if (typeof(T) == typeof(char))
         {
             ReadOnlySpan<T> valueT = MemoryMarshal.Cast<char, T>(value);
@@ -194,13 +205,16 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
             {
                 if (result.SpecialCount == 0)
                 {
-                    bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination).Slice(1));
+                    bytesWritten = Encoding.UTF8.GetBytes(
+                        value,
+                        Unsafe.BitCast<Span<T>, Span<byte>>(destination).Slice(1)
+                    );
                     destination[0] = _quote;
                     destination[bytesWritten + 1] = _quote;
                 }
                 else
                 {
-                    bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination));
+                    bytesWritten = Encoding.UTF8.GetBytes(value, Unsafe.BitCast<Span<T>, Span<byte>>(destination));
                     Escape.Scalar(_quote, destination[..bytesWritten], destination, result.SpecialCount);
                 }
 
@@ -208,7 +222,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
             }
             else
             {
-                bytesWritten = Encoding.UTF8.GetBytes(value, MemoryMarshal.Cast<T, byte>(destination));
+                bytesWritten = Encoding.UTF8.GetBytes(value, Unsafe.BitCast<Span<T>, Span<byte>>(destination));
             }
 
             Writer.Advance(bytesWritten);

@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using CommunityToolkit.HighPerformance;
+using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.IO.Internal;
 using FlameCsv.Writing;
 
@@ -27,6 +29,11 @@ public class FieldWritingExtensionsTests
     {
         Assert.Equal("", Chars(w => w.FormatValue(new int?())));
         Assert.Equal("", Bytes(w => w.FormatValue(new int?())));
+        Assert.Equal("<null>", Bytes(w => w.FormatValue(new int?()), new CsvOptions<byte> { Null = "<null>" }));
+        Assert.Equal(
+            "<null>",
+            Bytes(w => w.FormatValue(new int?()), new CsvOptions<byte> { NullTokens = { [typeof(int)] = "<null>" } })
+        );
     }
 
     [Fact]
@@ -34,6 +41,14 @@ public class FieldWritingExtensionsTests
     {
         Assert.Equal("", Chars(w => w.FormatValue<IPAddress>(null!)));
         Assert.Equal("", Bytes(w => w.FormatValue<IPAddress>(null!)));
+        Assert.Equal("<null>", Bytes(w => w.FormatValue<IPAddress>(null!), new CsvOptions<byte> { Null = "<null>" }));
+        Assert.Equal(
+            "<null>",
+            Bytes(
+                w => w.FormatValue<IPAddress>(null!),
+                new CsvOptions<byte> { NullTokens = { [typeof(IPAddress)] = "<null>" } }
+            )
+        );
     }
 
     [Fact]
@@ -81,12 +96,11 @@ public class FieldWritingExtensionsTests
 
     private static string Bytes(Action<CsvFieldWriter<byte>> func, CsvOptions<byte>? options = null)
     {
-        using var ms = new MemoryStream();
-        var bufferWriter = new StreamBufferWriter(ms, default);
+        using var apbw = new ArrayPoolBufferWriter<byte>();
+        var bufferWriter = new StreamBufferWriter(apbw.AsStream(), default);
         using var writer = new CsvFieldWriter<byte>(bufferWriter, options ?? CsvOptions<byte>.Default);
         func(writer);
         bufferWriter.Complete(null);
-        Assert.True(ms.TryGetBuffer(out var buffer));
-        return Encoding.UTF8.GetString(buffer);
+        return Encoding.UTF8.GetString(apbw.WrittenSpan);
     }
 }
