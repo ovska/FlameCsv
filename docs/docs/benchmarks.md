@@ -16,8 +16,8 @@ The benchmarks use varied sample CSV datasets which can be downloaded from the r
 
 - Memory allocations are on the right hand side of the bars in the charts.
 - "Reflection" and "SourceGen" refer to FlameCsv's type binding method.
-- "MT" means the benchmark uses unordered multithreading (parallel) APIs.
 - Some libraries lack async support for certain operations; these are absent in the charts.
+- "MT" means the benchmark uses multithreading (parallel) APIs. As FlameCsv's parallel operations are unordered, other libraries are configured not to preserve order whenever possible
 
 ## Synchronous
 
@@ -25,7 +25,7 @@ The benchmarks use varied sample CSV datasets which can be downloaded from the r
 
 This benchmark enumerates 20,000 records (10 fields per record) from a stream wrapping a `byte[]`.
 
-Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmarks have compile-time field indexes when reading.
+Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmarks have compile-time field indexes when reading, others use field lookups by name.
 
 # [Apple M4 Max 16c](#tab/arm)
 
@@ -43,7 +43,7 @@ Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmark
 
 This benchmark writes the same 20,000 records from an array into a stream.
 
-Sep and RecordParser write objects manually, other libraries supporrt automatic type binding.
+Sep and RecordParser write objects manually, other libraries support automatic type binding.
 
 # [Apple M4 Max 16c](#tab/arm)
 
@@ -99,7 +99,8 @@ Some of the fields require unescaping. Libraries that support accessing fields a
 This benchmark parses a double from a single column of the 65,536 record dataset and sums the results.
 csFastFloat is used to parse the values to highlight the differences between CSV libraries better than double.Parse.
 
-The raw `byte[]` is passed to the libraries whenever possible. There is no async variant for this benchmark.
+The raw `byte[]` is passed to the libraries whenever possible. There is no async variant for this benchmark,
+as the enumeration-benchmark above should already cover the differences.
 
 # [Apple M4 Max 16c](#tab/arm)
 
