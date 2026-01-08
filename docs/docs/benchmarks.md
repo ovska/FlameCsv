@@ -6,11 +6,11 @@ uid: benchmarks
 
 This page contains benchmarks comparing the performance of FlameCsv with other popular CSV libraries.
 
-The benchmarks use varied sample CSV datasets which can be downloaded from the repository. There are both x86 (AVX-2) and ARM64 (Neon) benchmarks. x86 AVX-512 will be added if I can get my hands on a suitable CPU.
+The benchmarks use varied sample CSV datasets which can be downloaded from the repository. There are both x86 (AVX-2) and ARM64 (Neon) benchmarks, done on a desktop Ryzen machine and Mac Studio, respectively. x86 AVX-512 will be added if I can get my hands on a suitable CPU.
 
-> TODO: link to commit where datasets are stored and benchmark code was run
->
-> TODO: link to the raw benchmark results
+- Benchmark code: [tools/Bench/Comparisons](https://github.com/ovska/FlameCsv/tree/9bb294dd0f17b55685631f636230535d94b1a660/tools/Bench/Comparisons)
+- Data used: [tools/Bench/Comparisons/Data](https://github.com/ovska/FlameCsv/tree/9bb294dd0f17b55685631f636230535d94b1a660/tools/Bench/Comparisons/Data)
+- Raw benchmark results: [tools/Bench/BenchmarkResults](https://github.com/ovska/FlameCsv/tree/46fe9995d8d395579fb0fa332eca588ef89cb495/tools/Bench/BenchmarkResults)
 
 ## Details
 

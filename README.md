@@ -99,10 +99,15 @@ foreach (CsvRecord<char> record in Csv.From(data).Enumerate(options))
 
 ## Writing records
 ```csharp
-User[] data = [new(1, "Bob", DateTime.Now, 42), new(2, "Alice", DateTime.UnixEpoch, null)];
+// write to a stringbuilder
 StringBuilder builder = new StringBuilder();
 Csv.To(builder).Write(data);
+
+// write to stream
 await Csv.To(stream).WithUtf8Encoding().WriteAsync(data);
+
+// write to file in parallel
+Csv.ToFile("output.csv").AsParallel(cancellationToken).Write(data);
 ```
 
 ## Writing manually
@@ -123,39 +128,4 @@ using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 
 # Benchmarks
 
-## Reading 5000 records into objects
-
-| Method                | Mean     |  Ratio | Allocated | Alloc Ratio |
-|----------------------:|---------:|-------:|----------:|------------:|
-| FlameCsv (Reflection) | 2.308 ms |   1.00 |   1.66 MB |        1.00 |
-| FlameCsv (SourceGen)  | 2.506 ms |   1.09 |   1.66 MB |        1.00 |
-| Sylvan                | 2.570 ms |   1.11 |   2.64 MB |        1.59 |
-| RecordParser          | 4.673 ms |   2.02 |   1.93 MB |        1.16 |
-| CsvHelper             | 6.424 ms |   2.78 |   3.49 MB |        2.10 |
-
-<img src="docs/data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" />
-
-## Iterating 65535 records without processing all fields
-
-| Method        | Mean      | Ratio | Allocated | Alloc Ratio |
-|--------------:|----------:|------:|----------:|------------:|
-| FlameCsv      |  3.292 ms |  1.00 |     322 B |        1.00 |
-| Sep           |  4.431 ms |  1.35 |    5942 B |       18.45 |
-| Sylvan        |  5.014 ms |  1.52 |   42029 B |      130.52 |
-| RecordParser  |  6.358 ms |  1.93 | 2584418 B |    8,026.14 |
-| CsvHelper     | 34.877 ms | 10.60 | 2789195 B |    8,662.10 |
-
-<img src="docs/data/charts/peek_light.svg" alt="Computing sum of one field from 65535 records" />
-
-## Writing 5000 records
-
-| Method                | Mean     | Ratio | Allocated | Alloc Ratio |
-|----------------------:|---------:|------:|----------:|------------:|
-| FlameCsv (SourceGen)  | 3.196 ms |  1.00 |     170 B |        1.00 |
-| FlameCsv (Reflection) | 3.302 ms |  1.03 |     174 B |        1.02 |
-| Sylvan                | 3.467 ms |  1.08 |   33605 B |      197.68 |
-| Sep                   | 3.561 ms |  1.11 |  121181 B |      712.83 |
-| CsvHelper             | 7.806 ms |  2.44 | 2077347 B |   12,219.69 |
-| RecordParser          | 9.245 ms |  2.89 | 8691788 B |   51,128.16 |
-
-<img src="docs/data/charts/write_light.svg" alt="Writing 5000 records" />
+See detailed benchmarks in the [documentation page](https://ovska.github.io/FlameCsv/docs/benchmarks.html).
