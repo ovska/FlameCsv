@@ -109,18 +109,25 @@ The generated converter especially excels at small enums that start from 0 witho
 characters in their name. More complex configurations such as flags and non-ASCII display names are supported as well.
 
 The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`) or UTF16 (`char`).
+You can find the generated code for the enum under [Source Generator](source-generator.md#enum-converter-generator).
+Benchmarked on AMD Ryzen 7 3700X.
 
 #### Parsing
+
+The chart shows relative throughput of parsing enums using the reflection-based converter in FlameCsv,
+and the source-generated converter (`Enum.TryParse` is the baseline at 100%). Higher is better.
 
 <img src="../data/charts/parse_light.svg" alt="Enum parsing performance chart" class="chart-light" />
 <img src="../data/charts/parse_dark.svg" alt="Enum parsing performance chart" class="chart-dark" />
 
-#### Formatting
+<details>
+<summary><strong>Click to view benchmark summary</strong></summary>
 
-<img src="../data/charts/format_light.svg" alt="Enum formatting performance chart" class="chart-light" />
-<img src="../data/charts/format_dark.svg" alt="Enum formatting performance chart" class="chart-dark" />
-
-#### Exact results
+| Parameter | Description |
+| ---------- | ------------ |
+| Bytes | Parsing from UTF8 (`byte`) or UTF16 (`char`) |
+| IgnoreCase | Parsing is case-insensitive |
+| ParseNumbers | Input is numeric and not enum names |
 
 | Method     | Bytes | IgnoreCase | ParseNumbers | Mean      | StdDev    | Ratio |
 |----------- |------ |----------- |------------- |----------:|----------:|------:|
@@ -156,6 +163,28 @@ The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`)
 | Reflection | True  | True       | True         | 560.96 ns |  5.796 ns |  1.71 |
 | SourceGen  | True  | True       | True         |  71.82 ns |  0.928 ns |  0.22 |
 
+</details>
+
+
+#### Formatting
+
+The chart shows relative throughput of formatting enums using the reflection-based converter in FlameCsv,
+and the source-generated converter (`Enum.TryFormat` is the baseline at 100%). Higher is better.
+
+<img src="../data/charts/format_light.svg" alt="Enum formatting performance chart" class="chart-light" />
+<img src="../data/charts/format_dark.svg" alt="Enum formatting performance chart" class="chart-dark" />
+
+<details>
+<summary><strong>Click to view benchmark summary</strong></summary>
+
+The table shows results for formatting directly using `Enum.TryFormat`, formatting using the reflection-based
+converter in FlameCsv, and the source-generated converter.
+
+| Parameter | Description |
+| ---------- | ------------ |
+| Numeric | Formatting as numbers and not enum names |
+| Bytes | Formatting to UTF8 (`byte`) or UTF16 (`char`) |
+
 | Method     | Numeric | Bytes | Mean       | StdDev  | Ratio |
 |----------- |-------- |------ |-----------:|--------:|------:|
 | TryFormat  | False   | False |   715.8 ns | 1.73 ns |  1.00 |
@@ -173,6 +202,8 @@ The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`)
 | TryFormat  | True    | True  |   861.6 ns | 0.81 ns |  1.00 |
 | Reflection | True    | True  |   298.9 ns | 0.45 ns |  0.35 |
 | SourceGen  | True    | True  |   156.2 ns | 2.35 ns |  0.18 |
+
+</details>
 
 ### Why not NCsvPerf
 
