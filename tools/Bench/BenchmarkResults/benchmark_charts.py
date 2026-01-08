@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
 from pathlib import Path
 from itertools import product
@@ -13,6 +14,16 @@ LIBRARY_COLORS = {
     'RecordParser': "#D898D6"
 }
 
+def adjust_color_lightness(hex_color, factor):
+    """Adjust color lightness. factor > 1 lightens, factor < 1 darkens."""
+    rgb = mcolors.hex2color(hex_color)
+    # Convert to HLS, adjust lightness, convert back
+    import colorsys
+    h, l, s = colorsys.rgb_to_hls(*rgb)
+    l = max(0, min(1, l * factor))
+    r, g, b = colorsys.hls_to_rgb(h, l, s)
+    return mcolors.rgb2hex((r, g, b))
+
 CPU_SUBTITLES = {
     'AVX2': 'AMD Ryzen 7 3700X',
     'ARM': 'Apple M4 Max 16c',
@@ -22,12 +33,13 @@ CPU_SUBTITLES = {
 # Define benchmark configurations
 # Each config specifies: filepath, title, throughput_value, throughput_unit, and parameters
 # Parameters is a dict where key = column name, value = dict of {value: display_name}
+# throughput_value can be a number or a dict like {'Quoted': {'False': 8.2, 'True': 17.2}} for per-parameter values
 BENCHMARK_CONFIGS = [
     {
         "filepath": "AVX2/FlameCsv.Benchmark.Comparisons.EnumerateBench-report.csv",
         "title": "Enumerating CSV fields",
-        "throughput_value": 8.2,  # Value to divide by mean time
-        "throughput_unit": "MB/s",  # Unit label (e.g., 'MB/s', 'records/s', 'ops/s')
+        "throughput_value": {"Quoted": {"False": 8.2, "True": 17.2}},  # Different file sizes
+        "throughput_unit": "MB/s",
         "decimal_places": 0,
         "parameters": {
             "Quoted": {"False": "Unquoted", "True": "Quoted"},
@@ -51,6 +63,15 @@ BENCHMARK_CONFIGS = [
         "throughput_divisor": 1_000_000,  # Divide result by this value for display
         "decimal_places": 2,
         "parameters": {},
+    },
+    {
+        "filepath": "AVX2/FlameCsv.Benchmark.Comparisons.ReadObjects-report.csv",
+        "title": "Reading objects from CSV",
+        "throughput_value": 20000,  # Number of records
+        "throughput_unit": "million records/s",
+        "throughput_divisor": 1_000_000,
+        "decimal_places": 2,
+        "parameters": {"Async": {"False": "Sync", "True": "Async"}},
     },
 ]
 
@@ -128,38 +149,56 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     for idx, row in filtered.iterrows():
         method = row['Method']
         is_parallel = '_Parallel' in method
+        is_hardcoded = False
 
         # Build display name with proper formatting
         base_method = method.replace('_Parallel', '')
 
-        # Handle FlameCsv variants (Flame_SrcGen, Flame_Reflection)
-        if base_method.startswith('Flame_'):
-            variant = base_method.replace('Flame_', '')
-            if variant == 'SrcGen':
-                display_name = 'FlameCsv SourceGen'
-            elif variant == 'Reflection':
-                display_name = 'FlameCsv Reflection'
+        # Handle FlameCsv variants (Flame_SrcGen, Flame_Reflection, FlameCsv_SrcGen, FlameCsv_Reflection)
+        if base_method.startswith('Flame_') or base_method.startswith('FlameCsv_'):
+            # Remove prefix to get variant
+            if base_method.startswith('FlameCsv_'):
+                variant = base_method.replace('FlameCsv_', '')
             else:
-                display_name = f'FlameCsv {variant}'
+                variant = base_method.replace('Flame_', '')
+
+            if variant == 'SrcGen':
+                display_name = 'Flame SourceGen'
+            elif variant == 'Reflection':
+                display_name = 'Flame Reflection'
+            else:
+                display_name = f'Flame {variant}'
             color_key = 'FlameCsv'
+        # Handle _Hardcoded suffix for other libraries
+        elif '_Hardcoded' in base_method:
+            clean_name = base_method.replace('_Hardcoded', '')
+            display_name = f'{clean_name} (hardcoded)'
+            color_key = clean_name
+            is_hardcoded = True
         else:
             display_name = base_method
             color_key = base_method
 
         # Add parallel suffix
         if is_parallel:
-            display_name += ' (Parallel)'
+            display_name += ' (MT)'
 
         color = LIBRARY_COLORS.get(color_key, '#95A5A6')
+        
+        # Adjust color for parallel versions
+        if is_parallel:
+            color = adjust_color_lightness(color, 0.9)
 
         hatch = None
-        is_async = any(col == 'Async' and val == 'True' for col, (val, _) in param_filters.items())
-        if is_parallel and is_async:
-            hatch = '...///' # Combined hatch for both
-        elif is_parallel:
-            hatch = '...'
-        elif is_async:
+        # is_async = any(col == 'Async' and val == 'True' for col, (val, _) in param_filters.items())
+        # if is_async:
+        #     hatch = '///'
+        
+        if is_parallel:
             hatch = '///'
+
+        if is_hardcoded:
+            hatch = (hatch or '') + 'oo'
 
         bar = ax.barh(display_name, row['Throughput'], 
                       color=color, hatch=hatch, edgecolor=edge_color, linewidth=1)
@@ -199,7 +238,7 @@ def main():
     for config in BENCHMARK_CONFIGS:
         filepath = config['filepath']
         title = config['title']
-        throughput_value = config['throughput_value']
+        throughput_value_config = config['throughput_value']
         throughput_unit = config['throughput_unit']
         throughput_divisor = config.get('throughput_divisor', 1)  # Default to 1 (no scaling)
         decimal_places = config.get('decimal_places', 1)  # Default to 1 decimal place
@@ -224,6 +263,19 @@ def main():
             param_filters = {}
             for name, value in zip(param_names, param_values):
                 param_filters[name] = (value, parameters[name][value])
+            
+            # Resolve throughput_value (can be a number or a dict keyed by parameter values)
+            if isinstance(throughput_value_config, dict):
+                # Find the first matching parameter key
+                throughput_value = None
+                for param_name, param_val in zip(param_names, param_values):
+                    if param_name in throughput_value_config:
+                        throughput_value = throughput_value_config[param_name][param_val]
+                        break
+                if throughput_value is None:
+                    raise ValueError(f"Could not resolve throughput_value for {param_filters}")
+            else:
+                throughput_value = throughput_value_config
             
             # Build filename suffix from display names (lowercase, underscores)
             suffix_parts = [parameters[name][value].lower().replace(' ', '_') 
