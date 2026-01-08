@@ -5,99 +5,180 @@ uid: benchmarks
 # Benchmarks
 
 This page contains benchmarks comparing the performance of FlameCsv with other popular CSV libraries.
-Some libraries lack async support for all/any operations, or they have profound feature gaps in certain workloads. These are noted where applicable.
 
-The benchmarks use varied sample CSV datasets, and can be downloaded from the repository.
+The benchmarks use varied sample CSV datasets which can be downloaded from the repository. There are both x86 (AVX-2) and ARM64 (Neon) benchmarks. x86 AVX-512 will be added if I can get my hands on a suitable CPU.
 
-> TODO: commit where datasets are stored and benchmark code was run
+> TODO: link to commit where datasets are stored and benchmark code was run
+>
+> TODO: link to the raw benchmark results
 
-> ![NOTE]
-> AVX-512 benchmarks will be added if I can get a suitable CPU for testing.
-> An older version of FlameCsv could tokenize a 8.2MB CSV file in 688.8 μs (at nearly 12 GB/s) single threaded.
+## Details
 
-## Results
+- Memory allocations are on the right hand side of the bars in the charts.
+- "Reflection" and "SourceGen" refer to FlameCsv's type binding method.
+- "MT" means the benchmark uses unordered multithreading (parallel) APIs.
+- Some libraries lack async support for certain operations; these are absent in the charts.
 
-### Reading .NET objects
+## Synchronous
 
-The dataset is 5000 records of 10 fields of varied data, quoted fields, and escaped quotes.
-The data is read from a pre-loaded byte array to simulate real-world scenarios.
+### Read objects
 
-| Method                | Mean     |  Ratio | Allocated | Alloc Ratio |
-|----------------------:|---------:|-------:|----------:|------------:|
-| FlameCsv (Reflection) | 2.308 ms |   1.00 |   1.66 MB |        1.00 |
-| FlameCsv (SourceGen)  | 2.506 ms |   1.09 |   1.66 MB |        1.00 |
-| Sylvan                | 2.570 ms |   1.11 |   2.64 MB |        1.59 |
-| RecordParser          | 4.673 ms |   2.02 |   1.93 MB |        1.16 |
-| CsvHelper             | 6.424 ms |   2.78 |   3.49 MB |        2.10 |
+This benchmark enumerates 20,000 records (10 fields per record) from a stream wrapping a `byte[]`.
 
-<img src="../data/charts/read_light.svg" alt="Reading 5000 records into .NET objects" class="chart-light" />
-<img src="../data/charts/read_dark.svg" alt="Reading 5000 records into .NET objects" class="chart-dark" />
+Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmarks have compile-time field indexes when reading.
 
-> Sep does not support binding to .NET objects.
+# [Apple M4 Max 16c](#tab/arm)
 
-### Reading without processing all fields
+<img src="../data/charts/arm/reading_objects_from_csv_sync_light.svg" alt="Read objects benchmark (sync)" class="chart-light" />
+<img src="../data/charts/arm/reading_objects_from_csv_sync_dark.svg" alt="Read objects benchmark (sync)" class="chart-dark" />
 
-The dataset is 65535 records of 14 fields (no quotes or escapes). The benchmark calculates the sum of a single numerical field.
-The data is read from a pre-loaded byte array.
+# [AMD Ryzen 7 3700X](#tab/x86)
 
-| Method        | Mean      | Ratio | Allocated | Alloc Ratio |
-|--------------:|----------:|------:|----------:|------------:|
-| FlameCsv      |  3.292 ms |  1.00 |     322 B |        1.00 |
-| Sep           |  4.431 ms |  1.35 |    5942 B |       18.45 |
-| Sylvan        |  5.014 ms |  1.52 |   42029 B |      130.52 |
-| RecordParser  |  6.358 ms |  1.93 | 2584418 B |    8,026.14 |
-| CsvHelper     | 34.877 ms | 10.60 | 2789195 B |    8,662.10 |
+<img src="../data/charts/x86/reading_objects_from_csv_sync_light.svg" alt="Read objects benchmark (sync)" class="chart-light" />
+<img src="../data/charts/x86/reading_objects_from_csv_sync_dark.svg" alt="Read objects benchmark (sync)" class="chart-dark" />
 
-<img src="../data/charts/peek_light.svg" alt="Computing sum of one field from 65535 records" class="chart-light" />
-<img src="../data/charts/peek_dark.svg" alt="Computing sum of one field from 65535 records" class="chart-dark" />
+---
 
-### Writing .NET objects
+### Write objects
 
-The same dataset of 5000 records as above is written to @"System.IO.TextWriter.Null?displayProperty=nameWithType".
-The objects are pre-loaded to an array.
+This benchmark writes the same 20,000 records from an array into a stream.
 
-| Method                | Mean     | Ratio | Allocated | Alloc Ratio |
-|----------------------:|---------:|------:|----------:|------------:|
-| FlameCsv (SourceGen)  | 3.196 ms |  1.00 |     170 B |        1.00 |
-| FlameCsv (Reflection) | 3.302 ms |  1.03 |     174 B |        1.02 |
-| Sylvan                | 3.467 ms |  1.08 |   33605 B |      197.68 |
-| Sep                   | 3.561 ms |  1.11 |  121181 B |      712.83 |
-| CsvHelper             | 7.806 ms |  2.44 | 2077347 B |   12,219.69 |
-| RecordParser          | 9.245 ms |  2.89 | 8691788 B |   51,128.16 |
+Sep and RecordParser write objects manually, other libraries supporrt automatic type binding.
 
-<img src="../data/charts/write_light.svg" alt="Writing 5000 records" class="chart-light" />
-<img src="../data/charts/write_dark.svg" alt="Writing 5000 records" class="chart-dark" />
+# [Apple M4 Max 16c](#tab/arm)
 
-> Note that the Y axis for "Mean" doesn't start from 0 in this chart (this is Excel's default behavior for this dataset)
-
-### Async
-
-Here are the reading benchmarks using async overloads (where available). The test setup is same as before (no actual IO is done),
-is meant to demonstrate the overhead of async versions.
-
-Writing benchmarks are not included as they are expected to not be significantly different from the synchronous versions
-(IO should only happen when flushing).
-
-#### Reading .NET objects
-
-| Method                | Mean     | Ratio | Allocated | Alloc Ratio |
-|----------------------:|---------:|------:|----------:|------------:|
-| FlameCsv (Reflection) | 2.307 ms |  1.00 |   1.66 MB |        1.00 |
-| FlameCsv (SourceGen)  | 2.408 ms |  1.04 |   1.66 MB |        1.00 |
-| Sylvan                | 2.891 ms |  1.25 |   2.65 MB |        1.59 |
-| CsvHelper             | 6.672 ms |  2.89 |    3.5 MB |        2.11 |
-
-#### Reading without processing all fields
-
-| Method     | Mean      | Ratio | Allocated | Alloc Ratio |
-|-----------:|----------:|------:|----------:|------------:|
-| FlameCsv   |  3.771 ms |  1.00 |     632 B |        1.00 |
-| Sep        |  4.764 ms |  1.26 |    5944 B |        9.41 |
-| Sylvan     |  6.408 ms |  1.70 |   78102 B |      123.58 |
-| CsvHelper  | 36.902 ms |  9.79 | 2935048 B |    4,644.06 |
+<img src="../data/charts/arm/writing_objects_to_csv_sync_light.svg" alt="Write objects benchmark (sync)" class="chart-light" />
+<img src="../data/charts/arm/writing_objects_to_csv_sync_dark.svg" alt="Write objects benchmark (sync)" class="chart-dark" />
 
 
-### Enums
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/writing_objects_to_csv_sync_light.svg" alt="Write objects benchmark (sync)" class="chart-light" />
+<img src="../data/charts/x86/writing_objects_to_csv_sync_dark.svg" alt="Write objects benchmark (sync)" class="chart-dark" />
+
+---
+
+### Enumerate all fields (unquoted)
+
+This benchmark accesses all 14 fields from a 65,536 record CSV file, read from a stream wrapping a `byte[]`.
+
+Libraries that support accessing fields as a span into the underlying buffers are configured to do so.
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/enumerating_csv_fields_unquoted_sync_light.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-light" />
+<img src="../data/charts/arm/enumerating_csv_fields_unquoted_sync_dark.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-dark" />
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/enumerating_csv_fields_unquoted_sync_light.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-light" />
+<img src="../data/charts/x86/enumerating_csv_fields_unquoted_sync_dark.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-dark" />
+
+---
+
+### Enumerate all fields (quoted)
+
+This benchmark accesses all 12 fields from a 100,000 record CSV file, read from a stream wrapping a `byte[]`.
+
+Some of the fields require unescaping. Libraries that support accessing fields as a span into the underlying buffers are configured to do so.
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/enumerating_csv_fields_quoted_sync_light.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-light" />
+<img src="../data/charts/arm/enumerating_csv_fields_quoted_sync_dark.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-dark" />
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/enumerating_csv_fields_quoted_sync_light.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-light" />
+<img src="../data/charts/x86/enumerating_csv_fields_quoted_sync_dark.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-dark" />
+
+---
+
+### Sum the value of one column
+
+This benchmark parses a double from a single column of the 65,536 record dataset and sums the results.
+csFastFloat is used to parse the values to highlight the differences between CSV libraries better than double.Parse.
+
+The raw `byte[]` is passed to the libraries whenever possible. There is no async variant for this benchmark.
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/sum_the_value_of_one_column__light.svg" alt="Sum column benchmark" class="chart-light" />
+<img src="../data/charts/arm/sum_the_value_of_one_column__dark.svg" alt="Sum column benchmark" class="chart-dark" />
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/sum_the_value_of_one_column__light.svg" alt="Sum column benchmark" class="chart-light" />
+<img src="../data/charts/x86/sum_the_value_of_one_column__dark.svg" alt="Sum column benchmark" class="chart-dark" />
+
+---
+
+## Asynchronous
+
+RecordParser doesn't support async, so it is absent from these results.
+
+### Read objects
+
+Sep doesn't support async parallel reading.
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/reading_objects_from_csv_async_light.svg" alt="Read objects benchmark (async)" class="chart-light" />
+<img src="../data/charts/arm/reading_objects_from_csv_async_dark.svg" alt="Read objects benchmark (async)" class="chart-dark" />
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/reading_objects_from_csv_async_light.svg" alt="Read objects benchmark (async)" class="chart-light" />
+<img src="../data/charts/x86/reading_objects_from_csv_async_dark.svg" alt="Read objects benchmark (async)" class="chart-dark" />
+
+---
+
+### Write objects
+
+The async version of this benchmark uses a stream that always yields on async calls, to simulate real-world async I/O.
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/writing_objects_to_csv_async_light.svg" alt="Write objects benchmark (async)" class="chart-light" />
+<img src="../data/charts/arm/writing_objects_to_csv_async_dark.svg" alt="Write objects benchmark (async)" class="chart-dark" />
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/writing_objects_to_csv_async_light.svg" alt="Write objects benchmark (async)" class="chart-light" />
+<img src="../data/charts/x86/writing_objects_to_csv_async_dark.svg" alt="Write objects benchmark (async)" class="chart-dark" />
+
+---
+
+### Enumerate all fields (unquoted)
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/enumerating_csv_fields_unquoted_async_light.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-light" />
+<img src="../data/charts/arm/enumerating_csv_fields_unquoted_async_dark.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-dark" />
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/enumerating_csv_fields_unquoted_async_light.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-light" />
+<img src="../data/charts/x86/enumerating_csv_fields_unquoted_async_dark.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-dark" />
+
+---
+
+### Enumerate all fields (quoted)
+
+# [Apple M4 Max 16c](#tab/arm)
+
+<img src="../data/charts/arm/enumerating_csv_fields_quoted_async_light.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-light" />
+<img src="../data/charts/arm/enumerating_csv_fields_quoted_async_dark.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-dark" />
+
+
+# [AMD Ryzen 7 3700X](#tab/x86)
+
+<img src="../data/charts/x86/enumerating_csv_fields_quoted_async_light.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-light" />
+<img src="../data/charts/x86/enumerating_csv_fields_quoted_async_dark.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-dark" />
+
+---
+
+## Enums
 
 FlameCsv provides a [source generator](source-generator.md#enum-converter-generator) for enum converters that generates
 highly optimized read/write operations specific to the enum. The comparisons below are performance relative to
@@ -112,7 +193,7 @@ The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`)
 You can find the generated code for the enum under [Source Generator](source-generator.md#enum-converter-generator).
 Benchmarked on AMD Ryzen 7 3700X.
 
-#### Parsing
+### Parsing
 
 The chart shows relative throughput of parsing enums using the reflection-based converter in FlameCsv,
 and the source-generated converter (`Enum.TryParse` is the baseline at 100%). Higher is better.
@@ -165,8 +246,7 @@ and the source-generated converter (`Enum.TryParse` is the baseline at 100%). Hi
 
 </details>
 
-
-#### Formatting
+### Formatting
 
 The chart shows relative throughput of formatting enums using the reflection-based converter in FlameCsv,
 and the source-generated converter (`Enum.TryFormat` is the baseline at 100%). Higher is better.
@@ -205,7 +285,7 @@ converter in FlameCsv, and the source-generated converter.
 
 </details>
 
-### Why not NCsvPerf
+## Why not NCsvPerf
 
 While NCsvPerf benchmarks are commonly used for CSV library comparisons, it has several limitations:
 
