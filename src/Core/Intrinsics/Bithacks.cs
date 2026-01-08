@@ -254,6 +254,24 @@ internal static class Bithacks
         throw Token<T>.NotSupported;
     }
 
+    public static uint InitializeCRLFRegister<T>(bool isCRLF)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (Unsafe.SizeOf<T>() is sizeof(byte))
+        {
+            return isCRLF ? MemoryMarshal.Read<ushort>("\r\n"u8) : MemoryMarshal.Read<ushort>("\n\0"u8);
+        }
+
+        if (Unsafe.SizeOf<T>() is sizeof(char))
+        {
+            return isCRLF
+                ? MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\r\n"))
+                : MemoryMarshal.Read<uint>(MemoryMarshal.Cast<char, byte>("\n\0"));
+        }
+
+        throw Token<T>.NotSupported;
+    }
+
     extension(Unsafe)
     {
         /// <summary>

@@ -319,6 +319,17 @@ public class BithackTests
     }
 
     [Fact]
+    public static void Should_Get_CRLF_Value()
+    {
+        Assert.SkipUnless(BitConverter.IsLittleEndian, "Test is only valid on little-endian platforms");
+
+        Assert.Equal((uint)('\n' << 16 | '\r'), Bithacks.InitializeCRLFRegister<char>(true));
+        Assert.Equal((ushort)('\n' << 8 | '\r'), Bithacks.InitializeCRLFRegister<byte>(true));
+        Assert.Equal((uint)'\n', Bithacks.InitializeCRLFRegister<char>(false));
+        Assert.Equal((ushort)'\n', Bithacks.InitializeCRLFRegister<byte>(false));
+    }
+
+    [Fact]
     public static void Should_Get_Element_Offset()
     {
         uint[] arr = [1, 2, 3, 4];
