@@ -123,9 +123,21 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
 
     # Calculate throughput (and apply divisor for display units)
     filtered['Throughput'] = (throughput_value / filtered['MeanSeconds']) / throughput_divisor
-
-    # Sort by throughput descending
-    filtered = filtered.sort_values('Throughput', ascending=True)
+    
+    # Check if there are parallel versions
+    filtered['_is_parallel'] = filtered['Method'].str.contains('_Parallel')
+    has_parallel = filtered['_is_parallel'].any()
+    has_non_parallel = (~filtered['_is_parallel']).any()
+    
+    # Sort: non-parallel first (by throughput desc), then parallel (by throughput desc)
+    # For horizontal bar chart, we want highest at top, so ascending=True reverses it
+    if has_parallel and has_non_parallel:
+        non_parallel = filtered[~filtered['_is_parallel']].sort_values('Throughput', ascending=True)
+        parallel = filtered[filtered['_is_parallel']].sort_values('Throughput', ascending=True)
+        # Non-parallel will be at top (drawn last), separator, then parallel at bottom
+        filtered = pd.concat([parallel, non_parallel], ignore_index=True)
+    else:
+        filtered = filtered.sort_values('Throughput', ascending=True)
 
     # Configure colors based on mode
     if mode == 'dark':
@@ -144,9 +156,22 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     fig, ax = plt.subplots(figsize=(10, 6), facecolor=fig_facecolor)
     ax.set_facecolor(bg_color)
 
-    # Create bars with consistent colors and styles
-    bars = []
-    for idx, row in filtered.iterrows():
+    # Build y-positions and labels, inserting separator if needed
+    y_labels = []
+    y_positions = []
+    throughputs = []
+    bar_data = []  # (display_name, throughput, color, hatch, is_separator)
+    
+    # Track where to insert separator
+    separator_inserted = False
+    parallel_count = filtered['_is_parallel'].sum() if has_parallel and has_non_parallel else 0
+    
+    for i, (idx, row) in enumerate(filtered.iterrows()):
+        # Insert separator between parallel and non-parallel groups
+        if has_parallel and has_non_parallel and not separator_inserted and i == parallel_count:
+            bar_data.append(('', 0, 'none', None, True))  # separator
+            separator_inserted = True
+        
         method = row['Method']
         is_parallel = '_Parallel' in method
         is_hardcoded = False
@@ -190,19 +215,37 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
             color = adjust_color_lightness(color, 0.9)
 
         hatch = None
-        # is_async = any(col == 'Async' and val == 'True' for col, (val, _) in param_filters.items())
-        # if is_async:
-        #     hatch = '///'
-        
         if is_parallel:
             hatch = '///'
 
         if is_hardcoded:
             hatch = (hatch or '') + 'oo'
 
-        bar = ax.barh(display_name, row['Throughput'], 
-                      color=color, hatch=hatch, edgecolor=edge_color, linewidth=1)
+        bar_data.append((display_name, row['Throughput'], color, hatch, False))
+
+    # Create bars from bar_data
+    bars = []
+    labels = []
+    separator_y = None
+    for i, (display_name, throughput, color, hatch, is_separator) in enumerate(bar_data):
+        if is_separator:
+            # Add empty space for separator
+            labels.append('')
+            bar = ax.barh(i, 0, color='none', edgecolor='none')
+            separator_y = i
+        else:
+            labels.append(display_name)
+            bar = ax.barh(i, throughput, 
+                          color=color, hatch=hatch, edgecolor=edge_color, linewidth=1)
         bars.append(bar)
+    
+    # Add horizontal line at separator position
+    if separator_y is not None:
+        ax.axhline(y=separator_y, color=text_color, linestyle='--', linewidth=0.8, alpha=0.5)
+    
+    # Set y-tick positions and labels
+    ax.set_yticks(range(len(bar_data)))
+    ax.set_yticklabels(labels)
 
     # Styling
     ax.set_xlabel(f'Throughput ({throughput_unit})', fontsize=12, fontweight='bold', color=text_color)
@@ -225,9 +268,10 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
         spine.set_color(text_color)
 
     # Add value labels
-    for i, (idx, row) in enumerate(filtered.iterrows()):
-        ax.text(row['Throughput'], i, f" {row['Throughput']:.{decimal_places}f}", 
-                va='center', fontsize=10, fontweight='bold', color=text_color)
+    for i, (display_name, throughput, color, hatch, is_separator) in enumerate(bar_data):
+        if not is_separator:
+            ax.text(throughput, i, f" {throughput:.{decimal_places}f}", 
+                    va='center', fontsize=10, fontweight='bold', color=text_color)
 
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight', transparent=True)
