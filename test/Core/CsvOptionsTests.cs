@@ -354,15 +354,15 @@ public class CsvOptionsTests
 
         static void Callback(ref readonly CsvRecordCallbackArgs<char> args)
         {
-            if (args.Line == 1)
+            if (args.LineNumber == 1)
             {
                 Assert.Empty(args.Header.ToArray());
             }
-            else if (args.Line == 2)
+            else if (args.LineNumber == 2)
             {
                 Assert.Equal(["A", "B", "C"], args.Header);
             }
-            else if (args.Line == 5)
+            else if (args.LineNumber == 5)
             {
                 Assert.Equal(["C", "A", "B"], args.Header);
             }
@@ -416,7 +416,7 @@ public class CsvOptionsTests
         {
             Assert.False(args.SkipRecord);
 
-            if (args.Line == 1 || args.Record.Raw[0] == '#')
+            if (args.LineNumber == 1 || args.Record.Raw[0] == '#')
             {
                 args.SkipRecord = true;
                 Assert.True(args.SkipRecord);
@@ -462,20 +462,20 @@ public class CsvOptionsTests
 
                 if (args.Record.Raw[0] == 'A')
                 {
-                    Assert.Equal(1, args.Line);
+                    Assert.Equal(1, args.LineNumber);
                     Assert.False(args.HeaderRead);
                     Assert.Equal(0, args.Position);
                 }
 
                 if (args.Record.Raw[0] == '1')
                 {
-                    Assert.Equal(2, args.Line);
+                    Assert.Equal(2, args.LineNumber);
                     Assert.True(args.HeaderRead);
                 }
 
                 if (args.Record.Raw[0] == 'X')
                 {
-                    Assert.InRange(args.Line, 1, 2);
+                    Assert.InRange(args.LineNumber, 1, 2);
                     Assert.False(args.HeaderRead);
                 }
             }

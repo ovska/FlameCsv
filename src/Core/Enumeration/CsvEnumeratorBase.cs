@@ -83,15 +83,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         bool skip = false;
         bool headerRead = !header.IsEmpty;
 
-        CsvRecordCallbackArgs<T> args = new(
-            new CsvRecordRef<T>(_reader, view),
-            header,
-            Line,
-            GetStartPosition(view),
-            ref skip,
-            ref headerRead
-        );
-
+        CsvRecordCallbackArgs<T> args = new(new CsvRecordRef<T>(_reader, view), header, ref skip, ref headerRead);
         _callback(in args);
 
         if (!headerRead && !header.IsEmpty)
@@ -143,9 +135,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     /// <c>true</c> if the enumerator produced the next value,
     /// <c>false</c> if the record was a header record, or was skipped.
     /// </returns>
-    /// <remarks>
-    /// When this method is called, <see cref="GetStartPosition"/> returns the start offset of the record.
-    /// </remarks>
     internal abstract bool MoveNextCore(RecordView record);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -213,9 +202,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
             await DisposeAsyncCore().ConfigureAwait(false);
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal long GetStartPosition(RecordView view) => _reader._recordBuffer.GetPosition(view);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal long GetEndPosition(RecordView view) => _reader._recordBuffer.GetEnd(view);
