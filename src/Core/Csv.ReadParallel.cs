@@ -312,7 +312,7 @@ file static class Util
                         producer,
                         consume,
                         cts,
-                        parallelOptions.ReadingMaxDegreeOfParallelism,
+                        parallelOptions.MaxDegreeOfParallelism,
                         isAsync: false
                     )
                     .GetAwaiter()
@@ -345,7 +345,7 @@ file static class Util
                             producer,
                             consumeAsync,
                             cts,
-                            parallelOptions.ReadingMaxDegreeOfParallelism,
+                            parallelOptions.MaxDegreeOfParallelism,
                             isAsync: true
                         )
                         .ConfigureAwait(false);
@@ -373,7 +373,7 @@ file static class Util
                 producer,
                 new DelegateConsumer<TValue>(action, null!),
                 cts,
-                parallelOptions.ReadingMaxDegreeOfParallelism,
+                parallelOptions.MaxDegreeOfParallelism,
                 isAsync: false
             )
             .GetAwaiter()
@@ -401,7 +401,7 @@ file static class Util
                     producer,
                     new DelegateConsumer<TValue>(null!, action),
                     cts,
-                    parallelOptions.ReadingMaxDegreeOfParallelism,
+                    parallelOptions.MaxDegreeOfParallelism,
                     isAsync: true
                 )
                 .ConfigureAwait(false);

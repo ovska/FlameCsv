@@ -63,5 +63,32 @@ public readonly record struct CsvParallelOptions
     }
 
     internal int EffectiveChunkSize => ChunkSize ?? DefaultChunkSize;
-    internal int ReadingMaxDegreeOfParallelism => MaxDegreeOfParallelism ?? Math.Min(Environment.ProcessorCount, 4);
+
+    /// <summary>
+    /// Implicitly creates a <see cref="CsvParallelOptions"/> from a <see cref="CancellationToken"/>,
+    /// setting the <see cref="CancellationToken"/> property.
+    /// </summary>
+    public static implicit operator CsvParallelOptions(CancellationToken cancellationToken) =>
+        new() { CancellationToken = cancellationToken };
+
+    /// <summary>
+    /// Explicitly converts to <see cref="ParallelOptions"/> for use with TPL methods.
+    /// </summary>
+    public static explicit operator ParallelOptions(in CsvParallelOptions options) =>
+        new()
+        {
+            CancellationToken = options.CancellationToken,
+            MaxDegreeOfParallelism = options.MaxDegreeOfParallelism ?? -1,
+        };
+
+    /// <summary>
+    /// Creates a <see cref="CsvParallelOptions"/> from a <see cref="ParallelOptions"/>,
+    /// </summary>
+    /// <param name="options"></param>
+    public static explicit operator CsvParallelOptions(ParallelOptions options) =>
+        new()
+        {
+            CancellationToken = options.CancellationToken,
+            MaxDegreeOfParallelism = options.MaxDegreeOfParallelism == -1 ? null : options.MaxDegreeOfParallelism,
+        };
 }
