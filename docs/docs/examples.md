@@ -314,13 +314,40 @@ For CPU bound workloads, you can read and write CSV data in parallel by adding `
 Parallel operations have higher memory use and overhead, but can provide significant speedups on multi-core systems where
 parsing and formatting the records is the bottleneck (see [benchmarks](benchmarks.md)).
 
-When reading in parallel, you can either use `ReadUnordered` to get an enumerable to loop over the parsed record batches as `ArraySegment<TValue>`,
-or `ForEachUnordered` to process the batches directly with a callback.
+When reading in parallel, you can:
+- Use `ReadUnordered/Async` to get an enumerable to loop over the parsed record batches sequentially as `ArraySegment<TValue>`.
+- Use `ForEachUnordered/Async` to process the parsed record batches in parallel using a callback. The callback may be invoked concurrently from multiple threads.
+
+To write records in parallel, use `WriteUnordered/Async`. The formatting step is done in parallel, and the data is flushed to the output sequentially
+as it arrives.
 
 > [!WARNING]
 > Parallel operations are inherently **unordered**, and record batches may be written or read out of order.
->
-> The callback passed to `ForEachUnordered` may be invoked concurrently from multiple threads.
+
+```cs
+// processing multiple batches in parallel
+await Csv.From(stream)
+    .AsParallel(
+        new CsvParallelOptions
+        {
+            CancellationToken = cancellationToken,
+            ChunkSize = 256,
+            MaxDegreeOfParallelism = null, // let library decide
+        })
+    .ForEachUnorderedAsync(
+        async (ArraySegment<User> batch, CancellationToken ct) => await ProcessBatchAsync(batch, ct));
+
+// processing batches as an enumerable
+var readBuilder = Csv.From(stream).AsParallel(cancellationToken);
+
+await foreach (ArraySegment<User> batch in readBuilder.ReadUnorderedAsync<User>())
+{
+    await ProcessBatchAsync(batch, cancellationToken);
+}
+
+// writing records in parallel
+Csv.To(stream).WithUtf8Encoding().AsParallel(cancellationToken).WriteUnordered(users);
+```
 
 ## CSV without a header
 

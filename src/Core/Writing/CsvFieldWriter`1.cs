@@ -34,12 +34,16 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
 
     private readonly T _delimiter;
     private readonly T _quote;
-    private readonly uint _newlineValue;
-    private readonly int _newlineLength;
     private readonly IQuoter<T> _quoter;
     private readonly Allocator<T> _allocator;
     private readonly object? _defaultStringConverter;
     private readonly bool _usesDefaultOptions;
+
+    /// <summary>
+    /// Newline value that can be written as a single unit, e.g. <c>'\r' | ('\n' &lt;&lt; 16)</c> for <see cref="char"/> and <c>0x0A0D</c> for <see cref="byte"/>.
+    /// </summary>
+    private readonly uint _newlineValue;
+    private readonly int _newlineLength;
 
     /// <summary>
     /// Creates a new instance.
@@ -241,6 +245,11 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void WriteRaw(ReadOnlySpan<T> value, bool skipEscaping = false)
     {
+        if (value.IsEmpty)
+        {
+            return;
+        }
+
         QuotingResult result = skipEscaping ? default : _quoter.NeedsQuoting(value);
 
         int tokensWritten = value.Length + ((2 + result.SpecialCount) & result.NeedsQuoting.ToBitwiseMask32());

@@ -120,6 +120,9 @@ static partial class Csv
         /// Reads CSV records in parallel, binding them using reflection, and invokes the given action for each batch.
         /// The batches are not guaranteed to be in any particular order.
         /// </summary>
+        /// <remarks>
+        /// The callback may be invoked concurrently from multiple threads.
+        /// </remarks>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -136,6 +139,9 @@ static partial class Csv
         /// Reads CSV records in parallel, binding them using reflection, and invokes the given action for each batch.
         /// The batches are not guaranteed to be in any particular order.
         /// </summary>
+        /// <remarks>
+        /// The callback may be invoked concurrently from multiple threads.
+        /// </remarks>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
@@ -157,6 +163,9 @@ static partial class Csv
         /// Reads CSV records in parallel, binding them using the given type map, and invokes the given action for each batch.
         /// The batches are not guaranteed to be in any particular order.
         /// </summary>
+        /// <remarks>
+        /// The callback may be invoked concurrently from multiple threads.
+        /// </remarks>
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
@@ -174,6 +183,9 @@ static partial class Csv
         /// Reads CSV records in parallel, binding them using the given type map, and invokes the given action for each batch.
         /// The batches are not guaranteed to be in any particular order.
         /// </summary>
+        /// <remarks>
+        /// The callback may be invoked concurrently from multiple threads.
+        /// </remarks>
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
