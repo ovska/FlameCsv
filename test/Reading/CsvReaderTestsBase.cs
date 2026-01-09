@@ -17,7 +17,7 @@ public abstract class CsvReaderTestsBase
         from bufferSize in (int[])[-1, 256, 4096]
         from escaping in GlobalData.Enum<Escaping>()
         from sourceGen in GlobalData.Booleans
-        from tokenizer in GlobalData.Enum<Tokenizer>()
+        from tokenizer in Tokenizers.All
         from guarded in GlobalData.PoisonPlacement
         select (crlf, writeHeader, bufferSize, escaping, sourceGen, tokenizer, guarded);
 
@@ -75,8 +75,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         PoisonPagePlacement placement
     )
     {
+        if (!TryGetOptions(newline, header, escaping, tokenizer, out CsvOptions<T> options))
+            return;
+
         using var pool = new ReturnTrackingBufferPool(placement);
-        CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
+
         var memory = TestDataGenerator.Generate<T>(newline, header is Header.Yes, escaping);
 
         using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
@@ -114,13 +117,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         PoisonPagePlacement placement
     )
     {
+        if (!TryGetOptions(newline, header, escaping, tokenizer, out CsvOptions<T> options))
+            return;
+
         using var pool = new ReturnTrackingBufferPool(placement);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
-
             var memory = TestDataGenerator.Generate<T>(newline, header is Header.Yes, escaping);
             using (MemorySegment<T>.Create(memory, bufferSize, 0, pool, out var sequence))
             {
@@ -146,13 +150,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         PoisonPagePlacement placement
     )
     {
+        if (!TryGetOptions(newline, header, escaping, tokenizer, out CsvOptions<T> options))
+            return;
+
         using var pool = new ReturnTrackingBufferPool(placement);
         await Validate(Enumerate(), escaping, parallel);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
-
             var data = TestDataGenerator.Generate<byte>(newline, header is Header.Yes, escaping);
 
             await using var stream = data.AsStream();
@@ -214,13 +219,14 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         PoisonPagePlacement placement
     )
     {
+        if (!TryGetOptions(newline, header, escaping, tokenizer, out CsvOptions<T> options))
+            return;
+
         using var pool = new ReturnTrackingBufferPool(placement);
         await Validate(Enumerate(), escaping);
 
         async IAsyncEnumerable<Obj> Enumerate()
         {
-            CsvOptions<T> options = GetOptions(newline, header, escaping, tokenizer);
-
             var data = TestDataGenerator.Generate<byte>(newline, header is Header.Yes, escaping);
             await using var stream = data.AsStream();
             var builder = GetBuilder(stream, options, bufferSize, pool);
@@ -325,9 +331,23 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    protected static CsvOptions<T> GetOptions(CsvNewline newline, Header header, Escaping escaping, Tokenizer tokenizer)
+    protected static bool TryGetOptions(
+        CsvNewline newline,
+        Header header,
+        Escaping escaping,
+        Tokenizer tokenizer,
+        out CsvOptions<T> options
+    )
     {
-        CsvOptions<T> options = new()
+#if FULL_TEST_SUITE
+        if (!Tokenizers.IsSupported(tokenizer))
+        {
+            options = null!;
+            return false;
+        }
+#endif
+
+        options = new()
         {
             Formats = { [typeof(DateTime)] = "O" },
             Newline = newline,
@@ -337,7 +357,9 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         if (options.GetTokenizers().simd is null && tokenizer is not Tokenizer.Scalar)
         {
+            // prefer explicit skip here
             Assert.Skip("SIMD tokenizers is not supported on this platform.");
+            return false;
         }
 
         if (tokenizer is Tokenizer.Scalar)
@@ -347,16 +369,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 #if FULL_TEST_SUITE
         else if (tokenizer is not Tokenizer.Platform)
         {
-            Assert.SkipUnless(
-                Tokenizers.IsSupported(tokenizer),
-                $"{tokenizer} tokenizer is not supported on this platform."
-            );
-
             SimdTokenizerAccessor(options) = Tokenizers.GetTokenizer<T>(tokenizer, options);
         }
 #endif
 
-        return options;
+        return true;
     }
 
     private static CsvParallelOptions GetParallelOptions()
