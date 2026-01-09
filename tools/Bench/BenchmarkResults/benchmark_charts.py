@@ -42,9 +42,10 @@ BENCHMARK_CONFIGS = [
     {
         "filepath": "FlameCsv.Benchmark.Comparisons.EnumerateBench-report.csv",
         "title": "Enumerating CSV fields",
-        "throughput_value": {"Quoted": {"False": 8.2, "True": 17.2}},  # Different file sizes
-        "throughput_unit": "MB/s",
-        "decimal_places": 0,
+        "throughput_value": {"Quoted": {"False": 65536, "True": 100000}},  # Number of records
+        "throughput_unit": "million records/s",
+        "throughput_divisor": 1_000_000,
+        "decimal_places": 2,
         "parameters": {
             "Quoted": {"False": "Unquoted", "True": "Quoted"},
             "Async": {"False": "Sync", "True": "Async"},
@@ -199,14 +200,14 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
         text_color = '#E0E0E0'
         edge_color = '#E0E0E0'
         grid_color = '#E0E0E0'
-        bg_color = 'none'
-        fig_facecolor = 'none'
+        bg_color = (0, 0, 0, 0.1)  # translucent black
+        fig_facecolor = (0, 0, 0, 0.1)
     else:  # light mode
         text_color = 'black'
         edge_color = 'black'
         grid_color = 'gray'
-        bg_color = 'none'
-        fig_facecolor = 'none'
+        bg_color = (1, 1, 1, 0.1)  # translucent white
+        fig_facecolor = (1, 1, 1, 0.1)
 
     fig, ax = plt.subplots(figsize=(10, 6), facecolor=fig_facecolor)
     ax.set_facecolor(bg_color)
@@ -342,13 +343,13 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
                 mem_str = f"{alloc_mb * 1024:.0f} KB"
             else:
                 mem_str = f"{alloc_mb * 1024 * 1024:.0f} B"
-            # Position outside chart area (x=1.02 in axes coordinates = just past right edge)
-            ax.annotate(mem_str, xy=(1.02, i), xycoords=('axes fraction', 'data'),
-                       va='center', ha='left', fontsize=9, color=text_color, alpha=0.7,
+            # Position outside chart area, right-aligned to a fixed column
+            ax.annotate(mem_str, xy=(1.12, i), xycoords=('axes fraction', 'data'),
+                       va='center', ha='right', fontsize=9, color=text_color, alpha=0.7,
                        annotation_clip=False)
 
     plt.tight_layout()
-    plt.savefig(output_file, dpi=300, bbox_inches='tight', transparent=True)
+    plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor=fig_facecolor)
     plt.close()
     print(f"Saved: {output_file}")
 
