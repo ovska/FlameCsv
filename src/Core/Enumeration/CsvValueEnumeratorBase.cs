@@ -106,8 +106,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <inheritdoc/>
     internal override bool MoveNextCore(RecordView view)
     {
-        CsvReader<T> reader = _reader;
-        CsvRecordRef<T> record = new(reader, ref MemoryMarshal.GetReference(_reader._buffer.Span), view);
+        CsvRecordRef<T> record = new(_reader, ref MemoryMarshal.GetReference(_reader._buffer.Span), view);
 
         if (_materializer is null && InitializeMaterializerAndTryConsume(record))
         {

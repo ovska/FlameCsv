@@ -95,36 +95,32 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     }
 
     /// <inheritdoc cref="System.Collections.IEnumerator.MoveNext"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool MoveNext()
     {
-        while (_reader.TryReadLine(out RecordView view))
+        if (_callback is null && _reader._recordBuffer.TryPop(out RecordView view) && MoveNextCore(view))
         {
-            if (TrySkipOrMoveNext(view))
-            {
-                return true;
-            }
+            return true;
         }
 
-        return AdvanceReaderAndMoveNext();
+        return MoveNextSlow();
     }
 
     /// <inheritdoc cref="IAsyncEnumerator{T}.MoveNextAsync"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask<bool> MoveNextAsync()
     {
-        if (_cancellationToken.IsCancellationRequested)
+        if (
+            _callback is null
+            && !_cancellationToken.IsCancellationRequested
+            && _reader._recordBuffer.TryPop(out RecordView view)
+            && MoveNextCore(view)
+        )
         {
-            return ValueTask.FromCanceled<bool>(_cancellationToken);
+            return new ValueTask<bool>(true);
         }
 
-        while (_reader.TryReadLine(out RecordView view))
-        {
-            if (TrySkipOrMoveNext(view))
-            {
-                return new ValueTask<bool>(true);
-            }
-        }
-
-        return AdvanceReaderAndMoveNextAsync();
+        return MoveNextSlowAsync();
     }
 
     /// <summary>
@@ -138,9 +134,17 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     internal abstract bool MoveNextCore(RecordView record);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private protected bool AdvanceReaderAndMoveNext()
+    private protected bool MoveNextSlow()
     {
         RecordView view;
+
+        while (_reader.TryReadLine(out view))
+        {
+            if (TrySkipOrMoveNext(view))
+            {
+                return true;
+            }
+        }
 
         while (_reader.TryAdvanceReader())
         {
@@ -156,9 +160,15 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))] // TODO PERF: profile
-    private protected async ValueTask<bool> AdvanceReaderAndMoveNextAsync()
+    private protected async ValueTask<bool> MoveNextSlowAsync()
     {
         RecordView view;
+
+        while (_reader.TryReadLine(out view))
+        {
+            if (TrySkipOrMoveNext(view))
+                return true;
+        }
 
         while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
         {
