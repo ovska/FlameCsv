@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using System.Globalization;
+using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Generators;
@@ -60,7 +61,10 @@ partial class EnumConverterGenerator
                     .Skip(fastPathCount ?? 0)
                     .ToList();
 
-                HashSet<int> distinctLengths = [.. numericValues.Select(v => v.Value.ToString().Length)];
+                HashSet<int> distinctLengths =
+                [
+                    .. numericValues.Select(v => v.Value.ToString(CultureInfo.InvariantCulture).Length),
+                ];
                 bool skipLengthCheck = distinctLengths.Count == 1;
 
                 if (skipLengthCheck)
@@ -76,7 +80,7 @@ partial class EnumConverterGenerator
                         model,
                         cancellationToken,
                         numericValues,
-                        static value => value.Value.ToString(),
+                        static value => value.Value.ToString(CultureInfo.InvariantCulture),
                         skipLengthCheck
                     );
                 }
