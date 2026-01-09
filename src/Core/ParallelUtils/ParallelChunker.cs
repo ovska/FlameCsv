@@ -27,6 +27,15 @@ internal static class ParallelChunker
         };
     }
 
+    public static object ChunkUnknown<T>(object items, int chunkSize)
+    {
+        if (items is IAsyncEnumerable<T> asyncItems)
+        {
+            return ChunkAsync(asyncItems, chunkSize);
+        }
+        return Chunk((IEnumerable<T>)items, chunkSize);
+    }
+
     public static IAsyncEnumerable<HasOrderEnumerable<T>> ChunkAsync<T>(IEnumerable<T> items, int chunkSize)
     {
         ArgumentNullException.ThrowIfNull(items);

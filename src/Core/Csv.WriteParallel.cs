@@ -125,12 +125,7 @@ static partial class Csv
         {
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            return Util.WriteUnorderedAsync(
-                new SyncToAsyncEnumerable<TValue>(values),
-                options,
-                options.TypeBinder.GetDematerializer<TValue>(),
-                this
-            );
+            return Util.WriteUnorderedAsync(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
         }
 
         /// <inheritdoc cref="WriteUnorderedAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
@@ -166,12 +161,7 @@ static partial class Csv
             ArgumentNullException.ThrowIfNull(typeMap);
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            return Util.WriteUnorderedAsync(
-                new SyncToAsyncEnumerable<TValue>(values),
-                options,
-                typeMap.GetDematerializer(options),
-                this
-            );
+            return Util.WriteUnorderedAsync(values, options, typeMap.GetDematerializer(options), this);
         }
 
         /// <inheritdoc cref="WriteUnorderedAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
@@ -202,7 +192,7 @@ file static class Util
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
-        using (builder.CreateParallelWriter(out var sink))
+        using (builder.CreateParallelWriter(out Action<ReadOnlySpan<T>> sink))
         {
             CsvParallel.ForEach<
                 TValue,
@@ -220,7 +210,7 @@ file static class Util
     }
 
     internal static async Task WriteUnorderedAsync<T, TValue>(
-        IAsyncEnumerable<TValue> source,
+        object source,
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
         Csv.IParallelWriteBuilder<T> builder
@@ -230,7 +220,7 @@ file static class Util
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
-        await using (builder.CreateAsyncParallelWriter(out var sink))
+        await using (builder.CreateAsyncParallelWriter(out Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> sink))
         {
             await CsvParallel
                 .ForEachAsync<
@@ -239,7 +229,7 @@ file static class Util
                     CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
                     CsvFieldWriter<T>
                 >(
-                    ParallelChunker.ChunkAsync(source, parallelOptions.EffectiveChunkSize),
+                    ParallelChunker.ChunkUnknown<TValue>(source, parallelOptions.EffectiveChunkSize),
                     new(options, builder.IOOptions, dematerializer, sink),
                     CsvWriterProducer<T>.ConsumeAsync,
                     cts,

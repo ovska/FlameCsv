@@ -160,30 +160,8 @@ internal static partial class CsvParallel
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static Task ForEachAsync<T, TElement, TProducer, TState>(
-        IEnumerable<TElement> source,
-        TProducer producer,
-        ConsumeAsync<TState> consumer,
-        CancellationTokenSource cts,
-        int? maxDegreeOfParallelism
-    )
-        where T : allows ref struct
-        where TElement : IEnumerable<T>, IHasOrder
-        where TProducer : IProducer<T, TState, TElement>
-        where TState : IConsumable
-    {
-        return ForEachAsync<T, TElement, TProducer, TState>(
-            new SyncToAsyncEnumerable<TElement>(source),
-            producer,
-            consumer,
-            cts,
-            maxDegreeOfParallelism
-        );
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
     internal static async Task ForEachAsync<T, TElement, TProducer, TState>(
-        IAsyncEnumerable<TElement> source,
+        object source,
         TProducer producer,
         ConsumeAsync<TState> consumer,
         CancellationTokenSource cts,
@@ -194,7 +172,14 @@ internal static partial class CsvParallel
         where TProducer : IProducer<T, TState, TElement>
         where TState : IConsumable
     {
+        Check.True(
+            source is IEnumerable<TElement> or IAsyncEnumerable<TElement>,
+            $"Source must be enumerable, was: {source.GetType()}"
+        );
+
         cts.Token.ThrowIfCancellationRequested();
+
+        await producer.BeforeLoopAsync(cts.Token).ConfigureAwait(false);
 
         Exception? exception = null;
         ConcurrentStack<TState> unconsumedStates = [];
@@ -211,83 +196,21 @@ internal static partial class CsvParallel
             }
         );
 
-        await producer.BeforeLoopAsync(cts.Token).ConfigureAwait(false);
-
-        Task consumerTask = Task.Run(
-            async () =>
-            {
-                while (
-                    !cts.IsCancellationRequested
-                    && await channel.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false)
-                )
-                {
-                    while (channel.Reader.TryRead(out TState? state))
-                    {
-                        try
-                        {
-                            await consumer(state, exception, cts.Token).ConfigureAwait(false);
-                        }
-                        catch (Exception e)
-                        {
-                            exception ??= e;
-                            cts.Cancel();
-                            throw;
-                        }
-                    }
-                }
-            },
-            CancellationToken.None
-        );
+        Task consumerTask = Task.Run(ConsumerCallback, CancellationToken.None);
 
         try
         {
-            await Parallel
-                .ForEachAsync(
-                    source,
-                    parallelOptions: new ParallelOptions
-                    {
-                        MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
-                        CancellationToken = cts.Token,
-                    },
-                    body: async (chunk, innerToken) =>
-                    {
-                        var enumerator = chunk.GetEnumerator();
+            ParallelOptions tplOpts = new()
+            {
+                MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
+                CancellationToken = cts.Token,
+            };
 
-                        try
-                        {
-                            if (!unconsumedStates.TryPop(out TState? state))
-                            {
-                                state = producer.CreateState();
-                            }
+            Task producerTask = source is IAsyncEnumerable<TElement> asyncSource
+                ? Parallel.ForEachAsync(asyncSource, tplOpts, ProducerCallback)
+                : Parallel.ForEachAsync((IEnumerable<TElement>)source, tplOpts, ProducerCallback);
 
-                            while (enumerator.MoveNext())
-                            {
-                                if (state.ShouldConsume)
-                                {
-                                    await channel.Writer.WriteAsync(state, innerToken).ConfigureAwait(false);
-                                    state = producer.CreateState();
-                                }
-
-                                producer.Produce(chunk, enumerator.Current, ref state);
-                            }
-
-                            // state was left unfinalized
-                            unconsumedStates.Push(state);
-                        }
-                        catch (Exception ex)
-                        {
-                            exception ??= ex;
-                            cts.Cancel();
-                            channel.Writer.TryComplete(ex);
-                            throw;
-                        }
-                        finally
-                        {
-                            enumerator.Dispose();
-                        }
-                    }
-                )
-                .ConfigureAwait(false);
+            await producerTask.ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -316,6 +239,66 @@ internal static partial class CsvParallel
         finally
         {
             exception?.Rethrow();
+        }
+
+        async Task ConsumerCallback()
+        {
+            while (
+                !cts.IsCancellationRequested && await channel.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false)
+            )
+            {
+                while (channel.Reader.TryRead(out TState? state))
+                {
+                    try
+                    {
+                        await consumer(state, exception, cts.Token).ConfigureAwait(false);
+                    }
+                    catch (Exception e)
+                    {
+                        exception ??= e;
+                        cts.Cancel();
+                        throw;
+                    }
+                }
+            }
+        }
+
+        async ValueTask ProducerCallback(TElement chunk, CancellationToken innerToken)
+        {
+            var enumerator = chunk.GetEnumerator();
+
+            try
+            {
+                if (!unconsumedStates.TryPop(out TState? state))
+                {
+                    state = producer.CreateState();
+                }
+
+                while (enumerator.MoveNext())
+                {
+                    if (state.ShouldConsume)
+                    {
+                        await channel.Writer.WriteAsync(state, innerToken).ConfigureAwait(false);
+                        state = producer.CreateState();
+                    }
+
+                    producer.Produce(chunk, enumerator.Current, ref state);
+                }
+
+                // state was left unfinalized
+                unconsumedStates.Push(state);
+            }
+            catch (Exception ex)
+            {
+                exception ??= ex;
+                cts.Cancel();
+                channel.Writer.TryComplete(ex);
+                throw;
+            }
+            finally
+            {
+                enumerator.Dispose();
+            }
         }
     }
 
