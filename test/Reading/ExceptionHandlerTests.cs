@@ -40,7 +40,7 @@ public class ExceptionHandlerTests
         {
             Assert.Equal(["Id", "Name"], args.Header);
             Assert.Equal(2, args.Record.FieldCount);
-            Assert.Equal(4, args.Line);
+            Assert.Equal(4, args.LineNumber);
             Assert.Equal(19, args.Position);
             Assert.Equal("X,C", args.RawRecord.ToString());
             Assert.Equal("X", args.Record[0]);

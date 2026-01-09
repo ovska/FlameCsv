@@ -31,15 +31,11 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
         in CsvRecordRef<T> record,
         ImmutableArray<string> header,
         Exception exception,
-        int lineIndex,
-        long position,
         int? expectedFieldCount
     )
     {
         _record = record;
         Header = header;
-        Line = lineIndex;
-        Position = position;
         Exception = exception;
         ExpectedFieldCount = expectedFieldCount;
     }
@@ -54,6 +50,12 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
     /// </summary>
     [UnscopedRef]
     public ref readonly CsvRecordRef<T> Record => ref _record;
+
+    /// <inheritdoc cref="CsvRecordRef{T}.LineNumber"/>
+    public int LineNumber => _record.LineNumber;
+
+    /// <inheritdoc cref="CsvRecordRef{T}.Position"/>
+    public long Position => _record.Position;
 
     /// <summary>
     /// Expected number of fields, if known.
@@ -77,14 +79,4 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
     /// Options instance.
     /// </summary>
     public CsvOptions<T> Options => _record._owner.Options;
-
-    /// <summary>
-    /// 1-based line number.
-    /// </summary>
-    public int Line { get; }
-
-    /// <summary>
-    /// 0-based character position in the data, measured from the start of the record.
-    /// </summary>
-    public long Position { get; }
 }

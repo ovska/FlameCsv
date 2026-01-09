@@ -24,11 +24,11 @@ public class CsvReadExceptionBase(string? message = null, Exception? innerExcept
     /// </summary>
     public string? RecordValue { get; set; }
 
-    internal virtual void Enrich<T>(int line, long position, CsvRecordRef<T> record)
+    internal virtual void Enrich<T>(CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Line ??= line;
-        RecordPosition ??= position;
+        Line ??= record.LineNumber;
+        RecordPosition ??= record.Position;
 
         try
         {

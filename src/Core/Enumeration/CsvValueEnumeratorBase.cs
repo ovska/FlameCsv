@@ -120,7 +120,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
-            cfe.Enrich(Line, GetStartPosition(view), record);
+            cfe.Enrich(record);
             throw;
         }
         catch (Exception ex)
@@ -128,21 +128,14 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
             Check.WrapParseError(ref ex);
 
             long position = GetStartPosition(view);
-            (ex as CsvReadExceptionBase)?.Enrich(Line, position, record);
+            (ex as CsvReadExceptionBase)?.Enrich(record);
             (ex as CsvParseException)?.WithHeader(Headers);
 
             CsvExceptionHandler<T>? handler = _exceptionHandler;
 
             if (
                 _exceptionHandler?.Invoke(
-                    new CsvExceptionHandlerArgs<T>(
-                        in record,
-                        Headers,
-                        ex,
-                        Line,
-                        position,
-                        (ex as CsvReadException)?.ExpectedFieldCount
-                    )
+                    new CsvExceptionHandlerArgs<T>(in record, Headers, ex, (ex as CsvReadException)?.ExpectedFieldCount)
                 ) == true
             )
             {
