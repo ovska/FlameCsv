@@ -24,22 +24,26 @@ public sealed class CsvEnumerationTests : IDisposable
     [Fact]
     public void Should_Reset()
     {
-        using var resetable = Csv.From("1,2,3\n").Enumerate(new() { HasHeader = false }).GetEnumerator();
+        using var resetable = Csv.From("1,2,3\n4,5,6\n").Enumerate(new() { HasHeader = false }).GetEnumerator();
 
         Assert.True(resetable.MoveNext());
         Assert.Equal("1,2,3", resetable.Current.Raw.ToString());
-        Assert.NotEqual(0, resetable.Position);
+        Assert.Equal(0, resetable.Current.Position);
         Assert.Equal(1, resetable.Line);
+        Assert.True(resetable.MoveNext());
+        Assert.Equal("4,5,6", resetable.Current.Raw.ToString());
+        Assert.Equal(6, resetable.Current.Position);
+        Assert.Equal(2, resetable.Line);
 
         ((IEnumerator)resetable).Reset();
-        Assert.Equal(0, resetable.Position);
         Assert.Equal(0, resetable.Line);
 
         Assert.True(resetable.MoveNext());
         Assert.Equal("1,2,3", resetable.Current.Raw.ToString());
-        Assert.NotEqual(0, resetable.Position);
+        Assert.Equal(0, resetable.Current.Position);
         Assert.Equal(1, resetable.Line);
 
+        Assert.True(resetable.MoveNext());
         Assert.False(resetable.MoveNext());
 
         // StreamReader cannot be reset/rewound

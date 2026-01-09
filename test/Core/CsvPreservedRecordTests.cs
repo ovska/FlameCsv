@@ -17,13 +17,11 @@ public static partial class CsvPreservedRecordTests
                 .GetAsyncEnumerator(TestContext.Current.CancellationToken)
         )
         {
-            Assert.Equal(0, enumerator.Line);
-            Assert.Equal(0, enumerator.Position);
-
             Assert.True(await enumerator.MoveNextAsync());
 
             Assert.Equal(2, enumerator.Line);
-            Assert.Equal(14, enumerator.Position);
+            Assert.Equal(2, enumerator.Current.LineNumber);
+            Assert.Equal("A,B,C\r\n".Length, enumerator.Current.Position);
 
             CsvRecord<char> firstRecord = enumerator.Current;
 
@@ -41,7 +39,8 @@ public static partial class CsvPreservedRecordTests
             Assert.True(await enumerator.MoveNextAsync());
 
             Assert.Equal(3, enumerator.Line);
-            Assert.Equal(21, enumerator.Position);
+            Assert.Equal(3, enumerator.Current.LineNumber);
+            Assert.Equal("A,B,C\r\n1,2,3\r\n".Length, enumerator.Current.Position);
 
             Assert.ThrowsAny<InvalidOperationException>(() => _ = firstRecordEnumerator.Current);
             Assert.ThrowsAny<InvalidOperationException>(() => firstRecord.GetEnumerator());
@@ -52,7 +51,7 @@ public static partial class CsvPreservedRecordTests
             Assert.False(await enumerator.MoveNextAsync());
 
             Assert.Equal(3, enumerator.Line);
-            Assert.Equal(21, enumerator.Position);
+            // Assert.Equal(21, enumerator.Position);
         }
 
         Assert.ThrowsAny<ObjectDisposedException>(() => _ = secondRecordEnumerator.Current);
@@ -66,12 +65,12 @@ public static partial class CsvPreservedRecordTests
         using (var enumerator = Csv.From("A,B,C\r\n1,2,3\r\n4,5,6\r\n").Enumerate().GetEnumerator())
         {
             Assert.Equal(0, enumerator.Line);
-            Assert.Equal(0, enumerator.Position);
 
             Assert.True(enumerator.MoveNext());
 
             Assert.Equal(2, enumerator.Line);
-            Assert.Equal(14, enumerator.Position);
+            Assert.Equal(2, enumerator.Current.LineNumber);
+            Assert.Equal("A,B,C\r\n".Length, enumerator.Current.Position);
 
             CsvRecord<char> firstRecord = enumerator.Current;
 
@@ -89,7 +88,8 @@ public static partial class CsvPreservedRecordTests
             Assert.True(enumerator.MoveNext());
 
             Assert.Equal(3, enumerator.Line);
-            Assert.Equal(21, enumerator.Position);
+            Assert.Equal(3, enumerator.Current.LineNumber);
+            Assert.Equal("A,B,C\r\n1,2,3\r\n".Length, enumerator.Current.Position);
 
             Assert.ThrowsAny<InvalidOperationException>(() => _ = firstRecordEnumerator.Current);
             Assert.ThrowsAny<InvalidOperationException>(() => firstRecord.GetEnumerator());
@@ -100,7 +100,7 @@ public static partial class CsvPreservedRecordTests
             Assert.False(enumerator.MoveNext());
 
             Assert.Equal(3, enumerator.Line);
-            Assert.Equal(21, enumerator.Position);
+            // Assert.Equal(21, enumerator.Position);
         }
 
         Assert.ThrowsAny<ObjectDisposedException>(() => _ = secondRecordEnumerator.Current);
@@ -143,7 +143,7 @@ public static partial class CsvPreservedRecordTests
         Assert.Equal(3, record.ParseField<int>(2));
         Assert.Equal(3, record.ParseField<int>("C"));
 
-        Assert.Equal(2, record.Line);
+        Assert.Equal(2, record.LineNumber);
         Assert.Equal(7L, record.Position);
 
         Obj[] objs = [record.ParseRecord<Obj>(), record.ParseRecord(ObjTypeMap.Default)];

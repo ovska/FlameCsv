@@ -11,6 +11,12 @@ internal readonly struct RecordView(int start, int length)
 
     public override string ToString() => $"RecordView(Start={Start}, Length={Length})";
 
+    public long GetEndPosition(RecordBuffer recordBuffer)
+    {
+        Check.NotNull(recordBuffer);
+        return recordBuffer.GetEnd(Start + Length);
+    }
+
     [Conditional("DEBUG")]
     public void AssertInvariants()
     {
