@@ -27,12 +27,12 @@ This benchmark enumerates 20,000 records (10 fields per record) from a stream wr
 
 Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmarks have compile-time field indexes when reading, others use field lookups by name.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/rsa)
 
 <img src="../data/charts/arm/reading_objects_from_csv_sync_light.svg" alt="Read objects benchmark (sync)" class="chart-light" />
 <img src="../data/charts/arm/reading_objects_from_csv_sync_dark.svg" alt="Read objects benchmark (sync)" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/rsx)
 
 <img src="../data/charts/x86/reading_objects_from_csv_sync_light.svg" alt="Read objects benchmark (sync)" class="chart-light" />
 <img src="../data/charts/x86/reading_objects_from_csv_sync_dark.svg" alt="Read objects benchmark (sync)" class="chart-dark" />
@@ -45,13 +45,13 @@ This benchmark writes the same 20,000 records from an array into a stream.
 
 Sep and RecordParser write objects manually, other libraries support automatic type binding.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/wsa)
 
 <img src="../data/charts/arm/writing_objects_to_csv_sync_light.svg" alt="Write objects benchmark (sync)" class="chart-light" />
 <img src="../data/charts/arm/writing_objects_to_csv_sync_dark.svg" alt="Write objects benchmark (sync)" class="chart-dark" />
 
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/wsx)
 
 <img src="../data/charts/x86/writing_objects_to_csv_sync_light.svg" alt="Write objects benchmark (sync)" class="chart-light" />
 <img src="../data/charts/x86/writing_objects_to_csv_sync_dark.svg" alt="Write objects benchmark (sync)" class="chart-dark" />
@@ -64,12 +64,12 @@ This benchmark accesses all 14 fields from a 65,536 record CSV file, read from a
 
 Libraries that support accessing fields as a span into the underlying buffers are configured to do so.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/eusa)
 
 <img src="../data/charts/arm/enumerating_csv_fields_unquoted_sync_light.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-light" />
 <img src="../data/charts/arm/enumerating_csv_fields_unquoted_sync_dark.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/eusx)
 
 <img src="../data/charts/x86/enumerating_csv_fields_unquoted_sync_light.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-light" />
 <img src="../data/charts/x86/enumerating_csv_fields_unquoted_sync_dark.svg" alt="Enumerate fields benchmark (unquoted, sync)" class="chart-dark" />
@@ -82,12 +82,12 @@ This benchmark accesses all 12 fields from a 100,000 record CSV file, read from 
 
 Some of the fields require unescaping. Libraries that support accessing fields as a span into the underlying buffers are configured to do so.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/eqsa)
 
 <img src="../data/charts/arm/enumerating_csv_fields_quoted_sync_light.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-light" />
 <img src="../data/charts/arm/enumerating_csv_fields_quoted_sync_dark.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/eqsx)
 
 <img src="../data/charts/x86/enumerating_csv_fields_quoted_sync_light.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-light" />
 <img src="../data/charts/x86/enumerating_csv_fields_quoted_sync_dark.svg" alt="Enumerate fields benchmark (quoted, sync)" class="chart-dark" />
@@ -102,12 +102,12 @@ csFastFloat is used to parse the values to highlight the differences between CSV
 The raw `byte[]` is passed to the libraries whenever possible. There is no async variant for this benchmark,
 as the enumeration-benchmark above should already cover the differences.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/sca)
 
 <img src="../data/charts/arm/sum_the_value_of_one_column__light.svg" alt="Sum column benchmark" class="chart-light" />
 <img src="../data/charts/arm/sum_the_value_of_one_column__dark.svg" alt="Sum column benchmark" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/scx)
 
 <img src="../data/charts/x86/sum_the_value_of_one_column__light.svg" alt="Sum column benchmark" class="chart-light" />
 <img src="../data/charts/x86/sum_the_value_of_one_column__dark.svg" alt="Sum column benchmark" class="chart-dark" />
@@ -122,12 +122,12 @@ RecordParser doesn't support async, so it is absent from these results.
 
 Sep doesn't support async parallel reading.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/raa)
 
 <img src="../data/charts/arm/reading_objects_from_csv_async_light.svg" alt="Read objects benchmark (async)" class="chart-light" />
 <img src="../data/charts/arm/reading_objects_from_csv_async_dark.svg" alt="Read objects benchmark (async)" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/rax)
 
 <img src="../data/charts/x86/reading_objects_from_csv_async_light.svg" alt="Read objects benchmark (async)" class="chart-light" />
 <img src="../data/charts/x86/reading_objects_from_csv_async_dark.svg" alt="Read objects benchmark (async)" class="chart-dark" />
@@ -138,12 +138,12 @@ Sep doesn't support async parallel reading.
 
 The async version of this benchmark uses a stream that always yields on async calls, to simulate real-world async I/O.
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/waa)
 
 <img src="../data/charts/arm/writing_objects_to_csv_async_light.svg" alt="Write objects benchmark (async)" class="chart-light" />
 <img src="../data/charts/arm/writing_objects_to_csv_async_dark.svg" alt="Write objects benchmark (async)" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/wax)
 
 <img src="../data/charts/x86/writing_objects_to_csv_async_light.svg" alt="Write objects benchmark (async)" class="chart-light" />
 <img src="../data/charts/x86/writing_objects_to_csv_async_dark.svg" alt="Write objects benchmark (async)" class="chart-dark" />
@@ -152,12 +152,12 @@ The async version of this benchmark uses a stream that always yields on async ca
 
 ### Enumerate all fields (unquoted)
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/euaa)
 
 <img src="../data/charts/arm/enumerating_csv_fields_unquoted_async_light.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-light" />
 <img src="../data/charts/arm/enumerating_csv_fields_unquoted_async_dark.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-dark" />
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/euax)
 
 <img src="../data/charts/x86/enumerating_csv_fields_unquoted_async_light.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-light" />
 <img src="../data/charts/x86/enumerating_csv_fields_unquoted_async_dark.svg" alt="Enumerate fields benchmark (unquoted, async)" class="chart-dark" />
@@ -166,13 +166,13 @@ The async version of this benchmark uses a stream that always yields on async ca
 
 ### Enumerate all fields (quoted)
 
-# [Apple M4 Max 16c](#tab/arm)
+# [Apple M4 Max 16c](#tab/eqaa)
 
 <img src="../data/charts/arm/enumerating_csv_fields_quoted_async_light.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-light" />
 <img src="../data/charts/arm/enumerating_csv_fields_quoted_async_dark.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-dark" />
 
 
-# [AMD Ryzen 7 3700X](#tab/x86)
+# [AMD Ryzen 7 3700X](#tab/eqax)
 
 <img src="../data/charts/x86/enumerating_csv_fields_quoted_async_light.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-light" />
 <img src="../data/charts/x86/enumerating_csv_fields_quoted_async_dark.svg" alt="Enumerate fields benchmark (quoted, async)" class="chart-dark" />

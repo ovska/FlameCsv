@@ -8,7 +8,7 @@ _layout: landing
 
 FlameCsv can be thought to be the System.Text.Json of CSV libraries. It is designed to be fast, easy to use, and extensible, while supporting low-level operations for advanced use-cases. FlameCsv is extremely fast and the most memory-efficient .NET CSV library in the world.
 
-FlameCsv can process CSV at [tens of millions of records per second](docs/benchmarks.md#sum-the-value-of-one-column) on consumer hardware, and write arbitrarily large amounts of CSV with [near-zero allocations](docs/benchmarks.md#write-objects) irrespective of the dataset's size.
+FlameCsv can process millions of CSV records per second on consumer hardware, and write arbitrarily large datasets with near-zero allocations. See the @"benchmarks" for more details.
 
 The library has thousands of unit tests and has been fuzz-tested.
 
