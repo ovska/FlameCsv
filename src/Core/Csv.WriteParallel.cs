@@ -194,18 +194,20 @@ file static class Util
 
         using (builder.CreateParallelWriter(out Action<ReadOnlySpan<T>> sink))
         {
-            CsvParallel.ForEach<
-                TValue,
-                ParallelChunker.HasOrderEnumerable<TValue>,
-                CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
-                CsvFieldWriter<T>
-            >(
-                ParallelChunker.Chunk(source, parallelOptions.EffectiveChunkSize),
-                new(options, builder.IOOptions, dematerializer, sink),
-                CsvWriterProducer<T>.Consume,
-                cts,
-                parallelOptions.MaxDegreeOfParallelism
-            );
+            CsvParallel
+                .ForEach<
+                    TValue,
+                    ParallelChunker.HasOrderEnumerable<TValue>,
+                    CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
+                    CsvFieldWriter<T>
+                >(
+                    ParallelChunker.Chunk(source, parallelOptions.EffectiveChunkSize),
+                    new(options, builder.IOOptions, dematerializer, sink),
+                    CsvWriterProducer<T>.Consume,
+                    cts,
+                    parallelOptions.MaxDegreeOfParallelism
+                )
+                .Wait();
         }
     }
 

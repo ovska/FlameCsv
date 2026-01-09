@@ -17,7 +17,7 @@ internal static partial class CsvParallel
         where T : IConsumable;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static void ForEach<T, TElement, TProducer, TState>(
+    internal static async Task ForEach<T, TElement, TProducer, TState>(
         IEnumerable<TElement> source,
         TProducer producer,
         Consume<TState> consumer,
@@ -31,132 +31,127 @@ internal static partial class CsvParallel
     {
         cts.Token.ThrowIfCancellationRequested();
 
-        const int MaxQueuedConsumers = 2;
-        using SemaphoreSlim producerSignal = new(initialCount: 0); // limits how many producers can be active
-        using SemaphoreSlim consumerSignal = new(initialCount: 0); // signals when there are items to consume
-
-        ConcurrentQueue<TState> consumerQueue = [];
-        Exception? exception = null;
-
-        long activeProducers = 0;
-
         producer.BeforeLoop(cts.Token);
 
-        Task consumerTask = Task.Run(
-            () =>
+        Exception? exception = null;
+        ConcurrentStack<TState> unconsumedStates = [];
+
+        int channelCapacity = Environment.ProcessorCount;
+        channelCapacity = Math.Min(maxDegreeOfParallelism ?? channelCapacity, channelCapacity);
+
+        Channel<TState> channel = Channel.CreateBounded<TState>(
+            new BoundedChannelOptions(channelCapacity)
             {
-                try
-                {
-                    while (!cts.Token.IsCancellationRequested)
-                    {
-                        consumerSignal.Wait(cts.Token);
-
-                        while (!cts.Token.IsCancellationRequested && consumerQueue.TryDequeue(out TState? state))
-                        {
-                            try
-                            {
-                                consumer(in state, null);
-                            }
-                            finally
-                            {
-                                producerSignal.Release();
-                            }
-                        }
-
-                        if (Volatile.Read(ref activeProducers) == 0 && consumerQueue.IsEmpty)
-                        {
-                            break; // All done, queue was empty
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    exception ??= e;
-                    cts.Cancel();
-                }
-            },
-            CancellationToken.None
+                SingleReader = true,
+                SingleWriter = false,
+                FullMode = BoundedChannelFullMode.Wait,
+            }
         );
+
+        Task consumerTask = Task.Run(ConsumerCallback, CancellationToken.None);
 
         try
         {
-            Parallel.ForEach(
-                source: source,
-                parallelOptions: new ParallelOptions
-                {
-                    MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
-                    CancellationToken = cts.Token,
-                },
-                localInit: () =>
-                {
-                    Interlocked.Increment(ref activeProducers);
-                    producerSignal.Release(MaxQueuedConsumers); // make space for writers
-                    return producer.CreateState();
-                },
-                body: (chunk, loopState, _, state) =>
-                {
-                    try
-                    {
-                        foreach (var item in chunk)
-                        {
-                            if (state.ShouldConsume)
-                            {
-                                consumerQueue.Enqueue(state);
-                                consumerSignal.Release(); // signal that consumer should work
-                                producerSignal.Wait(cts.Token); // wait until there's space for another producer
+            ParallelOptions tplOpts = new()
+            {
+                MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
+                CancellationToken = cts.Token,
+            };
 
-                                state = producer.CreateState();
-                            }
+            Task producerTask = source is IAsyncEnumerable<TElement> asyncSource
+                ? Parallel.ForEachAsync(asyncSource, tplOpts, ProducerCallback)
+                : Parallel.ForEachAsync((IEnumerable<TElement>)source, tplOpts, ProducerCallback);
 
-                            producer.Produce(chunk, item, ref state);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        exception ??= e;
-                        loopState.Stop();
-                        cts.Cancel();
-                    }
-
-                    return state;
-                },
-                localFinally: state =>
-                {
-                    consumerQueue.Enqueue(state);
-                    consumerSignal.Release(); // signal that consumer should work
-
-                    if (Interlocked.Decrement(ref activeProducers) == 0)
-                    {
-                        consumerSignal.Release(); // Wake up consumer to check completion
-                    }
-                }
-            );
+            await producerTask.ConfigureAwait(false);
         }
         catch (Exception e)
         {
             exception ??= e;
         }
 
+        // flush remaining states
+        while (unconsumedStates.TryPop(out TState? remaining))
+        {
+            if (exception is null)
+            {
+                await channel.Writer.WriteAsync(remaining, cts.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                remaining.Dispose();
+            }
+        }
+
+        channel.Writer.TryComplete(exception);
+
         try
         {
-            consumerTask.GetAwaiter().GetResult();
+            await consumerTask.ConfigureAwait(false);
         }
         finally
         {
-            while (consumerQueue.TryDequeue(out TState? state))
+            exception?.Rethrow();
+        }
+
+        async Task ConsumerCallback()
+        {
+            while (
+                !cts.IsCancellationRequested && await channel.Reader.WaitToReadAsync(cts.Token).ConfigureAwait(false)
+            )
             {
-                if (exception is null)
+                while (channel.Reader.TryRead(out TState? state))
                 {
-                    consumer(in state, exception);
-                }
-                else
-                {
-                    state.Dispose();
+                    try
+                    {
+                        consumer(state, exception);
+                    }
+                    catch (Exception e)
+                    {
+                        exception ??= e;
+                        cts.Cancel();
+                        throw;
+                    }
                 }
             }
         }
 
-        exception?.Rethrow();
+        async ValueTask ProducerCallback(TElement chunk, CancellationToken innerToken)
+        {
+            var enumerator = chunk.GetEnumerator();
+
+            try
+            {
+                if (!unconsumedStates.TryPop(out TState? state))
+                {
+                    state = producer.CreateState();
+                }
+
+                while (enumerator.MoveNext())
+                {
+                    if (state.ShouldConsume)
+                    {
+                        await channel.Writer.WriteAsync(state, innerToken).ConfigureAwait(false);
+                        state = producer.CreateState();
+                    }
+
+                    producer.Produce(chunk, enumerator.Current, ref state);
+                }
+
+                // state was left unfinalized
+                unconsumedStates.Push(state);
+            }
+            catch (Exception ex)
+            {
+                exception ??= ex;
+                cts.Cancel();
+                channel.Writer.TryComplete(ex);
+                throw;
+            }
+            finally
+            {
+                enumerator.Dispose();
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

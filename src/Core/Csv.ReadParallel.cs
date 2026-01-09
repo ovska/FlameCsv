@@ -306,13 +306,15 @@ file static class Util
                 using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
 
-                CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
-                    reader.AsEnumerable(),
-                    producer,
-                    consume,
-                    cts,
-                    parallelOptions.ReadingMaxDegreeOfParallelism
-                );
+                CsvParallel
+                    .ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
+                        reader.AsEnumerable(),
+                        producer,
+                        consume,
+                        cts,
+                        parallelOptions.ReadingMaxDegreeOfParallelism
+                    )
+                    .Wait(innerToken);
             },
             parallelOptions.CancellationToken
         );
@@ -362,19 +364,21 @@ file static class Util
 
         using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
-        CsvParallel.ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
-            reader.AsEnumerable(),
-            producer,
-            (in chunk, ex) =>
-            {
-                if (ex is null)
+        CsvParallel
+            .ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
+                reader.AsEnumerable(),
+                producer,
+                (in chunk, ex) =>
                 {
-                    action(chunk.AsArraySegment());
-                }
-            },
-            cts,
-            parallelOptions.ReadingMaxDegreeOfParallelism
-        );
+                    if (ex is null)
+                    {
+                        action(chunk.AsArraySegment());
+                    }
+                },
+                cts,
+                parallelOptions.ReadingMaxDegreeOfParallelism
+            )
+            .Wait();
     }
 
     public static async Task ForEachAsyncCore<T, TValue>(
