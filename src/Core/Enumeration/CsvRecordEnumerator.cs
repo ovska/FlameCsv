@@ -186,7 +186,6 @@ public sealed partial class CsvRecordEnumerator<T>
         throw new InvalidOperationException("Current was accessed before the enumeration started.");
     }
 
-    [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ThrowInvalidVersion(int version)
     {
