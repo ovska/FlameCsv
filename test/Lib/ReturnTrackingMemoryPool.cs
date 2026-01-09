@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 
@@ -59,7 +60,11 @@ file sealed class ReturnTrackingGuardedMemoryPool<T>(PoisonPagePlacement placeme
 file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
+#if FULL_TEST_SUITE
+    private readonly ConcurrentStack<T[]> _releasedValues = [];
+#else
     private static readonly ArrayPool<T> _arrayPool = ArrayPool<T>.Create();
+#endif
     private static T Sentinel => T.AllBitsSet;
 
     public override int MaxBufferSize => Array.MaxLength;
@@ -68,7 +73,11 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
 
     protected override Memory<T> Initialize(int length)
     {
+#if FULL_TEST_SUITE
+        T[] array = GC.AllocateUninitializedArray<T>(length + Boundaries * 2);
+#else
         T[] array = _arrayPool.Rent(length + Boundaries * 2);
+#endif
         array.AsSpan(..Boundaries).Fill(Sentinel);
         array.AsSpan(Boundaries, length).Fill(T.AllBitsSet - T.One); // fill usable range with a different pattern
         array.AsSpan(Boundaries + length).Fill(Sentinel);
@@ -88,12 +97,34 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
                 throw new InvalidOperationException($"OOB write detected: before={before}, after={after}");
             }
 
+#if FULL_TEST_SUITE
+            array.AsSpan().Fill(T.CreateTruncating(0xBEBEBEBE)); // poison the array
+            _releasedValues.Push(array);
+#else
             _arrayPool.Return(segment.Array!);
+#endif
             return true;
         }
 
         return false;
     }
+
+#if FULL_TEST_SUITE
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        while (_releasedValues.TryPop(out var array))
+        {
+            if (array.ContainsAnyExcept(T.CreateTruncating(0xBEBEBEBE)))
+            {
+                throw new InvalidOperationException(
+                    $"Use after free detected on array with length {array.Length}: {array.AsSpan().AsPrintableString()}"
+                );
+            }
+        }
+    }
+#endif
 }
 
 public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>

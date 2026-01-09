@@ -183,7 +183,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         int recordsRead = recordBuffer.SetFieldsRead(fieldsRead);
 
         Chunk<T>? chunk = null;
-        int consumed;
+        int consumed = 0;
 
         if (recordsRead > 0)
         {
@@ -211,15 +211,6 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
             _position += consumed;
             _lineNumber += recordsRead;
         }
-        else
-        {
-            // no records here, store all data for next read
-            consumed = 0;
-
-            // ownerships not passed to chunk
-            recordBuffer.Dispose();
-            owner.Dispose();
-        }
 
         int leftover = buffer.Length - consumed;
 
@@ -232,6 +223,13 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         else
         {
             _previousRead = ReadOnlyMemory<T>.Empty;
+        }
+
+        if (chunk is null)
+        {
+            // ownerships not passed to chunk
+            recordBuffer.Dispose();
+            owner.Dispose();
         }
 
         return chunk;

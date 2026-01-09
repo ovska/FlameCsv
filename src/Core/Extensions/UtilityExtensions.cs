@@ -6,6 +6,7 @@ using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Unicode;
+using FlameCsv.Utilities;
 
 namespace FlameCsv.Extensions;
 
@@ -50,45 +51,45 @@ internal static class UtilityExtensions
             return $"Hex: [{Convert.ToHexString(MemoryMarshal.AsBytes(value))}]";
         }
 
-        StringBuilder result = new(value.Length);
+        ValueStringBuilder vsb = new(value.Length);
 
         foreach (T item in value)
         {
-            AppendSingle(result, (char)ushort.CreateTruncating(item));
+            AppendSingle(ref vsb, (char)ushort.CreateTruncating(item));
         }
 
-        return result.ToString();
+        return vsb.ToString();
 
-        static void AppendSingle(StringBuilder sb, char c)
+        static void AppendSingle(ref ValueStringBuilder vsb, char c)
         {
             switch (c)
             {
                 case '\0':
-                    sb.Append(@"\0");
+                    vsb.Append(@"\0");
                     break;
                 case '\r':
-                    sb.Append(@"\r");
+                    vsb.Append(@"\r");
                     break;
                 case '\n':
-                    sb.Append(@"\n");
+                    vsb.Append(@"\n");
                     break;
                 case '\t':
-                    sb.Append(@"\t");
+                    vsb.Append(@"\t");
                     break;
                 case '\f':
-                    sb.Append(@"\f");
+                    vsb.Append(@"\f");
                     break;
                 case '\v':
-                    sb.Append(@"\v");
+                    vsb.Append(@"\v");
                     break;
                 case '\\':
-                    sb.Append(@"\\");
+                    vsb.Append(@"\\");
                     break;
                 case < (char)32 or >= (char)127:
-                    sb.Append($@"\u{(uint)c:X4}");
+                    vsb.Append($@"\u{(uint)c:X4}");
                     break;
                 default:
-                    sb.Append(c);
+                    vsb.Append(c);
                     break;
             }
         }
