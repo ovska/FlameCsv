@@ -203,9 +203,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal long GetEndPosition(RecordView view) => _reader._recordBuffer.GetEnd(view);
-
     /// <summary>
     /// When overridden, disposes the underlying data source and internal states.
     /// </summary>

@@ -23,14 +23,35 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
     /// <summary>
-    /// Start position of the record in the original data.
+    /// Returns the 0-based position of the start of the first field of the record in the source data.
+    /// Header records are counted.
     /// </summary>
-    public long Position { get; }
+    /// <remarks>
+    /// If <typeparamref name="T"/> is <c>char</c>, this is the character position, even if the data is from a byte stream.
+    /// </remarks>
+    public long Position
+    {
+        get
+        {
+            _owner.EnsureVersion(_version);
+            return _owner.Reader._recordBuffer.GetPosition(_view);
+        }
+    }
 
     /// <summary>
-    /// 1-based line number in the CSV data. Empty lines and the header are counted.
+    /// Returns the 1-based line number of the record in the source data. Header records are counted.
     /// </summary>
-    public int Line { get; }
+    /// <remarks>
+    /// Lines are counted as CSV records; newlines inside quoted fields are not counted.
+    /// </remarks>
+    public int LineNumber
+    {
+        get
+        {
+            _owner.EnsureVersion(_version);
+            return _owner.Reader._recordBuffer.LineNumber;
+        }
+    }
 
     /// <summary>
     /// Raw data of the record as a single memory block, not including a possible trailing newline.
@@ -94,11 +115,9 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal CsvRecord(int version, long position, int lineIndex, RecordView view, CsvRecordEnumerator<T> owner)
+    internal CsvRecord(int version, RecordView view, CsvRecordEnumerator<T> owner)
     {
         _version = version;
-        Position = position;
-        Line = lineIndex;
         _view = view;
         _owner = owner;
     }
@@ -430,7 +449,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     {
         private readonly CsvRecord<T> _record = record;
 
-        public int Line => _record.Line;
+        public int Line => _record.LineNumber;
         public long Position => _record.Position;
         public string[] Headers => _record._owner.Header?.Values.ToArray() ?? [];
 
