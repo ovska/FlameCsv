@@ -48,6 +48,30 @@ public readonly ref struct CsvRecordRef<T>
     }
 
     /// <summary>
+    /// Returns the 1-based line number of the record in the source data.
+    /// </summary>
+    /// <remarks>
+    /// Lines are counted as CSV records; newlines inside quoted fields are not counted.
+    /// </remarks>
+    public int LineNumber
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _owner._recordBuffer.LineNumber;
+    }
+
+    /// <summary>
+    /// Returns the 0-based position of the start of the first field of the record in the source data.
+    /// </summary>
+    /// <remarks>
+    /// If <typeparamref name="T"/> is <c>char</c>, this is the character position, even if the data is from a byte stream.
+    /// </remarks>
+    public long Position
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _owner._recordBuffer.GetPosition(_fields);
+    }
+
+    /// <summary>
     /// Returns the field at <paramref name="index"/>, unescaping and trimming it as per the current dialect settings.
     /// </summary>
     /// <param name="index">Zero-based index of the field to get.</param>

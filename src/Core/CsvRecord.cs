@@ -470,7 +470,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
             Target = target,
         };
 
-        ex.Enrich(Line, Position, (CsvRecordRef<T>)this);
+        ex.Enrich((CsvRecordRef<T>)this);
         ex.HeaderValue = id.UnsafeName;
         throw ex;
     }
