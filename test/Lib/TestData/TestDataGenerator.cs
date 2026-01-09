@@ -63,8 +63,14 @@ public sealed record Obj : IEquatable<Obj>, IComparable<Obj>
 
 public enum Tokenizer
 {
-    Simd,
     Scalar,
+    Platform,
+    Simd,
+    Arm,
+    Avx2,
+#if NET10_0_OR_GREATER
+    Avx512,
+#endif
 }
 
 public enum Escaping

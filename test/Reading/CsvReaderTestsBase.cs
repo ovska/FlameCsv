@@ -335,15 +335,26 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             Quote = escaping is Escaping.QuoteNull ? null : '"',
         };
 
-        if (options.GetTokenizers().simd is null && tokenizer is Tokenizer.Simd)
+        if (options.GetTokenizers().simd is null && tokenizer is not Tokenizer.Scalar)
         {
-            Assert.Skip("SIMD tokenizer is not supported on this platform.");
+            Assert.Skip("SIMD tokenizers is not supported on this platform.");
         }
 
         if (tokenizer is Tokenizer.Scalar)
         {
             SimdTokenizerAccessor(options) = null;
         }
+#if FULL_TEST_SUITE
+        else if (tokenizer is not Tokenizer.Platform)
+        {
+            Assert.SkipUnless(
+                Tokenizers.IsSupported(tokenizer),
+                $"{tokenizer} tokenizer is not supported on this platform."
+            );
+
+            SimdTokenizerAccessor(options) = Tokenizers.GetTokenizer<T>(tokenizer, options);
+        }
+#endif
 
         return options;
     }

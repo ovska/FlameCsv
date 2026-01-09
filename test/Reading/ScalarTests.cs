@@ -13,7 +13,7 @@ public static class ScalarTests
 {
     public static TheoryData<Type, CsvNewline, Escaping> ParsingData() =>
         [
-            .. from type in TokenizerTypes
+            .. from type in new Tokenizers.Types()
             from newline in new[] { CsvNewline.CRLF, CsvNewline.LF }
             from escaping in new[] { Escaping.None, Escaping.Quote, Escaping.QuoteNull }
             select (type, newline, escaping),
@@ -28,7 +28,7 @@ public static class ScalarTests
 
         var options = new CsvOptions<char> { Newline = newline, Quote = escaping == Escaping.QuoteNull ? null : '"' };
         var scalarTokenizer = options.GetTokenizers().scalar;
-        var simdTokenizer = GetTokenizer<char>(type, options);
+        var simdTokenizer = Tokenizers.GetTokenizer<char>(type, options);
 
         using RecordBuffer rbScalar = new(bufferSize);
         using RecordBuffer rbSimd = new(bufferSize);
@@ -120,7 +120,7 @@ public static class ScalarTests
         Assert.Equal(expected, rb._fields.Skip(1).Take(count));
     }
 
-    [Theory, MemberData(nameof(TokenizerTypes))]
+    [Theory, ClassData(typeof(Tokenizers.Types))]
     public static void Should_Parse_Long_Field(Type type)
     {
         SkipIfNotSupported(type);
@@ -128,7 +128,7 @@ public static class ScalarTests
         using var rb = new RecordBuffer();
         using var rb2 = new RecordBuffer();
         var (scalar, _) = CsvOptions<char>.Default.GetTokenizers();
-        var tokenizer = GetTokenizer<char>(type);
+        var tokenizer = Tokenizers.GetTokenizer<char>(type);
         int backstop = tokenizer.Overscan * 2;
 
         using var apbw = new ArrayPoolBufferWriter<char>();
@@ -201,7 +201,7 @@ public static class ScalarTests
         }
     }
 
-    [Theory, MemberData(nameof(TokenizerTypes))]
+    [Theory, ClassData(typeof(Tokenizers.Types))]
     public static void Should_Bail_On_Disjoint_CRLF(Type type)
     {
         SkipIfNotSupported(type);
@@ -215,36 +215,11 @@ public static class ScalarTests
             apbw.Write(i % 2 == 0 ? "\r\n" : "\n");
         }
 
-        var tokenizer = GetTokenizer<char>(type);
+        var tokenizer = Tokenizers.GetTokenizer<char>(type);
 
         int res = tokenizer.Tokenize(rb.GetUnreadBuffer(0, out int startIndex), startIndex, apbw.WrittenSpan);
         Assert.Equal(-1, res);
     }
-
-    private static CsvTokenizer<T> GetTokenizer<T>(Type type, CsvOptions<T>? options = null)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        options ??= CsvOptions<T>.Default;
-        return (CsvTokenizer<T>)
-            type.MakeGenericType(
-                    typeof(T),
-                    options.Newline.IsCRLF() ? typeof(TrueConstant) : typeof(FalseConstant),
-                    options.Quote.HasValue ? typeof(TrueConstant) : typeof(FalseConstant)
-                )
-                .GetConstructors()[0]
-                .Invoke(new object[] { options })!;
-    }
-
-    public static TheoryData<Type> TokenizerTypes { get; } =
-        new()
-        {
-            typeof(SimdTokenizer<,,>),
-            typeof(Avx2Tokenizer<,,>),
-#if NET10_0_OR_GREATER
-            typeof(Avx512Tokenizer<,,>),
-#endif
-            typeof(ArmTokenizer<,,>),
-        };
 
     private static void SkipIfNotSupported(Type type)
     {
