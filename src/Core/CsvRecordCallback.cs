@@ -33,21 +33,16 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     public CsvRecordCallbackArgs(
         CsvRecordRef<T> record,
         ImmutableArray<string> header,
-        int lineIndex,
-        long position,
         ref bool skip,
         ref bool headerRead
     )
-        : this(record, header.AsSpan(), lineIndex, position, ref skip, ref headerRead)
+        : this(record, header.AsSpan(), ref skip, ref headerRead)
     {
         if (record._owner is null)
             Throw.Argument_DefaultStruct(typeof(CsvRecordRef<T>), nameof(record));
 
         if (header.IsDefault)
             Throw.ArgumentNull(nameof(header));
-
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(lineIndex);
-        ArgumentOutOfRangeException.ThrowIfNegative(position);
 
         if (Unsafe.IsNullRef(ref skip))
             Throw.ArgumentNull(nameof(skip));
@@ -59,16 +54,12 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     internal CsvRecordCallbackArgs(
         CsvRecordRef<T> record,
         ReadOnlySpan<string> header,
-        int lineIndex,
-        long position,
         ref bool skip,
         ref bool headerRead
     )
     {
         // use separate private ctor to avoid validation overhead since we know the args are valid
         _record = record;
-        Line = lineIndex;
-        Position = position;
         Header = header;
         _skip = ref skip;
         _headerRead = ref headerRead;
@@ -97,15 +88,11 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// </summary>
     public CsvOptions<T> Options => _record._owner.Options;
 
-    /// <summary>
-    /// 1-based line number.
-    /// </summary>
-    public int Line { get; }
+    /// <inheritdoc cref="CsvRecordRef{T}.LineNumber"/>
+    public int LineNumber => _record.LineNumber;
 
-    /// <summary>
-    /// 0-based character position in the data, measured from the start of the unescaped record.
-    /// </summary>
-    public long Position { get; }
+    /// <inheritdoc cref="CsvRecordRef{T}.Position"/>
+    public long Position => _record.Position;
 
     /// <summary>
     /// Set to true to skip this record.

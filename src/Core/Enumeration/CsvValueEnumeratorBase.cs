@@ -127,7 +127,6 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         {
             Check.WrapParseError(ref ex);
 
-            long position = GetStartPosition(view);
             (ex as CsvReadExceptionBase)?.Enrich(record);
             (ex as CsvParseException)?.WithHeader(Headers);
 
