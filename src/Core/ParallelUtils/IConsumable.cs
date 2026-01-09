@@ -10,3 +10,9 @@ internal interface IConsumable : IDisposable
     /// </summary>
     bool ShouldConsume { get; }
 }
+
+internal interface IConsumer<TState>
+{
+    void Consume(in TState state, Exception? ex);
+    ValueTask ConsumeAsync(TState state, Exception? ex, CancellationToken cancellationToken);
+}

@@ -8,7 +8,7 @@ namespace FlameCsv;
 internal static partial class CsvParallel
 {
     internal sealed class ParallelEnumerable<T>(
-        Action<Consume<SlimList<T>>, CancellationToken> runParallel,
+        Action<IConsumer<SlimList<T>>, CancellationToken> runParallel,
         CancellationToken userToken
     ) : IEnumerable<ArraySegment<T>>
     {
@@ -30,7 +30,7 @@ internal static partial class CsvParallel
         private bool _done;
 
         public ParallelEnumerator(
-            Action<Consume<SlimList<T>>, CancellationToken> parallelForEach,
+            Action<IConsumer<SlimList<T>>, CancellationToken> parallelForEach,
             CancellationToken userToken
         )
         {
@@ -42,21 +42,14 @@ internal static partial class CsvParallel
             // the managers don't need to be disposed on exception as the pooling is only valid for the lifetime of the operation
             _blockingCollection = [];
 
+            EnumerationConsumer<T> consumer = new(_blockingCollection, null!, _pipelineToken);
+
             _parallelTask = Task.Run(
                 () =>
                 {
                     try
                     {
-                        parallelForEach(
-                            (in list, ex) =>
-                            {
-                                if (ex is null)
-                                {
-                                    _blockingCollection.Add(list, _pipelineToken);
-                                }
-                            },
-                            _pipelineToken
-                        );
+                        parallelForEach(consumer, _pipelineToken);
                     }
                     finally
                     {
@@ -106,7 +99,7 @@ internal static partial class CsvParallel
     }
 
     internal sealed class ParallelAsyncEnumerable<T>(
-        Func<ConsumeAsync<SlimList<T>>, CancellationToken, Task> runParallel,
+        Func<IConsumer<SlimList<T>>, CancellationToken, Task> runParallel,
         CancellationToken userToken
     ) : IAsyncEnumerable<ArraySegment<T>>
     {
@@ -131,7 +124,7 @@ internal static partial class CsvParallel
         private SlimList<T>? _current;
 
         public ParallelAsyncEnumerator(
-            Func<ConsumeAsync<SlimList<T>>, CancellationToken, Task> parallelForEachAsync,
+            Func<IConsumer<SlimList<T>>, CancellationToken, Task> parallelForEachAsync,
             CancellationToken userToken,
             CancellationToken getEnumeratorToken
         )
@@ -149,19 +142,14 @@ internal static partial class CsvParallel
                 }
             );
 
+            EnumerationConsumer<T> consumer = new(null!, _channel.Writer, _pipelineToken);
+
             _parallelTask = Task.Run(
                 async () =>
                 {
                     try
                     {
-                        await parallelForEachAsync(
-                                (list, ex, ct) =>
-                                    ex is null ? _channel.Writer.WriteAsync(list, ct)
-                                    : ct.IsCancellationRequested ? ValueTask.FromCanceled(ct)
-                                    : ValueTask.CompletedTask,
-                                _pipelineToken
-                            )
-                            .ConfigureAwait(false);
+                        await parallelForEachAsync(consumer, _pipelineToken).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -217,6 +205,28 @@ internal static partial class CsvParallel
                 _enumeratorCts.Dispose();
             }
         }
+    }
+}
+
+file sealed class EnumerationConsumer<T>(
+    BlockingCollection<SlimList<T>> collection,
+    ChannelWriter<SlimList<T>> channel,
+    CancellationToken cancellationToken
+) : IConsumer<SlimList<T>>
+{
+    public void Consume(in SlimList<T> state, Exception? ex)
+    {
+        if (ex is null)
+        {
+            collection.Add(state, cancellationToken);
+        }
+    }
+
+    public ValueTask ConsumeAsync(SlimList<T> state, Exception? ex, CancellationToken cancellationToken)
+    {
+        return ex is null ? channel.WriteAsync(state, cancellationToken)
+            : cancellationToken.IsCancellationRequested ? ValueTask.FromCanceled(cancellationToken)
+            : ValueTask.CompletedTask;
     }
 }
 

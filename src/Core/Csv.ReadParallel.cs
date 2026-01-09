@@ -307,14 +307,16 @@ file static class Util
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
 
                 CsvParallel
-                    .ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
+                    .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                         reader.AsEnumerable(),
                         producer,
                         consume,
                         cts,
-                        parallelOptions.ReadingMaxDegreeOfParallelism
+                        parallelOptions.ReadingMaxDegreeOfParallelism,
+                        isAsync: false
                     )
-                    .Wait(innerToken);
+                    .GetAwaiter()
+                    .GetResult();
             },
             parallelOptions.CancellationToken
         );
@@ -343,7 +345,8 @@ file static class Util
                             producer,
                             consumeAsync,
                             cts,
-                            parallelOptions.ReadingMaxDegreeOfParallelism
+                            parallelOptions.ReadingMaxDegreeOfParallelism,
+                            isAsync: true
                         )
                         .ConfigureAwait(false);
                 }
@@ -365,20 +368,16 @@ file static class Util
         using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
         CsvParallel
-            .ForEach<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
+            .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                 reader.AsEnumerable(),
                 producer,
-                (in chunk, ex) =>
-                {
-                    if (ex is null)
-                    {
-                        action(chunk.AsArraySegment());
-                    }
-                },
+                new DelegateConsumer<TValue>(action, null!),
                 cts,
-                parallelOptions.ReadingMaxDegreeOfParallelism
+                parallelOptions.ReadingMaxDegreeOfParallelism,
+                isAsync: false
             )
-            .Wait();
+            .GetAwaiter()
+            .GetResult();
     }
 
     public static async Task ForEachAsyncCore<T, TValue>(
@@ -400,11 +399,33 @@ file static class Util
                 .ForEachAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                     reader.AsAsyncEnumerable(),
                     producer,
-                    (chunk, ex, ct) => ex is null ? action(chunk.AsArraySegment(), ct) : ValueTask.CompletedTask,
+                    new DelegateConsumer<TValue>(null!, action),
                     cts,
-                    parallelOptions.ReadingMaxDegreeOfParallelism
+                    parallelOptions.ReadingMaxDegreeOfParallelism,
+                    isAsync: true
                 )
                 .ConfigureAwait(false);
         }
+    }
+}
+
+file sealed class DelegateConsumer<TValue>(
+    Action<ArraySegment<TValue>> action,
+    Func<ArraySegment<TValue>, CancellationToken, ValueTask> asyncAction
+) : IConsumer<SlimList<TValue>>
+{
+    public void Consume(in SlimList<TValue> state, Exception? ex)
+    {
+        if (ex is null)
+        {
+            action(state.AsArraySegment());
+        }
+    }
+
+    public ValueTask ConsumeAsync(SlimList<TValue> state, Exception? ex, CancellationToken cancellationToken)
+    {
+        return ex is null ? asyncAction(state.AsArraySegment(), cancellationToken)
+            : cancellationToken.IsCancellationRequested ? ValueTask.FromCanceled(cancellationToken)
+            : ValueTask.CompletedTask;
     }
 }

@@ -83,10 +83,12 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
     }
 }
 
-internal static class CsvWriterProducer<T>
+internal sealed class CsvWriterConsumer<T> : IConsumer<CsvFieldWriter<T>>
     where T : unmanaged, IBinaryInteger<T>
 {
-    public static readonly CsvParallel.Consume<CsvFieldWriter<T>> Consume = (in state, ex) =>
+    public static CsvWriterConsumer<T> Instance { get; } = new();
+
+    public void Consume(in CsvFieldWriter<T> state, Exception? ex)
     {
         using (state)
         {
@@ -107,13 +109,9 @@ internal static class CsvWriterProducer<T>
                 state.Writer.Complete(ex);
             }
         }
-    };
+    }
 
-    public static readonly CsvParallel.ConsumeAsync<CsvFieldWriter<T>> ConsumeAsync = async (
-        state,
-        ex,
-        cancellationToken
-    ) =>
+    public async ValueTask ConsumeAsync(CsvFieldWriter<T> state, Exception? ex, CancellationToken cancellationToken)
     {
         using (state)
         {
@@ -134,5 +132,5 @@ internal static class CsvWriterProducer<T>
                 await state.Writer.CompleteAsync(ex, cancellationToken).ConfigureAwait(false);
             }
         }
-    };
+    }
 }
