@@ -23,7 +23,7 @@ Fields are parsed as packed `uint32` values:
 Packing the field metadata into a single `uint32` allows for efficient processing of fields in tight loops,
 allows vectorized stores with SIMD compression (AVX2 and AVX512), and allows calculating record bounds efficiently,
 either with a narrowed movemask, or a simple `(int)f < 0` to check if a field is an EOL. Similarly when materialising
-a field, `(int)(f << 2) < 0` can be used to check if the field needs its' quotes trimmed or value unescaped.
+a field, `(int)(f << 2) < 0` can be used to check if the field needs its quotes trimmed or value unescaped.
 The SIMD tokenizers also have separate JIT-constant folded paths for LF-newlines and options without quotes.
 
 After tokenization, a second stage scans through the packed fields to store the record end positions.
@@ -46,7 +46,7 @@ containing the packed field values. The preceding field end index is used to cal
   - Store to the output buffer
 - *AVX2:* Same principle as AVX-512 using a LUT-shuffle based compress-emulation (from simdjson)
   when there are <=8 matches per 32 characters
-- *ARM:* Uses zipped loads to to process 64 bytes at a time to do a fast movemask emulation (from aqrit),
+- *ARM:* Uses zipped loads to process 64 bytes at a time to do a fast movemask emulation (from aqrit),
   and heavily leverages ILP to process as many vector ops at a time as possible.
 
 The generic SIMD tokenizer and ARM implementations also use unrolled writes to write up to 8 fields at a time to keep

@@ -6,7 +6,7 @@ uid: converters
 
 ## Overview
 
-@"FlameCsv.CsvConverter`2" is used to convert types. It follows the `TryParse` / `TryFormat` -pattern.
+@"FlameCsv.CsvConverter`2" is used to convert types. It follows the `TryParse`/`TryFormat` pattern.
 
 The value passed to `TryParse` is the complete unescaped/unquoted CSV field, and should represent a complete value.
 If the value is valid, the method should return `true` and the parsed value in the out parameter. If it is not valid,
@@ -97,7 +97,7 @@ The following primitive types are supported by default:
 - @"System.Guid"
 - @"System.Char?text=char" (not considered a numeric type in FlameCsv)
 - Any type implementing both @"System.ISpanParsable`1" and @"System.ISpanFormattable",
-  or @"System.IUtf8SpanFormattable" and/r @"System.IUtf8SpanParsable`1" when converting to/from UTF8 bytes.
+  or @"System.IUtf8SpanFormattable" and/or @"System.IUtf8SpanParsable`1" when converting to/from UTF8 bytes.
 
 Most of these types can be configured using @"FlameCsv.CsvOptions`1.FormatProviders?displayProperty=nameWithType"
 and @"FlameCsv.CsvOptions`1.Formats?displayProperty=nameWithType".

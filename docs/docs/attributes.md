@@ -23,7 +23,7 @@ class User
 
 @"FlameCsv.Attributes.CsvHeaderAttribute" is used to configure the header name used when reading and writing CSV. The first parameter specifies the primary header name. Additional aliases can be provided as follow-up arguments to allow matching the member to alternative header values. The first parameter is always used when writing.
 
-The default header value used it the member's name, e.g., `"IsAdmin"`. See also: @"FlameCsv.CsvOptions`1.IgnoreHeaderCase?displayProperty=nameWithType" and @"FlameCsv.CsvOptions`1.NormalizeHeader?displayProperty=nameWithType".
+The default header value used is the member's name, e.g., `"IsAdmin"`. See also: @"FlameCsv.CsvOptions`1.IgnoreHeaderCase?displayProperty=nameWithType" and @"FlameCsv.CsvOptions`1.NormalizeHeader?displayProperty=nameWithType".
 
 ```cs
 [CsvHeader("is_admin")]
@@ -83,7 +83,7 @@ public class User
 
 ## Field order
 
-@"FlameCsv.Attributes.CsvOrderAttribute" can be used to explicitly set the order of fields in CSV. When omitted, 0 is used. Fields are sorted from smallest to largest, with equal values having no guarantees about their order. This attribute also effects the order in which headers are matched to members/parameters.
+@"FlameCsv.Attributes.CsvOrderAttribute" can be used to explicitly set the order of fields in CSV. When omitted, 0 is used. Fields are sorted from smallest to largest, with equal values having no guarantees about their order. This attribute also affects the order in which headers are matched to members/parameters.
 
 ```cs
 public class User

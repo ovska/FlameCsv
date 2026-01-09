@@ -100,7 +100,7 @@ await foreach (var user in Csv.From(csv).Read<User>())
 
 The `Enumerate`-methods in @"FlameCsv.Csv.IReadBuilder`1" can be used to read CSV records without creating class instances from them, and inspect details such has field counts, raw unescaped data, line numbers, and exact character/byte offsets in the file.
 
-Fields can be accessed directly using the @"FlameCsv.CsvFieldIdentifier"-struct, which is implicitly convertible from @"System.String" and @"System.Int32". In the example below, passing `"id"` and `0` to `ParseField` are functionally equivalent. The string-overload however includes and additional array/dictionary-lookup. The @"FlameCsv.CsvRecord`1.Header" and @"FlameCsv.CsvRecord`1.FieldCount" properties can be used to determine if a specific field can be accessed, along with @"FlameCsv.CsvRecord`1.Contains(FlameCsv.CsvFieldIdentifier)".
+Fields can be accessed directly using the @"FlameCsv.CsvFieldIdentifier"-struct, which is implicitly convertible from @"System.String" and @"System.Int32". In the example below, passing `"id"` and `0` to `ParseField` are functionally equivalent. The string-overload however includes an additional array/dictionary-lookup. The @"FlameCsv.CsvRecord`1.Header" and @"FlameCsv.CsvRecord`1.FieldCount" properties can be used to determine if a specific field can be accessed, along with @"FlameCsv.CsvRecord`1.Contains(FlameCsv.CsvFieldIdentifier)".
 
 The @"FlameCsv.CsvRecord`1" struct can also be used in a `foreach`-statement to iterate the escaped field values.
 
@@ -269,7 +269,7 @@ directly (the type extending @"System.Buffers.IBufferWriter`1" with additional I
 ```cs
 using CsvFieldWriter<char> fieldWriter = CsvFieldWriter.Create(textWriter, options, ioOptions);
 
-foreach (User in users)
+foreach (var user in users)
 {
     if (fieldWriter.Writer.NeedsFlush)
         fieldWriter.Writer.Flush();
@@ -290,7 +290,7 @@ fieldWriter.Complete(exception: null); // flushes and completes the writer
 ```cs
 using CsvFieldWriter<byte> fieldWriter = CsvFieldWriter.Create(stream, options, ioOptions);
 
-foreach (User in users)
+foreach (var user in users)
 {
     if (fieldWriter.Writer.NeedsFlush)
         fieldWriter.Writer.Flush();

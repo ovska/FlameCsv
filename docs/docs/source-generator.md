@@ -15,7 +15,7 @@ the approach that best fits your application's needs.
 The source-generated [enum converter](#enum-converter-generator) however is significantly faster than `Enum.TryParse` and `TryFormat`,
 especially when reading UTF-8 (bytes). For more details, see the [benchmarks](benchmarks.md#enums).
 
-All source generators in FlameCSV are implemented as low-footprint incremental generators, and they include diagnostics
+All source generators in FlameCsv are implemented as low-footprint incremental generators, and they include diagnostics
 for common pitfalls and configuration problems.
 
 ## Type Map Generator
