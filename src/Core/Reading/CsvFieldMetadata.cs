@@ -10,7 +10,13 @@ public readonly struct CsvFieldMetadata
     private readonly uint _value;
     private readonly int _start;
 
-    internal CsvFieldMetadata(uint value, int start)
+    /// <summary>
+    /// Initializes a new instance of <see cref="CsvFieldMetadata"/>.
+    /// </summary>
+    /// <param name="value">Packed field end and flags</param>
+    /// <param name="start">Start index in the data</param>
+    [CLSCompliant(false)]
+    public CsvFieldMetadata(uint value, int start)
     {
         _value = value;
         _start = start;

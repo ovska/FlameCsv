@@ -5,7 +5,7 @@ namespace FlameCsv.SourceGen.Models;
 
 internal static class IndexBindingModel
 {
-    public static EquatableArray<IMemberModel> Resolve(
+    public static EquatableArray<IMemberModel?> Resolve(
         bool write,
         in FlameSymbols symbols,
         EquatableArray<IMemberModel> members,
@@ -83,11 +83,11 @@ internal static class IndexBindingModel
                 }
 
                 // valid
-                IMemberModel[] result = new IMemberModel[dict.Count];
+                IMemberModel?[] result = new IMemberModel?[dict.Count];
 
                 foreach (var kvp in dict)
                 {
-                    result[kvp.Key] = kvp.Value!;
+                    result[kvp.Key] = kvp.Value;
                 }
 
                 return ImmutableCollectionsMarshal.AsImmutableArray(result);

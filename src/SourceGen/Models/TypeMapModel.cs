@@ -65,12 +65,12 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Index bindings for reading.
     /// </summary>
-    public EquatableArray<IMemberModel> IndexesForReading { get; }
+    public EquatableArray<IMemberModel?> IndexesForReading { get; }
 
     /// <summary>
     /// Index bindings for writing.
     /// </summary>
-    public EquatableArray<IMemberModel> IndexesForWriting { get; }
+    public EquatableArray<IMemberModel?> IndexesForWriting { get; }
 
     /// <summary>
     /// Proxy used when creating the type.

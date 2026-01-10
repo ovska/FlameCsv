@@ -4,7 +4,7 @@ namespace FlameCsv.Attributes;
 
 /// <summary>
 /// Ignores the member or parameter when reading or writing CSV.<br/>
-/// Has no effect for parameters without a default value, or on <c>init</c> only properties.<br/>
+/// Has no effect when reading for implicitly required fields (parameters without a default value, required <c>init</c> only properties).<br/>
 /// When not placed on a member or parameter, <see cref="CsvFieldConfigurationAttribute.MemberName"/> must be set.<br/>
 /// When placed on an assembly, <see cref="CsvConfigurationAttribute.TargetType"/> must be set.
 /// </summary>

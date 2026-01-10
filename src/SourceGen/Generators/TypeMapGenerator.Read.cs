@@ -28,11 +28,12 @@ partial class TypeMapGenerator
         {
             writer.WriteLine("scoped global::System.ReadOnlySpan<string> headerSpan = headers.AsSpan();");
             writer.WriteLine("TypeMapMaterializer materializer = new TypeMapMaterializer(headerSpan.Length);");
-            writer.WriteLine();
             writer.WriteLine(
-                "global::System.StringComparison comparison = options.IgnoreHeaderCase ? global::System.StringComparison.OrdinalIgnoreCase : global::System.StringComparison.Ordinal;"
+                "global::System.StringComparer comparer = options.IgnoreHeaderCase ? global::System.StringComparer.OrdinalIgnoreCase : global::System.StringComparer.Ordinal;"
             );
+            writer.WriteLine();
             writer.WriteLine("bool anyBound = false;");
+            writer.WriteLine("global::System.Collections.Generic.List<int> ignoredIndexes = null;");
             writer.WriteLine();
             writer.WriteLine("for (int index = 0; index < headerSpan.Length; index++)");
 
@@ -44,8 +45,16 @@ partial class TypeMapGenerator
                 writer.WriteLine();
 
                 writer.WriteLine("if (!options.IgnoreUnmatchedHeaders)");
+                using (writer.WriteBlock())
                 {
                     writer.WriteLine("base.ThrowUnmatched(name, index, headers);");
+                }
+                writer.WriteLine(
+                    "else if (options.ValidateQuotes >= global::FlameCsv.CsvQuoteValidation.ValidateUnreadFields)"
+                );
+                using (writer.WriteBlock())
+                {
+                    writer.WriteLine("(ignoredIndexes ??= new(headerSpan.Length - index)).Add(index);");
                 }
             }
 
@@ -60,6 +69,7 @@ partial class TypeMapGenerator
             WriteRequiredCheck(typeMap, writer);
 
             writer.WriteLine();
+            writer.WriteLine("if (ignoredIndexes is not null) materializer.IgnoredIndexes = [..ignoredIndexes];");
             writer.WriteLine("return materializer;");
         }
 
@@ -135,6 +145,8 @@ partial class TypeMapGenerator
             }
 
             writer.WriteLine();
+            writer.WriteLine("public int[] IgnoredIndexes;");
+            writer.WriteLine();
 
             writer.WriteLineIf(typeMap.UnsafeCodeAllowed, GlobalConstants.SkipLocalsInitAttribute);
             writer.WriteLine(
@@ -144,7 +156,6 @@ partial class TypeMapGenerator
             using (writer.WriteBlock())
             {
                 writer.WriteLine("if (record.FieldCount != expectedFieldCount)");
-
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine(
@@ -152,14 +163,19 @@ partial class TypeMapGenerator
                     );
                 }
 
-                writer.WriteLine("int __index;");
+                writer.WriteLine("if (IgnoredIndexes is int[] ignoredIndexes)");
+                using (writer.WriteBlock())
+                {
+                    writer.WriteLine("record.ValidateFieldsUnsafe(ignoredIndexes);");
+                }
 
                 writer.WriteWithoutIndent(
                     """
-
                     #if RELEASE
+                                global::System.Runtime.CompilerServices.Unsafe.SkipInit(out int __index);
                                 global::System.Runtime.CompilerServices.Unsafe.SkipInit(out ParseState state);
                     #else
+                                int __index;
                                 ParseState state = default;
                     #endif
 
@@ -480,15 +496,16 @@ partial class TypeMapGenerator
             using var enumerator = ignoredSet.GetEnumerator();
             _ = enumerator.MoveNext(); // must succeed
 
+            writer.WriteLine();
             writer.WriteLine("// Ignored headers");
-            writer.Write($"if ({enumerator.Current.ToStringLiteral()}.Equals(name, comparison)");
+            writer.Write($"if (comparer.Equals({enumerator.Current.ToStringLiteral()}, name");
 
             writer.IncreaseIndent();
 
             while (enumerator.MoveNext())
             {
                 writer.WriteLine(") ||");
-                writer.Write($"{enumerator.Current.ToStringLiteral()}.Equals(name, comparison)");
+                writer.Write($"comparer.Equals({enumerator.Current.ToStringLiteral()}, name");
             }
 
             writer.DecreaseIndent();
@@ -509,12 +526,12 @@ partial class TypeMapGenerator
             writer.WriteLine();
             writer.Write("if (");
             writer.IncreaseIndent();
-            writer.Write($"{member.HeaderName.ToStringLiteral()}.Equals(name, comparison)");
+            writer.Write($"comparer.Equals({member.HeaderName.ToStringLiteral()}, name)");
 
             foreach (string name in member.Aliases)
             {
                 writer.WriteLine(" ||");
-                writer.Write($"{name.ToStringLiteral()}.Equals(name, comparison)");
+                writer.Write($"comparer.Equals({name.ToStringLiteral()}, name)");
             }
 
             writer.DecreaseIndent();
@@ -571,6 +588,11 @@ partial class TypeMapGenerator
         {
             foreach (var member in typeMap.IndexesForReading)
             {
+                if (member is null)
+                {
+                    continue;
+                }
+
                 member.WriteConverterName(writer);
                 writer.Write(" = ");
                 WriteConverter(writer, typeMap.TokenName, member);
@@ -581,15 +603,15 @@ partial class TypeMapGenerator
         for (int index = 0; index < typeMap.IndexesForReading.Length; index++)
         {
             IMemberModel? member = typeMap.IndexesForReading[index];
-            writer.Write("materializer.");
-            member.WriteId(writer);
-            writer.Write(" = ");
 
             if (member is null)
             {
-                writer.WriteLine("-1;");
                 continue;
             }
+
+            writer.Write("materializer.");
+            member.WriteId(writer);
+            writer.Write(" = ");
 
             writer.Write(index.ToString());
             writer.WriteLine(";");

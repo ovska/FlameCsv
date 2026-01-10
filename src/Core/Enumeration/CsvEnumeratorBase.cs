@@ -83,12 +83,18 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         bool skip = false;
         bool headerRead = !header.IsEmpty;
 
-        CsvRecordCallbackArgs<T> args = new(new CsvRecordRef<T>(_reader, view), header, ref skip, ref headerRead);
+        var record = new CsvRecordRef<T>(_reader, view);
+        CsvRecordCallbackArgs<T> args = new(record, header, ref skip, ref headerRead);
         _callback(in args);
 
         if (!headerRead && !header.IsEmpty)
         {
             ResetHeader();
+        }
+
+        if (skip && Options.ValidateQuotes >= CsvQuoteValidation.ValidateAllRecords)
+        {
+            record.ValidateAllFields();
         }
 
         return skip;

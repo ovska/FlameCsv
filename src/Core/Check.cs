@@ -216,6 +216,31 @@ internal static class Check
 
     [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
     [StackTraceHidden]
+    public static void OneOf<T>(
+        T value,
+        scoped ReadOnlySpan<T> values,
+        string message = "",
+        [CallerArgumentExpression(nameof(value))] string expression = ""
+    )
+    {
+        foreach (var v in values)
+        {
+            if (EqualityComparer<T>.Default.Equals(value, v))
+            {
+                return;
+            }
+        }
+
+        string valuesStr = string.Join(", ", values.ToArray());
+        var fullMessage = string.IsNullOrEmpty(message)
+            ? $"Check.OneOf failed: {expression} | Value: {value} | Expected one of: {valuesStr}"
+            : $"Check.OneOf failed: {expression} | Value: {value} | Expected one of: {valuesStr} | {message}";
+
+        throw new UnreachableException(fullMessage);
+    }
+
+    [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
+    [StackTraceHidden]
     public static void LessThan<T>(
         T value,
         T threshold,

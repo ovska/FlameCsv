@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Reading;
@@ -17,12 +18,39 @@ public abstract class RecordOwner<T>
     {
         options.MakeReadOnly();
         Options = options;
-        _dialect = new Dialect<T>(options);
         _recordBuffer = recordBuffer;
+
+        _quoteAndLeniency = (byte)(
+            options.Quote.GetValueOrDefault()
+            | (options.ValidateQuotes == CsvQuoteValidation.AllowInvalid ? 0x80 : 0x00)
+        );
+
+        // remove undefined bits so we can cmp against zero later
+        Trimming = options.Trimming & CsvFieldTrimming.Both;
     }
 
-    internal readonly Dialect<T> _dialect;
     internal readonly RecordBuffer _recordBuffer;
+
+    internal readonly CsvFieldTrimming Trimming;
+    private readonly byte _quoteAndLeniency; // use byte field to ensure the struct is only 2 bytes
+
+    internal T Quote
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get =>
+            Unsafe.SizeOf<T>() switch
+            {
+                1 => Unsafe.BitCast<byte, T>((byte)(_quoteAndLeniency & 0x7F)),
+                2 => Unsafe.BitCast<char, T>((char)(_quoteAndLeniency & 0x7F)),
+                _ => throw Token<T>.NotSupported,
+            };
+    }
+
+    internal bool AcceptInvalidQuotes
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (sbyte)_quoteAndLeniency < 0;
+    }
 
     /// <summary>
     /// Indicates whether the reader has been disposed.

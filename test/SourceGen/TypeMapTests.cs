@@ -147,6 +147,73 @@ public class TypeMapTests(MetadataFixture fixture)
         }
     }
 
+    [Fact]
+    public void Should_Generate_Indexes()
+    {
+        const string source = """
+            using FlameCsv.Attributes;
+
+            [CsvTypeMap<char, PartialObj>]
+            partial class TypeMap;
+
+            [CsvIgnoredIndexes(2)]
+            record PartialObj
+            {
+                [CsvIndex(0)]
+                public int Id { get; set; }
+
+                [CsvIndex(1)]
+                public string? Name { get; set; }
+
+                [CsvIgnore]
+                public bool IsEnabled { get; set; }
+
+                [CsvIndex(3)]
+                public System.DateTime LastLogin { get; set; }
+
+                [CsvIndex(4)]
+                public System.Guid Token { get; set; }
+            }
+            """;
+
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            "TestProject",
+            [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
+            _metadataReferences,
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
+
+        // ensure no errors
+        Assert.Empty(
+            compilation
+                .GetDiagnostics(TestContext.Current.CancellationToken)
+                .Where(d => d.Severity == DiagnosticSeverity.Error)
+        );
+
+        TypeMapGenerator generator = new();
+        ISourceGenerator sourceGenerator = generator.AsSourceGenerator();
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(
+            [sourceGenerator],
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true)
+        );
+
+        driver = driver.RunGenerators(compilation, TestContext.Current.CancellationToken);
+
+        Assert.Empty(
+            driver.GetRunResult().Results.Single().Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)
+        );
+
+        Assert.All(
+            driver
+                .GetRunResult()
+                .Results.Single()
+                .TrackedOutputSteps.Single(x => x.Key != "FlameCsv_Diagnostics")
+                .Value,
+            step => step.Outputs.All(x => x.Reason == IncrementalStepRunReason.New)
+        );
+    }
+
 #if false // debugging
     [Fact]
     public void Diagnostics_Should_Equate()

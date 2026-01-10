@@ -68,11 +68,11 @@ public class RecordBufferTests
 
             if (i % 3 == 0)
             {
-                dst[i] |= Field.IsQuoted;
+                dst[i] |= Field.IsQuotedMask;
             }
             else if (i % 7 == 0)
             {
-                dst[i] |= Field.NeedsUnescaping;
+                dst[i] |= Field.NeedsUnescapingMask;
             }
         }
 
@@ -91,15 +91,15 @@ public class RecordBufferTests
 
             if (i % 3 == 0)
             {
-                Assert.NotEqual(0u, current & Field.IsQuoted);
+                Assert.NotEqual(0u, current & Field.IsQuotedMask);
             }
             else if (i % 7 == 0)
             {
-                Assert.NotEqual(0u, current & Field.NeedsUnescaping);
+                Assert.NotEqual(0u, current & Field.NeedsUnescapingMask);
             }
             else
             {
-                Assert.Equal(0u, current & (Field.IsQuoted | Field.NeedsUnescaping));
+                Assert.Equal(0u, current & (Field.IsQuotedMask | Field.NeedsUnescapingMask));
             }
         }
     }
