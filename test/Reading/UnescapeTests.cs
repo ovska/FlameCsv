@@ -55,6 +55,7 @@ public static class UnescapeTests
 
             Assert.Equal(expected, dst.Slice(0, expected.Length).ToString());
             Assert.Equal(-1, dst.Slice(0, expected.Length).IndexOfAny('\0', char.MaxValue));
+            Field.ValidateQuotes('"', MemoryMarshal.Cast<char, ushort>(source));
 
             int byteLen = Encoding.UTF8.GetBytes(source, srcb);
             dstb.Fill(byte.MaxValue);
@@ -64,6 +65,7 @@ public static class UnescapeTests
             // can use utf16 lengths, all data is ascii
             Assert.Equal(expected, Encoding.UTF8.GetString(dstb.Slice(0, expected.Length)));
             Assert.Equal(-1, dstb.Slice(0, expected.Length).IndexOfAny((byte)0, byte.MaxValue));
+            Field.ValidateQuotes((byte)'"', srcb.Slice(0, byteLen));
         }
     }
 
@@ -90,6 +92,9 @@ public static class UnescapeTests
         );
 
         Assert.Equal(expected, buffer.Slice(0, expected.Length));
+
+        // should not throw
+        Field.ValidateQuotes(quote: '"', MemoryMarshal.Cast<char, ushort>(value.AsSpan()));
     }
 
     [Theory]
@@ -99,10 +104,14 @@ public static class UnescapeTests
         Assert.True(value.Length <= 128);
         using var memory = BoundedMemory.AllocateLoose<byte>(128, placement);
         Span<byte> buffer = memory.Memory.Span;
+        ReadOnlySpan<byte> sourceBytes = Encoding.UTF8.GetBytes(value);
 
-        Field.Unescape(quote: (byte)'"', destination: buffer, source: Encoding.UTF8.GetBytes(value));
+        Field.Unescape(quote: (byte)'"', destination: buffer, source: sourceBytes);
 
         Assert.Equal(expected, Encoding.UTF8.GetString(buffer)[..expected.Length]);
+
+        // should not throw
+        Field.ValidateQuotes(quote: (byte)'"', sourceBytes);
     }
 
     private const string Data = """

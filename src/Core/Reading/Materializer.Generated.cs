@@ -64,27 +64,30 @@ internal static class Materializer<T>
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
         if (record.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, record);
         if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0);
 
         Fail:
@@ -102,30 +105,33 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult> wh
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
         if (record.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, record);
         if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
         if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1);
 
         Fail:
@@ -144,26 +150,28 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
     private readonly CsvConverter<T, T2> _converter2;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -171,6 +179,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
         if (!_converter0.TryParse(record.GetFieldUnsafe(index = 0), out T0 v0)) goto Fail;
         if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
         if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2);
 
         Fail:
@@ -190,28 +199,30 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
         _converter3 = ResolveConverter<T3>(bindings[3], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
     private readonly CsvConverter<T, T2> _converter2;
     private readonly CsvConverter<T, T3> _converter3;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -220,6 +231,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
         if (!_converter1.TryParse(record.GetFieldUnsafe(index = 1), out T1 v1)) goto Fail;
         if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
         if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3);
 
         Fail:
@@ -240,23 +252,24 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
         _converter3 = ResolveConverter<T3>(bindings[3], options);
         _converter4 = ResolveConverter<T4>(bindings[4], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -264,6 +277,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
     private readonly CsvConverter<T, T3> _converter3;
     private readonly CsvConverter<T, T4> _converter4;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -273,6 +287,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
         if (!_converter2.TryParse(record.GetFieldUnsafe(index = 2), out T2 v2)) goto Fail;
         if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
         if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4);
 
         Fail:
@@ -294,24 +309,25 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
         _converter3 = ResolveConverter<T3>(bindings[3], options);
         _converter4 = ResolveConverter<T4>(bindings[4], options);
         _converter5 = ResolveConverter<T5>(bindings[5], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -320,6 +336,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
     private readonly CsvConverter<T, T4> _converter4;
     private readonly CsvConverter<T, T5> _converter5;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -330,6 +347,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
         if (!_converter3.TryParse(record.GetFieldUnsafe(index = 3), out T3 v3)) goto Fail;
         if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
         if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5);
 
         Fail:
@@ -352,17 +370,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -370,7 +389,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
         _converter4 = ResolveConverter<T4>(bindings[4], options);
         _converter5 = ResolveConverter<T5>(bindings[5], options);
         _converter6 = ResolveConverter<T6>(bindings[6], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -380,6 +399,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
     private readonly CsvConverter<T, T5> _converter5;
     private readonly CsvConverter<T, T6> _converter6;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -391,6 +411,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
         if (!_converter4.TryParse(record.GetFieldUnsafe(index = 4), out T4 v4)) goto Fail;
         if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
         if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6);
 
         Fail:
@@ -414,17 +435,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -433,7 +455,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
         _converter5 = ResolveConverter<T5>(bindings[5], options);
         _converter6 = ResolveConverter<T6>(bindings[6], options);
         _converter7 = ResolveConverter<T7>(bindings[7], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -444,6 +466,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     private readonly CsvConverter<T, T6> _converter6;
     private readonly CsvConverter<T, T7> _converter7;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -456,6 +479,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
         if (!_converter5.TryParse(record.GetFieldUnsafe(index = 5), out T5 v5)) goto Fail;
         if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
         if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
 
         Fail:
@@ -480,17 +504,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -500,7 +525,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
         _converter6 = ResolveConverter<T6>(bindings[6], options);
         _converter7 = ResolveConverter<T7>(bindings[7], options);
         _converter8 = ResolveConverter<T8>(bindings[8], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -512,6 +537,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     private readonly CsvConverter<T, T7> _converter7;
     private readonly CsvConverter<T, T8> _converter8;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -525,6 +551,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
         if (!_converter6.TryParse(record.GetFieldUnsafe(index = 6), out T6 v6)) goto Fail;
         if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
         if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
 
         Fail:
@@ -550,17 +577,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -571,7 +599,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
         _converter7 = ResolveConverter<T7>(bindings[7], options);
         _converter8 = ResolveConverter<T8>(bindings[8], options);
         _converter9 = ResolveConverter<T9>(bindings[9], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -584,6 +612,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     private readonly CsvConverter<T, T8> _converter8;
     private readonly CsvConverter<T, T9> _converter9;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -598,6 +627,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
         if (!_converter7.TryParse(record.GetFieldUnsafe(index = 7), out T7 v7)) goto Fail;
         if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
         if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
 
         Fail:
@@ -624,17 +654,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -646,7 +677,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter8 = ResolveConverter<T8>(bindings[8], options);
         _converter9 = ResolveConverter<T9>(bindings[9], options);
         _converter10 = ResolveConverter<T10>(bindings[10], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -660,6 +691,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T9> _converter9;
     private readonly CsvConverter<T, T10> _converter10;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -675,6 +707,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter8.TryParse(record.GetFieldUnsafe(index = 8), out T8 v8)) goto Fail;
         if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
         if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
 
         Fail:
@@ -702,17 +735,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -725,7 +759,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter9 = ResolveConverter<T9>(bindings[9], options);
         _converter10 = ResolveConverter<T10>(bindings[10], options);
         _converter11 = ResolveConverter<T11>(bindings[11], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -740,6 +774,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T10> _converter10;
     private readonly CsvConverter<T, T11> _converter11;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -756,6 +791,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter9.TryParse(record.GetFieldUnsafe(index = 9), out T9 v9)) goto Fail;
         if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
         if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
 
         Fail:
@@ -784,17 +820,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -808,7 +845,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter10 = ResolveConverter<T10>(bindings[10], options);
         _converter11 = ResolveConverter<T11>(bindings[11], options);
         _converter12 = ResolveConverter<T12>(bindings[12], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -824,6 +861,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T11> _converter11;
     private readonly CsvConverter<T, T12> _converter12;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -841,6 +879,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter10.TryParse(record.GetFieldUnsafe(index = 10), out T10 v10)) goto Fail;
         if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
         if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
 
         Fail:
@@ -870,17 +909,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -895,7 +935,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter11 = ResolveConverter<T11>(bindings[11], options);
         _converter12 = ResolveConverter<T12>(bindings[12], options);
         _converter13 = ResolveConverter<T13>(bindings[13], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -912,6 +952,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T12> _converter12;
     private readonly CsvConverter<T, T13> _converter13;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -930,6 +971,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter11.TryParse(record.GetFieldUnsafe(index = 11), out T11 v11)) goto Fail;
         if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
         if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
 
         Fail:
@@ -960,17 +1002,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -986,7 +1029,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter12 = ResolveConverter<T12>(bindings[12], options);
         _converter13 = ResolveConverter<T13>(bindings[13], options);
         _converter14 = ResolveConverter<T14>(bindings[14], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1004,6 +1047,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T13> _converter13;
     private readonly CsvConverter<T, T14> _converter14;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1023,6 +1067,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter12.TryParse(record.GetFieldUnsafe(index = 12), out T12 v12)) goto Fail;
         if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
         if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
 
         Fail:
@@ -1054,17 +1099,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1081,7 +1127,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter13 = ResolveConverter<T13>(bindings[13], options);
         _converter14 = ResolveConverter<T14>(bindings[14], options);
         _converter15 = ResolveConverter<T15>(bindings[15], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1100,6 +1146,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T14> _converter14;
     private readonly CsvConverter<T, T15> _converter15;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1120,6 +1167,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter13.TryParse(record.GetFieldUnsafe(index = 13), out T13 v13)) goto Fail;
         if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
         if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
 
         Fail:
@@ -1152,17 +1200,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1180,7 +1229,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter14 = ResolveConverter<T14>(bindings[14], options);
         _converter15 = ResolveConverter<T15>(bindings[15], options);
         _converter16 = ResolveConverter<T16>(bindings[16], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1200,6 +1249,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T15> _converter15;
     private readonly CsvConverter<T, T16> _converter16;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1221,6 +1271,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter14.TryParse(record.GetFieldUnsafe(index = 14), out T14 v14)) goto Fail;
         if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
         if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16);
 
         Fail:
@@ -1254,17 +1305,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1283,7 +1335,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter15 = ResolveConverter<T15>(bindings[15], options);
         _converter16 = ResolveConverter<T16>(bindings[16], options);
         _converter17 = ResolveConverter<T17>(bindings[17], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1304,6 +1356,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T16> _converter16;
     private readonly CsvConverter<T, T17> _converter17;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1326,6 +1379,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter15.TryParse(record.GetFieldUnsafe(index = 15), out T15 v15)) goto Fail;
         if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
         if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17);
 
         Fail:
@@ -1360,17 +1414,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1390,7 +1445,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter16 = ResolveConverter<T16>(bindings[16], options);
         _converter17 = ResolveConverter<T17>(bindings[17], options);
         _converter18 = ResolveConverter<T18>(bindings[18], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1412,6 +1467,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T17> _converter17;
     private readonly CsvConverter<T, T18> _converter18;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1435,6 +1491,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter16.TryParse(record.GetFieldUnsafe(index = 16), out T16 v16)) goto Fail;
         if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
         if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18);
 
         Fail:
@@ -1470,17 +1527,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1501,7 +1559,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter17 = ResolveConverter<T17>(bindings[17], options);
         _converter18 = ResolveConverter<T18>(bindings[18], options);
         _converter19 = ResolveConverter<T19>(bindings[19], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1524,6 +1582,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T18> _converter18;
     private readonly CsvConverter<T, T19> _converter19;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1548,6 +1607,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter17.TryParse(record.GetFieldUnsafe(index = 17), out T17 v17)) goto Fail;
         if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
         if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19);
 
         Fail:
@@ -1584,17 +1644,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1616,7 +1677,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter18 = ResolveConverter<T18>(bindings[18], options);
         _converter19 = ResolveConverter<T19>(bindings[19], options);
         _converter20 = ResolveConverter<T20>(bindings[20], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1640,6 +1701,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T19> _converter19;
     private readonly CsvConverter<T, T20> _converter20;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1665,6 +1727,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter18.TryParse(record.GetFieldUnsafe(index = 18), out T18 v18)) goto Fail;
         if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
         if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20);
 
         Fail:
@@ -1702,17 +1765,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20, T21 v21);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1735,7 +1799,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter19 = ResolveConverter<T19>(bindings[19], options);
         _converter20 = ResolveConverter<T20>(bindings[20], options);
         _converter21 = ResolveConverter<T21>(bindings[21], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1760,6 +1824,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T20> _converter20;
     private readonly CsvConverter<T, T21> _converter21;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1786,6 +1851,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter19.TryParse(record.GetFieldUnsafe(index = 19), out T19 v19)) goto Fail;
         if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
         if (!_converter21.TryParse(record.GetFieldUnsafe(index = 21), out T21 v21)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21);
 
         Fail:
@@ -1824,17 +1890,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20, T21 v21, T22 v22);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1858,7 +1925,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter20 = ResolveConverter<T20>(bindings[20], options);
         _converter21 = ResolveConverter<T21>(bindings[21], options);
         _converter22 = ResolveConverter<T22>(bindings[22], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1884,6 +1951,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T21> _converter21;
     private readonly CsvConverter<T, T22> _converter22;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -1911,6 +1979,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter20.TryParse(record.GetFieldUnsafe(index = 20), out T20 v20)) goto Fail;
         if (!_converter21.TryParse(record.GetFieldUnsafe(index = 21), out T21 v21)) goto Fail;
         if (!_converter22.TryParse(record.GetFieldUnsafe(index = 22), out T22 v22)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22);
 
         Fail:
@@ -1950,17 +2019,18 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, TResult> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(T0 v0, T1 v1, T2 v2, T3 v3, T4 v4, T5 v5, T6 v6, T7 v7, T8 v8, T9 v9, T10 v10, T11 v11, T12 v12, T13 v13, T14 v14, T15 v15, T16 v16, T17 v17, T18 v18, T19 v19, T20 v20, T21 v21, T22 v22, T23 v23);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
@@ -1985,7 +2055,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter21 = ResolveConverter<T21>(bindings[21], options);
         _converter22 = ResolveConverter<T22>(bindings[22], options);
         _converter23 = ResolveConverter<T23>(bindings[23], options);
-    }
+}
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -2012,6 +2082,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     private readonly CsvConverter<T, T22> _converter22;
     private readonly CsvConverter<T, T23> _converter23;
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -2040,6 +2111,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         if (!_converter21.TryParse(record.GetFieldUnsafe(index = 21), out T21 v21)) goto Fail;
         if (!_converter22.TryParse(record.GetFieldUnsafe(index = 22), out T22 v22)) goto Fail;
         if (!_converter23.TryParse(record.GetFieldUnsafe(index = 23), out T23 v23)) goto Fail;
+        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23);
 
         Fail:

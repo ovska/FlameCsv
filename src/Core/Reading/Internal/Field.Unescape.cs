@@ -13,9 +13,17 @@ namespace FlameCsv.Reading.Internal;
 
 internal static partial class Field
 {
+    /// <summary>
+    /// Unescapes the source value into destination, and returns the unescaped length.
+    /// </summary>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static int Unescape<T>(T quote, scoped Span<T> destination, ReadOnlySpan<T> source)
+    public static int Unescape<T>(
+        T quote,
+        scoped Span<T> destination,
+        ReadOnlySpan<T> source,
+        bool acceptInvalid = false
+    )
         where T : unmanaged, IBinaryInteger<T>
     {
         Check.GreaterThanOrEqual(source.Length, 2);
@@ -28,7 +36,6 @@ internal static partial class Field
         scoped ref T srcEnd = ref Unsafe.Add(ref src, len);
         scoped ref T oneFromEnd = ref Unsafe.Subtract(ref srcEnd, 1);
 
-        // TODO: optimized version for AVX512; 512 bits is a bit too long for most fields
         if (Vector.IsHardwareAccelerated && len >= Vector<T>.Count)
         {
             Vector<T> quoteVector = Vector.Create(quote);
@@ -177,42 +184,153 @@ internal static partial class Field
         return (int)(bytesWritten / Unsafe.SizeOf<T>()) + 1;
 
         Fail:
+        if (acceptInvalid)
+        {
+            return -1;
+        }
+
         return ThrowInvalidUnescape(source, quote);
+    }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void Copy(ref T src, ref T dst, uint bytes)
-        {
-            Unsafe.CopyBlockUnaligned(
-                destination: ref Unsafe.As<T, byte>(ref dst),
-                source: ref Unsafe.As<T, byte>(ref src),
-                byteCount: bytes
-            );
-        }
+    [SkipLocalsInit]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ValidateQuotes<T>(T quote, ReadOnlySpan<T> source)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        Check.GreaterThanOrEqual(source.Length, 2);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static uint IndexOfFirstNonZero(Vector<T> vec)
+        uint len = (uint)source.Length;
+
+        scoped ref T src = ref MemoryMarshal.GetReference(source);
+        scoped ref T srcEnd = ref Unsafe.Add(ref src, len);
+        scoped ref T oneFromEnd = ref Unsafe.Subtract(ref srcEnd, 1);
+
+        if (Vector.IsHardwareAccelerated && len >= Vector<T>.Count)
         {
-            if (!AdvSimd.IsSupported)
+            Vector<T> quoteVector = Vector.Create(quote);
+            scoped ref T vectorFromEnd = ref Unsafe.Subtract(ref srcEnd, Vector<T>.Count);
+
+            do
             {
-                return (uint)BitOperations.TrailingZeroCount(vec.MoveMask());
+                Vector<T> vec = Vector.LoadUnsafe(ref src);
+                Vector<T> equals = Vector.Equals(vec, quoteVector);
+
+                if (equals == Vector<T>.Zero)
+                {
+                    src = ref Unsafe.Add(ref src, Vector<T>.Count);
+                    continue;
+                }
+
+                nuint charpos = IndexOfFirstNonZero(equals) + 1u;
+                src = ref Unsafe.Add(ref src, charpos);
+
+                // check if the next is a quote, or dangling quote at the end
+                if (Unsafe.IsAddressGreaterThanOrEqualTo(ref src, ref srcEnd) || src != quote)
+                {
+                    goto Fail;
+                }
+
+                src = ref Unsafe.Add(ref src, 1);
+            } while (Unsafe.IsAddressLessThanOrEqualTo(ref src, ref vectorFromEnd));
+        }
+        else if (!Vector.IsHardwareAccelerated) // only use scalar if no vector support
+        {
+            ReadScalar:
+            scoped ref T unrolledEnd = ref Unsafe.Subtract(ref srcEnd, 8);
+
+            while (Unsafe.IsAddressLessThan(ref src, ref unrolledEnd))
+            {
+                // csharpier-ignore
+                {
+                    if (quote == Unsafe.Add(ref src, 0)) { src = ref Unsafe.Add(ref src, 1); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 1)) { src = ref Unsafe.Add(ref src, 2); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 2)) { src = ref Unsafe.Add(ref src, 3); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 3)) { src = ref Unsafe.Add(ref src, 4); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 4)) { src = ref Unsafe.Add(ref src, 5); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 5)) { src = ref Unsafe.Add(ref src, 6); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 6)) { src = ref Unsafe.Add(ref src, 7); goto Found; }
+                    if (quote == Unsafe.Add(ref src, 7)) { src = ref Unsafe.Add(ref src, 8); goto Found; }
+                }
+            }
+            goto ReadTail;
+
+            Found:
+            // check if the next is a quote, or dangling quote at the end
+            if (Unsafe.IsAddressGreaterThanOrEqualTo(ref src, ref srcEnd) || src != quote)
+            {
+                goto Fail;
             }
 
-            uint bitSize = (uint)Unsafe.SizeOf<T>() * 8u; // JIT constant folds
+            src = ref Unsafe.Add(ref src, 1);
+            goto ReadScalar;
+        }
 
-            Vector128<ulong> v128 = vec.AsVector128().AsUInt64();
-
-            ulong lo = v128.GetElement(0);
-            ulong hi = v128.GetElement(1);
-
-            // relatively predictable branch
-            if (lo != 0)
+        ReadTail:
+        while (Unsafe.IsAddressLessThan(ref src, ref oneFromEnd)) // leave space so we can check for the second quote
+        {
+            if (quote == src)
             {
-                return (uint)BitOperations.TrailingZeroCount(lo) / bitSize;
+                src = ref Unsafe.Add(ref src, 1);
+
+                if (src != quote)
+                {
+                    goto Fail;
+                }
             }
 
-            uint hiIdx = (uint)BitOperations.TrailingZeroCount(hi) / bitSize;
-            return (64u / bitSize) + hiIdx;
+            src = ref Unsafe.Add(ref src, 1);
         }
+
+        // If we've advanced past the last element (paired quotes at end), we're done.
+        if (Unsafe.ByteOffset(in src, in srcEnd) == 0)
+        {
+            return;
+        }
+
+        // ensure we didn't end on a lone quote
+        if (src != quote)
+        {
+            return;
+        }
+
+        Fail:
+        ThrowInvalidUnescape(source, quote);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static void Copy<T>(ref T src, ref T dst, uint bytes)
+        where T : unmanaged
+    {
+        Unsafe.CopyBlockUnaligned(
+            destination: ref Unsafe.As<T, byte>(ref dst),
+            source: ref Unsafe.As<T, byte>(ref src),
+            byteCount: bytes
+        );
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static uint IndexOfFirstNonZero<T>(Vector<T> vec)
+    {
+        if (!AdvSimd.IsSupported)
+        {
+            return (uint)BitOperations.TrailingZeroCount(vec.MoveMask());
+        }
+
+        uint bitSize = (uint)Unsafe.SizeOf<T>() * 8u; // JIT constant folds
+
+        Vector128<ulong> v128 = vec.AsVector128().AsUInt64();
+
+        ulong lo = v128.GetElement(0);
+        ulong hi = v128.GetElement(1);
+
+        // relatively predictable branch
+        if (lo != 0)
+        {
+            return (uint)BitOperations.TrailingZeroCount(lo) / bitSize;
+        }
+
+        uint hiIdx = (uint)BitOperations.TrailingZeroCount(hi) / bitSize;
+        return (64u / bitSize) + hiIdx;
     }
 
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
@@ -238,6 +356,6 @@ internal static partial class Field
 
         error.Append(']');
 
-        throw new CsvFormatException($"Failed to unescape invalid data ({field.Count(quote)} quotes): {error}");
+        throw new CsvFormatException($"Invalid quoted field: {error}");
     }
 }

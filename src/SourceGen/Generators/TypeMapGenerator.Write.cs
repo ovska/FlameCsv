@@ -1,4 +1,5 @@
-﻿using FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Models;
 using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Generators;
@@ -47,16 +48,17 @@ partial class TypeMapGenerator
 
             using (writer.WriteBlock())
             {
-                int count = hasHeader ? writableCount : typeMap.IndexesForWriting.Length;
+                int count = hasHeader ? writableCount : typeMap.IndexesForWriting.UnsafeArray.Count(x => x is not null);
 
                 writer.WriteLine($"public int FieldCount => {count};");
                 writer.WriteLine();
 
-                var membersToWrite = hasHeader ? typeMap.AllMembers : typeMap.IndexesForWriting;
-                foreach (var property in membersToWrite)
+                EquatableArray<IMemberModel?> membersToWrite = (
+                    hasHeader ? typeMap.AllMembers : typeMap.IndexesForWriting!
+                )!;
+
+                foreach (var property in membersToWrite.Writable())
                 {
-                    if (!property.IsFormattable)
-                        continue;
                     writer.Write("public required ");
                     WriteConverterType(writer, typeMap.TokenName, property);
                     writer.Write(' ');
@@ -118,7 +120,7 @@ partial class TypeMapGenerator
 
                     bool first = true;
 
-                    foreach (var member in typeMap.AllMembers.Writable())
+                    foreach (var member in typeMap.AllMembers!.Writable())
                     {
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
                         writer.Write("writer.WriteRaw(");
@@ -178,6 +180,11 @@ partial class TypeMapGenerator
                 {
                     foreach (var property in typeMap.IndexesForWriting)
                     {
+                        if (property is null)
+                        {
+                            continue;
+                        }
+
                         property.WriteConverterName(writer);
                         writer.Write(" = ");
                         WriteConverter(writer, typeMap.TokenName, property);

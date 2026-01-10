@@ -18,20 +18,7 @@ namespace FlameCsv;
 public sealed partial class CsvOptions<T> : ICanBeReadOnly
     where T : unmanaged, IBinaryInteger<T>
 {
-    internal static readonly CsvOptions<T> _default;
-
-    static CsvOptions()
-    {
-        if (typeof(T) == typeof(char) || typeof(T) == typeof(byte))
-        {
-            _default = new CsvOptions<T>();
-            _default.MakeReadOnly();
-        }
-        else
-        {
-            _default = null!;
-        }
-    }
+    private static CsvOptions<T>? _default;
 
     /// <summary>
     /// Returns read-only default options for <typeparamref name="T"/> with the same configuration as <c>new()</c>.
@@ -45,10 +32,21 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            if (typeof(T) == typeof(char) || typeof(T) == typeof(byte))
-                return _default;
-            throw Token<T>.NotSupported;
+            if (typeof(T) != typeof(char) && typeof(T) != typeof(byte))
+            {
+                throw Token<T>.NotSupported;
+            }
+
+            return _default ?? InitializeDefault();
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static CsvOptions<T> InitializeDefault()
+    {
+        var options = new CsvOptions<T>();
+        options.MakeReadOnly();
+        return Interlocked.CompareExchange(ref _default, options, null) ?? options;
     }
 
     /// <summary>
@@ -83,6 +81,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
         _recordCallback = other._recordCallback;
         _fieldQuoting = other._fieldQuoting;
+        _validateQuotes = other._validateQuotes;
         _booleanValues = other._booleanValues;
         _formatProvider = other._formatProvider;
         _providers = other._providers?.Clone();
@@ -126,7 +125,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     {
         if (!IsReadOnly)
         {
-            Validate();
+            ValidateDialect();
             IsReadOnly = true;
         }
     }
@@ -212,6 +211,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     private CsvExceptionHandler<T>? _exceptionHandler;
 
     private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
+    private CsvQuoteValidation _validateQuotes = CsvQuoteValidation.Strict;
     private SealableList<(string, bool)>? _booleanValues;
     private ICsvTypeBinder<T>? _typeBinder;
     private Func<ReadOnlySpan<char>, string>? _normalizeHeader;

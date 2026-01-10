@@ -64,8 +64,8 @@ public class CsvOptionsTests
         Assert.ThrowsAny<ArgumentException>(() => new CsvOptions<byte> { EnumFlagsSeparator = 'ä' });
         _ = new CsvOptions<char> { EnumFlagsSeparator = 'ä' };
 
-        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Delimiter = '"' }.Validate());
-        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Quote = ',' }.Validate());
+        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Delimiter = '"' }.ValidateDialect());
+        Assert.Throws<CsvConfigurationException>(() => new CsvOptions<char> { Quote = ',' }.ValidateDialect());
 
         static void Run(Action<CsvOptions<char>> action)
         {
@@ -321,6 +321,7 @@ public class CsvOptionsTests
         Run(o => o.UseDefaultConverters = false);
         Run(o => o.IgnoreDuplicateHeaders = true);
         Run(o => o.IgnoreUnmatchedHeaders = true);
+        Run(o => o.ValidateQuotes = CsvQuoteValidation.AllowInvalid);
         Run(o => o.EnumFormat = "");
         Run(o => o.EnumFlagsSeparator = '^');
         Run(o => o.AllowUndefinedEnumValues = false);

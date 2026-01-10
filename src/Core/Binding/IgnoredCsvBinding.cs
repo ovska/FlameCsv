@@ -13,7 +13,7 @@ internal sealed class IgnoredCsvBinding<T>(int index) : CsvBinding<T>(index, nul
 
     private protected override void PrintDetails(ref ValueStringBuilder vsb)
     {
-        vsb.Append("Ignored");
+        vsb.Append("Ignored ");
     }
 
     protected internal override string DisplayName => "Ignored";

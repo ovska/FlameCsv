@@ -2,29 +2,11 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics.Arm;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
-using FlameCsv.Utilities;
 
 namespace FlameCsv;
-
-internal readonly struct Dialect<T>
-    where T : unmanaged, IBinaryInteger<T>
-{
-    public readonly CsvFieldTrimming Trimming;
-    public readonly T Quote;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Dialect(CsvOptions<T> options)
-    {
-        Quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
-
-        // remove undefined bits so we can cmp against zero later
-        Trimming = options.Trimming & CsvFieldTrimming.Both;
-    }
-}
 
 public partial class CsvOptions<T>
 {
@@ -98,32 +80,36 @@ public partial class CsvOptions<T>
     }
 
     /// <summary>
-    /// Ensures <see cref="Delimiter"/> and <see cref="Quote"/> are valid.
+    /// Configures how strictly quotes are validated when reading CSV. Has no effect if <see cref="Quote"/> is <c>null</c>.<br/>
+    /// The default value is <see cref="CsvQuoteValidation.Strict"/>, which validates every accessed field for validity,
+    /// but not unread fields or skipped records.
     /// </summary>
-    /// <exception cref="CsvConfigurationException"/>
-    public void Validate()
+    /// <remarks>
+    /// Quote parity is still required; every field must have an even number of quotes.
+    /// </remarks>
+    public CsvQuoteValidation ValidateQuotes
+    {
+        get => _validateQuotes;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(
+                (byte)value,
+                (byte)CsvQuoteValidation.ValidateAllRecords,
+                nameof(value)
+            );
+            this.SetValue(ref _validateQuotes, value);
+        }
+    }
+
+    internal void ValidateDialect()
     {
         // checked in setters
         Check.False(_delimiter is '\0' or '\r' or '\n' or ' ');
         Check.False(_quote is '\0' or '\r' or '\n' or ' ');
 
-        // already validated at this point
-        if (IsReadOnly)
+        if (_quote.GetValueOrDefault() == _delimiter)
         {
-            return;
-        }
-
-        StringScratch scratch = default;
-        using ValueListBuilder<string> errors = new(scratch);
-
-        if (_delimiter.Equals(_quote))
-        {
-            errors.Append("Delimiter and Quote must not be equal.");
-        }
-
-        if (errors.Length != 0)
-        {
-            DialectHelper.ThrowException(errors.AsSpan(), _delimiter, _quote);
+            DialectHelper.ThrowDuplicateException(_delimiter);
         }
     }
 
@@ -282,11 +268,10 @@ file static class DialectHelper
 
     [DoesNotReturn]
     [StackTraceHidden]
-    public static void ThrowException(scoped ReadOnlySpan<string> errors, char delimiter, char? quote)
+    public static void ThrowDuplicateException(char value)
     {
         throw new CsvConfigurationException(
-            $"Invalid dialect configuration: {string.Join(" ", errors.ToArray())}. "
-                + $"Delimiter: {GetToken(delimiter)}, Quote: {GetToken(quote)}"
+            $"Invalid dialect configuration: Delimiter and Quote cannot be the same character: {GetToken(value)}"
         );
     }
 

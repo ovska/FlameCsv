@@ -22,9 +22,10 @@ internal static class UtilityExtensions
     /// <summary>
     /// Returns members that can participate in writing CSV.
     /// </summary>
+#nullable disable
     public static EquatableArray<IMemberModel>.WhereEnumerable Writable(in this EquatableArray<IMemberModel> members)
     {
-        return members.Where(static m => m.IsFormattable);
+        return members.Where(static m => m is { IsFormattable: true });
     }
 
     /// <summary>
@@ -32,8 +33,10 @@ internal static class UtilityExtensions
     /// </summary>
     public static EquatableArray<IMemberModel>.WhereEnumerable Readable(in this EquatableArray<IMemberModel> members)
     {
-        return members.Where(static m => m.IsParsable);
+        return members.Where(static m => m is { IsParsable: true });
     }
+
+#nullable enable
 
     public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)
     {

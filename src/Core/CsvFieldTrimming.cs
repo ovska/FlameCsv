@@ -15,17 +15,17 @@ public enum CsvFieldTrimming : byte
     None = 0,
 
     /// <summary>
-    /// Leading ASCII spaces are trimmed from the start of the field, unless wrapped in quotes.
+    /// Leading ASCII spaces are trimmed from the start of the field and before quotes.
     /// </summary>
     Leading = 1,
 
     /// <summary>
-    /// Trailing ASCII spaces are trimmed from the end of the field, unless wrapped in quotes.
+    /// Trailing ASCII spaces are trimmed from the end of the field and after quotes.
     /// </summary>
     Trailing = 2,
 
     /// <summary>
-    /// Both leading and trailing ASCII spaces are trimmed from the field, unless wrapped in quotes.
+    /// Both leading and trailing ASCII spaces are trimmed from the field and around quotes.
     /// </summary>
     Both = Leading | Trailing,
 }

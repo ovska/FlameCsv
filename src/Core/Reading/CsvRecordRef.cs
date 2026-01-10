@@ -27,8 +27,8 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal CsvRecordRef(RecordOwner<T> owner, ref T data, RecordView view)
     {
-        view.AssertInvariants();
         Check.False(owner.IsDisposed, "Cannot create CsvRecordRef from disposed reader.");
+        view.AssertInvariants(owner._recordBuffer);
 
         _data = ref data;
         _owner = owner;
@@ -84,7 +84,7 @@ public readonly ref struct CsvRecordRef<T>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+            Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
 
             // call indexer first to get bounds checks
             uint current = _fields[index];
@@ -97,14 +97,13 @@ public readonly ref struct CsvRecordRef<T>
             ref T startRef = ref Unsafe.Add(ref _data, start);
 
             // trimming check is 100% predictable
-            if (_owner._dialect.Trimming != 0 || (int)(current << 2) < 0)
+            if (_owner.Trimming != 0 || (int)(current << 2) < 0)
             {
                 return Field.GetValue((int)start, current, ref _data, _owner);
             }
 
             Check.GreaterThanOrEqual(end, start, "Malformed fields");
 
-            // if MSB (quoting) is not set, we don't need to mask the end at all
             return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
         }
     }
@@ -117,13 +116,14 @@ public readonly ref struct CsvRecordRef<T>
     /// <remarks>
     /// The returned span is only guaranteed to be valid until another field or the next record is read.<br/>
     /// This method does not perform any bounds checking on <paramref name="index"/>, and is only intended to be used
-    /// by internal code and the source generator.
+    /// by internal code and the source generator, or after validating <see cref="FieldCount"/>.
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetFieldUnsafe(int index)
     {
-        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+        Check.LessThanOrEqual((uint)index, (uint)_fields.Length, "Index out of range");
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
 
         ref uint fieldRef = ref MemoryMarshal.GetReference(_fields);
         uint previous = Unsafe.Add(ref fieldRef, index - 1);
@@ -136,7 +136,7 @@ public readonly ref struct CsvRecordRef<T>
         int length = (int)(end - start);
 
         // trimming check is 100% predictable
-        if (_owner._dialect.Trimming != 0 || (int)(current << 2) < 0)
+        if (_owner.Trimming != 0 || (int)(current << 2) < 0)
         {
             return Field.GetValue((int)start, current, ref _data, _owner);
         }
@@ -156,7 +156,7 @@ public readonly ref struct CsvRecordRef<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<T> GetRawSpan(int index)
     {
-        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
 
         // call indexer first to get bounds checks
         uint current = _fields[index];
@@ -173,15 +173,82 @@ public readonly ref struct CsvRecordRef<T>
     }
 
     /// <summary>
+    /// Validates quotes in the fields at the specified <paramref name="indexes"/>.
+    /// </summary>
+    /// <param name="indexes">Zero-based indexes of the fields to validate.</param>
+    /// <remarks>
+    /// This method does not perform any bounds checking on <paramref name="indexes"/>, and is only intended to be used
+    /// by internal code and the source generator, or after validating <see cref="FieldCount"/>.
+    /// </remarks>
+    /// <exception cref="Exceptions.CsvFormatException"/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void ValidateFieldsUnsafe(params ReadOnlySpan<int> indexes)
+    {
+        Check.False(indexes.IsEmpty, "Don't call with empty indexes.");
+        Check.False(_owner.AcceptInvalidQuotes, "Cannot validate fields when AcceptInvalidQuotes is enabled.");
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
+        Check.NotEqual(_owner.Quote, default, "Cannot validate fields when Quote is not set.");
+        Check.OneOf(
+            _owner.Options.ValidateQuotes,
+            [CsvQuoteValidation.ValidateUnreadFields, CsvQuoteValidation.ValidateAllRecords],
+            "Invalid quote validation option."
+        );
+
+        ref uint fieldRef = ref MemoryMarshal.GetReference(_fields);
+
+        foreach (int index in indexes)
+        {
+            uint current = Unsafe.Add(ref fieldRef, (uint)index);
+
+            if (Field.IsQuoted(current))
+            {
+                uint previous = Unsafe.Add(ref fieldRef, index - 1);
+                Field.EnsureValid(Field.NextStart(previous), current, ref _data, _owner);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Validates quotes in all fields.
+    /// </summary>
+    /// <exception cref="Exceptions.CsvFormatException"/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void ValidateAllFields()
+    {
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
+
+        if (_owner.AcceptInvalidQuotes || _owner.Quote == default)
+        {
+            return;
+        }
+
+        ReadOnlySpan<uint> local = _fields;
+        ref uint fieldRef = ref MemoryMarshal.GetReference(local);
+
+        for (int i = 0; i < local.Length; i++)
+        {
+            uint current = local[i];
+
+            if (Field.IsQuoted(current))
+            {
+                uint previous = Unsafe.Add(ref fieldRef, i - 1);
+                Field.EnsureValid(Field.NextStart(previous), current, ref _data, _owner);
+            }
+        }
+    }
+
+    /// <summary>
     /// Data of the raw record, not including possible trailing newline.
     /// </summary>
     public ReadOnlySpan<T> Raw
     {
         get
         {
-            Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+            Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
 
-            if (_fields.IsEmpty)
+            if (_fields.IsEmpty) // guard against default(CsvRecordRef)
             {
                 return [];
             }
@@ -201,9 +268,9 @@ public readonly ref struct CsvRecordRef<T>
     /// </summary>
     public int GetRecordLength()
     {
-        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
 
-        if (_fields.IsEmpty)
+        if (_fields.IsEmpty) // guard against default(CsvRecordRef)
         {
             return 0;
         }
@@ -225,7 +292,7 @@ public readonly ref struct CsvRecordRef<T>
     /// </returns>
     public CsvFieldMetadata GetMetadata(int index)
     {
-        Check.False(_owner.IsDisposed, "Cannot create CsvRecordRef from disposed owner.");
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
 
         uint current = _fields[index];
         uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);

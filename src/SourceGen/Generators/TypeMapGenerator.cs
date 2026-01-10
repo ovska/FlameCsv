@@ -66,9 +66,19 @@ internal partial class TypeMapGenerator : IIncrementalGenerator
 
     private static void ExecuteGenerator(SourceProductionContext context, TypeMapModel typeMap)
     {
-        string sourceName = GlobalConstants.GetFileName(typeMap.TypeMap.Name, typeMap.WrappingTypes);
-
-        context.AddSource(sourceName, CreateTypeMap(typeMap, context.CancellationToken));
+#if WRITER_DEBUG
+        try
+        {
+#endif
+            string sourceName = GlobalConstants.GetFileName(typeMap.TypeMap.Name, typeMap.WrappingTypes);
+            context.AddSource(sourceName, CreateTypeMap(typeMap, context.CancellationToken));
+#if WRITER_DEBUG
+        }
+        catch (Exception e)
+        {
+            throw new System.Diagnostics.UnreachableException($"Uncaught {e.GetType().Name}: {e.StackTrace}", e);
+        }
+#endif
     }
 
     private static SourceText CreateTypeMap(TypeMapModel typeMap, CancellationToken cancellationToken)

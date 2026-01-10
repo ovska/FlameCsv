@@ -23,6 +23,7 @@ internal sealed class MemberCsvBinding<T>(int index, MemberData member, string h
         vsb.Append(Type.Name);
         vsb.Append(' ');
         vsb.Append(member.Value.Name);
+        vsb.Append(' ');
     }
 
     protected internal override string DisplayName =>

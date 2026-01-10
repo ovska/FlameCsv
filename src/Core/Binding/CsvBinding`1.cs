@@ -45,11 +45,13 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
         vsb.Append(typeof(T).Name);
         vsb.Append("> Index: ");
         vsb.AppendFormatted(Index);
+        vsb.Append(' ');
 
         PrintDetails(ref vsb);
 
         if (!string.IsNullOrEmpty(Header))
         {
+            vsb.Length--;
             vsb.Append(", Header: \"");
             vsb.Append(Header);
             vsb.Append('"');

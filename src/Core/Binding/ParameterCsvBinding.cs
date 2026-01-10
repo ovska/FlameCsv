@@ -37,6 +37,7 @@ internal sealed class ParameterCsvBinding<T> : CsvBinding<T>
         vsb.Append(Type.Name);
         vsb.Append(' ');
         vsb.Append(Parameter.Name);
+        vsb.Append(' ');
     }
 
     // ReSharper disable once StringLiteralTypo

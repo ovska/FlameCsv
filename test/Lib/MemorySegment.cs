@@ -20,6 +20,22 @@ public static class MemorySegment
 
         return new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
     }
+
+    public static ReadOnlySequence<char> Create(params ReadOnlySpan<ReadOnlyMemory<char>> segments)
+    {
+        if (segments.IsEmpty)
+            return ReadOnlySequence<char>.Empty;
+
+        MemorySegment<char> first = new(segments[0]);
+        MemorySegment<char> last = first;
+
+        for (int i = 1; i < segments.Length; i++)
+        {
+            last = last.Append(segments[i]);
+        }
+
+        return new ReadOnlySequence<char>(first, 0, last, last.Memory.Length);
+    }
 }
 
 public class MemorySegment<T> : ReadOnlySequenceSegment<T>

@@ -70,7 +70,6 @@ internal static class Materializer<T>
 [ExcludeFromCodeCoverage]
 [System.CodeDom.Compiler.GeneratedCode(Messages.T4Template, null)]
 [RDC(Messages.DynamicCode), RUF(Messages.Reflection)]
-[SkipLocalsInit]
 internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult> where T : unmanaged, IBinaryInteger<T>
 {
     public delegate TResult Factory(<#
@@ -85,11 +84,13 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
     #>);
 
     private readonly Factory _valueFactory;
+    private readonly int[] _ignoredIndexes;
 
     public Materializer(Factory valueFactory, CsvBindingCollection<TResult> bindingCollection, CsvOptions<T> options) : base(bindingCollection)
     {
-        _valueFactory = valueFactory;
         ReadOnlySpan<CsvBinding<TResult>> bindings = bindingCollection.Bindings;
+        _valueFactory = valueFactory;
+        _ignoredIndexes = GetIgnoredIndexes(bindings, options);
 <#
         for (var i = 0; i < current; i++)
         {
@@ -102,7 +103,8 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
             Write(ix);
             WriteLine("], options);");
         }
-#>    }
+#>
+}
 
 <#
         for (var i = 0; i < current; i++)
@@ -111,6 +113,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
         }
 #>
 
+    [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
         int index;
@@ -128,6 +131,8 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
             Write(values[i]);
             WriteLine(")) goto Fail;");
         }
+        
+        WriteLine("        if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);");
 
         Write("        return _valueFactory(");
         for (var i = 0; i < current; i++)
