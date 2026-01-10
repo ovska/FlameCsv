@@ -134,6 +134,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         try
         {
             value = _materializer.Parse(input);
+            return true;
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
@@ -142,25 +143,26 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         }
         catch (Exception ex)
         {
-            Check.WrapParseError(ref ex);
+            Check.WrapAssertion(ref ex);
 
             (ex as CsvReadExceptionBase)?.Enrich(input);
             (ex as CsvParseException)?.WithHeader(_headers);
             (ex as CsvReadException)?.ChunkOrder = chunk.Order;
 
-            if (
-                Options.ExceptionHandler?.Invoke(
-                    new CsvExceptionHandlerArgs<T>(in input, _headers, ex, (ex as CsvReadException)?.ExpectedFieldCount)
-                ) == true
-            )
+            if (Options.ExceptionHandler is { } handler)
             {
-                // exception handled; try again
-                value = default;
-                return false;
+                int? expectedFieldCount = (ex as CsvReadException)?.ExpectedFieldCount;
+                CsvExceptionHandlerArgs<T> args = new(in input, _headers, ex, expectedFieldCount);
+
+                if (handler.Invoke(args))
+                {
+                    // exception handled; try again
+                    value = default;
+                    return false;
+                }
             }
 
             throw;
         }
-        return true;
     }
 }

@@ -22,6 +22,9 @@ public class CsvReadException(string? message = null, Exception? innerException 
     /// </summary>
     public required int ActualFieldCount { get; init; }
 
+    /// <summary>
+    /// 0-based parallel chunk index.
+    /// </summary>
     internal int? ChunkOrder { get; set; }
 
     /// <inheritdoc/>
@@ -44,7 +47,7 @@ public class CsvReadException(string? message = null, Exception? innerException 
 
             if (ChunkOrder.HasValue)
             {
-                vsb.Append(", Parallel chunk: ");
+                vsb.Append(", Parallel chunk index: ");
                 vsb.AppendFormatted(ChunkOrder.Value);
             }
 

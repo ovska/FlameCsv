@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
@@ -116,6 +117,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         try
         {
             Current = _materializer.Parse(record);
+            return true;
         }
         catch (CsvFormatException cfe) // unrecoverable
         {
@@ -124,27 +126,25 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         }
         catch (Exception ex)
         {
-            Check.WrapParseError(ref ex);
+            Check.WrapAssertion(ref ex);
 
             (ex as CsvReadExceptionBase)?.Enrich(record);
             (ex as CsvParseException)?.WithHeader(Headers);
 
-            CsvExceptionHandler<T>? handler = _exceptionHandler;
-
-            if (
-                _exceptionHandler?.Invoke(
-                    new CsvExceptionHandlerArgs<T>(in record, Headers, ex, (ex as CsvReadException)?.ExpectedFieldCount)
-                ) == true
-            )
+            if (_exceptionHandler is { } handler)
             {
-                // exception handled; try again
-                return false;
+                int? expectedFieldCount = (ex as CsvReadException)?.ExpectedFieldCount;
+                CsvExceptionHandlerArgs<T> args = new(in record, Headers, ex, expectedFieldCount);
+
+                if (handler.Invoke(args))
+                {
+                    // exception handled; try again
+                    return false;
+                }
             }
 
             throw;
         }
-
-        return true;
     }
 
     /// <summary>
@@ -154,6 +154,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <c>true</c> if the record was consumed, <c>false</c> otherwise.
     /// </returns>
     [MemberNotNull(nameof(_materializer))]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private bool InitializeMaterializerAndTryConsume(CsvRecordRef<T> record)
     {
         if (!Options.HasHeader)

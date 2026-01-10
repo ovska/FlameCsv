@@ -321,7 +321,7 @@ internal static class Check
     /// </summary>
     /// <param name="ex"></param>
     [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
-    public static void WrapParseError(ref Exception ex)
+    public static void WrapAssertion(ref Exception ex)
     {
         if (ex is UnreachableException)
         {
