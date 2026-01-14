@@ -41,6 +41,9 @@ public readonly ref struct CsvRecordRef<T>
     /// <summary>
     /// Gets the number of fields in the record.
     /// </summary>
+    /// <remarks>
+    /// For a valid record, this is never zero.
+    /// </remarks>
     public int FieldCount
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -360,4 +363,26 @@ public readonly ref struct CsvRecordRef<T>
         Check.Equal(Unsafe.SizeOf<CsvRecordRef<T>>(), 32);
     }
 #endif
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal ReadOnlySpan<T> GetFieldUnsafe(ref T data, uint previous, uint current)
+    {
+        Check.Equal(0, Unsafe.ByteOffset(in _data, in data), "Data reference mismatch");
+        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
+
+        uint start = (previous + 1) & Field.EndMask;
+        uint end = current & Field.EndMask;
+
+        ref T startRef = ref Unsafe.Add(ref data, start);
+        int length = (int)(end - start);
+
+        // trimming check is 100% predictable
+        if (_owner.Trimming != 0 || (int)(current << 2) < 0)
+        {
+            return Field.GetValue((int)start, current, ref _data, _owner);
+        }
+
+        Check.GreaterThanOrEqual(end, start, "Malformed fields");
+        return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
+    }
 }

@@ -43,7 +43,7 @@ internal abstract class Materializer<T, TValue> : IMaterializer<T, TValue>
             return null;
         }
 
-        using ValueListBuilder<int> list = new(stackalloc int[32]);
+        using ValueListBuilder<int> list = new(stackalloc int[4]);
 
         foreach (var binding in bindings)
         {
