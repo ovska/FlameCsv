@@ -78,7 +78,7 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult> wh
         _valueFactory = valueFactory;
         _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
 
@@ -89,20 +89,19 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult> wh
 
         Unsafe.SkipInit(out T0 v0);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -130,7 +129,7 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
         _ignoredIndexes = GetIgnoredIndexes(bindings, options);
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -142,24 +141,25 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -189,7 +189,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
         _converter0 = ResolveConverter<T0>(bindings[0], options);
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -202,28 +202,31 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -255,7 +258,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
         _converter1 = ResolveConverter<T1>(bindings[1], options);
         _converter2 = ResolveConverter<T2>(bindings[2], options);
         _converter3 = ResolveConverter<T3>(bindings[3], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -269,32 +272,37 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -328,7 +336,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
         _converter2 = ResolveConverter<T2>(bindings[2], options);
         _converter3 = ResolveConverter<T3>(bindings[3], options);
         _converter4 = ResolveConverter<T4>(bindings[4], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -343,36 +351,43 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -408,7 +423,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
         _converter3 = ResolveConverter<T3>(bindings[3], options);
         _converter4 = ResolveConverter<T4>(bindings[4], options);
         _converter5 = ResolveConverter<T5>(bindings[5], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -424,40 +439,49 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -495,7 +519,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
         _converter4 = ResolveConverter<T4>(bindings[4], options);
         _converter5 = ResolveConverter<T5>(bindings[5], options);
         _converter6 = ResolveConverter<T6>(bindings[6], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -512,44 +536,55 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -589,7 +624,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
         _converter5 = ResolveConverter<T5>(bindings[5], options);
         _converter6 = ResolveConverter<T6>(bindings[6], options);
         _converter7 = ResolveConverter<T7>(bindings[7], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -607,48 +642,61 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -690,7 +738,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
         _converter6 = ResolveConverter<T6>(bindings[6], options);
         _converter7 = ResolveConverter<T7>(bindings[7], options);
         _converter8 = ResolveConverter<T8>(bindings[8], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -709,52 +757,67 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -798,7 +861,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
         _converter7 = ResolveConverter<T7>(bindings[7], options);
         _converter8 = ResolveConverter<T8>(bindings[8], options);
         _converter9 = ResolveConverter<T9>(bindings[9], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -818,56 +881,73 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -913,7 +993,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter8 = ResolveConverter<T8>(bindings[8], options);
         _converter9 = ResolveConverter<T9>(bindings[9], options);
         _converter10 = ResolveConverter<T10>(bindings[10], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -934,60 +1014,79 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1035,7 +1134,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter9 = ResolveConverter<T9>(bindings[9], options);
         _converter10 = ResolveConverter<T10>(bindings[10], options);
         _converter11 = ResolveConverter<T11>(bindings[11], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1057,64 +1156,85 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1164,7 +1284,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter10 = ResolveConverter<T10>(bindings[10], options);
         _converter11 = ResolveConverter<T11>(bindings[11], options);
         _converter12 = ResolveConverter<T12>(bindings[12], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1187,68 +1307,91 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1300,7 +1443,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter11 = ResolveConverter<T11>(bindings[11], options);
         _converter12 = ResolveConverter<T12>(bindings[12], options);
         _converter13 = ResolveConverter<T13>(bindings[13], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1324,72 +1467,97 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1443,7 +1611,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter12 = ResolveConverter<T12>(bindings[12], options);
         _converter13 = ResolveConverter<T13>(bindings[13], options);
         _converter14 = ResolveConverter<T14>(bindings[14], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1468,76 +1636,103 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1593,7 +1788,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter13 = ResolveConverter<T13>(bindings[13], options);
         _converter14 = ResolveConverter<T14>(bindings[14], options);
         _converter15 = ResolveConverter<T15>(bindings[15], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1619,80 +1814,109 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1750,7 +1974,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter14 = ResolveConverter<T14>(bindings[14], options);
         _converter15 = ResolveConverter<T15>(bindings[15], options);
         _converter16 = ResolveConverter<T16>(bindings[16], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1777,84 +2001,115 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -1914,7 +2169,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter15 = ResolveConverter<T15>(bindings[15], options);
         _converter16 = ResolveConverter<T16>(bindings[16], options);
         _converter17 = ResolveConverter<T17>(bindings[17], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -1942,88 +2197,121 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -2085,7 +2373,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter16 = ResolveConverter<T16>(bindings[16], options);
         _converter17 = ResolveConverter<T17>(bindings[17], options);
         _converter18 = ResolveConverter<T18>(bindings[18], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -2114,92 +2402,127 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
         uint f19 = Unsafe.Add(ref fields, 18);
-        if (typeof(T18) != typeof(CsvIgnored) && !_converter18.TryParse(record.GetFieldUnsafe(ref data, f18, f19), out v18))
-        { index = 18; goto Fail; }
-
+        if (typeof(T18) != typeof(CsvIgnored))
+        {
+            bool result18 = _converter18.TryParse(record.GetFieldUnsafe(f18, f19), out v18);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result18) << 18);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -2263,7 +2586,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter17 = ResolveConverter<T17>(bindings[17], options);
         _converter18 = ResolveConverter<T18>(bindings[18], options);
         _converter19 = ResolveConverter<T19>(bindings[19], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -2293,96 +2616,133 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
         uint f19 = Unsafe.Add(ref fields, 18);
-        if (typeof(T18) != typeof(CsvIgnored) && !_converter18.TryParse(record.GetFieldUnsafe(ref data, f18, f19), out v18))
-        { index = 18; goto Fail; }
-
+        if (typeof(T18) != typeof(CsvIgnored))
+        {
+            bool result18 = _converter18.TryParse(record.GetFieldUnsafe(f18, f19), out v18);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result18) << 18);
+        }
         uint f20 = Unsafe.Add(ref fields, 19);
-        if (typeof(T19) != typeof(CsvIgnored) && !_converter19.TryParse(record.GetFieldUnsafe(ref data, f19, f20), out v19))
-        { index = 19; goto Fail; }
-
+        if (typeof(T19) != typeof(CsvIgnored))
+        {
+            bool result19 = _converter19.TryParse(record.GetFieldUnsafe(f19, f20), out v19);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result19) << 19);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -2448,7 +2808,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter18 = ResolveConverter<T18>(bindings[18], options);
         _converter19 = ResolveConverter<T19>(bindings[19], options);
         _converter20 = ResolveConverter<T20>(bindings[20], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -2479,100 +2839,139 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
         uint f19 = Unsafe.Add(ref fields, 18);
-        if (typeof(T18) != typeof(CsvIgnored) && !_converter18.TryParse(record.GetFieldUnsafe(ref data, f18, f19), out v18))
-        { index = 18; goto Fail; }
-
+        if (typeof(T18) != typeof(CsvIgnored))
+        {
+            bool result18 = _converter18.TryParse(record.GetFieldUnsafe(f18, f19), out v18);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result18) << 18);
+        }
         uint f20 = Unsafe.Add(ref fields, 19);
-        if (typeof(T19) != typeof(CsvIgnored) && !_converter19.TryParse(record.GetFieldUnsafe(ref data, f19, f20), out v19))
-        { index = 19; goto Fail; }
-
+        if (typeof(T19) != typeof(CsvIgnored))
+        {
+            bool result19 = _converter19.TryParse(record.GetFieldUnsafe(f19, f20), out v19);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result19) << 19);
+        }
         uint f21 = Unsafe.Add(ref fields, 20);
-        if (typeof(T20) != typeof(CsvIgnored) && !_converter20.TryParse(record.GetFieldUnsafe(ref data, f20, f21), out v20))
-        { index = 20; goto Fail; }
-
+        if (typeof(T20) != typeof(CsvIgnored))
+        {
+            bool result20 = _converter20.TryParse(record.GetFieldUnsafe(f20, f21), out v20);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result20) << 20);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -2640,7 +3039,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter19 = ResolveConverter<T19>(bindings[19], options);
         _converter20 = ResolveConverter<T20>(bindings[20], options);
         _converter21 = ResolveConverter<T21>(bindings[21], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -2672,104 +3071,145 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20); Unsafe.SkipInit(out T21 v21);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
         uint f19 = Unsafe.Add(ref fields, 18);
-        if (typeof(T18) != typeof(CsvIgnored) && !_converter18.TryParse(record.GetFieldUnsafe(ref data, f18, f19), out v18))
-        { index = 18; goto Fail; }
-
+        if (typeof(T18) != typeof(CsvIgnored))
+        {
+            bool result18 = _converter18.TryParse(record.GetFieldUnsafe(f18, f19), out v18);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result18) << 18);
+        }
         uint f20 = Unsafe.Add(ref fields, 19);
-        if (typeof(T19) != typeof(CsvIgnored) && !_converter19.TryParse(record.GetFieldUnsafe(ref data, f19, f20), out v19))
-        { index = 19; goto Fail; }
-
+        if (typeof(T19) != typeof(CsvIgnored))
+        {
+            bool result19 = _converter19.TryParse(record.GetFieldUnsafe(f19, f20), out v19);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result19) << 19);
+        }
         uint f21 = Unsafe.Add(ref fields, 20);
-        if (typeof(T20) != typeof(CsvIgnored) && !_converter20.TryParse(record.GetFieldUnsafe(ref data, f20, f21), out v20))
-        { index = 20; goto Fail; }
-
+        if (typeof(T20) != typeof(CsvIgnored))
+        {
+            bool result20 = _converter20.TryParse(record.GetFieldUnsafe(f20, f21), out v20);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result20) << 20);
+        }
         uint f22 = Unsafe.Add(ref fields, 21);
-        if (typeof(T21) != typeof(CsvIgnored) && !_converter21.TryParse(record.GetFieldUnsafe(ref data, f21, f22), out v21))
-        { index = 21; goto Fail; }
-
+        if (typeof(T21) != typeof(CsvIgnored))
+        {
+            bool result21 = _converter21.TryParse(record.GetFieldUnsafe(f21, f22), out v21);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result21) << 21);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -2839,7 +3279,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter20 = ResolveConverter<T20>(bindings[20], options);
         _converter21 = ResolveConverter<T21>(bindings[21], options);
         _converter22 = ResolveConverter<T22>(bindings[22], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -2872,108 +3312,151 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20); Unsafe.SkipInit(out T21 v21); Unsafe.SkipInit(out T22 v22);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
         uint f19 = Unsafe.Add(ref fields, 18);
-        if (typeof(T18) != typeof(CsvIgnored) && !_converter18.TryParse(record.GetFieldUnsafe(ref data, f18, f19), out v18))
-        { index = 18; goto Fail; }
-
+        if (typeof(T18) != typeof(CsvIgnored))
+        {
+            bool result18 = _converter18.TryParse(record.GetFieldUnsafe(f18, f19), out v18);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result18) << 18);
+        }
         uint f20 = Unsafe.Add(ref fields, 19);
-        if (typeof(T19) != typeof(CsvIgnored) && !_converter19.TryParse(record.GetFieldUnsafe(ref data, f19, f20), out v19))
-        { index = 19; goto Fail; }
-
+        if (typeof(T19) != typeof(CsvIgnored))
+        {
+            bool result19 = _converter19.TryParse(record.GetFieldUnsafe(f19, f20), out v19);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result19) << 19);
+        }
         uint f21 = Unsafe.Add(ref fields, 20);
-        if (typeof(T20) != typeof(CsvIgnored) && !_converter20.TryParse(record.GetFieldUnsafe(ref data, f20, f21), out v20))
-        { index = 20; goto Fail; }
-
+        if (typeof(T20) != typeof(CsvIgnored))
+        {
+            bool result20 = _converter20.TryParse(record.GetFieldUnsafe(f20, f21), out v20);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result20) << 20);
+        }
         uint f22 = Unsafe.Add(ref fields, 21);
-        if (typeof(T21) != typeof(CsvIgnored) && !_converter21.TryParse(record.GetFieldUnsafe(ref data, f21, f22), out v21))
-        { index = 21; goto Fail; }
-
+        if (typeof(T21) != typeof(CsvIgnored))
+        {
+            bool result21 = _converter21.TryParse(record.GetFieldUnsafe(f21, f22), out v21);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result21) << 21);
+        }
         uint f23 = Unsafe.Add(ref fields, 22);
-        if (typeof(T22) != typeof(CsvIgnored) && !_converter22.TryParse(record.GetFieldUnsafe(ref data, f22, f23), out v22))
-        { index = 22; goto Fail; }
-
+        if (typeof(T22) != typeof(CsvIgnored))
+        {
+            bool result22 = _converter22.TryParse(record.GetFieldUnsafe(f22, f23), out v22);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result22) << 22);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch
@@ -3045,7 +3528,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
         _converter21 = ResolveConverter<T21>(bindings[21], options);
         _converter22 = ResolveConverter<T22>(bindings[22], options);
         _converter23 = ResolveConverter<T23>(bindings[23], options);
-}
+    }
 
     private readonly CsvConverter<T, T0> _converter0;
     private readonly CsvConverter<T, T1> _converter1;
@@ -3079,112 +3562,157 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20); Unsafe.SkipInit(out T21 v21); Unsafe.SkipInit(out T22 v22); Unsafe.SkipInit(out T23 v23);
 
-        int index;
-        ref T data = ref record._data;
         ref uint fields = ref MemoryMarshal.GetReference(record._fields);
+        uint failureFlags = 0;
 
         uint f0 = Unsafe.Add(ref fields, -1);
         uint f1 = Unsafe.Add(ref fields, 0);
-        if (typeof(T0) != typeof(CsvIgnored) && !_converter0.TryParse(record.GetFieldUnsafe(ref data, f0, f1), out v0))
-        { index = 0; goto Fail; }
-
+        if (typeof(T0) != typeof(CsvIgnored))
+        {
+            bool result0 = _converter0.TryParse(record.GetFieldUnsafe(f0, f1), out v0);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result0) << 0);
+        }
         uint f2 = Unsafe.Add(ref fields, 1);
-        if (typeof(T1) != typeof(CsvIgnored) && !_converter1.TryParse(record.GetFieldUnsafe(ref data, f1, f2), out v1))
-        { index = 1; goto Fail; }
-
+        if (typeof(T1) != typeof(CsvIgnored))
+        {
+            bool result1 = _converter1.TryParse(record.GetFieldUnsafe(f1, f2), out v1);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result1) << 1);
+        }
         uint f3 = Unsafe.Add(ref fields, 2);
-        if (typeof(T2) != typeof(CsvIgnored) && !_converter2.TryParse(record.GetFieldUnsafe(ref data, f2, f3), out v2))
-        { index = 2; goto Fail; }
-
+        if (typeof(T2) != typeof(CsvIgnored))
+        {
+            bool result2 = _converter2.TryParse(record.GetFieldUnsafe(f2, f3), out v2);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result2) << 2);
+        }
         uint f4 = Unsafe.Add(ref fields, 3);
-        if (typeof(T3) != typeof(CsvIgnored) && !_converter3.TryParse(record.GetFieldUnsafe(ref data, f3, f4), out v3))
-        { index = 3; goto Fail; }
-
+        if (typeof(T3) != typeof(CsvIgnored))
+        {
+            bool result3 = _converter3.TryParse(record.GetFieldUnsafe(f3, f4), out v3);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result3) << 3);
+        }
         uint f5 = Unsafe.Add(ref fields, 4);
-        if (typeof(T4) != typeof(CsvIgnored) && !_converter4.TryParse(record.GetFieldUnsafe(ref data, f4, f5), out v4))
-        { index = 4; goto Fail; }
-
+        if (typeof(T4) != typeof(CsvIgnored))
+        {
+            bool result4 = _converter4.TryParse(record.GetFieldUnsafe(f4, f5), out v4);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result4) << 4);
+        }
         uint f6 = Unsafe.Add(ref fields, 5);
-        if (typeof(T5) != typeof(CsvIgnored) && !_converter5.TryParse(record.GetFieldUnsafe(ref data, f5, f6), out v5))
-        { index = 5; goto Fail; }
-
+        if (typeof(T5) != typeof(CsvIgnored))
+        {
+            bool result5 = _converter5.TryParse(record.GetFieldUnsafe(f5, f6), out v5);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result5) << 5);
+        }
         uint f7 = Unsafe.Add(ref fields, 6);
-        if (typeof(T6) != typeof(CsvIgnored) && !_converter6.TryParse(record.GetFieldUnsafe(ref data, f6, f7), out v6))
-        { index = 6; goto Fail; }
-
+        if (typeof(T6) != typeof(CsvIgnored))
+        {
+            bool result6 = _converter6.TryParse(record.GetFieldUnsafe(f6, f7), out v6);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result6) << 6);
+        }
         uint f8 = Unsafe.Add(ref fields, 7);
-        if (typeof(T7) != typeof(CsvIgnored) && !_converter7.TryParse(record.GetFieldUnsafe(ref data, f7, f8), out v7))
-        { index = 7; goto Fail; }
-
+        if (typeof(T7) != typeof(CsvIgnored))
+        {
+            bool result7 = _converter7.TryParse(record.GetFieldUnsafe(f7, f8), out v7);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result7) << 7);
+        }
         uint f9 = Unsafe.Add(ref fields, 8);
-        if (typeof(T8) != typeof(CsvIgnored) && !_converter8.TryParse(record.GetFieldUnsafe(ref data, f8, f9), out v8))
-        { index = 8; goto Fail; }
-
+        if (typeof(T8) != typeof(CsvIgnored))
+        {
+            bool result8 = _converter8.TryParse(record.GetFieldUnsafe(f8, f9), out v8);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result8) << 8);
+        }
         uint f10 = Unsafe.Add(ref fields, 9);
-        if (typeof(T9) != typeof(CsvIgnored) && !_converter9.TryParse(record.GetFieldUnsafe(ref data, f9, f10), out v9))
-        { index = 9; goto Fail; }
-
+        if (typeof(T9) != typeof(CsvIgnored))
+        {
+            bool result9 = _converter9.TryParse(record.GetFieldUnsafe(f9, f10), out v9);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result9) << 9);
+        }
         uint f11 = Unsafe.Add(ref fields, 10);
-        if (typeof(T10) != typeof(CsvIgnored) && !_converter10.TryParse(record.GetFieldUnsafe(ref data, f10, f11), out v10))
-        { index = 10; goto Fail; }
-
+        if (typeof(T10) != typeof(CsvIgnored))
+        {
+            bool result10 = _converter10.TryParse(record.GetFieldUnsafe(f10, f11), out v10);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result10) << 10);
+        }
         uint f12 = Unsafe.Add(ref fields, 11);
-        if (typeof(T11) != typeof(CsvIgnored) && !_converter11.TryParse(record.GetFieldUnsafe(ref data, f11, f12), out v11))
-        { index = 11; goto Fail; }
-
+        if (typeof(T11) != typeof(CsvIgnored))
+        {
+            bool result11 = _converter11.TryParse(record.GetFieldUnsafe(f11, f12), out v11);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result11) << 11);
+        }
         uint f13 = Unsafe.Add(ref fields, 12);
-        if (typeof(T12) != typeof(CsvIgnored) && !_converter12.TryParse(record.GetFieldUnsafe(ref data, f12, f13), out v12))
-        { index = 12; goto Fail; }
-
+        if (typeof(T12) != typeof(CsvIgnored))
+        {
+            bool result12 = _converter12.TryParse(record.GetFieldUnsafe(f12, f13), out v12);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result12) << 12);
+        }
         uint f14 = Unsafe.Add(ref fields, 13);
-        if (typeof(T13) != typeof(CsvIgnored) && !_converter13.TryParse(record.GetFieldUnsafe(ref data, f13, f14), out v13))
-        { index = 13; goto Fail; }
-
+        if (typeof(T13) != typeof(CsvIgnored))
+        {
+            bool result13 = _converter13.TryParse(record.GetFieldUnsafe(f13, f14), out v13);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result13) << 13);
+        }
         uint f15 = Unsafe.Add(ref fields, 14);
-        if (typeof(T14) != typeof(CsvIgnored) && !_converter14.TryParse(record.GetFieldUnsafe(ref data, f14, f15), out v14))
-        { index = 14; goto Fail; }
-
+        if (typeof(T14) != typeof(CsvIgnored))
+        {
+            bool result14 = _converter14.TryParse(record.GetFieldUnsafe(f14, f15), out v14);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result14) << 14);
+        }
         uint f16 = Unsafe.Add(ref fields, 15);
-        if (typeof(T15) != typeof(CsvIgnored) && !_converter15.TryParse(record.GetFieldUnsafe(ref data, f15, f16), out v15))
-        { index = 15; goto Fail; }
-
+        if (typeof(T15) != typeof(CsvIgnored))
+        {
+            bool result15 = _converter15.TryParse(record.GetFieldUnsafe(f15, f16), out v15);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result15) << 15);
+        }
         uint f17 = Unsafe.Add(ref fields, 16);
-        if (typeof(T16) != typeof(CsvIgnored) && !_converter16.TryParse(record.GetFieldUnsafe(ref data, f16, f17), out v16))
-        { index = 16; goto Fail; }
-
+        if (typeof(T16) != typeof(CsvIgnored))
+        {
+            bool result16 = _converter16.TryParse(record.GetFieldUnsafe(f16, f17), out v16);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result16) << 16);
+        }
         uint f18 = Unsafe.Add(ref fields, 17);
-        if (typeof(T17) != typeof(CsvIgnored) && !_converter17.TryParse(record.GetFieldUnsafe(ref data, f17, f18), out v17))
-        { index = 17; goto Fail; }
-
+        if (typeof(T17) != typeof(CsvIgnored))
+        {
+            bool result17 = _converter17.TryParse(record.GetFieldUnsafe(f17, f18), out v17);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result17) << 17);
+        }
         uint f19 = Unsafe.Add(ref fields, 18);
-        if (typeof(T18) != typeof(CsvIgnored) && !_converter18.TryParse(record.GetFieldUnsafe(ref data, f18, f19), out v18))
-        { index = 18; goto Fail; }
-
+        if (typeof(T18) != typeof(CsvIgnored))
+        {
+            bool result18 = _converter18.TryParse(record.GetFieldUnsafe(f18, f19), out v18);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result18) << 18);
+        }
         uint f20 = Unsafe.Add(ref fields, 19);
-        if (typeof(T19) != typeof(CsvIgnored) && !_converter19.TryParse(record.GetFieldUnsafe(ref data, f19, f20), out v19))
-        { index = 19; goto Fail; }
-
+        if (typeof(T19) != typeof(CsvIgnored))
+        {
+            bool result19 = _converter19.TryParse(record.GetFieldUnsafe(f19, f20), out v19);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result19) << 19);
+        }
         uint f21 = Unsafe.Add(ref fields, 20);
-        if (typeof(T20) != typeof(CsvIgnored) && !_converter20.TryParse(record.GetFieldUnsafe(ref data, f20, f21), out v20))
-        { index = 20; goto Fail; }
-
+        if (typeof(T20) != typeof(CsvIgnored))
+        {
+            bool result20 = _converter20.TryParse(record.GetFieldUnsafe(f20, f21), out v20);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result20) << 20);
+        }
         uint f22 = Unsafe.Add(ref fields, 21);
-        if (typeof(T21) != typeof(CsvIgnored) && !_converter21.TryParse(record.GetFieldUnsafe(ref data, f21, f22), out v21))
-        { index = 21; goto Fail; }
-
+        if (typeof(T21) != typeof(CsvIgnored))
+        {
+            bool result21 = _converter21.TryParse(record.GetFieldUnsafe(f21, f22), out v21);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result21) << 21);
+        }
         uint f23 = Unsafe.Add(ref fields, 22);
-        if (typeof(T22) != typeof(CsvIgnored) && !_converter22.TryParse(record.GetFieldUnsafe(ref data, f22, f23), out v22))
-        { index = 22; goto Fail; }
-
+        if (typeof(T22) != typeof(CsvIgnored))
+        {
+            bool result22 = _converter22.TryParse(record.GetFieldUnsafe(f22, f23), out v22);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result22) << 22);
+        }
         uint f24 = Unsafe.Add(ref fields, 23);
-        if (typeof(T23) != typeof(CsvIgnored) && !_converter23.TryParse(record.GetFieldUnsafe(ref data, f23, f24), out v23))
-        { index = 23; goto Fail; }
-
+        if (typeof(T23) != typeof(CsvIgnored))
+        {
+            bool result23 = _converter23.TryParse(record.GetFieldUnsafe(f23, f24), out v23);
+            failureFlags |= ((uint)Unsafe.BitCast<bool, byte>(!result23) << 23);
+        }
+        if (failureFlags != 0) ThrowParseException(failureFlags);
         if (_ignoredIndexes is not null) record.ValidateFieldsUnsafe(_ignoredIndexes);
         return _valueFactory(v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19, v20, v21, v22, v23);
-
-        Fail:
-        return ThrowParseException(index);
     }
 
     protected override (Type type, object converter) GetExceptionMetadata(int index) => index switch

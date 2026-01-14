@@ -30,7 +30,7 @@ public readonly struct CsvFieldMetadata
     /// <summary>
     /// Returns <c>true</c> if the field has quotes; otherwise, <c>false</c>.
     /// </summary>
-    public bool HasQuotes => (int)(_value << 2) < 0;
+    public bool HasQuotes => Field.IsQuoted(_value);
 
     /// <summary>
     /// Returns <c>true</c> if the field needs unescaping; otherwise, <c>false</c>.
@@ -38,5 +38,5 @@ public readonly struct CsvFieldMetadata
     /// <remarks>
     /// If this is <c>true</c>, <see cref="HasQuotes"/> is also <c>true</c>.
     /// </remarks>
-    public bool NeedsUnescaping => (int)(_value << 3) < 0;
+    public bool NeedsUnescaping => (_value & Field.NeedsUnescapingMask) != 0;
 }

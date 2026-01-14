@@ -166,7 +166,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
 
         Check.GreaterThanOrEqual(end, start, "Malformed field");
 
-        if (reader.Trimming == 0 && (int)(current << 2) >= 0)
+        if (reader.Trimming == 0 && !Field.IsQuoted(current))
         {
             return dataSpan[start..end];
         }

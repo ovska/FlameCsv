@@ -2,6 +2,7 @@
 using System.Runtime.CompilerServices;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
+using FlameCsv.Intrinsics;
 using FlameCsv.Utilities;
 
 namespace FlameCsv.Reading;
@@ -22,17 +23,13 @@ internal abstract class Materializer<T, TValue> : IMaterializer<T, TValue>
         CsvOptions<T> options
     )
     {
-        if (binding.IsIgnored)
+        if (typeof(TConverted) == typeof(CsvIgnored))
         {
-            Check.Equal(
-                typeof(TConverted),
-                typeof(CsvIgnored),
-                $"Wrong converter type for ignored binding: {typeof(TConverted).FullName}"
-            );
-
+            Check.True(true, $"Invalid ignored binding: {binding}");
             return CsvIgnored.Converter<T, TConverted>();
         }
 
+        Check.False(binding.IsIgnored, $"Binding is ignored: {binding}");
         return binding.ResolveConverter<T, TConverted>(options) ?? options.GetConverter<TConverted>();
     }
 
@@ -67,11 +64,47 @@ internal abstract class Materializer<T, TValue> : IMaterializer<T, TValue>
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [DoesNotReturn]
-    protected TValue ThrowParseException(int index)
+    protected TValue ThrowParseException(uint flags)
     {
+        Check.NotEqual(flags, 0u, "No parse failures to report?");
+
+        int index = BitOperations.TrailingZeroCount(flags);
+
         string name = _bindings.Bindings[index].DisplayName;
         (Type type, object converter) = GetExceptionMetadata(index);
-        CsvParseException.Throw(index, type, converter, name);
-        return default; // unreachable
+
+        var vsb = new ValueStringBuilder();
+        vsb.Append("Failed to parse ");
+        vsb.Append(type.Name);
+        vsb.Append(' ');
+        vsb.Append(name);
+        vsb.Append(" using ");
+        vsb.Append(converter.GetType().Name);
+
+        if ((flags = Bithacks.ResetLowestSetBit(flags)) != 0)
+        {
+            vsb.Append(", (additional unparsable fields:");
+
+            do
+            {
+                vsb.Append(' ');
+                vsb.AppendFormatted(BitOperations.TrailingZeroCount(flags));
+                vsb.Append(',');
+                flags = Bithacks.ResetLowestSetBit(flags);
+            } while (flags != 0);
+
+            vsb.Length--;
+            vsb.Append(')');
+        }
+
+        vsb.Append('.');
+
+        throw new CsvParseException(vsb.ToString())
+        {
+            Converter = converter,
+            FieldIndex = index,
+            Target = name,
+            TargetType = type,
+        };
     }
 }

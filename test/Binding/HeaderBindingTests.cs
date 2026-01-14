@@ -72,10 +72,17 @@ public static partial class HeaderBindingTests
     [Fact]
     public static void Should_Include_Name_In_Exception_Message()
     {
-        var ex = Record.Exception(() => Csv.From("IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n").Read<Shim>().ToList());
+        const string data = "IsEnabled,Name,_targeted\r\ntrue,name,\0\r\n";
+        var ex = Record.Exception(() => Csv.From(data).Read<Shim>().ToList()) as CsvParseException;
 
-        Assert.IsType<CsvParseException>(ex);
+        Assert.NotNull(ex);
         Assert.Contains("Targeted", ex.Message, StringComparison.Ordinal);
+        Assert.Equal("_targeted", ex.HeaderValue);
+        Assert.Equal(2, ex.FieldIndex);
+        Assert.Equal(typeof(int), ex.TargetType);
+        Assert.Equal(2, ex.Line);
+        Assert.Equal("IsEnabled,Name,_targeted\r\n".Length, ex.RecordPosition);
+        Assert.Equal("IsEnabled,Name,_targeted\r\ntrue,name,".Length, ex.FieldPosition);
     }
 
     [Fact]

@@ -60,7 +60,14 @@ internal static partial class Field
     public static int End(uint field) => (int)(field & EndMask);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsQuoted(uint field) => (int)(field << 2) < 0; // move quote bit to MSB
+    public static bool IsQuoted(uint field) => (field & IsQuotedMask) != 0;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static ReadOnlySpan<T> GetValue2<T>(uint previous, uint current, ref T data, RecordOwner<T> owner)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        return GetValue(NextStart(previous), current, ref data, owner);
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static ReadOnlySpan<T> GetValue<T>(int start, uint endAndMasks, ref T data, RecordOwner<T> owner)
@@ -76,8 +83,7 @@ internal static partial class Field
         ref T first = ref Unsafe.Add(ref data, (uint)start);
         int length = end - start;
 
-        // move quoting to MSB for fast check
-        if ((int)(endAndMasks << 2) >= 0)
+        if (!IsQuoted(endAndMasks))
         {
             goto Done;
         }

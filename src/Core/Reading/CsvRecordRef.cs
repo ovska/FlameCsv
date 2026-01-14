@@ -100,7 +100,7 @@ public readonly ref struct CsvRecordRef<T>
             ref T startRef = ref Unsafe.Add(ref _data, start);
 
             // trimming check is 100% predictable
-            if (_owner.Trimming != 0 || (int)(current << 2) < 0)
+            if (_owner.Trimming != 0 || Field.IsQuoted(current))
             {
                 return Field.GetValue((int)start, current, ref _data, _owner);
             }
@@ -139,7 +139,7 @@ public readonly ref struct CsvRecordRef<T>
         int length = (int)(end - start);
 
         // trimming check is 100% predictable
-        if (_owner.Trimming != 0 || (int)(current << 2) < 0)
+        if (_owner.Trimming != 0 || Field.IsQuoted(current))
         {
             return Field.GetValue((int)start, current, ref _data, _owner);
         }
@@ -365,22 +365,21 @@ public readonly ref struct CsvRecordRef<T>
 #endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal ReadOnlySpan<T> GetFieldUnsafe(ref T data, uint previous, uint current)
+    internal ReadOnlySpan<T> GetFieldUnsafe(uint previous, uint current)
     {
-        Check.Equal(0, Unsafe.ByteOffset(in _data, in data), "Data reference mismatch");
         Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
+
+        // trimming check is 100% predictable
+        if (_owner.Trimming != 0 || Field.IsQuoted(current))
+        {
+            return Field.GetValue2(previous, current, ref _data, _owner);
+        }
 
         uint start = (previous + 1) & Field.EndMask;
         uint end = current & Field.EndMask;
 
-        ref T startRef = ref Unsafe.Add(ref data, start);
+        ref T startRef = ref Unsafe.Add(ref _data, start);
         int length = (int)(end - start);
-
-        // trimming check is 100% predictable
-        if (_owner.Trimming != 0 || (int)(current << 2) < 0)
-        {
-            return Field.GetValue((int)start, current, ref _data, _owner);
-        }
 
         Check.GreaterThanOrEqual(end, start, "Malformed fields");
         return MemoryMarshal.CreateReadOnlySpan(ref startRef, length);
