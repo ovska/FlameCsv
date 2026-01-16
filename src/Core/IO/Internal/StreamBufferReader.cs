@@ -12,14 +12,11 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
         _leaveOpen = options.LeaveOpen;
     }
 
-    public override bool TryReset()
+    protected override bool TryResetCore()
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-
         if (_stream.CanSeek)
         {
             _stream.Seek(0, SeekOrigin.Begin);
-            Position = 0;
             return true;
         }
 

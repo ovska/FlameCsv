@@ -12,18 +12,7 @@ internal sealed class TextBufferReader : CsvBufferReader<char>
         _leaveOpen = options.LeaveOpen;
     }
 
-    public override bool TryReset()
-    {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-
-        if (ReferenceEquals(_reader, TextReader.Null))
-        {
-            Position = 0;
-            return true;
-        }
-
-        return false;
-    }
+    protected override bool TryResetCore() => false;
 
     protected override int ReadCore(Span<char> buffer)
     {

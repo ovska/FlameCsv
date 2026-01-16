@@ -10,14 +10,27 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
     /// Attempts to reset the inner data source to the beginning.
     /// </summary>
     /// <returns><c>true</c> if the data source was reset successfully; otherwise, <c>false</c>.</returns>
-    public abstract bool TryReset();
+    public bool TryReset()
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+
+        if (TryResetCore())
+        {
+            Position = 0;
+            return true;
+        }
+
+        return false;
+    }
+
+    protected abstract bool TryResetCore();
 
     /// <summary>
     /// Reads data from the inner data source into the provided buffer.
     /// </summary>
     protected abstract int ReadCore(Span<T> buffer);
 
-    public long Position { get; protected set; }
+    public long Position { get; private set; }
 
     /// <inheritdoc cref="ReadCore"/>
     protected abstract ValueTask<int> ReadAsyncCore(Memory<T> buffer, CancellationToken cancellationToken);

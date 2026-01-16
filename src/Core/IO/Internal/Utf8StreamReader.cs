@@ -90,7 +90,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
                 if (_endOfStream)
                     break;
 
-                int bytesRead = _stream.Read(localBuffer.Slice(_count, localBuffer.Length - _count));
+                int bytesRead = _stream.Read(localBuffer.Slice(_count));
 
                 if (bytesRead == 0)
                 {
@@ -201,10 +201,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         _preambleRead = true;
     }
 
-    public override bool TryReset()
+    protected override bool TryResetCore()
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-
         if (_stream.CanSeek)
         {
             _stream.Position = 0;
@@ -220,7 +218,9 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     protected override void DisposeCore()
     {
         _bufferOwner.Dispose();
-        _stream.Dispose();
+
+        if (!_leaveOpen)
+            _stream.Dispose();
     }
 
     protected override ValueTask DisposeAsyncCore()

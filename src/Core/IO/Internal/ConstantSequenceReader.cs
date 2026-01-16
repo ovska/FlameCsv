@@ -11,28 +11,28 @@ internal sealed class ConstantSequenceReader<T> : CsvBufferReader<T>
     public ConstantSequenceReader(in ReadOnlySequence<T> data, in CsvIOOptions options)
         : base(in options)
     {
+        Check.False(data.IsSingleSegment, "Data must be multi-segment.");
         _data = data;
         _originalData = data;
     }
 
-    public override bool TryReset()
+    protected override bool TryResetCore()
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
         _data = _originalData;
-        Position = 0;
         return true;
     }
 
     protected override int ReadCore(Span<T> buffer)
     {
-        int dataLength = (int)long.Min(int.MaxValue, _data.Length);
+        int length = (int)long.Min(_data.Length, buffer.Length);
 
-        if (dataLength == 0)
-            return 0;
+        if (length != 0)
+        {
+            SequencePosition position = _data.GetPosition(length);
+            _data.Slice(0, position).CopyTo(buffer);
+            _data = _data.Slice(position);
+        }
 
-        int length = Math.Min(dataLength, buffer.Length);
-        _data.Slice(0, length).CopyTo(buffer);
-        _data = _data.Slice(length);
         return length;
     }
 
