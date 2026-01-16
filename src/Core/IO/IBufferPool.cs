@@ -60,16 +60,16 @@ internal static class BufferPoolExtensions
         if (minimumLength == 0)
             return Memory<T>.Empty;
 
-        Memory<T> currentMemory = memoryOwner?.Memory ?? Memory<T>.Empty;
+        if (memoryOwner is null)
+        {
+            return (memoryOwner = pool.Rent<T>(minimumLength)).Memory;
+        }
+
+        Memory<T> currentMemory = memoryOwner.Memory;
 
         if (currentMemory.Length >= minimumLength)
         {
             return currentMemory;
-        }
-
-        if (memoryOwner is null)
-        {
-            return (memoryOwner = pool.Rent<T>(minimumLength)).Memory;
         }
 
         IMemoryOwner<T> newMemory = pool.Rent<T>(minimumLength);

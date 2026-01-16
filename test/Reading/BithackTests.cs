@@ -324,9 +324,10 @@ public class BithackTests
         Assert.SkipUnless(BitConverter.IsLittleEndian, "Test is only valid on little-endian platforms");
 
         Assert.Equal((uint)('\n' << 16 | '\r'), Bithacks.InitializeCRLFRegister<char>(true));
-        Assert.Equal((ushort)('\n' << 8 | '\r'), Bithacks.InitializeCRLFRegister<byte>(true));
         Assert.Equal((uint)'\n', Bithacks.InitializeCRLFRegister<char>(false));
+        Assert.Equal((ushort)('\n' << 8 | '\r'), Bithacks.InitializeCRLFRegister<byte>(true));
         Assert.Equal((ushort)'\n', Bithacks.InitializeCRLFRegister<byte>(false));
+        Assert.Throws<NotSupportedException>(() => Bithacks.InitializeCRLFRegister<int>(true));
     }
 
     [Fact]
