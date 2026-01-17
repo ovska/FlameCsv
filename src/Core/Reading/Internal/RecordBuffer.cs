@@ -296,6 +296,8 @@ internal sealed class RecordBuffer : IDisposable
         return next;
     }
 
+    internal void BumpPreamble(int length) => Position += length;
+
     /// <summary>
     /// Attempts to load the next record from the buffer.
     /// </summary>

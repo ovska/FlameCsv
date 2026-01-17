@@ -284,9 +284,13 @@ static partial class Csv
 
             Check.NotNull(_stream);
 
-            if (_encoding?.Equals(Encoding.UTF8) != false)
+            if (_encoding is null || _encoding.CodePage == Encoding.UTF8.CodePage)
             {
-                return new Utf8StreamWriter(_stream, in _ioOptions);
+                // Match StreamWriter behavior:
+                // - Write preamble if encoding is explicit and has one
+                // - Skip if seekable stream is not at position 0 (appending)
+                bool writePreamble = _encoding?.Preamble.Length > 0 && (!_stream.CanSeek || _stream.Position == 0);
+                return new Utf8StreamWriter(_stream, in _ioOptions, writePreamble);
             }
 
             return new TextBufferWriter(
@@ -408,7 +412,7 @@ static partial class Csv
 
         ICsvBufferWriter<char> IWriteBuilderBase<char, IWriteBuilder<char>>.CreateWriter(bool isAsync)
         {
-            return new Utf8StreamWriter(_stream, in _ioOptions);
+            return new Utf8StreamWriter(_stream, in _ioOptions, writePreamble: false);
         }
 
         IWriteBuilder<char> IWriteBuilderBase<char, IWriteBuilder<char>>.WithIOOptions(in CsvIOOptions ioOptions)
@@ -465,9 +469,9 @@ static partial class Csv
 
             try
             {
-                if (_encoding?.Equals(Encoding.UTF8) != false)
+                if (_encoding is null || _encoding.CodePage == Encoding.UTF8.CodePage)
                 {
-                    return new Utf8StreamWriter(stream, in _ioOptions);
+                    return new Utf8StreamWriter(stream, in _ioOptions, writePreamble: _encoding?.Preamble.Length > 0);
                 }
 
                 return new TextBufferWriter(

@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Text;
 using System.Text.Unicode;
 using FlameCsv.Extensions;
 
@@ -6,21 +7,31 @@ namespace FlameCsv.IO.Internal;
 
 internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 {
+    private static readonly byte[] _utf8Preamble = Encoding.UTF8.GetPreamble();
+
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
     private readonly IMemoryOwner<byte> _byteBuffer;
+    private bool _writePreamble;
 
-    public Utf8StreamWriter(Stream stream, in CsvIOOptions options)
+    public Utf8StreamWriter(Stream stream, in CsvIOOptions options, bool writePreamble = false)
         : base(in options)
     {
         Throw.IfNotWritable(stream);
         _stream = stream;
         _leaveOpen = options.LeaveOpen;
         _byteBuffer = options.EffectiveBufferPool.Rent<byte>(options.BufferSize * 2);
+        _writePreamble = writePreamble;
     }
 
     protected override void FlushCore(ReadOnlyMemory<char> memory)
     {
+        if (_writePreamble)
+        {
+            _stream.Write(_utf8Preamble);
+            _writePreamble = false;
+        }
+
         bool moreData;
 
         do
@@ -40,6 +51,12 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
     protected override async ValueTask FlushAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
     {
+        if (_writePreamble)
+        {
+            await _stream.WriteAsync(_utf8Preamble, cancellationToken).ConfigureAwait(false);
+            _writePreamble = false;
+        }
+
         bool moreData;
 
         do

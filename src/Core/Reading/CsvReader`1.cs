@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FlameCsv.Extensions;
@@ -38,9 +39,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     internal ReadOnlyMemory<T> _buffer;
 
     /// <summary>
-    /// Whether the UTF-8 BOM should be skipped on the next (first) read.
+    /// UTF-8 BOM state.
     /// </summary>
-    private bool _skipBOM;
+    private Preamble _preamble;
 
     /// <summary>
     /// Current state of the parser.
@@ -76,7 +77,8 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         if (typeof(T) == typeof(byte))
         {
-            _skipBOM = true;
+            // can be garbage on char as it's never read
+            _preamble = Preamble.Unread;
         }
     }
 
@@ -270,7 +272,16 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             Check.LessThanOrEqual(consumed, _buffer.Length + 1);
 
             consumed = Math.Min(consumed, _buffer.Length);
-            _reader.Advance(consumed);
+
+            if (typeof(T) == typeof(byte))
+            {
+                _reader.Advance(consumed + ((int)_preamble & 0b11));
+                _preamble = 0;
+            }
+            else
+            {
+                _reader.Advance(consumed);
+            }
             _buffer = _buffer.Slice(consumed);
         }
         else if (_state is State.DataExhausted && _buffer.Length >= maxLengthThreshold)
@@ -297,21 +308,31 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
             _state = State.Reading;
         }
 
-        if (typeof(T) == typeof(byte) && _skipBOM)
+        if (typeof(T) == typeof(byte) && _preamble != 0)
+        {
+            Check.Equal(_preamble, Preamble.Unread);
             TrySkipBOM();
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void TrySkipBOM()
     {
-        Check.True(typeof(T) == typeof(byte), "BOM skipping is only supported for byte readers");
+        if (typeof(T) != typeof(byte))
+        {
+            throw new UnreachableException();
+        }
 
         if (_buffer.Span is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
         {
             _buffer = _buffer.Slice(3);
+            _recordBuffer.BumpPreamble(3);
+            _preamble = Preamble.NeedsSkip;
         }
-
-        _skipBOM = false;
+        else
+        {
+            _preamble = Preamble.None;
+        }
     }
 
     /// <inheritdoc/>
@@ -374,5 +395,17 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         /// <summary>The parser has been disposed.</summary>
         Disposed = 5,
+    }
+
+    private enum Preamble : byte
+    {
+        /// <summary>Preamble handled or does not need handling.</summary>
+        None = 0,
+
+        /// <summary>Preamble needs to be checked on the first read.</summary>
+        Unread = 0x80,
+
+        /// <summary>Preamble needs to be skipped on next advance.</summary>
+        NeedsSkip = 0b11,
     }
 }

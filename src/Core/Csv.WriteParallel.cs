@@ -1,7 +1,6 @@
 using FlameCsv.Binding;
 using FlameCsv.IO;
 using FlameCsv.ParallelUtils;
-using FlameCsv.Utilities;
 using FlameCsv.Writing;
 
 namespace FlameCsv;

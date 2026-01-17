@@ -189,7 +189,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         return totalCharsWritten;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void ReadPreamble(ref ReadOnlySpan<byte> byteSpan)
     {
         if (byteSpan is [0xEF, 0xBB, 0xBF, ..])

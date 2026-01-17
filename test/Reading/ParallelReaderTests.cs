@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Channels;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
@@ -13,6 +14,27 @@ namespace FlameCsv.Tests.Reading;
 
 public class ParallelReaderTests
 {
+    [Fact]
+    public void Should_Skip_Utf8_Preamble()
+    {
+        using MemoryStream ms = new();
+        using (StreamWriter writer = new(ms, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true))
+        {
+            writer.Write("Hello\nWorld!");
+        }
+
+        ms.Position = 0;
+
+        var results = Csv.From(ms)
+            .AsParallel()
+            .ReadUnordered<ValueTuple<string>>(new() { HasHeader = false })
+            .SelectMany(t => t)
+            .Select(t => t.Item1)
+            .ToList();
+
+        Assert.Equal(["Hello", "World!"], results);
+    }
+
     [Fact]
     public void Should_Read_2()
     {

@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
 
@@ -16,6 +17,7 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
     private bool _isCompleted;
+    private bool _needToSkipPreamble;
 
     private ReadOnlyMemory<T> _previousRead;
     private IMemoryOwner<T>? _leftoverOwner;
@@ -44,6 +46,11 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
         _index = 0;
 
         (_scalarTokenizer, _tokenizer) = options.GetTokenizers();
+
+        if (typeof(T) == typeof(byte))
+        {
+            _needToSkipPreamble = true;
+        }
     }
 
     protected abstract int ReadCore(Span<T> buffer);
@@ -158,6 +165,11 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
     private Chunk<T>? TryReadCore(IMemoryOwner<T> owner, Memory<T> buffer)
     {
+        if (typeof(T) == typeof(byte) && _needToSkipPreamble)
+        {
+            SkipPreamble(ref buffer);
+        }
+
         RecordBuffer recordBuffer = new(_recordBufferSize);
 
         Span<uint> destination = recordBuffer.GetUnreadBuffer(
@@ -270,5 +282,17 @@ internal abstract class ParallelReader<T> : IParallelReader<T>
 
         _leftoverOwner?.Dispose();
         await DisposeAsyncCore().ConfigureAwait(false);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void SkipPreamble(ref Memory<T> buffer)
+    {
+        if (buffer.Span is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
+        {
+            buffer = buffer.Slice(3);
+            _position += 3;
+        }
+
+        _needToSkipPreamble = false;
     }
 }

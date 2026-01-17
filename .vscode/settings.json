@@ -116,6 +116,7 @@
     },
     // https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/images/fileIcons.png
     "material-icon-theme.files.associations": {
+        "**/Program.cs": "Console",
         "Program.cs": "Console",
         "*.Generated.cs": "Cobol", // same color as C# and "close enough", but still different
         "*.tt": "Log",

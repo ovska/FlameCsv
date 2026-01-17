@@ -356,8 +356,6 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     /// </summary>
     public string[] ToArray()
     {
-        _owner.EnsureVersion(_version);
-
         var fields = new string[_view.Length];
         for (int i = 0; i < fields.Length; i++)
         {

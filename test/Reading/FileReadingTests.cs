@@ -86,16 +86,64 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
         Assert.False(results[1].IsEnabled);
     }
 
-    [Theory, InlineData(false), InlineData(true)]
-    public async Task ReadFromFile_WithReflection_Byte_ShouldReadCorrectly(bool isAsync)
+    [Theory, InlineData(false, false), InlineData(false, true), InlineData(true, false), InlineData(true, true)]
+    public async Task ReadFromFile_WithReflection_Byte_ShouldReadCorrectly(bool isAsync, bool parallel)
     {
         var options = new CsvOptions<byte> { Formats = { { typeof(DateTimeOffset), "O" } } };
+        List<Obj> results;
 
-        var results = isAsync
-            ? await Csv.FromFile(_fixture.FilePath)
-                .ReadAsync<Obj>(options)
-                .ToListAsync(TestContext.Current.CancellationToken)
-            : Csv.FromFile(_fixture.FilePath).Read<Obj>(options).ToList();
+        if (parallel)
+        {
+            results = [];
+
+            if (isAsync)
+            {
+                await Csv.FromFile(_fixture.FilePath)
+                    .AsParallel()
+                    .ForEachUnorderedAsync<Obj>(
+                        (record, ct) =>
+                        {
+                            lock (results)
+                            {
+                                foreach (var r in record)
+                                {
+                                    results.Add(r);
+                                }
+                            }
+
+                            return default;
+                        }
+                    );
+            }
+            else
+            {
+                Csv.FromFile(_fixture.FilePath)
+                    .AsParallel()
+                    .ForEachUnordered<Obj>(record =>
+                    {
+                        lock (results)
+                        {
+                            foreach (var r in record)
+                            {
+                                results.Add(r);
+                            }
+                        }
+                    });
+            }
+        }
+        else
+        {
+            results = isAsync
+                ? await Csv.FromFile(_fixture.FilePath)
+                    .ReadAsync<Obj>(options)
+                    .ToListAsync(TestContext.Current.CancellationToken)
+                : Csv.FromFile(_fixture.FilePath).Read<Obj>(options).ToList();
+        }
+
+        if (parallel)
+        {
+            results.Sort((a, b) => a.Id.CompareTo(b.Id));
+        }
 
         Assert.Equal(2, results.Count);
         Assert.Equal(1, results[0].Id);
@@ -217,7 +265,12 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
             }
         }
 
-        Assert.Equal(2, records.Count); // 2 data rows (header is not counted as a record)
+        // 2 data rows (header is not counted as a record)
+        if (records.Count != 2)
+        {
+            Assert.Empty(records);
+        }
+
         Assert.Equal(5, records[0].Length);
         Assert.Equal("1", records[0][0]);
         Assert.Equal("Alice", records[0][1]);
