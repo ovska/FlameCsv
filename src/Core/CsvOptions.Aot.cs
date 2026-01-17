@@ -256,14 +256,11 @@ file static class Extensions
             return converter;
         }
 
-        converter = factory(options);
-
-        if (converter is null)
-        {
-            throw new CsvConfigurationException(
+        converter =
+            factory(options)
+            ?? throw new CsvConfigurationException(
                 $"The factory delegate passed to GetOrCreate for {typeof(TValue).FullName} returned null."
             );
-        }
 
         options.ConverterCache.TryAdd((typeof(TValue), identifier), converter);
         return converter;
@@ -289,12 +286,15 @@ file static class Extensions
         // null if the Converters-property is never accessed (no custom converters)
         if (local is not null)
         {
-            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
+            ReadOnlySpan<ConverterBuilder<T>> converters = local.Span;
 
             // Read converters in reverse order so parser added last has the highest priority
             for (int i = converters.Length - 1; i >= 0; i--)
             {
-                if (converters[i] is CsvConverter<T, TValue> converterOfT)
+                if (
+                    converters[i].CanConvert(typeof(TValue))
+                    && converters[i].Unwrap() is CsvConverter<T, TValue> converterOfT
+                )
                 {
                     options.ConverterCache.TryAdd((typeof(TValue), identifier), converter = converterOfT);
                     return true;

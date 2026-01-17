@@ -33,7 +33,7 @@ public static partial class ConverterResolutionTests
         public int? Age { get; set; }
     }
 
-    private class IdConverter : CsvConverter<char, int>
+    private class IdConverter : CsvConverter<char, int>, ICsvConverterFactory<char>
     {
         public override bool TryParse(ReadOnlySpan<char> source, out int value)
         {
@@ -43,6 +43,11 @@ public static partial class ConverterResolutionTests
 
         public override bool TryFormat(Span<char> destination, int value, out int charsWritten) =>
             throw new NotImplementedException();
+
+        static bool ICsvConverterFactory<char>.CanConvert(Type type) => type == typeof(int);
+
+        static CsvConverter<char> ICsvConverterFactory<char>.CreateConverter(CsvOptions<char> options) =>
+            new IdConverter();
     }
 
     [Fact]
@@ -80,5 +85,13 @@ public static partial class ConverterResolutionTests
 
         Assert.IsType<IdConverter>(o1.GetConverter<int>());
         Assert.IsType<IdConverter>(o2.GetConverter<int>());
+    }
+
+    [Fact]
+    public static void Should_Add_With_Method()
+    {
+        Assert.IsType<IdConverter>(new CsvOptions<char>().AddConverter<IdConverter>().GetConverter<int>());
+        Assert.IsType<IdConverter>(new CsvOptions<char>().AddConverter(new IdConverter()).GetConverter<int>());
+        Assert.IsType<IdConverter>(new CsvOptions<char>().AddConverter(_ => new IdConverter()).GetConverter<int>());
     }
 }

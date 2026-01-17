@@ -18,17 +18,15 @@ internal sealed class CustomBooleanConverter<T> : CsvConverter<T, bool>
 
     internal CustomBooleanConverter(CsvOptions<T> options)
         : this(
-            options.BooleanValues.Where(v => v.value).Select(v => v.text),
-            options.BooleanValues.Where(v => !v.value).Select(v => v.text),
+            [.. options.BooleanValues.Where(v => v.value).Select(v => v.text)],
+            [.. options.BooleanValues.Where(v => !v.value).Select(v => v.text)],
             options.IgnoreHeaderCase
         ) { }
 
-    internal CustomBooleanConverter(IEnumerable<string> trueValues, IEnumerable<string> falseValues, bool ignoreCase)
+    internal CustomBooleanConverter(ICollection<string> trueValues, ICollection<string> falseValues, bool ignoreCase)
     {
         ArgumentNullException.ThrowIfNull(trueValues);
         ArgumentNullException.ThrowIfNull(falseValues);
-
-        // ReSharper disable PossibleMultipleEnumeration
 
         _comparer = GetComparer(trueValues.Concat(falseValues), ignoreCase);
 

@@ -40,3 +40,18 @@ public abstract class CsvConverter<T, TValue> : CsvConverter<T>
     /// </summary>
     protected internal virtual bool CanFormatNull => false;
 }
+
+/// <summary>
+/// Factory interface for creating <see cref="CsvConverter{T}"/> instances.
+/// </summary>
+public interface ICsvConverterFactory<T>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    /// <inheritdoc cref="CsvConverter{T}.CanConvert(Type)"/>
+    static abstract bool CanConvert(Type type);
+
+    /// <summary>
+    /// Creates the converter using the specified options.
+    /// </summary>
+    static abstract CsvConverter<T> CreateConverter(CsvOptions<T> options);
+}

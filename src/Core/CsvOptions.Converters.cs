@@ -6,6 +6,7 @@ using FlameCsv.Converters;
 using FlameCsv.Converters.Enums;
 using FlameCsv.Converters.Formattable;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.Utilities;
 
 namespace FlameCsv;
@@ -32,14 +33,58 @@ partial class CsvOptions<T>
             }
 
             var result = IsReadOnly
-                ? SealableList<CsvConverter<T>>.Empty
-                : new SealableList<CsvConverter<T>>(this, null);
+                ? SealableList<CsvConverter<T>, ConverterBuilder<T>>.Empty
+                : new SealableList<CsvConverter<T>, ConverterBuilder<T>>(this, null);
 
             return Interlocked.CompareExchange(ref _converters, result, null) ?? _converters;
         }
     }
 
-    internal SealableList<CsvConverter<T>>? _converters;
+    /// <summary>
+    /// Adds a converter to be lazily created when needed.
+    /// </summary>
+    /// <typeparam name="TConverter">Type of converter factory to add</typeparam>
+    public CsvOptions<T> AddConverter<TConverter>()
+        where TConverter : ICsvConverterFactory<T>
+    {
+        this.ThrowIfReadOnly();
+
+        (_converters ??= new(this, null))._list.Add(
+            new ConverterBuilder<T>(
+                this,
+                static o => TConverter.CreateConverter(o),
+                static (t, _) => TConverter.CanConvert(t)
+            )
+        );
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a converter to be lazily created when needed.
+    /// </summary>
+    /// <param name="factory">Factory function to create the converter when first needed</param>
+    public CsvOptions<T> AddConverter<TValue>(Func<CsvOptions<T>, CsvConverter<T, TValue>> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        this.ThrowIfReadOnly();
+
+        (_converters ??= new(this, null))._list.Add(
+            new ConverterBuilder<T>(this, o => factory(o), static (t, _) => t == typeof(TValue))
+        );
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a converter to the converters collection.
+    /// </summary>
+    public CsvOptions<T> AddConverter<TValue>(CsvConverter<T, TValue> converter)
+    {
+        ArgumentNullException.ThrowIfNull(converter);
+        Converters.Add(converter);
+        return this;
+    }
+
+    internal SealableList<CsvConverter<T>, ConverterBuilder<T>>? _converters;
 
     /// <summary>
     /// Contains cached converters for types that have been requested with <see cref="GetConverter(Type)"/>.
@@ -127,14 +172,14 @@ partial class CsvOptions<T>
         // null if the Converters-property is never accessed (no custom converters)
         if (local is not null)
         {
-            ReadOnlySpan<CsvConverter<T>> converters = local.Span;
+            ReadOnlySpan<ConverterBuilder<T>> converters = local.Span;
 
             // Read converters in reverse order so parser added last has the highest priority
             for (int i = converters.Length - 1; i >= 0; i--)
             {
                 if (converters[i].CanConvert(resultType))
                 {
-                    converter = converters[i].GetAsConverter(resultType, this);
+                    converter = converters[i].Unwrap().GetAsConverter(resultType, this);
                     created = true;
                     return true;
                 }

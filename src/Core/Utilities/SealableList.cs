@@ -6,20 +6,26 @@ namespace FlameCsv.Utilities;
 
 file sealed class ReadOnlyOwner : ICanBeReadOnly
 {
-    public static ReadOnlyOwner Instance { get; } = new();
     public bool IsReadOnly => true;
 }
 
-internal sealed class SealableList<T> : IList<T>
+internal interface IWrapper<T, TActual>
 {
-    public static SealableList<T> Empty { get; } = new(ReadOnlyOwner.Instance, null);
+    static abstract TActual Wrap(T value);
+    static abstract T Unwrap(TActual value);
+}
+
+internal sealed class SealableList<T, TActual> : IList<T>
+    where TActual : IWrapper<T, TActual>
+{
+    public static SealableList<T, TActual> Empty { get; } = new(new ReadOnlyOwner(), null);
 
     private readonly ICanBeReadOnly _owner;
-    private readonly List<T> _list;
+    internal readonly List<TActual> _list;
 
-    public ReadOnlySpan<T> Span => _list.AsSpan();
+    public ReadOnlySpan<TActual> Span => _list.AsSpan();
 
-    public SealableList(ICanBeReadOnly owner, SealableList<T>? defaultValues)
+    public SealableList(ICanBeReadOnly owner, SealableList<T, TActual>? defaultValues)
     {
         _owner = owner;
         _list = [];
@@ -30,16 +36,16 @@ internal sealed class SealableList<T> : IList<T>
         }
     }
 
-    public SealableList<T> Clone() => new(_owner, this);
+    public SealableList<T, TActual> Clone() => new(_owner, this);
 
     public T this[int index]
     {
-        get => _list[index];
+        get => TActual.Unwrap(_list[index]);
         set
         {
             ArgumentNullException.ThrowIfNull(value);
             _owner.ThrowIfReadOnly();
-            _list[index] = value;
+            _list[index] = TActual.Wrap(value);
         }
     }
 
@@ -50,7 +56,7 @@ internal sealed class SealableList<T> : IList<T>
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
-        _list.Add(item);
+        _list.Add(TActual.Wrap(item));
     }
 
     public void Clear()
@@ -59,30 +65,34 @@ internal sealed class SealableList<T> : IList<T>
         _list.Clear();
     }
 
-    public bool Contains(T item) => _list.Contains(item);
+    public bool Contains(T item) => _list.Contains(TActual.Wrap(item));
 
-    public void CopyTo(T[] array, int arrayIndex) => _list.CopyTo(array, arrayIndex);
+    public void CopyTo(T[] array, int arrayIndex)
+    {
+        for (int i = 0; i < _list.Count; i++)
+        {
+            array[arrayIndex + i] = TActual.Unwrap(_list[i]);
+        }
+    }
 
-    public List<T>.Enumerator GetEnumerator() => _list.GetEnumerator();
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => _list.Select(TActual.Unwrap).GetEnumerator();
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator() => _list.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable<T>)this).GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() => _list.GetEnumerator();
-
-    public int IndexOf(T item) => _list.IndexOf(item);
+    public int IndexOf(T item) => _list.IndexOf(TActual.Wrap(item));
 
     public void Insert(int index, T item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
-        _list.Insert(index, item);
+        _list.Insert(index, TActual.Wrap(item));
     }
 
     public bool Remove(T item)
     {
         ArgumentNullException.ThrowIfNull(item);
         _owner.ThrowIfReadOnly();
-        return _list.Remove(item);
+        return _list.Remove(TActual.Wrap(item));
     }
 
     public void RemoveAt(int index)

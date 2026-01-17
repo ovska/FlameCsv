@@ -212,7 +212,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
 
     private CsvFieldQuoting _fieldQuoting = CsvFieldQuoting.Auto;
     private CsvQuoteValidation _validateQuotes = CsvQuoteValidation.Strict;
-    private SealableList<(string, bool)>? _booleanValues;
+    private SealableList<(string, bool), CustomBooleanValue>? _booleanValues;
     private ICsvTypeBinder<T>? _typeBinder;
     private Func<ReadOnlySpan<char>, string>? _normalizeHeader;
 
@@ -433,7 +433,8 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// <seealso cref="CsvBooleanValuesAttribute"/>
     public IList<(string text, bool value)> BooleanValues
     {
-        get => _booleanValues ??= (IsReadOnly ? SealableList<(string, bool)>.Empty : new(this, null));
+        get =>
+            _booleanValues ??= (IsReadOnly ? SealableList<(string, bool), CustomBooleanValue>.Empty : new(this, null));
     }
 
     internal bool HasBooleanValues => _booleanValues is { Count: > 0 };
@@ -465,4 +466,14 @@ file static class TypeDictExtensions
         ArgumentNullException.ThrowIfNull(key, parameterName);
         return dict is not null && dict.TryGetValue(key, out T? value) ? value : defaultValue;
     }
+}
+
+internal readonly struct CustomBooleanValue : IWrapper<(string, bool), CustomBooleanValue>
+{
+    public bool Value { get; init; }
+    public string Text { get; init; }
+
+    public static (string, bool) Unwrap(CustomBooleanValue value) => (value.Text, value.Value);
+
+    public static CustomBooleanValue Wrap((string, bool) value) => new() { Text = value.Item1, Value = value.Item2 };
 }

@@ -1,6 +1,38 @@
 ﻿using FlameCsv.Extensions;
+using FlameCsv.Utilities;
 
 namespace FlameCsv;
+
+internal readonly struct ConverterBuilder<T> : IWrapper<CsvConverter<T>, ConverterBuilder<T>>
+    where T : unmanaged, IBinaryInteger<T>
+{
+    private readonly Lazy<CsvConverter<T>> _value = new();
+    private readonly Func<Type, ConverterBuilder<T>, bool> _canConvert;
+
+    public ConverterBuilder(CsvConverter<T> value)
+    {
+        _value = new Lazy<CsvConverter<T>>(value);
+        _canConvert = static (type, b) => b._value.Value.CanConvert(type);
+    }
+
+    public ConverterBuilder(
+        CsvOptions<T> options,
+        Func<CsvOptions<T>, CsvConverter<T>> value,
+        Func<Type, ConverterBuilder<T>, bool> canConvert
+    )
+    {
+        _value = new Lazy<CsvConverter<T>>(() => value(options));
+        _canConvert = canConvert;
+    }
+
+    public bool CanConvert(Type type) => _canConvert(type, this);
+
+    public static ConverterBuilder<T> Wrap(CsvConverter<T> value) => new(value);
+
+    public CsvConverter<T> Unwrap() => _value.Value;
+
+    public static CsvConverter<T> Unwrap(ConverterBuilder<T> value) => value._value.Value;
+}
 
 /// <summary>
 /// Base class used for registering custom converters.<br/>
