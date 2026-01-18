@@ -98,6 +98,12 @@ internal sealed record PropertyModel : IComparable<PropertyModel>, IMemberModel
         writer.Write(Identifier);
     }
 
+    public void WriteConfigPrefix(IndentedTextWriter writer)
+    {
+        writer.Write("@s__Config_");
+        writer.Write(Identifier);
+    }
+
     public static PropertyModel? TryCreate(
         IPropertySymbol propertySymbol,
         ref readonly FlameSymbols symbols,

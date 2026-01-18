@@ -108,6 +108,12 @@ internal sealed record ParameterModel : IComparable<ParameterModel>, IMemberMode
         writer.Write(HeaderName);
     }
 
+    public void WriteConfigPrefix(IndentedTextWriter writer)
+    {
+        writer.Write("@s__p_Config_");
+        writer.Write(HeaderName);
+    }
+
     public static EquatableArray<ParameterModel> Create(
         ITypeSymbol targetType,
         IMethodSymbol constructor,

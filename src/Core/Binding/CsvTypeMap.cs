@@ -28,6 +28,27 @@ public abstract class CsvTypeMap
         /// Returns the format provider to use when parsing numbers.
         /// </summary>
         public IFormatProvider? FormatProvider { get; } = provider;
+
+        /// <summary>
+        /// Returns the number parsing configuration for integer types.
+        /// </summary>
+        public static NumberParseConfig Integer<T>(Type type, CsvOptions<T> options)
+            where T : unmanaged, IBinaryInteger<T>
+        {
+            return new(options.GetNumberStyles(type, NumberStyles.Integer), options.GetFormatProvider(type));
+        }
+
+        /// <summary>
+        /// Returns the number parsing configuration for floating-point types.
+        /// </summary>
+        public static NumberParseConfig FloatingPoint<T>(Type type, CsvOptions<T> options)
+            where T : unmanaged, IBinaryInteger<T>
+        {
+            return new(
+                options.GetNumberStyles(type, NumberStyles.Float | NumberStyles.AllowThousands),
+                options.GetFormatProvider(type)
+            );
+        }
     }
 
     /// <summary>

@@ -129,6 +129,25 @@ partial class TypeMapGenerator
             {
                 if (!member.HasParseConverter(typeMap))
                 {
+                    if (member.Convertability is BuiltinConvertable.Special)
+                    {
+                        writer.DebugLine($"No converter needed for special type {member.Identifier}");
+                    }
+                    else if (
+                        member.Convertability is BuiltinConvertable.FloatingPoint or BuiltinConvertable.BinaryInteger
+                    )
+                    {
+                        writer.Write("public global::FlameCsv.Binding.CsvTypeMap.NumberParseConfig ");
+                        member.WriteConfigPrefix(writer);
+                        writer.WriteLine(";");
+                    }
+                    else
+                    {
+                        writer.Write("public global::System.IFormatProvider ");
+                        member.WriteConfigPrefix(writer);
+                        writer.WriteLine(";");
+                    }
+
                     continue;
                 }
 
@@ -217,25 +236,20 @@ partial class TypeMapGenerator
                         continue;
                     }
 
-                    writer.Write("if (");
-
-                    if (!member.IsRequired)
+                    if (member.IsInlinedString(typeMap))
                     {
-                        member.WriteConverterName(writer);
-                        writer.Write(" is not null && ");
+                        WriteStringCtor(typeMap, writer, member);
                     }
-
-                    writer.Write('!');
-                    member.WriteConverterName(writer);
-                    writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
-                    member.WriteId(writer);
-                    writer.Write("), out state.");
-                    writer.Write(member.Identifier);
-                    writer.WriteLine("))");
-
-                    using (writer.WriteBlock())
+                    else
                     {
-                        writer.WriteLine("goto FailedParse;");
+                        writer.Write("if (!");
+                        WriteParseImpl(typeMap, writer, member);
+                        writer.WriteLine(")");
+
+                        using (writer.WriteBlock())
+                        {
+                            writer.WriteLine("goto FailedParse;");
+                        }
                     }
 
                     writer.WriteLine();
@@ -404,22 +418,26 @@ partial class TypeMapGenerator
             property.WriteConverterName(writer);
             writer.WriteLine(" is not null)");
 
-            using var _ = writer.WriteBlock();
-
-            writer.Write("if (!");
-            property.WriteConverterName(writer);
-            writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
-            property.WriteId(writer);
-            writer.Write("), out state.");
-            writer.Write(property.Identifier);
-            writer.WriteLine("))");
-
             using (writer.WriteBlock())
             {
-                writer.WriteLine("goto FailedParse;");
-            }
+                if (property.IsInlinedString(typeMap))
+                {
+                    WriteStringCtor(typeMap, writer, property);
+                }
+                else
+                {
+                    writer.Write("if (!");
+                    WriteParseImpl(typeMap, writer, property);
+                    writer.WriteLine(")");
 
-            WriteSetter(property, writer);
+                    using (writer.WriteBlock())
+                    {
+                        writer.WriteLine("goto FailedParse;");
+                    }
+
+                    WriteSetter(property, writer);
+                }
+            }
         }
 
         static void WriteSetter(PropertyModel property, IndentedTextWriter writer)
@@ -438,6 +456,60 @@ partial class TypeMapGenerator
             writer.Write(property.Identifier);
             writer.WriteLine(";");
         }
+    }
+
+    private static void WriteStringCtor(TypeMapModel typeMap, IndentedTextWriter writer, IMemberModel property)
+    {
+        writer.Write($"state.{property.Identifier} = ");
+
+        if (typeMap.IsByte)
+        {
+            writer.Write("global::System.Text.Encoding.UTF8.GetBytes(record.GetFieldUnsafe(");
+            property.WriteId(writer);
+            writer.WriteLine("));");
+        }
+        else
+        {
+            writer.Write("new string(record.GetFieldUnsafe(");
+            property.WriteId(writer);
+            writer.WriteLine("));");
+        }
+    }
+
+    private static void WriteParseImpl(TypeMapModel typeMap, IndentedTextWriter writer, IMemberModel property)
+    {
+        writer.DebugLine($"Writing parse impl {property.Identifier} (convertability: {property.Convertability})");
+
+        if (property.HasParseConverter(typeMap))
+        {
+            property.WriteConverterName(writer);
+            writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
+            property.WriteId(writer);
+            writer.Write($"), out state.{property.Identifier})");
+            return;
+        }
+
+        writer.Write(property.Type.FullyQualifiedName);
+        writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
+        property.WriteId(writer);
+        writer.Write(")");
+
+        if (property.Convertability is BuiltinConvertable.FloatingPoint or BuiltinConvertable.BinaryInteger)
+        {
+            writer.Write(", ");
+            property.WriteConfigPrefix(writer);
+            writer.Write(".Styles, ");
+            property.WriteConfigPrefix(writer);
+            writer.Write(".FormatProvider");
+        }
+        else
+        {
+            writer.Write(", ");
+            property.WriteConfigPrefix(writer);
+            writer.Write("_FormatProvider");
+        }
+
+        writer.Write($", out state.{property.Identifier})");
     }
 
     private static void WriteRequiredCheck(TypeMapModel typeMap, IndentedTextWriter writer)
@@ -586,6 +658,31 @@ partial class TypeMapGenerator
                     writer.Write(" = ");
                     WriteConverter(writer, typeMap.TokenName, member);
                     writer.WriteLine(";");
+                }
+                else if (member.Convertability is not BuiltinConvertable.Special)
+                {
+                    writer.DebugLine($"No converter for member {member.Identifier} ({member.Convertability})");
+                    writer.Write("materializer.");
+                    member.WriteConfigPrefix(writer);
+
+                    if (member.Convertability is BuiltinConvertable.FloatingPoint or BuiltinConvertable.BinaryInteger)
+                    {
+                        writer.Write(" = global::FlameCsv.Binding.CsvTypeMap.NumberParseConfig.");
+                        writer.Write(
+                            member.Convertability == BuiltinConvertable.BinaryInteger ? "Integer" : "FloatingPoint"
+                        );
+                        writer.WriteLine($"(typeof({member.Type.FullyQualifiedName}), options);");
+                    }
+                    else
+                    {
+                        writer.Write("_FormatProvider = options.GetFormatProvider(typeof(");
+                        writer.Write(member.Type.FullyQualifiedName);
+                        writer.WriteLine("));");
+                    }
+                }
+                else
+                {
+                    writer.DebugLine($"Special inlined type {member.Identifier} ({member.Type.FullyQualifiedName})");
                 }
 
                 writer.Write("materializer.");

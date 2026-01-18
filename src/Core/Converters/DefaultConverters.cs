@@ -7,6 +7,8 @@ namespace FlameCsv.Converters;
 // csharpier-ignore
 internal static class DefaultConverters
 {
+    private const NumberStyles FloatStyles = NumberStyles.Float | NumberStyles.AllowThousands;
+
     // rare oddities such as sbyte, Half, nuint, nint are not included here on purpose
     // the span converter factory will create them if needed.
     // common types are included for better performance (avoiding reflection and generic instantiation at runtime)
@@ -53,9 +55,9 @@ internal static class DefaultConverters
             [typeof(ushort).MetadataToken] = o => new NumberTextConverter<ushort>(o, NumberStyles.Integer),
             [typeof(uint).MetadataToken] = o => new NumberTextConverter<uint>(o, NumberStyles.Integer),
             [typeof(ulong).MetadataToken] = o => new NumberTextConverter<ulong>(o, NumberStyles.Integer),
-            [typeof(float).MetadataToken] = o => new NumberTextConverter<float>(o, NumberStyles.Float),
-            [typeof(double).MetadataToken] = o => new NumberTextConverter<double>(o, NumberStyles.Float),
-            [typeof(decimal).MetadataToken] = o => new NumberTextConverter<decimal>(o, NumberStyles.Float),
+            [typeof(float).MetadataToken] = o => new NumberTextConverter<float>(o, FloatStyles),
+            [typeof(double).MetadataToken] = o => new NumberTextConverter<double>(o, FloatStyles),
+            [typeof(decimal).MetadataToken] = o => new NumberTextConverter<decimal>(o, FloatStyles),
             [typeof(Guid).MetadataToken] = o => new SpanTextConverter<Guid>(o),
             [typeof(TimeSpan).MetadataToken] = o => new SpanTextConverter<TimeSpan>(o),
             [typeof(DateTime).MetadataToken] = o => new SpanTextConverter<DateTime>(o),
@@ -80,9 +82,9 @@ internal static class DefaultConverters
             [typeof(ushort).MetadataToken] = o => new NumberUtf8Converter<ushort>(o, NumberStyles.Integer),
             [typeof(uint).MetadataToken] = o => new NumberUtf8Converter<uint>(o, NumberStyles.Integer),
             [typeof(ulong).MetadataToken] = o => new NumberUtf8Converter<ulong>(o, NumberStyles.Integer),
-            [typeof(float).MetadataToken] = o => new NumberUtf8Converter<float>(o, NumberStyles.Float),
-            [typeof(double).MetadataToken] = o => new NumberUtf8Converter<double>(o, NumberStyles.Float),
-            [typeof(decimal).MetadataToken] = o => new NumberUtf8Converter<decimal>(o, NumberStyles.Float),
+            [typeof(float).MetadataToken] = o => new NumberUtf8Converter<float>(o, FloatStyles),
+            [typeof(double).MetadataToken] = o => new NumberUtf8Converter<double>(o, FloatStyles),
+            [typeof(decimal).MetadataToken] = o => new NumberUtf8Converter<decimal>(o, FloatStyles),
             [typeof(Guid).MetadataToken] = o => new SpanUtf8FormattableConverter<Guid>(o),
             [typeof(TimeSpan).MetadataToken] = o => new SpanUtf8FormattableConverter<TimeSpan>(o),
             [typeof(DateTime).MetadataToken] = o => new SpanUtf8FormattableConverter<DateTime>(o),

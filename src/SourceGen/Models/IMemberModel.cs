@@ -65,17 +65,29 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     /// Writes the converter name of the member to the writer.
     /// </summary>
     void WriteConverterName(IndentedTextWriter writer);
+
+    /// <summary>
+    /// Writes the prefix for configuration variables.
+    /// </summary>
+    void WriteConfigPrefix(IndentedTextWriter writer);
 }
 
 internal static class MemberModelExtensions
 {
+    public static bool IsInlinedString(this IMemberModel model, TypeMapModel typeMap)
+    {
+        return typeMap.InlineCommonTypes
+            && model.OverriddenConverter is null
+            && model.Type.SpecialType == SpecialType.System_String;
+    }
+
     public static bool HasParseConverter(this IMemberModel model, TypeMapModel typeMap)
     {
         if (typeMap.InlineCommonTypes && model.OverriddenConverter is null)
         {
             return typeMap.IsByte
-                ? (model.Convertability & BuiltinConvertable.Utf8Parsable) != 0
-                : (model.Convertability & BuiltinConvertable.Parsable) != 0;
+                ? (model.Convertability & (BuiltinConvertable.Special | BuiltinConvertable.Utf8Parsable)) == 0
+                : (model.Convertability & (BuiltinConvertable.Special | BuiltinConvertable.Parsable)) == 0;
         }
 
         return true;
@@ -86,8 +98,8 @@ internal static class MemberModelExtensions
         if (typeMap.InlineCommonTypes && model.OverriddenConverter is null)
         {
             return typeMap.IsByte
-                ? (model.Convertability & BuiltinConvertable.Utf8Formattable) != 0
-                : (model.Convertability & BuiltinConvertable.Formattable) != 0;
+                ? (model.Convertability & (BuiltinConvertable.Special | BuiltinConvertable.Utf8Formattable)) == 0
+                : (model.Convertability & (BuiltinConvertable.Special | BuiltinConvertable.Formattable)) == 0;
         }
 
         return true;
