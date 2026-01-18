@@ -4,6 +4,8 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Generators;
 
+#pragma warning disable RCS1146 // Use conditional access
+
 partial class TypeMapGenerator
 {
     private static void GetReadCode(
@@ -120,10 +122,22 @@ partial class TypeMapGenerator
 
         using (writer.WriteBlock())
         {
-            writer.WriteLine("// converters for each member/parameter");
+            cancellationToken.ThrowIfCancellationRequested();
+            bool commentWritten = false;
+
             foreach (var member in typeMap.AllMembers.Readable())
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                if (!member.HasParseConverter(typeMap))
+                {
+                    continue;
+                }
+
+                if (!commentWritten)
+                {
+                    writer.WriteLine("// converters for each member/parameter");
+                    commentWritten = true;
+                }
+
                 writer.Write("public ");
                 WriteConverterType(writer, typeMap.TokenName, member);
                 writer.Write(' ');
@@ -133,15 +147,21 @@ partial class TypeMapGenerator
                 writer.WriteLine();
             }
 
+            if (!commentWritten)
+            {
+                writer.WriteLine("// No converters needed for any members/parameters");
+            }
+
             writer.WriteLine();
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             writer.WriteLine("// field indexes in the current CSV");
             foreach (var member in typeMap.AllMembers.Readable())
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 writer.Write("public int ");
                 member.WriteId(writer);
-                writer.WriteLine(";");
+                writer.WriteLine(" = -1;");
             }
 
             writer.WriteLine();
@@ -548,8 +568,8 @@ partial class TypeMapGenerator
             using (writer.WriteBlock())
             {
                 writer.Write("if (!options.IgnoreDuplicateHeaders && materializer.");
-                member.WriteConverterName(writer);
-                writer.WriteLine(" is not null)");
+                member.WriteId(writer);
+                writer.WriteLine(" >= 0)");
                 using (writer.WriteBlock())
                 {
                     writer.Write("base.ThrowDuplicate(");
@@ -558,11 +578,16 @@ partial class TypeMapGenerator
                 }
 
                 writer.WriteLine();
-                writer.Write("materializer.");
-                member.WriteConverterName(writer);
-                writer.Write(" = ");
-                WriteConverter(writer, typeMap.TokenName, member);
-                writer.WriteLine(";");
+
+                if (member.HasParseConverter(typeMap))
+                {
+                    writer.Write("materializer.");
+                    member.WriteConverterName(writer);
+                    writer.Write(" = ");
+                    WriteConverter(writer, typeMap.TokenName, member);
+                    writer.WriteLine(";");
+                }
+
                 writer.Write("materializer.");
                 member.WriteId(writer);
                 writer.WriteLine(" = index;");
@@ -582,15 +607,18 @@ partial class TypeMapGenerator
 
         writer.Write("TypeMapMaterializer materializer = new TypeMapMaterializer(");
         writer.Write(typeMap.IndexesForReading.Length.ToString());
-        writer.WriteLine(")");
+        writer.Write(")");
 
-        using (writer.WriteBlockWithSemicolon())
+        IndentedTextWriter.Block block = default;
+
+        foreach (var member in typeMap.IndexesForReading)
         {
-            foreach (var member in typeMap.IndexesForReading)
+            if (member is not null && member.HasParseConverter(typeMap))
             {
-                if (member is null)
+                if (block.writer is null)
                 {
-                    continue;
+                    writer.WriteLine();
+                    block = writer.WriteBlockWithSemicolon();
                 }
 
                 member.WriteConverterName(writer);
@@ -599,6 +627,13 @@ partial class TypeMapGenerator
                 writer.WriteLine(",");
             }
         }
+
+        if (block.writer is null)
+        {
+            writer.WriteLine(";");
+        }
+
+        block.Dispose();
 
         for (int index = 0; index < typeMap.IndexesForReading.Length; index++)
         {

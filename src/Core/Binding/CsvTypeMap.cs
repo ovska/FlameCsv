@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using JetBrains.Annotations;
@@ -13,6 +14,22 @@ namespace FlameCsv.Binding;
 [PublicAPI]
 public abstract class CsvTypeMap
 {
+    /// <summary>
+    /// Configuration for number parsing.
+    /// </summary>
+    protected internal readonly struct NumberParseConfig(NumberStyles styles, IFormatProvider? provider)
+    {
+        /// <summary>
+        /// Returns the number styles to use when parsing numbers.
+        /// </summary>
+        public NumberStyles Styles { get; } = styles;
+
+        /// <summary>
+        /// Returns the format provider to use when parsing numbers.
+        /// </summary>
+        public IFormatProvider? FormatProvider { get; } = provider;
+    }
+
     /// <summary>
     /// Returns the mapped type.
     /// </summary>

@@ -29,6 +29,8 @@ internal readonly ref struct FlameSymbols
     private readonly INamedTypeSymbol _systemIUtf8SpanParsable;
     private readonly INamedTypeSymbol _systemISpanFormattable;
     private readonly INamedTypeSymbol _systemIUtf8SpanFormattable;
+    private readonly INamedTypeSymbol _systemIBinaryInteger;
+    private readonly INamedTypeSymbol _systemIFloatingPoint;
 
     public FlameSymbols(Compilation compilation, ITypeSymbol tokenType, ITypeSymbol targetType)
     {
@@ -56,49 +58,55 @@ internal readonly ref struct FlameSymbols
         _systemIUtf8SpanParsable = GetUnbound(compilation, "System.IUtf8SpanParsable`1");
         _systemISpanFormattable = Get(compilation, "System.ISpanFormattable");
         _systemIUtf8SpanFormattable = Get(compilation, "System.IUtf8SpanFormattable");
+        _systemIBinaryInteger = GetUnbound(compilation, "System.Numerics.IBinaryInteger`1");
+        _systemIFloatingPoint = GetUnbound(compilation, "System.Numerics.IFloatingPoint`1");
     }
 
-    private static readonly SymbolEqualityComparer _seq = SymbolEqualityComparer.Default;
+    private static SymbolEqualityComparer Seq => SymbolEqualityComparer.Default;
 
-    public bool IsCsvConverterTTValue([NNW(true)] ISymbol? symbol) => _seq.Equals(_converter, symbol);
+    public bool IsCsvConverterTTValue([NNW(true)] ISymbol? symbol) => Seq.Equals(_converter, symbol);
 
-    public bool IsCsvConverterOfTAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_converterOfTAttribute, symbol);
+    public bool IsCsvConverterOfTAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_converterOfTAttribute, symbol);
 
-    public bool IsCsvHeaderAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_headerAttribute, symbol);
+    public bool IsCsvHeaderAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_headerAttribute, symbol);
 
-    public bool IsCsvIgnoreAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoreAttribute, symbol);
+    public bool IsCsvIgnoreAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_ignoreAttribute, symbol);
 
-    public bool IsStringPoolingAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_stringPoolingAttribute, symbol);
+    public bool IsStringPoolingAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_stringPoolingAttribute, symbol);
 
-    public bool IsCsvIndexAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_indexAttribute, symbol);
+    public bool IsCsvIndexAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_indexAttribute, symbol);
 
-    public bool IsCsvConstructorAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_constructorAttribute, symbol);
+    public bool IsCsvConstructorAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_constructorAttribute, symbol);
 
-    public bool IsCsvOrderAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_orderAttribute, symbol);
+    public bool IsCsvOrderAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_orderAttribute, symbol);
 
-    public bool IsCsvRequiredAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_requiredAttribute, symbol);
+    public bool IsCsvRequiredAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_requiredAttribute, symbol);
 
-    public bool IsCsvOptionsOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_options, symbol);
+    public bool IsCsvOptionsOfT([NNW(true)] ISymbol? symbol) => Seq.Equals(_options, symbol);
 
-    public bool IsCsvConverterFactoryOfT([NNW(true)] ISymbol? symbol) => _seq.Equals(_converterFactory, symbol);
+    public bool IsCsvConverterFactoryOfT([NNW(true)] ISymbol? symbol) => Seq.Equals(_converterFactory, symbol);
 
-    public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_typeProxyAttribute, symbol);
+    public bool IsTypeProxyAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_typeProxyAttribute, symbol);
 
-    public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => _seq.Equals(_ignoredIndexesAttribute, symbol);
+    public bool IsIgnoredIndexesAttribute([NNW(true)] ISymbol? symbol) => Seq.Equals(_ignoredIndexesAttribute, symbol);
 
-    public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemDateTimeOffset, symbol);
+    public bool IsDateTimeOffset([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemDateTimeOffset, symbol);
 
-    public bool IsTimeSpan([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemTimeSpan, symbol);
+    public bool IsTimeSpan([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemTimeSpan, symbol);
 
-    public bool IsGuid([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemGuid, symbol);
+    public bool IsGuid([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemGuid, symbol);
 
-    public bool IsISpanParsable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemISpanParsable, symbol);
+    public bool IsISpanParsable([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemISpanParsable, symbol);
 
-    public bool IsIUtf8SpanParsable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemIUtf8SpanParsable, symbol);
+    public bool IsIUtf8SpanParsable([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemIUtf8SpanParsable, symbol);
 
-    public bool IsISpanFormattable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemISpanFormattable, symbol);
+    public bool IsISpanFormattable([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemISpanFormattable, symbol);
 
-    public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => _seq.Equals(_systemIUtf8SpanFormattable, symbol);
+    public bool IsIUtf8SpanFormattable([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemIUtf8SpanFormattable, symbol);
+
+    public bool IsIBinaryInteger([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemIBinaryInteger, symbol);
+
+    public bool IsIFloatingPoint([NNW(true)] ISymbol? symbol) => Seq.Equals(_systemIFloatingPoint, symbol);
 
     private static INamedTypeSymbol Get(Compilation compilation, string name)
     {

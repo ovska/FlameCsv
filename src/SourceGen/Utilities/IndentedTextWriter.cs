@@ -430,7 +430,7 @@ internal sealed class IndentedTextWriter : IDisposable
         /// <summary>
         /// The <see cref="IndentedTextWriter"/> instance to write to.
         /// </summary>
-        private IndentedTextWriter? writer = writer;
+        public IndentedTextWriter? writer = writer;
 
         /// <inheritdoc/>
         public void Dispose()

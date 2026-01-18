@@ -151,7 +151,7 @@ partial class TypeMapGenerator
             return false;
         }
 
-        if (token != "byte" || (status & BuiltinConvertable.Utf8Any) == 0)
+        if (token != "byte" || (status & (BuiltinConvertable.Both | BuiltinConvertable.Utf8Both)) == 0)
         {
             methodName = null;
             return false;

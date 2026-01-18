@@ -66,3 +66,30 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
     /// </summary>
     void WriteConverterName(IndentedTextWriter writer);
 }
+
+internal static class MemberModelExtensions
+{
+    public static bool HasParseConverter(this IMemberModel model, TypeMapModel typeMap)
+    {
+        if (typeMap.InlineCommonTypes && model.OverriddenConverter is null)
+        {
+            return typeMap.IsByte
+                ? (model.Convertability & BuiltinConvertable.Utf8Parsable) != 0
+                : (model.Convertability & BuiltinConvertable.Parsable) != 0;
+        }
+
+        return true;
+    }
+
+    public static bool HasFormatConverter(this IMemberModel model, TypeMapModel typeMap)
+    {
+        if (typeMap.InlineCommonTypes && model.OverriddenConverter is null)
+        {
+            return typeMap.IsByte
+                ? (model.Convertability & BuiltinConvertable.Utf8Formattable) != 0
+                : (model.Convertability & BuiltinConvertable.Formattable) != 0;
+        }
+
+        return true;
+    }
+}

@@ -17,8 +17,7 @@ public readonly record struct CsvIOOptions
 
     /// <summary>
     /// The default buffer size when doing file I/O (64 KiB).<br/>
-    /// This is used with the file I/O methods in <see cref="Csv"/>.
-    /// if <see cref="BufferSize"/> is not explicitly configured.
+    /// This is used in <c>Csv.FromFile</c> and <c>Csv.ToFile</c> if <see cref="BufferSize"/> is not explicitly configured.
     /// </summary>
     /// <seealso cref="BufferSize"/>
     public const int DefaultFileBufferSize = 1024 * 64;
@@ -101,23 +100,22 @@ public readonly record struct CsvIOOptions
     }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the inner stream/reader should be left open after use.<br/>
+    /// Gets or sets a value indicating whether the inner stream/reader/writer should be left open after use.<br/>
     /// The default is <c>false</c>.
     /// </summary>
     /// <remarks>
-    /// This parameter is ignored if the stream was not created by the library, such as when writing to a file.
+    /// This parameter is ignored when opening file handles.
     /// </remarks>
     /// <seealso cref="ForFileIO"/>
     public bool LeaveOpen { get; init; }
 
     /// <summary>
-    /// Disable direct buffer reading optimization when reading <see cref="MemoryStream"/> or
-    /// <see cref="StringReader"/> with an exposable buffer.<br/>
+    /// Disable possible direct buffer reading optimizations when reading <see cref="MemoryStream"/> or
+    /// <see cref="StringReader"/>.<br/>
     /// The default is <c>false</c>.
     /// </summary>
     /// <remarks>
-    /// An internal optimization reads directly from the internal buffer from a set of known types.
-    /// If this behavior is undesired, set this to <c>true</c>.
+    /// An internal optimization reads directly from the internal buffer from a set of known types to avoid copying.
     /// </remarks>
     public bool NoDirectBufferAccess { get; init; }
 

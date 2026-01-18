@@ -706,10 +706,13 @@ public class ModelTests(MetadataFixture fixture)
 
                     class Target
                     {
-                        public Guid Native1 { get; set; }
-                        public TimeSpan Native2 { get; set; }
-                        public DateTimeOffset Native3 { get; set; }
-                        public int Native4 { get; set; }
+                        public string Special_String { get; set; }
+                        public char Special_Char { get; set; }
+                        public bool Special_Bool { get; set; }
+                        public int BinaryInt { get; set; }
+                        public UInt128 BinaryInt2 { get; set; }
+                        public double FloatingPoint { get; set; }
+                        public Half HalfPoint { get; set; }
                         public object None1 { get; set; }
                         public Neither None2 { get; set; }
                         public Utf8Both Both8 { get; set; }
@@ -727,7 +730,7 @@ public class ModelTests(MetadataFixture fixture)
                     cancellationToken: TestContext.Current.CancellationToken
                 ),
             ],
-            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime],
+            [fixture.FlameCsvCore, ReferenceAssemblies.SystemRuntime, ReferenceAssemblies.SystemNumerics],
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
         );
 
@@ -755,10 +758,13 @@ public class ModelTests(MetadataFixture fixture)
 
         IEnumerable<(string nameof, BuiltinConvertable status)> expected =
         [
-            ("Native1", BuiltinConvertable.Native),
-            ("Native2", BuiltinConvertable.Native),
-            ("Native3", BuiltinConvertable.Native),
-            ("Native4", BuiltinConvertable.Native),
+            ("Special_String", BuiltinConvertable.Special),
+            ("Special_Char", BuiltinConvertable.Special),
+            ("Special_Bool", BuiltinConvertable.Special),
+            ("BinaryInt", BuiltinConvertable.BinaryInteger),
+            ("BinaryInt2", BuiltinConvertable.BinaryInteger),
+            ("FloatingPoint", BuiltinConvertable.FloatingPoint),
+            ("HalfPoint", BuiltinConvertable.FloatingPoint),
             ("None1", BuiltinConvertable.None),
             ("None2", BuiltinConvertable.None),
         ];
@@ -779,7 +785,7 @@ public class ModelTests(MetadataFixture fixture)
             expected =
             [
                 .. expected,
-                ("Both8", BuiltinConvertable.Utf8Both),
+                ("Both8", BuiltinConvertable.Utf8Formattable | BuiltinConvertable.Utf8Parsable),
                 ("Format8", BuiltinConvertable.Utf8Formattable | BuiltinConvertable.Parsable),
                 ("Parse8", BuiltinConvertable.Utf8Parsable | BuiltinConvertable.Formattable),
                 ("Both16", BuiltinConvertable.Both),

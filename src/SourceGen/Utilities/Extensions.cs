@@ -38,6 +38,19 @@ internal static class UtilityExtensions
 
 #nullable enable
 
+    public static TypedConstant GetNamedArgumentOrDefault(this AttributeData attribute, string name)
+    {
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (argument.Key == name)
+            {
+                return argument.Value;
+            }
+        }
+
+        return default;
+    }
+
     public static bool TryGetNamedArgument(this AttributeData attribute, string name, out TypedConstant value)
     {
         foreach (var argument in attribute.NamedArguments)

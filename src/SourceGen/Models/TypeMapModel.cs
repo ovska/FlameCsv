@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using FlameCsv.SourceGen.Helpers;
+using FlameCsv.SourceGen.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace FlameCsv.SourceGen.Models;
@@ -86,12 +87,17 @@ internal sealed record TypeMapModel
     /// <summary>
     /// Whether the typemap has any members or parameters that must be matched when reading.
     /// </summary>
-    public bool HasRequiredMembers => AllMembers.AsImmutableArray().Any(static m => m.IsRequired);
+    public bool HasRequiredMembers { get; }
 
     /// <summary>
     /// Whether unsafe code is allowed in the generated code.
     /// </summary>
     public bool UnsafeCodeAllowed { get; }
+
+    /// <summary>
+    /// Whether to inline common types such as <see cref="string"/> and parsable values.
+    /// </summary>
+    public bool InlineCommonTypes { get; }
 
     public TypeMapModel(
         Compilation compilation,
@@ -102,6 +108,7 @@ internal sealed record TypeMapModel
     )
     {
         UnsafeCodeAllowed = compilation.Options is CSharpCompilationOptions { AllowUnsafe: true };
+        InlineCommonTypes = attribute.GetNamedArgumentOrDefault("InlineCommonTypes").Value is true;
 
         TypeMap = new TypeRef(containingClass);
 
@@ -219,6 +226,7 @@ internal sealed record TypeMapModel
         Array.Sort(allMembersArray, MemberModelComparison.Value);
 
         AllMembers = ImmutableCollectionsMarshal.AsImmutableArray(allMembersArray);
+        HasRequiredMembers = AllMembers.AsImmutableArray().Any(static m => m.IsRequired);
 
         if (Array.TrueForAll(allMembersArray, static m => !m.IsParsable))
         {

@@ -16,4 +16,11 @@ namespace FlameCsv.Attributes;
 [AttributeUsage(AttributeTargets.Class)]
 [PublicAPI]
 public sealed class CsvTypeMapAttribute<T, TValue> : Attribute
-    where T : unmanaged, IBinaryInteger<T>;
+    where T : unmanaged, IBinaryInteger<T>
+{
+    /// <summary>
+    /// Whether to inline common types such as <see cref="string"/> and <see cref="ISpanParsable{T}"/>
+    /// in the generated code, unless an explicit converter is configured for the member.
+    /// </summary>
+    public bool InlineCommonTypes { get; set; }
+}
