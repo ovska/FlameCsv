@@ -44,7 +44,7 @@ public sealed class CsvBooleanValuesAttribute : CsvConverterAttribute
         {
             converter = new NullableConverter<T, bool>(
                 (CsvConverter<T, bool>)converter,
-                options.GetNullToken(typeof(bool?))
+                options.GetNullObject(typeof(bool?))
             );
             return true;
         }

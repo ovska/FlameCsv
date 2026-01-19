@@ -106,10 +106,19 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
                 return;
             }
 
-            ReadOnlySpan<T> nullValue = Options.GetNullSpan(typeof(TValue));
-            destination = Writer.GetSpan(nullValue.Length);
-            nullValue.CopyTo(destination);
-            tokensWritten = nullValue.Length;
+            ReadOnlySpan<T> nullValue = Options.GetNullObject(typeof(TValue)).AsSpan<T>();
+
+            if (!nullValue.IsEmpty)
+            {
+                destination = Writer.GetSpan(nullValue.Length);
+                nullValue.CopyTo(destination);
+                tokensWritten = nullValue.Length;
+            }
+            else
+            {
+                tokensWritten = nullValue.Length;
+                destination = [];
+            }
         }
 
         // fast path: default options with primitives; these never need validation or escaping
@@ -297,7 +306,7 @@ public readonly struct CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumabl
             return;
         }
 
-        ReadOnlySpan<T> nullSpan = Options.GetNullSpan(typeof(TValue));
+        ReadOnlySpan<T> nullSpan = Options.GetNullObject(typeof(TValue)).AsSpan<T>();
 
         if (!nullSpan.IsEmpty)
         {

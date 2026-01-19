@@ -149,7 +149,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     internal ReadOnlySpan<T> DefaultNullToken
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _null is null ? [] : _null.AsSpan<T>();
+        get => _null.AsSpan<T>();
     }
 
     /// <summary>
@@ -158,15 +158,11 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     /// </summary>
     public ReadOnlyMemory<T> GetNullToken(Type resultType)
     {
-        Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
-        return value is null ? ReadOnlyMemory<T>.Empty : value.AsMemory<T>();
+        Utf8String value = _nullTokens.TryGetExt(resultType, defaultValue: _null)!;
+        return value.AsMemory<T>();
     }
 
-    internal ReadOnlySpan<T> GetNullSpan(Type resultType)
-    {
-        Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
-        return value is null ? [] : value.AsSpan<T>();
-    }
+    internal Utf8String GetNullObject(Type resultType) => _nullTokens.TryGetExt(resultType, defaultValue: _null)!;
 
     /// <summary>
     /// Returns the custom format configured for <paramref name="resultType"/>,
@@ -216,7 +212,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     private ICsvTypeBinder<T>? _typeBinder;
     private Func<ReadOnlySpan<char>, string>? _normalizeHeader;
 
-    private Utf8String? _null;
+    private Utf8String _null = Utf8String.Empty;
     private TypeStringDictionary? _nullTokens;
     private TypeDictionary<string?>? _formats;
     private TypeDictionary<NumberStyles>? _styles;
@@ -235,7 +231,7 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
         set
         {
             this.ThrowIfReadOnly();
-            _null = value is null ? null : new Utf8String(value);
+            _null = value is null ? Utf8String.Empty : new Utf8String(value);
         }
     }
 

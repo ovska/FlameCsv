@@ -183,7 +183,7 @@ partial class CsvOptions<T>
                     $"The factory delegate passed to GetOrCreateNullable for {typeof(TValue).FullName} returned null."
                 );
 
-            var result = new NullableConverter<T, TValue>(inner, _options.GetNullToken(typeof(TValue)));
+            var result = new NullableConverter<T, TValue>(inner, _options.GetNullObject(typeof(TValue)));
             _options.ConverterCache.TryAdd((typeof(TValue?), identifier), result);
             return result;
         }

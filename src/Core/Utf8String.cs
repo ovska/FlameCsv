@@ -8,16 +8,17 @@ namespace FlameCsv;
 /// </summary>
 internal sealed class Utf8String
 {
+    public static Utf8String Empty { get; } = new("");
+
     public string String { get; }
+    public ReadOnlyMemory<byte> Bytes => _bytes;
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private byte[] InitBytes() => _bytes ??= Encoding.UTF8.GetBytes(String);
-
-    private byte[]? _bytes;
+    private readonly byte[] _bytes;
 
     public Utf8String(string? value)
     {
         String = value ?? "";
+        _bytes = String.Length == 0 ? [] : Encoding.UTF8.GetBytes(String);
     }
 
     public static implicit operator Utf8String(string? value) => new(value);
@@ -34,7 +35,7 @@ internal sealed class Utf8String
 
         if (typeof(T) == typeof(byte))
         {
-            return Unsafe.As<T[]>(_bytes ?? InitBytes());
+            return Unsafe.As<T[]>(_bytes);
         }
 
         if (typeof(T) == typeof(char))
@@ -57,13 +58,12 @@ internal sealed class Utf8String
 
         if (typeof(T) == typeof(byte))
         {
-            return Unsafe.As<T[]>(_bytes ?? InitBytes());
+            return Unsafe.As<T[]>(_bytes);
         }
 
         if (typeof(T) == typeof(char))
         {
-            ReadOnlySpan<char> chars = String.AsSpan();
-            return Unsafe.As<ReadOnlySpan<char>, ReadOnlySpan<T>>(ref chars);
+            return Unsafe.BitCast<ReadOnlySpan<char>, ReadOnlySpan<T>>(String);
         }
 
         throw Token<T>.NotSupported;

@@ -11,18 +11,18 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
     protected internal override bool CanFormatNull => true;
 
     internal readonly CsvConverter<T, TValue> _converter;
-    private readonly ReadOnlyMemory<T> _null;
+    private readonly Utf8String _null;
 
     /// <summary>
     /// Creates a new instance wrapping the converter.
     /// </summary>
     /// <param name="converter">Converter to convert non-null values</param>
     /// <param name="nullToken"></param>
-    public NullableConverter(CsvConverter<T, TValue> converter, ReadOnlyMemory<T> nullToken)
+    public NullableConverter(CsvConverter<T, TValue> converter, Utf8String? nullToken)
     {
         ArgumentNullException.ThrowIfNull(converter);
         _converter = converter;
-        _null = nullToken;
+        _null = nullToken ?? Utf8String.Empty;
     }
 
     /// <inheritdoc />
@@ -35,7 +35,8 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
         }
 
         value = null;
-        return (_null.IsEmpty && source.IsEmpty) || _null.Span.SequenceEqual(source);
+        ReadOnlySpan<T> nullSpan = _null.AsSpan<T>();
+        return (nullSpan.IsEmpty && source.IsEmpty) || nullSpan.SequenceEqual(source);
     }
 
     /// <inheritdoc />
@@ -47,7 +48,8 @@ internal sealed class NullableConverter<T, TValue> : CsvConverter<T, TValue?>
             return _converter.TryFormat(destination, v, out charsWritten);
         }
 
-        charsWritten = _null.Length;
-        return _null.IsEmpty || _null.Span.TryCopyTo(destination);
+        ReadOnlySpan<T> nullSpan = _null.AsSpan<T>();
+        charsWritten = nullSpan.Length;
+        return nullSpan.IsEmpty || nullSpan.TryCopyTo(destination);
     }
 }

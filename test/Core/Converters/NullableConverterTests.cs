@@ -10,10 +10,7 @@ public static class NullableConverterTests
     [Fact]
     public static void Should_Return_Null()
     {
-        NullableConverter<char, int> converter = new(
-            new SpanTextConverter<int>(CsvOptions<char>.Default),
-            "".AsMemory()
-        );
+        NullableConverter<char, int> converter = new(new SpanTextConverter<int>(CsvOptions<char>.Default), null);
 
         Assert.True(converter.TryParse("", out var value1));
         Assert.Null(value1);
@@ -22,6 +19,13 @@ public static class NullableConverterTests
         Assert.Equal(1, value2);
 
         Assert.False(converter.TryParse(" ", out _));
+
+        converter = new(new SpanTextConverter<int>(CsvOptions<char>.Default), new Utf8String("<null>"));
+        Assert.True(converter.TryParse("<null>", out var value3));
+        Assert.Null(value3);
+        Assert.True(converter.TryParse("2", out var value4));
+        Assert.Equal(2, value4);
+        Assert.False(converter.TryParse("", out _));
     }
 
     [Fact]
