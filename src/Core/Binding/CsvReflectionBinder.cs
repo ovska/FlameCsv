@@ -25,9 +25,9 @@ public abstract class CsvReflectionBinder
         List<CsvBinding<TValue>> foundBindings = new(headerFields.Length);
 
         bool matchedAny = false;
-        StringComparison comparison = options.IgnoreHeaderCase
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+        StringComparer comparison = options.IgnoreHeaderCase
+            ? StringComparer.OrdinalIgnoreCase
+            : StringComparer.Ordinal;
 
         foreach (string field in headerFields.AsSpan())
         {
@@ -40,11 +40,11 @@ public abstract class CsvReflectionBinder
                 if (data.Ignored)
                     continue;
 
-                bool match = string.Equals(data.Name, field, comparison);
+                bool match = comparison.Equals(data.Name, field);
 
                 for (int i = 0; !match && i < data.Aliases.Length; i++)
                 {
-                    match = string.Equals(data.Aliases[i], field, comparison);
+                    match = comparison.Equals(data.Aliases[i], field);
                 }
 
                 if (match)
