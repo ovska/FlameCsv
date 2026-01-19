@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,9 +16,6 @@ namespace FlameCsv.Writing;
 /// <summary>
 /// Writes CSV fields and handles escaping as needed.
 /// </summary>
-/// <remarks>
-/// This type must be disposed to release rented memory.
-/// </remarks>
 [MustDisposeResource]
 public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
     where T : unmanaged, IBinaryInteger<T>
@@ -35,9 +33,10 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
     private readonly T _delimiter;
     private readonly T _quote;
     private readonly IQuoter<T> _quoter;
-    private readonly Allocator<T> _allocator;
     private readonly object? _defaultStringConverter;
     private readonly bool _usesDefaultOptions;
+
+    private IMemoryOwner<T>? _memoryOwner;
 
     /// <summary>
     /// Newline value that can be written as a single unit, e.g. <c>'\r' | ('\n' &lt;&lt; 16)</c> for <see cref="char"/> and <c>0x0A0D</c> for <see cref="byte"/>.
@@ -63,7 +62,6 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
         _quoter = Quoter.Create(options);
         _newlineValue = Bithacks.InitializeCRLFRegister<T>(options.Newline.IsCRLF());
         _newlineLength = options.Newline.IsCRLF() ? 2 : 1;
-        _allocator = new Allocator<T>(writer.BufferPool);
         _defaultStringConverter =
             typeof(T) == typeof(char) ? Converters.StringTextConverter.Instance
             : typeof(T) == typeof(byte) ? Converters.StringUtf8Converter.Instance
@@ -370,9 +368,9 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
 
             if (advanceBy > destination.Length)
             {
-                Span<T> temp = _allocator.GetSpan(tokensWritten);
+                Span<T> temp = Writer.BufferPool.EnsureCapacity(ref _memoryOwner, tokensWritten).Span;
                 written.CopyTo(temp);
-                written = temp;
+                written = temp.Slice(0, tokensWritten);
                 destination = Writer.GetSpan(advanceBy);
             }
 
@@ -389,7 +387,8 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
     /// <inheritdoc />
     public void Dispose()
     {
-        _allocator?.Dispose();
+        _memoryOwner?.Dispose();
+        _memoryOwner = null;
     }
 
     bool ParallelUtils.IConsumable.ShouldConsume => Writer.NeedsFlush;

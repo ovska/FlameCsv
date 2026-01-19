@@ -61,12 +61,11 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private Memory<T> ResizeBuffer(int sizeHint)
     {
-        BufferPool.EnsureCapacity(
+        _buffer = BufferPool.EnsureCapacity(
             ref _memoryOwner,
             minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
             copyOnResize: true
         );
-        _buffer = _memoryOwner.Memory;
         return _buffer.Slice(_unflushed);
     }
 

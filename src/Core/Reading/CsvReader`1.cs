@@ -32,7 +32,8 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </summary>
     private readonly CsvScalarTokenizer<T> _scalarTokenizer;
 
-    internal readonly Allocator<T> _unescapeAllocator;
+    private readonly IBufferPool _bufferPool;
+    private IMemoryOwner<T>? _unescapeMemory;
     private EnumeratorStack _stackMemory; // don't make me readonly!
 
     internal readonly ICsvBufferReader<T> _reader;
@@ -70,10 +71,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         _reader = reader;
         _state = State.Initialized;
+        _bufferPool = ioOptions.EffectiveBufferPool;
 
         (_scalarTokenizer, _tokenizer) = options.GetTokenizers();
-
-        _unescapeAllocator = new Allocator<T>(ioOptions.EffectiveBufferPool);
 
         if (typeof(T) == typeof(byte))
         {
@@ -344,8 +344,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         _state = State.Disposed;
 
         _reader.Dispose();
-        _unescapeAllocator.Dispose();
         _recordBuffer.Dispose();
+        _unescapeMemory?.Dispose();
+        _unescapeMemory = null;
         _buffer = ReadOnlyMemory<T>.Empty; // don't hold on to data after disposing
     }
 
@@ -358,8 +359,9 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         _state = State.Disposed;
 
         await _reader.DisposeAsync().ConfigureAwait(false);
-        _unescapeAllocator.Dispose();
         _recordBuffer.Dispose();
+        _unescapeMemory?.Dispose();
+        _unescapeMemory = null;
         _buffer = ReadOnlyMemory<T>.Empty; // don't hold on to data after disposing
     }
 
@@ -367,10 +369,10 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     {
         int stackLength = EnumeratorStack.Length / Unsafe.SizeOf<T>();
 
-        // allocate a new buffer if the requested length is larger than the stack buffer
+        // use the rented buffer if the requested length is larger than the stack buffer
         if (length > stackLength)
         {
-            return _unescapeAllocator.GetSpan(length);
+            return _bufferPool.EnsureCapacity(ref _unescapeMemory, length).Span;
         }
 
         return MemoryMarshal.CreateSpan(ref Unsafe.As<byte, T>(ref _stackMemory.elem0), stackLength);

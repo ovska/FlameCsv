@@ -34,18 +34,28 @@ internal static class BufferPoolExtensions
     public static IMemoryOwner<T> Rent<T>(this IBufferPool pool, int length)
         where T : unmanaged
     {
+        IMemoryOwner<T> result;
+
         if (typeof(T) == typeof(byte))
         {
-            return Unsafe.As<IMemoryOwner<T>>(pool.GetBytes(length));
+            result = Unsafe.As<IMemoryOwner<T>>(pool.GetBytes(length));
         }
-        if (typeof(T) == typeof(char))
+        else if (typeof(T) == typeof(char))
         {
-            return Unsafe.As<IMemoryOwner<T>>(pool.GetChars(length));
+            result = Unsafe.As<IMemoryOwner<T>>(pool.GetChars(length));
+        }
+        else
+        {
+            throw Token<T>.NotSupported;
         }
 
-        throw Token<T>.NotSupported;
+        Check.GreaterThanOrEqual(result.Memory.Length, length);
+        return result;
     }
 
+    /// <summary>
+    /// Ensures that the memory owner has at least the specified minimum length, and returns the memory.
+    /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static Memory<T> EnsureCapacity<T>(
         this IBufferPool pool,
@@ -55,10 +65,11 @@ internal static class BufferPoolExtensions
     )
         where T : unmanaged
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
-
-        if (minimumLength == 0)
+        if (minimumLength <= 0)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
             return Memory<T>.Empty;
+        }
 
         if (memoryOwner is null)
         {
