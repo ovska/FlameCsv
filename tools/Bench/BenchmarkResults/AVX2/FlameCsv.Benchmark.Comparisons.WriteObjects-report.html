@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>FlameCsv.Benchmark.Comparisons.WriteObjects-20260107-213833</title>
+<title>FlameCsv.Benchmark.Comparisons.WriteObjects-20260119-193959</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -26,22 +26,22 @@ MaxWarmupIterationCount=32  MinIterationCount=16  MinWarmupIterationCount=16
 <table>
 <thead><tr><th>Method              </th><th>Async</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Median</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
 </tr>
-</thead><tbody><tr><td>_Flame_Reflection</td><td>False</td><td>10.717 ms</td><td>0.2320 ms</td><td>0.4580 ms</td><td>10.433 ms</td><td>1.00</td><td>0.06</td><td>-</td><td>-</td><td>-</td><td>280 B</td><td>1.00</td>
-</tr><tr><td>_Flame_SrcGen</td><td>False</td><td>9.948 ms</td><td>0.2084 ms</td><td>0.4114 ms</td><td>9.633 ms</td><td>0.93</td><td>0.05</td><td>-</td><td>-</td><td>-</td><td>280 B</td><td>1.00</td>
-</tr><tr><td>_Flame_SrcGen_Parallel</td><td>False</td><td>1.411 ms</td><td>0.0088 ms</td><td>0.0086 ms</td><td>1.414 ms</td><td>0.13</td><td>0.01</td><td>0.9766</td><td>-</td><td>-</td><td>72715 B</td><td>259.70</td>
-</tr><tr><td>_Flame_Reflection_Parallel</td><td>False</td><td>1.473 ms</td><td>0.0109 ms</td><td>0.0107 ms</td><td>1.470 ms</td><td>0.14</td><td>0.01</td><td>0.9766</td><td>-</td><td>-</td><td>72543 B</td><td>259.08</td>
-</tr><tr><td>_Sylvan</td><td>False</td><td>10.860 ms</td><td>0.1027 ms</td><td>0.1440 ms</td><td>10.784 ms</td><td>1.02</td><td>0.04</td><td>-</td><td>-</td><td>-</td><td>33600 B</td><td>120.00</td>
-</tr><tr><td>_CsvHelper</td><td>False</td><td>23.316 ms</td><td>0.4568 ms</td><td>0.8467 ms</td><td>23.811 ms</td><td>2.18</td><td>0.12</td><td>203.1250</td><td>-</td><td>-</td><td>7920494 B</td><td>28,287.48</td>
-</tr><tr><td>_Sep</td><td>False</td><td>11.762 ms</td><td>0.2385 ms</td><td>0.4707 ms</td><td>11.793 ms</td><td>1.10</td><td>0.06</td><td>7.8125</td><td>-</td><td>-</td><td>478640 B</td><td>1,709.43</td>
-</tr><tr><td>_RecordParser</td><td>False</td><td>18.826 ms</td><td>0.1233 ms</td><td>0.1210 ms</td><td>18.846 ms</td><td>1.76</td><td>0.07</td><td>640.6250</td><td>593.7500</td><td>-</td><td>36743278 B</td><td>131,225.99</td>
-</tr><tr><td>_RecordParser_Parallel</td><td>False</td><td>21.331 ms</td><td>0.2618 ms</td><td>0.2449 ms</td><td>21.329 ms</td><td>1.99</td><td>0.08</td><td>656.2500</td><td>359.3750</td><td>140.6250</td><td>30256142 B</td><td>108,057.65</td>
-</tr><tr><td>_Flame_Reflection</td><td>True</td><td>10.598 ms</td><td>0.0738 ms</td><td>0.0725 ms</td><td>10.604 ms</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>28389 B</td><td>1.00</td>
-</tr><tr><td>_Flame_SrcGen</td><td>True</td><td>10.339 ms</td><td>0.0549 ms</td><td>0.0539 ms</td><td>10.341 ms</td><td>0.98</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>28390 B</td><td>1.00</td>
-</tr><tr><td>_Flame_SrcGen_Parallel</td><td>True</td><td>1.320 ms</td><td>0.0039 ms</td><td>0.0038 ms</td><td>1.319 ms</td><td>0.12</td><td>0.00</td><td>7.8125</td><td>-</td><td>-</td><td>327983 B</td><td>11.55</td>
-</tr><tr><td>_Flame_Reflection_Parallel</td><td>True</td><td>1.374 ms</td><td>0.0042 ms</td><td>0.0041 ms</td><td>1.374 ms</td><td>0.13</td><td>0.00</td><td>7.8125</td><td>-</td><td>-</td><td>328091 B</td><td>11.56</td>
-</tr><tr><td>_Sylvan</td><td>True</td><td>11.967 ms</td><td>0.0765 ms</td><td>0.0751 ms</td><td>11.962 ms</td><td>1.13</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>83144 B</td><td>2.93</td>
-</tr><tr><td>_CsvHelper</td><td>True</td><td>35.768 ms</td><td>0.3272 ms</td><td>0.3214 ms</td><td>35.883 ms</td><td>3.38</td><td>0.04</td><td>375.0000</td><td>-</td><td>-</td><td>14322527 B</td><td>504.51</td>
-</tr><tr><td>_Sep</td><td>True</td><td>266.176 ms</td><td>5.2391 ms</td><td>5.3802 ms</td><td>266.866 ms</td><td>25.12</td><td>0.52</td><td>2000.0000</td><td>-</td><td>-</td><td>74693112 B</td><td>2,631.06</td>
+</thead><tbody><tr><td>_Flame_Reflection</td><td>False</td><td>10.311 ms</td><td>0.0518 ms</td><td>0.0636 ms</td><td>10.280 ms</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>320 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen</td><td>False</td><td>9.793 ms</td><td>0.1781 ms</td><td>0.3025 ms</td><td>9.638 ms</td><td>0.95</td><td>0.03</td><td>-</td><td>-</td><td>-</td><td>320 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen_Parallel</td><td>False</td><td>1.347 ms</td><td>0.0266 ms</td><td>0.0373 ms</td><td>1.361 ms</td><td>0.13</td><td>0.00</td><td>0.9766</td><td>-</td><td>-</td><td>68056 B</td><td>212.68</td>
+</tr><tr><td>_Flame_Reflection_Parallel</td><td>False</td><td>1.362 ms</td><td>0.0269 ms</td><td>0.0368 ms</td><td>1.367 ms</td><td>0.13</td><td>0.00</td><td>0.9766</td><td>-</td><td>-</td><td>66772 B</td><td>208.66</td>
+</tr><tr><td>_Sylvan</td><td>False</td><td>10.406 ms</td><td>0.1635 ms</td><td>0.1366 ms</td><td>10.357 ms</td><td>1.01</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>33600 B</td><td>105.00</td>
+</tr><tr><td>_CsvHelper</td><td>False</td><td>22.753 ms</td><td>0.4863 ms</td><td>0.9599 ms</td><td>22.361 ms</td><td>2.21</td><td>0.09</td><td>250.0000</td><td>46.8750</td><td>31.2500</td><td>146891327 B</td><td>459,035.40</td>
+</tr><tr><td>_Sep</td><td>False</td><td>11.833 ms</td><td>0.2646 ms</td><td>0.5223 ms</td><td>11.440 ms</td><td>1.15</td><td>0.05</td><td>7.8125</td><td>-</td><td>-</td><td>478640 B</td><td>1,495.75</td>
+</tr><tr><td>_RecordParser</td><td>False</td><td>18.911 ms</td><td>0.2314 ms</td><td>0.2273 ms</td><td>18.974 ms</td><td>1.83</td><td>0.02</td><td>656.2500</td><td>578.1250</td><td>15.6250</td><td>35673561 B</td><td>111,479.88</td>
+</tr><tr><td>_RecordParser_Parallel</td><td>False</td><td>21.483 ms</td><td>0.3811 ms</td><td>0.3743 ms</td><td>21.490 ms</td><td>2.08</td><td>0.04</td><td>671.8750</td><td>328.1250</td><td>140.6250</td><td>30873488 B</td><td>96,479.65</td>
+</tr><tr><td>_Flame_Reflection</td><td>True</td><td>10.418 ms</td><td>0.0628 ms</td><td>0.0616 ms</td><td>10.406 ms</td><td>1.00</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>28392 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen</td><td>True</td><td>10.629 ms</td><td>0.0998 ms</td><td>0.0980 ms</td><td>10.614 ms</td><td>1.02</td><td>0.01</td><td>-</td><td>-</td><td>-</td><td>28392 B</td><td>1.00</td>
+</tr><tr><td>_Flame_SrcGen_Parallel</td><td>True</td><td>1.283 ms</td><td>0.0069 ms</td><td>0.0068 ms</td><td>1.285 ms</td><td>0.12</td><td>0.00</td><td>3.9063</td><td>-</td><td>-</td><td>155417 B</td><td>5.47</td>
+</tr><tr><td>_Flame_Reflection_Parallel</td><td>True</td><td>1.345 ms</td><td>0.0041 ms</td><td>0.0038 ms</td><td>1.344 ms</td><td>0.13</td><td>0.00</td><td>3.9063</td><td>-</td><td>-</td><td>154126 B</td><td>5.43</td>
+</tr><tr><td>_Sylvan</td><td>True</td><td>11.730 ms</td><td>0.1700 ms</td><td>0.1669 ms</td><td>11.668 ms</td><td>1.13</td><td>0.02</td><td>-</td><td>-</td><td>-</td><td>83144 B</td><td>2.93</td>
+</tr><tr><td>_CsvHelper</td><td>True</td><td>36.213 ms</td><td>0.3194 ms</td><td>0.3137 ms</td><td>36.120 ms</td><td>3.48</td><td>0.04</td><td>375.0000</td><td>-</td><td>-</td><td>14322541 B</td><td>504.46</td>
+</tr><tr><td>_Sep</td><td>True</td><td>255.498 ms</td><td>5.0005 ms</td><td>9.3921 ms</td><td>258.880 ms</td><td>24.53</td><td>0.90</td><td>2000.0000</td><td>-</td><td>-</td><td>74714768 B</td><td>2,631.54</td>
 </tr><tr><td>_RecordParser</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
 </tr><tr><td>_RecordParser_Parallel</td><td>True</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
 </tr></tbody></table>
