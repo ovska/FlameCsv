@@ -17,8 +17,8 @@ BenchmarkRunner.Run(
         /**/
         typeof(ReadObjects),
         typeof(WriteObjects),
-        typeof(EnumerateBench),
-        typeof(PeekFields),
+        // typeof(EnumerateBench),
+        // typeof(PeekFields),
     ],
     new Config(),
     args
