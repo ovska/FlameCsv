@@ -8,7 +8,7 @@ namespace FlameCsv.Tests.Writing;
 public sealed class CsvFieldWriterTests : IAsyncDisposable
 {
     [HandlesResourceDisposal]
-    private CsvFieldWriter<char> _writer;
+    private CsvFieldWriter<char> _writer = null!;
     private StringWriter? _textWriter;
 
     private string Written => _textWriter?.ToString() ?? string.Empty;

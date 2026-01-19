@@ -215,7 +215,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
         }
         finally
         {
-            _owner = HeapMemoryOwner<T>.Empty;
+            _owner = null!;
         }
     }
 }

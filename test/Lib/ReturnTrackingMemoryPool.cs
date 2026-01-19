@@ -187,7 +187,7 @@ public abstract class ReturnTrackingMemoryPool<T> : MemoryPool<T>
         ArgumentOutOfRangeException.ThrowIfGreaterThan(minBufferSize, MaxBufferSize);
 
         if (minBufferSize == 0)
-            return HeapMemoryOwner<T>.Empty;
+            return MemoryPool<T>.Shared.Rent(0);
 
         if (minBufferSize == -1)
             minBufferSize = 4096;

@@ -89,7 +89,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
         using (_memoryOwner)
         {
             _memory = Memory<char>.Empty;
-            _memoryOwner = HeapMemoryOwner<char>.Empty;
+            _memoryOwner = null!;
         }
     }
 }

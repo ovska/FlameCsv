@@ -13,6 +13,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
     [HandlesResourceDisposal]
     private CsvFieldWriter<byte> _writer = null!;
     private MemoryStream? _stream;
+    private ReturnTrackingMemoryPool<byte>? _pool;
 
     private string Written =>
         _stream is not null && _stream.TryGetBuffer(out var buffer)
@@ -21,6 +22,7 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
+        using (_pool)
         await using (_stream)
         using (_writer)
         {
@@ -138,7 +140,10 @@ public sealed class CsvByteWriterTests : IAsyncDisposable
             new PipeBufferWriter(
                 PipeWriter.Create(
                     _stream,
-                    new StreamPipeWriterOptions(minimumBufferSize: bufferSize, pool: HeapMemoryPool<byte>.Instance)
+                    new StreamPipeWriterOptions(
+                        minimumBufferSize: bufferSize,
+                        pool: _pool ??= ReturnTrackingMemoryPool<byte>.Create(PoisonPagePlacement.None)
+                    )
                 ),
                 null
             ),

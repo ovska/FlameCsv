@@ -126,7 +126,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         {
             _unflushed = -1;
             _memoryOwner.Dispose();
-            _memoryOwner = HeapMemoryOwner<T>.Empty;
+            _memoryOwner = null!;
             _buffer = default;
             await DisposeCoreAsync().ConfigureAwait(false);
         }
@@ -148,7 +148,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         {
             _unflushed = -1;
             _memoryOwner.Dispose();
-            _memoryOwner = HeapMemoryOwner<T>.Empty;
+            _memoryOwner = null!;
             _buffer = default;
             DisposeCore();
         }

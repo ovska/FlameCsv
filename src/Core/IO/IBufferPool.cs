@@ -7,6 +7,10 @@ namespace FlameCsv.IO;
 /// <summary>
 /// Pool for renting buffers for IO operations, unescaping values, and other temporary use.
 /// </summary>
+/// <remarks>
+/// This type is intentionally not disposable; if a custom implementation needs disposal,
+/// it should manage its own lifetime.
+/// </remarks>
 public interface IBufferPool
 {
     /// <summary>
