@@ -129,13 +129,20 @@ partial class TypeMapGenerator
             {
                 if (!member.HasParseConverter(typeMap))
                 {
-                    if (member.Convertability is BuiltinConvertable.Special)
+                    if ((member.Convertability & BuiltinConvertable.Special) != 0)
                     {
                         writer.DebugLine($"No converter needed for special type {member.Identifier}");
+                        continue;
                     }
-                    else if (
-                        member.Convertability is BuiltinConvertable.FloatingPoint or BuiltinConvertable.BinaryInteger
-                    )
+
+                    if ((member.Convertability & BuiltinConvertable.Nullable) != 0)
+                    {
+                        writer.Write($"public global::FlameCsv.Binding.CsvTypeMap.NullValue<{typeMap.TokenName}> ");
+                        member.WriteConfigPrefix(writer);
+                        writer.WriteLine("_Null;");
+                    }
+
+                    if (member.Convertability.IsNumber())
                     {
                         writer.Write("public global::FlameCsv.Binding.CsvTypeMap.NumberParseConfig ");
                         member.WriteConfigPrefix(writer);
@@ -145,7 +152,7 @@ partial class TypeMapGenerator
                     {
                         writer.Write("public global::System.IFormatProvider ");
                         member.WriteConfigPrefix(writer);
-                        writer.WriteLine(";");
+                        writer.WriteLine("_FormatProvider;");
                     }
 
                     continue;
@@ -284,7 +291,14 @@ partial class TypeMapGenerator
                     writer.Write(
                         $") global::FlameCsv.Exceptions.CsvParseException.Throw(index, typeof({member.Type.FullyQualifiedName}), "
                     );
-                    member.WriteConverterName(writer);
+                    if (member.HasParseConverter(typeMap))
+                    {
+                        member.WriteConverterName(writer);
+                    }
+                    else
+                    {
+                        writer.Write("null");
+                    }
                     writer.WriteLine($", {member.HeaderName.ToStringLiteral()});");
                 }
 
@@ -464,7 +478,7 @@ partial class TypeMapGenerator
 
         if (typeMap.IsByte)
         {
-            writer.Write("global::System.Text.Encoding.UTF8.GetBytes(record.GetFieldUnsafe(");
+            writer.Write("global::System.Text.Encoding.UTF8.GetString(record.GetFieldUnsafe(");
             property.WriteId(writer);
             writer.WriteLine("));");
         }
@@ -489,14 +503,26 @@ partial class TypeMapGenerator
             return;
         }
 
-        writer.Write(property.Type.FullyQualifiedName);
-        writer.Write(".TryParse(record.GetFieldUnsafe(__index = ");
-        property.WriteId(writer);
-        writer.Write(")");
-
-        if (property.Convertability is BuiltinConvertable.FloatingPoint or BuiltinConvertable.BinaryInteger)
+        if (
+            (property.Convertability & BuiltinConvertable.Nullable) != 0
+            || property.Type.SpecialType == SpecialType.System_Enum
+        )
         {
-            writer.Write(", ");
+            writer.Write("global::FlameCsv.Reading.CsvFieldParsingExtensions.TryParse");
+            writer.WriteIf(property.Convertability.IsNumber(), "Number");
+            writer.Write('(');
+        }
+        else
+        {
+            writer.Write($"{property.Type.FullyQualifiedName}.TryParse(");
+        }
+
+        writer.Write("record.GetFieldUnsafe(__index = ");
+        property.WriteId(writer);
+        writer.Write("), ");
+
+        if (property.Convertability.IsNumber())
+        {
             property.WriteConfigPrefix(writer);
             writer.Write(".Styles, ");
             property.WriteConfigPrefix(writer);
@@ -504,12 +530,18 @@ partial class TypeMapGenerator
         }
         else
         {
-            writer.Write(", ");
             property.WriteConfigPrefix(writer);
             writer.Write("_FormatProvider");
         }
+        writer.Write(", ");
 
-        writer.Write($", out state.{property.Identifier})");
+        if ((property.Convertability & BuiltinConvertable.Nullable) != 0)
+        {
+            property.WriteConfigPrefix(writer);
+            writer.Write("_Null, ");
+        }
+
+        writer.Write($"out state.{property.Identifier})");
     }
 
     private static void WriteRequiredCheck(TypeMapModel typeMap, IndentedTextWriter writer)
@@ -529,8 +561,8 @@ partial class TypeMapGenerator
         {
             writer.WriteLineIf(!first, " ||");
             writer.Write("materializer.");
-            member.WriteConverterName(writer);
-            writer.Write(" is null");
+            member.WriteId(writer);
+            writer.Write(" < 0");
             first = false;
         }
 
@@ -559,8 +591,8 @@ partial class TypeMapGenerator
             foreach (var member in typeMap.AllMembers.Where(m => m.IsParsable && m.IsRequired))
             {
                 writer.Write("if (materializer.");
-                member.WriteConverterName(writer);
-                writer.WriteLine($" is null) yield return {member.Identifier.ToStringLiteral()};");
+                member.WriteId(writer);
+                writer.WriteLine($" < 0) yield return {member.Identifier.ToStringLiteral()};");
             }
         }
     }
@@ -659,13 +691,13 @@ partial class TypeMapGenerator
                     WriteConverter(writer, typeMap.TokenName, member);
                     writer.WriteLine(";");
                 }
-                else if (member.Convertability is not BuiltinConvertable.Special)
+                else if ((member.Convertability & BuiltinConvertable.Special) == 0)
                 {
                     writer.DebugLine($"No converter for member {member.Identifier} ({member.Convertability})");
                     writer.Write("materializer.");
                     member.WriteConfigPrefix(writer);
 
-                    if (member.Convertability is BuiltinConvertable.FloatingPoint or BuiltinConvertable.BinaryInteger)
+                    if (member.Convertability.IsNumber())
                     {
                         writer.Write(" = global::FlameCsv.Binding.CsvTypeMap.NumberParseConfig.");
                         writer.Write(
@@ -678,6 +710,13 @@ partial class TypeMapGenerator
                         writer.Write("_FormatProvider = options.GetFormatProvider(typeof(");
                         writer.Write(member.Type.FullyQualifiedName);
                         writer.WriteLine("));");
+                    }
+
+                    if ((member.Convertability & BuiltinConvertable.Nullable) != 0)
+                    {
+                        writer.Write("materializer.");
+                        member.WriteConfigPrefix(writer);
+                        writer.WriteLine($"_Null = new(typeof({member.Type.FullyQualifiedName}), options);");
                     }
                 }
                 else
@@ -710,14 +749,44 @@ partial class TypeMapGenerator
 
         foreach (var member in typeMap.IndexesForReading)
         {
-            if (member is not null && member.HasParseConverter(typeMap))
+            if (member is null)
             {
-                if (block.writer is null)
-                {
-                    writer.WriteLine();
-                    block = writer.WriteBlockWithSemicolon();
-                }
+                continue;
+            }
 
+            if (block.writer is null)
+            {
+                writer.WriteLine();
+                block = writer.WriteBlockWithSemicolon();
+            }
+
+            if (!member.HasParseConverter(typeMap))
+            {
+                if ((member.Convertability & BuiltinConvertable.Special) == 0)
+                {
+                    member.WriteConfigPrefix(writer);
+
+                    if (member.Convertability.IsNumber())
+                    {
+                        writer.Write(" = global::FlameCsv.Binding.CsvTypeMap.NumberParseConfig.");
+                        writer.Write(
+                            (member.Convertability & BuiltinConvertable.BinaryInteger)
+                            == BuiltinConvertable.BinaryInteger
+                                ? "Integer"
+                                : "FloatingPoint"
+                        );
+                        writer.WriteLine($"(typeof({member.Type.FullyQualifiedName}), options),");
+                    }
+                    else
+                    {
+                        writer.Write("_FormatProvider = options.GetFormatProvider(typeof(");
+                        writer.Write(member.Type.FullyQualifiedName);
+                        writer.WriteLine(")),");
+                    }
+                }
+            }
+            else
+            {
                 member.WriteConverterName(writer);
                 writer.Write(" = ");
                 WriteConverter(writer, typeMap.TokenName, member);

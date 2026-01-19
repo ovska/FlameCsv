@@ -1,4 +1,6 @@
-﻿namespace FlameCsv.SourceGen.Models;
+﻿using FlameCsv.SourceGen.Utilities;
+
+namespace FlameCsv.SourceGen.Models;
 
 #pragma warning disable RCS1157 // Composite enum value contains undefined flag
 [Flags]
@@ -32,6 +34,12 @@ internal enum BuiltinConvertable
 
     /// <summary>IFloatingPoint, implies both utf16 and utf8</summary>
     FloatingPoint = 1 << 6 | Both | Utf8Both,
+
+    /// <summary>Native support by FlameCsv in converter mode</summary>
+    Native = 1 << 7,
+
+    /// <summary>This is a nullable struct.</summary>
+    Nullable = 1 << 8,
 }
 #pragma warning restore RCS1157 // Composite enum value contains undefined flag
 
@@ -39,12 +47,25 @@ internal static class BuiltinConvertableExtensions
 {
     public static BuiltinConvertable GetBuiltinConvertability(this ITypeSymbol type, ref readonly FlameSymbols symbols)
     {
+        bool shortCircuit = false;
+
+        BuiltinConvertable result = BuiltinConvertable.None;
+
+        if (type.IsNullable(out var baseType))
+        {
+            result |= BuiltinConvertable.Nullable;
+            type = baseType;
+        }
+
         switch (type.SpecialType)
         {
             case SpecialType.System_Boolean:
             case SpecialType.System_String:
             case SpecialType.System_Char:
-                return BuiltinConvertable.Special;
+            case SpecialType.System_Enum:
+                result |= BuiltinConvertable.Special | BuiltinConvertable.Native;
+                shortCircuit = true;
+                break;
             case SpecialType.System_Byte:
             case SpecialType.System_SByte:
             case SpecialType.System_Int16:
@@ -55,15 +76,30 @@ internal static class BuiltinConvertableExtensions
             case SpecialType.System_UInt64:
             case SpecialType.System_IntPtr:
             case SpecialType.System_UIntPtr:
-                return BuiltinConvertable.BinaryInteger;
+                result |= BuiltinConvertable.BinaryInteger | BuiltinConvertable.Native;
+                shortCircuit = true;
+                break;
             case SpecialType.System_Decimal:
             case SpecialType.System_Single:
             case SpecialType.System_Double:
-                return BuiltinConvertable.FloatingPoint;
+                result |= BuiltinConvertable.FloatingPoint | BuiltinConvertable.Native;
+                shortCircuit = true;
+                break;
+            case SpecialType.None:
+                if (symbols.IsDateTimeOffset(type) || symbols.IsTimeSpan(type) || symbols.IsGuid(type))
+                {
+                    result |= BuiltinConvertable.Special | BuiltinConvertable.Native;
+                }
+
+                break;
+        }
+
+        if (shortCircuit)
+        {
+            return result;
         }
 
         bool isByte = symbols.TokenType.SpecialType == SpecialType.System_Byte;
-        BuiltinConvertable result = BuiltinConvertable.None;
 
         foreach (var iface in type.AllInterfaces)
         {
@@ -109,5 +145,11 @@ internal static class BuiltinConvertableExtensions
         }
 
         return result;
+    }
+
+    public static bool IsNumber(this BuiltinConvertable convertable)
+    {
+        return (convertable & BuiltinConvertable.BinaryInteger) != 0
+            || (convertable & BuiltinConvertable.FloatingPoint) != 0;
     }
 }

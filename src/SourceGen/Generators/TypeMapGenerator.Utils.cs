@@ -139,6 +139,12 @@ partial class TypeMapGenerator
     {
         var status = member.Convertability;
 
+        if ((status & BuiltinConvertable.Native) != 0)
+        {
+            methodName = null;
+            return false;
+        }
+
         if (token == "char")
         {
             if ((status & BuiltinConvertable.Both) == BuiltinConvertable.Both)

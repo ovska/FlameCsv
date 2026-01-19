@@ -709,6 +709,7 @@ public class ModelTests(MetadataFixture fixture)
                         public string Special_String { get; set; }
                         public char Special_Char { get; set; }
                         public bool Special_Bool { get; set; }
+                        public DayOfWeek Special_Enum { get; set; }
                         public int BinaryInt { get; set; }
                         public UInt128 BinaryInt2 { get; set; }
                         public double FloatingPoint { get; set; }
@@ -761,6 +762,7 @@ public class ModelTests(MetadataFixture fixture)
             ("Special_String", BuiltinConvertable.Special),
             ("Special_Char", BuiltinConvertable.Special),
             ("Special_Bool", BuiltinConvertable.Special),
+            ("Special_Enum", BuiltinConvertable.Special),
             ("BinaryInt", BuiltinConvertable.BinaryInteger),
             ("BinaryInt2", BuiltinConvertable.BinaryInteger),
             ("FloatingPoint", BuiltinConvertable.FloatingPoint),

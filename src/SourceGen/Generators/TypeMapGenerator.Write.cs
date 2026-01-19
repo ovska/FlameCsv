@@ -4,6 +4,8 @@ using FlameCsv.SourceGen.Utilities;
 
 namespace FlameCsv.SourceGen.Generators;
 
+#pragma warning disable RCS1146 // Use conditional access
+
 partial class TypeMapGenerator
 {
     private static void GetWriteCode(
@@ -59,11 +61,20 @@ partial class TypeMapGenerator
 
                 foreach (var property in membersToWrite.Writable())
                 {
-                    writer.Write("public required ");
-                    WriteConverterType(writer, typeMap.TokenName, property);
-                    writer.Write(' ');
-                    property.WriteConverterName(writer);
-                    writer.WriteLine(" { get; init; }");
+                    if (property.HasFormatConverter(typeMap))
+                    {
+                        writer.Write("public required ");
+                        WriteConverterType(writer, typeMap.TokenName, property);
+                        writer.Write(' ');
+                        property.WriteConverterName(writer);
+                        writer.WriteLine(" { get; init; }");
+                    }
+                    else if (property.IsFormattable(typeMap))
+                    {
+                        writer.Write("public required global::FlameCsv.Binding.CsvTypeMap.FormatConfig ");
+                        property.WriteConfigPrefix(writer);
+                        writer.WriteLine(" { get; init; }");
+                    }
                 }
 
                 writer.WriteLine();
@@ -81,23 +92,32 @@ partial class TypeMapGenerator
                     foreach (var member in membersToWrite.Writable())
                     {
                         writer.WriteLineIf(!first, "writer.WriteDelimiter();");
-                        writer.Write("writer.WriteField(");
-                        member.WriteConverterName(writer);
-
-                        if (member is PropertyModel { ExplicitInterfaceOriginalDefinitionName: { } explicitName })
-                        {
-                            writer.Write(", ((");
-                            writer.Write(explicitName.AsSpan());
-                            writer.Write(")obj).");
-                        }
-                        else
-                        {
-                            writer.Write(", obj.");
-                        }
-
-                        writer.Write(member.HeaderName);
-                        writer.WriteLine(");");
                         first = false;
+
+                        if (member.HasFormatConverter(typeMap))
+                        {
+                            writer.Write("writer.WriteField(");
+                            member.WriteConverterName(writer);
+                            writer.Write(", ");
+                            WriteAccessor(writer, member);
+                            writer.WriteLine(");");
+                        }
+                        else if (member.IsInlinedString(typeMap))
+                        {
+                            writer.Write("writer.WriteText(");
+                            WriteAccessor(writer, member);
+                            writer.WriteLine(");");
+                        }
+                        else if (member.IsFormattable(typeMap))
+                        {
+                            writer.Write("global::FlameCsv.Writing.CsvFieldWritingExtensions.FormatValue(in writer, ");
+                            WriteAccessor(writer, member);
+                            writer.Write(", ");
+                            member.WriteConfigPrefix(writer);
+                            writer.Write(".Format, ");
+                            member.WriteConfigPrefix(writer);
+                            writer.WriteLine(".FormatProvider);");
+                        }
                     }
                 }
 
@@ -132,6 +152,22 @@ partial class TypeMapGenerator
                 }
             }
         }
+
+        static void WriteAccessor(IndentedTextWriter writer, IMemberModel member)
+        {
+            if (member is PropertyModel { ExplicitInterfaceOriginalDefinitionName: { } explicitName })
+            {
+                writer.Write("((");
+                writer.Write(explicitName.AsSpan());
+                writer.Write(")obj).");
+            }
+            else
+            {
+                writer.Write("obj.");
+            }
+
+            writer.Write(member.HeaderName);
+        }
     }
 
     internal static void WriteDematerializerCtor(
@@ -157,12 +193,10 @@ partial class TypeMapGenerator
 
                 foreach (var property in typeMap.AllMembers.Writable())
                 {
-                    property.WriteConverterName(writer);
-                    writer.Write(" = ");
-                    WriteConverter(writer, typeMap.TokenName, property);
-                    writer.WriteLine(",");
-
-                    writableCount++;
+                    if (TryWriteMember(writer, typeMap, property))
+                    {
+                        writableCount++;
+                    }
                 }
             }
 
@@ -184,14 +218,32 @@ partial class TypeMapGenerator
                         {
                             continue;
                         }
-
-                        property.WriteConverterName(writer);
-                        writer.Write(" = ");
-                        WriteConverter(writer, typeMap.TokenName, property);
-                        writer.WriteLine(",");
+                        _ = TryWriteMember(writer, typeMap, property);
                     }
                 }
             }
+        }
+
+        static bool TryWriteMember(IndentedTextWriter writer, TypeMapModel typeMap, IMemberModel property)
+        {
+            if (property.HasFormatConverter(typeMap))
+            {
+                property.WriteConverterName(writer);
+                writer.Write(" = ");
+                WriteConverter(writer, typeMap.TokenName, property);
+                writer.WriteLine(",");
+                return true;
+            }
+            else if (property.IsFormattable(typeMap))
+            {
+                property.WriteConfigPrefix(writer);
+                writer.Write(" = new global::FlameCsv.Binding.CsvTypeMap.FormatConfig(typeof(");
+                writer.Write(property.Type.FullyQualifiedName);
+                writer.WriteLine("), options),");
+                return true;
+            }
+
+            return false;
         }
     }
 }

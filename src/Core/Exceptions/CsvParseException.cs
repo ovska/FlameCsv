@@ -66,9 +66,11 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
-    public static void Throw(int fieldIndex, Type parsedType, object converter, string target)
+    public static void Throw(int fieldIndex, Type parsedType, object? converter, string target)
     {
-        throw new CsvParseException($"Failed to parse {parsedType.Name} {target} using {converter.GetType().Name}.")
+        string converterSuffix = converter is null ? "" : $" using {converter.GetType().Name}";
+
+        throw new CsvParseException($"Failed to parse {parsedType.Name} {target}{converterSuffix}.")
         {
             Converter = converter,
             FieldIndex = fieldIndex,

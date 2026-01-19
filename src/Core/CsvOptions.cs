@@ -15,7 +15,7 @@ namespace FlameCsv;
 /// </summary>
 /// <typeparam name="T">Token type (<c>char</c> or <c>byte</c>)</typeparam>
 [PublicAPI]
-public sealed partial class CsvOptions<T> : ICanBeReadOnly
+public sealed partial class CsvOptions<T> : ICanBeReadOnly, CsvTypeMap.IConfigProvider
     where T : unmanaged, IBinaryInteger<T>
 {
     private static CsvOptions<T>? _default;
@@ -166,6 +166,11 @@ public sealed partial class CsvOptions<T> : ICanBeReadOnly
     {
         Utf8String? value = _nullTokens.TryGetExt(resultType, defaultValue: _null);
         return value is null ? [] : value.AsSpan<T>();
+    }
+
+    internal Utf8String? GetNullObject(Type resultType)
+    {
+        return _nullTokens.TryGetExt(resultType, defaultValue: _null);
     }
 
     /// <summary>

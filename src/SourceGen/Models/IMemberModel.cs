@@ -74,6 +74,11 @@ internal interface IMemberModel : IEquatable<IMemberModel?>
 
 internal static class MemberModelExtensions
 {
+    public static bool IsFormattable(this IMemberModel mode, TypeMapModel typeMap) =>
+        typeMap.IsByte
+            ? (mode.Convertability & BuiltinConvertable.Utf8Formattable) != 0
+            : (mode.Convertability & BuiltinConvertable.Formattable) != 0;
+
     public static bool IsInlinedString(this IMemberModel model, TypeMapModel typeMap)
     {
         return typeMap.InlineCommonTypes
