@@ -85,7 +85,7 @@ internal sealed class Dematerializer<T, T0, TValue> : Dematerializer<T, TValue> 
     private readonly CsvConverter<T, T0> converter0;
     private readonly Func<TValue, T0> getter0;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
     }
@@ -121,7 +121,7 @@ internal sealed class Dematerializer<T, T0, T1, TValue> : Dematerializer<T, TVal
     private readonly Func<TValue, T0> getter0;
     private readonly Func<TValue, T1> getter1;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -164,7 +164,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, TValue> : Dematerializer<T, 
     private readonly Func<TValue, T1> getter1;
     private readonly Func<TValue, T2> getter2;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -214,7 +214,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, TValue> : Dematerializer
     private readonly Func<TValue, T2> getter2;
     private readonly Func<TValue, T3> getter3;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -271,7 +271,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, TValue> : Dematerial
     private readonly Func<TValue, T3> getter3;
     private readonly Func<TValue, T4> getter4;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -335,7 +335,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, TValue> : Demate
     private readonly Func<TValue, T4> getter4;
     private readonly Func<TValue, T5> getter5;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -406,7 +406,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, TValue> : De
     private readonly Func<TValue, T5> getter5;
     private readonly Func<TValue, T6> getter6;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -484,7 +484,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TValue> 
     private readonly Func<TValue, T6> getter6;
     private readonly Func<TValue, T7> getter7;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -569,7 +569,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TVal
     private readonly Func<TValue, T7> getter7;
     private readonly Func<TValue, T8> getter8;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -661,7 +661,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T8> getter8;
     private readonly Func<TValue, T9> getter9;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -760,7 +760,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T9> getter9;
     private readonly Func<TValue, T10> getter10;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -866,7 +866,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T10> getter10;
     private readonly Func<TValue, T11> getter11;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -979,7 +979,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T11> getter11;
     private readonly Func<TValue, T12> getter12;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1099,7 +1099,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T12> getter12;
     private readonly Func<TValue, T13> getter13;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1226,7 +1226,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T13> getter13;
     private readonly Func<TValue, T14> getter14;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1360,7 +1360,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T14> getter14;
     private readonly Func<TValue, T15> getter15;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1501,7 +1501,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T15> getter15;
     private readonly Func<TValue, T16> getter16;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1649,7 +1649,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T16> getter16;
     private readonly Func<TValue, T17> getter17;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1804,7 +1804,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T17> getter17;
     private readonly Func<TValue, T18> getter18;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -1966,7 +1966,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T18> getter18;
     private readonly Func<TValue, T19> getter19;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -2135,7 +2135,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T19> getter19;
     private readonly Func<TValue, T20> getter20;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -2311,7 +2311,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T20> getter20;
     private readonly Func<TValue, T21> getter21;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -2494,7 +2494,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T21> getter21;
     private readonly Func<TValue, T22> getter22;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();
@@ -2684,7 +2684,7 @@ internal sealed class Dematerializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, 
     private readonly Func<TValue, T22> getter22;
     private readonly Func<TValue, T23> getter23;
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
         writer.WriteField(converter0, getter0(value));
         writer.WriteDelimiter();

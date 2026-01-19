@@ -27,7 +27,7 @@ public static class CsvFieldWritingExtensions
     /// Null values are written according to <see cref="CsvFieldWriter{T}.Options"/>.
     /// </remarks>
     public static void FormatValue<T>(
-        ref readonly this CsvFieldWriter<char> writer,
+        this CsvFieldWriter<char> writer,
         in T value,
         ReadOnlySpan<char> format = default,
         IFormatProvider? formatProvider = null,
@@ -60,9 +60,9 @@ public static class CsvFieldWritingExtensions
         }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
+    /// <inheritdoc cref="FormatValue{T}(CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
     public static void FormatValue<T>(
-        ref readonly this CsvFieldWriter<byte> writer,
+        this CsvFieldWriter<byte> writer,
         in T value,
         ReadOnlySpan<char> format = default,
         IFormatProvider? formatProvider = null,
@@ -109,10 +109,10 @@ public static class CsvFieldWritingExtensions
         }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
+    /// <inheritdoc cref="FormatValue{T}(CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void FormatValue<T>(
-        ref readonly this CsvFieldWriter<char> writer,
+        this CsvFieldWriter<char> writer,
         T? value,
         ReadOnlySpan<char> format = default,
         IFormatProvider? formatProvider = null,
@@ -122,7 +122,7 @@ public static class CsvFieldWritingExtensions
     {
         if (value.HasValue)
         {
-            FormatValue(in writer, in Nullable.GetValueRefOrDefaultRef(in value), format, formatProvider, skipEscaping);
+            FormatValue(writer, in Nullable.GetValueRefOrDefaultRef(in value), format, formatProvider, skipEscaping);
         }
         else
         {
@@ -130,10 +130,10 @@ public static class CsvFieldWritingExtensions
         }
     }
 
-    /// <inheritdoc cref="FormatValue{T}(ref readonly CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
+    /// <inheritdoc cref="FormatValue{T}(CsvFieldWriter{char},in T,ReadOnlySpan{char},IFormatProvider?,bool)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void FormatValue<T>(
-        ref readonly this CsvFieldWriter<byte> writer,
+        this CsvFieldWriter<byte> writer,
         T? value,
         ReadOnlySpan<char> format = default,
         IFormatProvider? formatProvider = null,
@@ -143,7 +143,7 @@ public static class CsvFieldWritingExtensions
     {
         if (value.HasValue)
         {
-            FormatValue(in writer, in Nullable.GetValueRefOrDefaultRef(in value), format, formatProvider, skipEscaping);
+            FormatValue(writer, in Nullable.GetValueRefOrDefaultRef(in value), format, formatProvider, skipEscaping);
         }
         else
         {

@@ -47,7 +47,7 @@ public static partial class CsvWriter
                     writer.Writer.Flush();
                 }
 
-                dematerializer.Write(in writer, enumerator.Current);
+                dematerializer.Write(writer, enumerator.Current);
                 writer.WriteNewline();
             } while (enumerator.MoveNext());
         }
@@ -104,7 +104,7 @@ public static partial class CsvWriter
                     await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                dematerializer.Write(in writer, enumerator.Current);
+                dematerializer.Write(writer, enumerator.Current);
                 writer.WriteNewline();
             } while (enumerator.MoveNext());
         }
@@ -156,7 +156,7 @@ public static partial class CsvWriter
                         await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
                     }
 
-                    dematerializer.Write(in writer, enumerator.Current);
+                    dematerializer.Write(writer, enumerator.Current);
                     writer.WriteNewline();
                 } while (await enumerator.MoveNextAsync().ConfigureAwait(false));
             }
@@ -186,7 +186,7 @@ public static partial class CsvWriter
     {
         if (writer.Options.HasHeader)
         {
-            dematerializer.WriteHeader(in writer);
+            dematerializer.WriteHeader(writer);
             writer.WriteNewline();
         }
     }

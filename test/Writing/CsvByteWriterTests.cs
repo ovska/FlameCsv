@@ -11,7 +11,7 @@ namespace FlameCsv.Tests.Writing;
 public sealed class CsvByteWriterTests : IAsyncDisposable
 {
     [HandlesResourceDisposal]
-    private CsvFieldWriter<byte> _writer;
+    private CsvFieldWriter<byte> _writer = null!;
     private MemoryStream? _stream;
 
     private string Written =>

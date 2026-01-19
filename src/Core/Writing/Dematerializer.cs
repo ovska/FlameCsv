@@ -10,14 +10,14 @@ internal abstract class Dematerializer<T, TValue> : Dematerializer<T>, IDemateri
     private readonly CsvBindingCollection<TValue> _bindings;
 
     public abstract int FieldCount { get; }
-    public abstract void Write(ref readonly CsvFieldWriter<T> writer, TValue value);
+    public abstract void Write(CsvFieldWriter<T> writer, TValue value);
 
     protected Dematerializer(CsvBindingCollection<TValue> bindings)
     {
         _bindings = bindings;
     }
 
-    public void WriteHeader(ref readonly CsvFieldWriter<T> writer)
+    public void WriteHeader(CsvFieldWriter<T> writer)
     {
         ReadOnlySpan<MemberCsvBinding<TValue>> bindings = _bindings.MemberBindings;
 

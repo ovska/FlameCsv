@@ -132,7 +132,7 @@ public static class CsvBindingTests
 
         var dematerializer = binder.GetDematerializer<RecordTest>();
 
-        var result = WriteUtil.Write(writer => dematerializer.Write(in writer, new RecordTest(1, "Test")));
+        var result = WriteUtil.Write(writer => dematerializer.Write(writer, new RecordTest(1, "Test")));
 
         Assert.Equal("1,Test", result);
     }

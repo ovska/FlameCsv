@@ -17,7 +17,7 @@ public interface IDematerializer<T, in TValue>
     /// <remarks>
     /// Does not write a trailing newline.
     /// </remarks>
-    void Write(ref readonly CsvFieldWriter<T> writer, TValue value);
+    void Write(CsvFieldWriter<T> writer, TValue value);
 
     /// <summary>
     /// Writes the header for <typeparamref name="TValue"/> as <see cref="FieldCount"/> fields.
@@ -25,5 +25,5 @@ public interface IDematerializer<T, in TValue>
     /// <remarks>
     /// Does not write a trailing newline.
     /// </remarks>
-    void WriteHeader(ref readonly CsvFieldWriter<T> writer);
+    void WriteHeader(CsvFieldWriter<T> writer);
 }

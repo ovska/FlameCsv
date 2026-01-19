@@ -132,7 +132,7 @@ internal sealed class Dematerializer<T, <#= generics #>> : Dematerializer<T, TVa
         }
 #>
 
-    public override void Write(ref readonly CsvFieldWriter<T> writer, [AllowNull] TValue value)
+    public override void Write(CsvFieldWriter<T> writer, [AllowNull] TValue value)
     {
 <#
         for (var i = 0; i < current; i++)

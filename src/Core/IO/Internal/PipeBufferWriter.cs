@@ -64,7 +64,7 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
         {
             if (exception is null && !cancellationToken.IsCancellationRequested)
             {
-                await FlushAsync(cancellationToken).ConfigureAwait(false);
+                await _pipeWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         finally

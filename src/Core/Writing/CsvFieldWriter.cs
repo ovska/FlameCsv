@@ -13,27 +13,6 @@ namespace FlameCsv.Writing;
 public static class CsvFieldWriter
 {
     /// <summary>
-    /// Creates a new instance that writes to the specified <see cref="ICsvBufferWriter{T}"/>.
-    /// </summary>
-    /// <remarks>
-    /// The writer is completed if an exception occurs during construction.
-    /// </remarks>
-    [MustDisposeResource]
-    public static CsvFieldWriter<T> Create<T>(ICsvBufferWriter<T> writer, CsvOptions<T> options)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        try
-        {
-            return new CsvFieldWriter<T>(writer, options);
-        }
-        catch (Exception ex)
-        {
-            writer.Complete(ex);
-            throw;
-        }
-    }
-
-    /// <summary>
     /// Creates a new instance that writes to the specified <see cref="TextWriter"/>.
     /// </summary>
     /// <remarks>
@@ -112,6 +91,7 @@ public static class CsvFieldWriter
     /// </summary>
     /// <remarks>
     /// The writer is completed asynchronously if an exception occurs during construction.
+    /// The actual writer constructor is synchronous.
     /// </remarks>
     [MustDisposeResource]
     public static async ValueTask<CsvFieldWriter<T>> CreateAsync<T>(ICsvBufferWriter<T> writer, CsvOptions<T> options)
@@ -133,6 +113,7 @@ public static class CsvFieldWriter
     /// </summary>
     /// <remarks>
     /// The writer is disposed asynchronously if an exception occurs during construction and <see cref="CsvIOOptions.LeaveOpen"/> is <c>false</c>.
+    /// The actual writer constructor is synchronous.
     /// </remarks>
     [MustDisposeResource]
     public static async ValueTask<CsvFieldWriter<char>> CreateAsync(
@@ -158,6 +139,7 @@ public static class CsvFieldWriter
     /// </summary>
     /// <remarks>
     /// The stream is disposed asynchronously if an exception occurs during construction and <see cref="CsvIOOptions.LeaveOpen"/> is <c>false</c>.
+    /// The actual writer constructor is synchronous.
     /// </remarks>
     [MustDisposeResource]
     public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(
@@ -183,6 +165,7 @@ public static class CsvFieldWriter
     /// </summary>
     /// <remarks>
     /// The writer is completed asynchronously if an exception occurs during construction.
+    /// The actual writer constructor is synchronous.
     /// </remarks>
     [MustDisposeResource]
     public static async ValueTask<CsvFieldWriter<byte>> CreateAsync(

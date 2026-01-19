@@ -50,7 +50,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
         if (_options.HasHeader)
         {
             using var writer = CreateState();
-            _dematerializer.WriteHeader(in writer);
+            _dematerializer.WriteHeader(writer);
             writer.WriteNewline();
             writer.Writer.Flush();
             writer.Writer.Complete(null);
@@ -62,7 +62,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
         if (_options.HasHeader)
         {
             using var writer = CreateState();
-            _dematerializer.WriteHeader(in writer);
+            _dematerializer.WriteHeader(writer);
             writer.WriteNewline();
             await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
             await writer.Writer.CompleteAsync(null, cancellationToken).ConfigureAwait(false);
@@ -72,7 +72,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Produce(TChunk _, TValue input, ref CsvFieldWriter<T> state)
     {
-        _dematerializer.Write(ref state, input);
+        _dematerializer.Write(state, input);
         state.WriteNewline();
     }
 
