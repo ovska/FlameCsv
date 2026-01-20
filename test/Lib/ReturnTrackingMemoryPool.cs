@@ -2,9 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using FlameCsv.Extensions;
 using FlameCsv.IO;
-using FlameCsv.IO.Internal;
 
 namespace FlameCsv.Tests;
 

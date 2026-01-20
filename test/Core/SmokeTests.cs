@@ -2,7 +2,6 @@ using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 using FlameCsv.Extensions;
-using FlameCsv.Intrinsics;
 
 namespace FlameCsv.Tests;
 

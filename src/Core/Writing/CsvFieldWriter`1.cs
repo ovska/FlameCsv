@@ -7,7 +7,6 @@ using CommunityToolkit.HighPerformance;
 using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
 using FlameCsv.IO;
-using FlameCsv.IO.Internal;
 using FlameCsv.Writing.Escaping;
 using JetBrains.Annotations;
 

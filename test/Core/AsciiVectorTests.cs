@@ -1,7 +1,6 @@
 ﻿using System.Runtime.Intrinsics;
 using FlameCsv.Extensions;
 using FlameCsv.Intrinsics;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests;
 

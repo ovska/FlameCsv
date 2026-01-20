@@ -1,4 +1,3 @@
-using System.Buffers;
 using FlameCsv.Attributes;
 using FlameCsv.Tests.TestData;
 

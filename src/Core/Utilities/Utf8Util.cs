@@ -1,6 +1,5 @@
 ﻿using System.Buffers;
 using System.Text;
-using System.Text.Unicode;
 using JetBrains.Annotations;
 
 namespace FlameCsv.Utilities;

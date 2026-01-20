@@ -1,10 +1,8 @@
-using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
 using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 
 namespace FlameCsv.Tests.Binding;
 

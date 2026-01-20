@@ -1,13 +1,9 @@
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Channels;
 using CommunityToolkit.HighPerformance;
 using CommunityToolkit.HighPerformance.Buffers;
 using FlameCsv.Exceptions;
-using FlameCsv.IO.Internal;
-using FlameCsv.Reading;
-using FlameCsv.Reading.Internal;
 using FlameCsv.Tests.TestData;
 
 namespace FlameCsv.Tests.Reading;
