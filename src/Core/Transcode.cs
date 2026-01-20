@@ -33,7 +33,7 @@ internal static class Transcode
     {
         if (typeof(T) == typeof(char))
         {
-            if (value.TryCopyTo(MemoryMarshal.Cast<T, char>(destination)))
+            if (value.TryCopyTo(Unsafe.BitCast<Span<T>, Span<char>>(destination)))
             {
                 charsWritten = value.Length;
                 return true;
@@ -45,7 +45,7 @@ internal static class Transcode
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.TryGetBytes(value, MemoryMarshal.AsBytes(destination), out charsWritten);
+            return Encoding.UTF8.TryGetBytes(value, Unsafe.BitCast<Span<T>, Span<byte>>(destination), out charsWritten);
         }
 
         throw Token<T>.NotSupported;
@@ -57,19 +57,17 @@ internal static class Transcode
     {
         if (typeof(T) == typeof(char))
         {
-            if (value.TryCopyTo(MemoryMarshal.Cast<char, T>(buffer)))
-            {
-                charsWritten = value.Length;
-                return true;
-            }
-
-            charsWritten = 0;
-            return false;
+            charsWritten = value.Length;
+            return value.TryCopyTo(Unsafe.BitCast<Span<char>, Span<T>>(buffer));
         }
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.TryGetChars(MemoryMarshal.AsBytes(value), buffer, out charsWritten);
+            return Encoding.UTF8.TryGetChars(
+                Unsafe.BitCast<ReadOnlySpan<T>, ReadOnlySpan<byte>>(value),
+                buffer,
+                out charsWritten
+            );
         }
 
         throw Token<T>.NotSupported;
@@ -81,8 +79,7 @@ internal static class Transcode
     {
         if (typeof(T) == typeof(char))
         {
-            var mem = value.AsMemory();
-            return Unsafe.As<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(ref mem);
+            return Unsafe.BitCast<ReadOnlyMemory<char>, ReadOnlyMemory<T>>(value.AsMemory());
         }
 
         if (typeof(T) == typeof(byte))
@@ -104,7 +101,7 @@ internal static class Transcode
 
         if (typeof(T) == typeof(byte))
         {
-            return Encoding.UTF8.GetString(MemoryMarshal.AsBytes(value));
+            return Encoding.UTF8.GetString(Unsafe.BitCast<ReadOnlySpan<T>, ReadOnlySpan<byte>>(value));
         }
 
         throw Token<T>.NotSupported;
