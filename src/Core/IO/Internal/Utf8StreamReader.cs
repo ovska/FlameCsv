@@ -5,7 +5,7 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
-internal sealed class Utf8StreamReader : CsvBufferReader<char>
+internal sealed class Utf8StreamReader : CsvBufferReader<char>, ICsvBufferReader<char>
 {
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
@@ -14,6 +14,9 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
     private int _offset;
     private bool _endOfStream;
     private bool _preambleRead;
+    private long _bytePosition;
+
+    long? ICsvBufferReader<char>.BytePosition => _bytePosition;
 
     public Utf8StreamReader(Stream stream, in CsvIOOptions options)
         : base(in options)
@@ -22,6 +25,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         _stream = stream;
         _leaveOpen = options.LeaveOpen;
         _bufferOwner = options.EffectiveBufferPool.Rent<byte>(options.BufferSize);
+        _bytePosition = 0;
     }
 
     protected override int ReadCore(Span<char> buffer)
@@ -62,6 +66,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             );
 
             _offset += bytesConsumed;
+            _bytePosition += bytesConsumed;
             totalCharsWritten += charsWritten;
 
             if (status is OperationStatus.Done or OperationStatus.DestinationTooSmall)
@@ -144,6 +149,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             );
 
             _offset += bytesConsumed;
+            _bytePosition += bytesConsumed;
             totalCharsWritten += charsWritten;
 
             if (status is OperationStatus.Done or OperationStatus.DestinationTooSmall)
@@ -196,6 +202,7 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
         {
             byteSpan = byteSpan[3..];
             _offset += 3;
+            _bytePosition += 3;
         }
 
         _preambleRead = true;
@@ -209,6 +216,8 @@ internal sealed class Utf8StreamReader : CsvBufferReader<char>
             _offset = 0;
             _count = 0;
             _endOfStream = false;
+            _preambleRead = false;
+            _bytePosition = 0;
             return true;
         }
 

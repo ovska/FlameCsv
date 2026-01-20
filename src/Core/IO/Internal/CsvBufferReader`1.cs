@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 namespace FlameCsv.IO.Internal;
@@ -57,6 +58,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
 
     /// <summary>Whether the previous call to Read returned 0 characters</summary>
     private bool _completed;
+    private bool _preambleRead;
 
     protected CsvBufferReader(in CsvIOOptions options)
     {
@@ -65,12 +67,18 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
         _buffer = _owner.Memory;
         _unread = ReadOnlyMemory<T>.Empty;
         _minimumReadSize = options.MinimumReadSize;
+
+        if (typeof(T) == typeof(byte))
+        {
+            _preambleRead = false;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvReadResult<T> Read()
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
+
         if (_completed)
             return new CsvReadResult<T>(_unread, true);
 
@@ -81,47 +89,44 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
         _completed = read == 0;
         _unread = _buffer.Slice(0, _startOffset + read);
         Position += read;
-        return new CsvReadResult<T>(_unread, _completed);
+
+        if (typeof(T) == typeof(byte) && !_preambleRead)
+        {
+            return ReadPreamble();
+        }
+        else
+        {
+            return new CsvReadResult<T>(_unread, _completed);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)
+    public async ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(IsDisposed, this);
-        if (cancellationToken.IsCancellationRequested)
-            return ValueTask.FromCanceled<CsvReadResult<T>>(cancellationToken);
+
         if (_completed)
-            return new ValueTask<CsvReadResult<T>>(new CsvReadResult<T>(_unread, true));
+            return new CsvReadResult<T>(_unread, true);
 
         MoveUnreadToFront();
 
-        ValueTask<int> readTask = ReadAsyncCore(AvailableBuffer, cancellationToken);
-
-        if (readTask.IsCompletedSuccessfully)
-        {
-            int read = readTask.GetAwaiter().GetResult();
-            _completed = read == 0;
-            _unread = _buffer.Slice(0, _startOffset + read);
-            Position += read;
-            return new ValueTask<CsvReadResult<T>>(new CsvReadResult<T>(_unread, _completed));
-        }
-
-        return ReadAsyncAwaited(readTask);
-    }
-
-    private async ValueTask<CsvReadResult<T>> ReadAsyncAwaited(ValueTask<int> readTask)
-    {
-        int read = await readTask.ConfigureAwait(false);
+        int read = await ReadAsyncCore(AvailableBuffer, cancellationToken).ConfigureAwait(false);
         _completed = read == 0;
         _unread = _buffer.Slice(0, _startOffset + read);
         Position += read;
-        return new CsvReadResult<T>(_unread, _completed);
+
+        if (typeof(T) == typeof(byte) && !_preambleRead)
+        {
+            return ReadPreamble();
+        }
+        else
+        {
+            return new CsvReadResult<T>(_unread, _completed);
+        }
     }
 
     public void Advance(int count)
     {
-        ObjectDisposedException.ThrowIf(IsDisposed, this);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, _unread.Length);
         _unread = _unread.Slice(count);
     }
 
@@ -190,7 +195,7 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
         if (!IsDisposed)
         {
             IsDisposed = true;
-            DisposeOwner();
+            DisposeBuffers();
             DisposeCore();
         }
     }
@@ -200,22 +205,39 @@ internal abstract class CsvBufferReader<T> : ICsvBufferReader<T>
         if (!IsDisposed)
         {
             IsDisposed = true;
-            DisposeOwner();
+            DisposeBuffers();
             return DisposeAsyncCore();
         }
 
         return default;
     }
 
-    private void DisposeOwner()
+    private void DisposeBuffers()
     {
         try
         {
             _owner.Dispose();
+            _unread = default;
+            _buffer = default;
         }
         finally
         {
             _owner = null!;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private CsvReadResult<T> ReadPreamble()
+    {
+        if (typeof(T) != typeof(byte))
+            throw new UnreachableException();
+
+        if (Unsafe.BitCast<ReadOnlySpan<T>, ReadOnlySpan<byte>>(_unread.Span) is [0xEF, 0xBB, 0xBF, ..])
+        {
+            _unread = _unread.Slice(3);
+        }
+
+        _preambleRead = true;
+        return new CsvReadResult<T>(_unread, _completed);
     }
 }

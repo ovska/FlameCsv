@@ -16,7 +16,7 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
     {
         if (_stream.CanSeek)
         {
-            _stream.Seek(0, SeekOrigin.Begin);
+            _stream.Position = 0;
             return true;
         }
 
@@ -25,7 +25,9 @@ internal sealed class StreamBufferReader : CsvBufferReader<byte>
 
     protected override int ReadCore(Span<byte> buffer)
     {
-        return _stream.Read(buffer);
+        int result = _stream.Read(buffer);
+
+        return result;
     }
 
     protected override ValueTask<int> ReadAsyncCore(Memory<byte> buffer, CancellationToken cancellationToken)

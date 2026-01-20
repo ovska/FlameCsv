@@ -19,11 +19,6 @@ public readonly struct CsvReadResult<T>(ReadOnlyMemory<T> buffer, bool isComplet
     where T : unmanaged
 {
     /// <summary>
-    /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <c>false</c>.
-    /// </summary>
-    public static readonly CsvReadResult<T> Empty; // this is a field so it can be used with "in"
-
-    /// <summary>
     /// Returns a read result with an empty buffer and <see cref="IsCompleted"/> set to <c>true</c>.
     /// </summary>
     public static CsvReadResult<T> Completed => new(default, true);

@@ -40,11 +40,6 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     internal ReadOnlyMemory<T> _buffer;
 
     /// <summary>
-    /// UTF-8 BOM state.
-    /// </summary>
-    private Preamble _preamble;
-
-    /// <summary>
     /// Current state of the parser.
     /// </summary>
     private State _state;
@@ -74,12 +69,6 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         _bufferPool = ioOptions.EffectiveBufferPool;
 
         (_scalarTokenizer, _tokenizer) = options.GetTokenizers();
-
-        if (typeof(T) == typeof(byte))
-        {
-            // can be garbage on char as it's never read
-            _preamble = Preamble.Unread;
-        }
     }
 
     /// <summary>
@@ -197,7 +186,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
         if (_reader.TryReset())
         {
-            SetReadResult(in CsvReadResult<T>.Empty);
+            SetReadResult(default);
             _recordBuffer.Initialize();
             _state = State.Initialized;
             return true;
@@ -237,7 +226,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         {
             ResetBufferAndAdvanceReader();
             CsvReadResult<T> result = _reader.Read();
-            SetReadResult(in result);
+            SetReadResult(result);
             return true;
         }
 
@@ -254,13 +243,14 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         {
             ResetBufferAndAdvanceReader();
             CsvReadResult<T> result = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
-            SetReadResult(in result);
+            SetReadResult(result);
             return true;
         }
 
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void ResetBufferAndAdvanceReader()
     {
         const int maxLengthThreshold = Field.MaxFieldEnd - 1024;
@@ -273,15 +263,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
 
             consumed = Math.Min(consumed, _buffer.Length);
 
-            if (typeof(T) == typeof(byte))
-            {
-                _reader.Advance(consumed + ((int)_preamble & 0b11));
-                _preamble = 0;
-            }
-            else
-            {
-                _reader.Advance(consumed);
-            }
+            _reader.Advance(consumed);
             _buffer = _buffer.Slice(consumed);
         }
         else if (_state is State.DataExhausted && _buffer.Length >= maxLengthThreshold)
@@ -295,7 +277,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// </summary>
     /// <param name="result">Result of the previous read to <see cref="ICsvBufferReader{T}"/></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SetReadResult(ref readonly CsvReadResult<T> result)
+    private void SetReadResult(CsvReadResult<T> result)
     {
         _buffer = result.Buffer;
         _state = result.IsCompleted ? State.ReaderCompleted : State.Reading;
@@ -306,32 +288,6 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
         {
             _buffer = _buffer.Slice(0, Field.MaxFieldEnd);
             _state = State.Reading;
-        }
-
-        if (typeof(T) == typeof(byte) && _preamble != 0)
-        {
-            Check.Equal(_preamble, Preamble.Unread);
-            TrySkipBOM();
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void TrySkipBOM()
-    {
-        if (typeof(T) != typeof(byte))
-        {
-            throw new UnreachableException();
-        }
-
-        if (_buffer.Span is [(byte)0xEF, (byte)0xBB, (byte)0xBF, ..])
-        {
-            _buffer = _buffer.Slice(3);
-            _recordBuffer.BumpPreamble(3);
-            _preamble = Preamble.NeedsSkip;
-        }
-        else
-        {
-            _preamble = Preamble.None;
         }
     }
 

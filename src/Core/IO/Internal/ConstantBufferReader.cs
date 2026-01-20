@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
 
 namespace FlameCsv.IO.Internal;
 
@@ -45,7 +46,17 @@ internal sealed class ConstantBufferReader<T> : ICsvBufferReader<T>
         _onRead?.Invoke(_state, _data.Length);
         Position = _data.Length;
 
-        return new CsvReadResult<T>(_data, isCompleted: true);
+        ReadOnlyMemory<T> data = _data;
+
+        if (
+            typeof(T) == typeof(byte)
+            && Unsafe.BitCast<ReadOnlySpan<T>, ReadOnlySpan<byte>>(data.Span) is [0xEF, 0xBB, 0xBF, ..]
+        )
+        {
+            data = data.Slice(3);
+        }
+
+        return new CsvReadResult<T>(data, isCompleted: true);
     }
 
     public ValueTask<CsvReadResult<T>> ReadAsync(CancellationToken cancellationToken = default)

@@ -12,7 +12,17 @@ public interface ICsvBufferReader<T> : IDisposable, IAsyncDisposable
     /// <remarks>
     /// The position is updated after each <em>read</em> operation, not advance.
     /// </remarks>
+    /// <seealso cref="BytePosition"/>
     long Position { get; }
+
+    /// <summary>
+    /// Number of bytes that have been read from the underlying data source, if available.
+    /// </summary>
+    /// <remarks>
+    /// The position is updated after each <em>read</em> operation, not advance.<br/>
+    /// If <typeparamref name="T"/> is <c>byte</c>, this is same as <see cref="Position"/>.
+    /// </remarks>
+    virtual long? BytePosition => typeof(T) == typeof(byte) ? Position : null;
 
     /// <summary>
     /// Reads from the inner data source.

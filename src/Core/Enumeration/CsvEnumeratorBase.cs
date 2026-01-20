@@ -25,7 +25,7 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     private readonly CancellationToken _cancellationToken;
 
     /// <summary>
-    /// The CSV parser.
+    /// The inner CSV reader.
     /// </summary>
     internal protected CsvReader<T> Reader => _reader;
 
