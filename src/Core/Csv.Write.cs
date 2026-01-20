@@ -60,15 +60,6 @@ static partial class Csv
         {
             return new ParallelWriteWrapper<T, TSelf>(this, parallelOptions);
         }
-
-        /// <summary>
-        /// Configures the builder to write CSV data in parallel.
-        /// </summary>
-        /// <param name="cancellationToken">Token to cancel the parallel writing operation</param>
-        public IParallelWriteBuilder<T> AsParallel(CancellationToken cancellationToken)
-        {
-            return new ParallelWriteWrapper<T, TSelf>(this, new() { CancellationToken = cancellationToken });
-        }
     }
 
     /// <summary>

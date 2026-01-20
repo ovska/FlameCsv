@@ -84,7 +84,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         _headerRead?.Dispose();
     }
 
-    public void Produce(Chunk<T> chunk, CsvRecordRef<T> input, ref SlimList<TValue> state)
+    public void Produce(Chunk<T> chunk, CsvRecordRef<T> input, SlimList<TValue> state)
     {
         if (TryProduceDirect(chunk, input, out TValue? result))
         {

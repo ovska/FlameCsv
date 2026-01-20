@@ -97,11 +97,11 @@ public partial class ReadObjects
 
         if (Async)
         {
-            await builder.ForEachUnorderedAsync<Entry>((_, _) => ValueTask.CompletedTask);
+            await builder.ForEachAsync<Entry>((_, _) => ValueTask.CompletedTask);
         }
         else
         {
-            builder.ForEachUnordered<Entry>(_ => { });
+            builder.ForEach<Entry>(_ => { });
         }
     }
 
@@ -112,11 +112,11 @@ public partial class ReadObjects
 
         if (Async)
         {
-            await builder.ForEachUnorderedAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
+            await builder.ForEachAsync(EntryTypeMap.Default, (_, _) => ValueTask.CompletedTask);
         }
         else
         {
-            builder.ForEachUnordered(EntryTypeMap.Default, _ => { });
+            builder.ForEach(EntryTypeMap.Default, _ => { });
         }
     }
 
@@ -176,7 +176,12 @@ public partial class ReadObjects
         using var reader = GetReader();
         var rpReader = BuildRecordParserReader();
 
-        foreach (var entry in reader.ReadRecords(rpReader, new VariableLengthReaderOptions { HasHeader = true }))
+        foreach (
+            var entry in reader.ReadRecords(
+                rpReader,
+                new VariableLengthReaderOptions { HasHeader = true, ContainsQuotedFields = true }
+            )
+        )
         {
             _ = entry;
         }
@@ -199,6 +204,7 @@ public partial class ReadObjects
                 new VariableLengthReaderOptions
                 {
                     HasHeader = true,
+                    ContainsQuotedFields = true,
                     ParallelismOptions = new()
                     {
                         Enabled = true,

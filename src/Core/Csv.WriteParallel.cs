@@ -65,7 +65,7 @@ static partial class Csv
 
         /// <summary>
         /// Writes CSV records to the target, binding them using reflection.
-        /// The records are not guaranteed to be written in order.
+        /// Records are serialized in parallel. Order depends on <see cref="CsvParallelOptions.Unordered"/>.
         /// </summary>
         /// <param name="values">Values to write</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
@@ -73,19 +73,16 @@ static partial class Csv
         /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        void WriteUnordered<[DAM(Messages.ReflectionBound)] TValue>(
-            IEnumerable<TValue> values,
-            CsvOptions<T>? options = null
-        )
+        void Write<[DAM(Messages.ReflectionBound)] TValue>(IEnumerable<TValue> values, CsvOptions<T>? options = null)
         {
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            Util.WriteUnordered(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
+            Util.WriteCore(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
         }
 
         /// <summary>
         /// Writes CSV records to the target, binding them using the type map.
-        /// The records are not guaranteed to be written in order.
+        /// Records are serialized in parallel. Order depends on <see cref="CsvParallelOptions.Unordered"/>.
         /// </summary>
         /// <param name="typeMap">Type map used to bind the CSV data</param>
         /// <param name="values">Values to write</param>
@@ -93,22 +90,18 @@ static partial class Csv
         /// <remarks>
         /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
         /// </remarks>
-        void WriteUnordered<TValue>(
-            CsvTypeMap<T, TValue> typeMap,
-            IEnumerable<TValue> values,
-            CsvOptions<T>? options = null
-        )
+        void Write<TValue>(CsvTypeMap<T, TValue> typeMap, IEnumerable<TValue> values, CsvOptions<T>? options = null)
         {
             ArgumentNullException.ThrowIfNull(typeMap);
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
 
-            Util.WriteUnordered(values, options, typeMap.GetDematerializer(options), this);
+            Util.WriteCore(values, options, typeMap.GetDematerializer(options), this);
         }
 
         /// <summary>
         /// Writes CSV records to the target, binding them using reflection.
-        /// The records are not guaranteed to be written in order.
+        /// Records are serialized in parallel. Order depends on <see cref="CsvParallelOptions.Unordered"/>.
         /// </summary>
         /// <param name="values">Values to write</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
@@ -117,31 +110,31 @@ static partial class Csv
         /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task WriteUnorderedAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
             IEnumerable<TValue> values,
             CsvOptions<T>? options = null
         )
         {
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            return Util.WriteUnorderedAsync(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
+            return Util.WriteAsyncCore(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
         }
 
-        /// <inheritdoc cref="WriteUnorderedAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
+        /// <inheritdoc cref="WriteAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task WriteUnorderedAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
             IAsyncEnumerable<TValue> values,
             CsvOptions<T>? options = null
         )
         {
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            return Util.WriteUnorderedAsync(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
+            return Util.WriteAsyncCore(values, options, options.TypeBinder.GetDematerializer<TValue>(), this);
         }
 
         /// <summary>
         /// Writes CSV records to the target, binding them using the type map.
-        /// The records are not guaranteed to be written in order.
+        /// Records are serialized in parallel. Order depends on <see cref="CsvParallelOptions.Unordered"/>.
         /// </summary>
         /// <param name="typeMap">Type map used to bind the CSV data</param>
         /// <param name="values">Values to write</param>
@@ -151,7 +144,7 @@ static partial class Csv
         /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
         /// </remarks>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task WriteUnorderedAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
             CsvTypeMap<T, TValue> typeMap,
             IEnumerable<TValue> values,
             CsvOptions<T>? options = null
@@ -160,11 +153,11 @@ static partial class Csv
             ArgumentNullException.ThrowIfNull(typeMap);
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            return Util.WriteUnorderedAsync(values, options, typeMap.GetDematerializer(options), this);
+            return Util.WriteAsyncCore(values, options, typeMap.GetDematerializer(options), this);
         }
 
-        /// <inheritdoc cref="WriteUnorderedAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
-        public Task WriteUnorderedAsync<TValue>(
+        /// <inheritdoc cref="WriteAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
+        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
             CsvTypeMap<T, TValue> typeMap,
             IAsyncEnumerable<TValue> values,
             CsvOptions<T>? options = null
@@ -173,14 +166,14 @@ static partial class Csv
             ArgumentNullException.ThrowIfNull(typeMap);
             ArgumentNullException.ThrowIfNull(values);
             options ??= CsvOptions<T>.Default;
-            return Util.WriteUnorderedAsync(values, options, typeMap.GetDematerializer(options), this);
+            return Util.WriteAsyncCore(values, options, typeMap.GetDematerializer(options), this);
         }
     }
 }
 
 file static class Util
 {
-    internal static void WriteUnordered<T, TValue>(
+    internal static void WriteCore<T, TValue>(
         IEnumerable<TValue> source,
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
@@ -194,7 +187,7 @@ file static class Util
         using (builder.CreateParallelWriter(out Action<ReadOnlySpan<T>> sink))
         {
             CsvParallel
-                .ForEachAsync<
+                .RunAsync<
                     TValue,
                     ParallelChunker.HasOrderEnumerable<TValue>,
                     CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
@@ -204,7 +197,7 @@ file static class Util
                     new(options, builder.IOOptions, dematerializer, sink),
                     CsvWriterConsumer<T>.Instance,
                     cts,
-                    parallelOptions.MaxDegreeOfParallelism,
+                    parallelOptions,
                     isAsync: false
                 )
                 .GetAwaiter()
@@ -212,7 +205,7 @@ file static class Util
         }
     }
 
-    internal static async Task WriteUnorderedAsync<T, TValue>(
+    internal static async Task WriteAsyncCore<T, TValue>(
         object source,
         CsvOptions<T> options,
         IDematerializer<T, TValue> dematerializer,
@@ -226,7 +219,7 @@ file static class Util
         await using (builder.CreateAsyncParallelWriter(out Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> sink))
         {
             await CsvParallel
-                .ForEachAsync<
+                .RunAsync<
                     TValue,
                     ParallelChunker.HasOrderEnumerable<TValue>,
                     CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
@@ -236,7 +229,7 @@ file static class Util
                     new(options, builder.IOOptions, dematerializer, sink),
                     CsvWriterConsumer<T>.Instance,
                     cts,
-                    parallelOptions.MaxDegreeOfParallelism,
+                    parallelOptions,
                     isAsync: true
                 )
                 .ConfigureAwait(false);

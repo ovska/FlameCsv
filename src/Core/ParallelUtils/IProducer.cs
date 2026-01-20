@@ -23,7 +23,7 @@ internal interface IProducer<TInput, TState, TChunk>
     /// <summary>
     /// Processes the shared with a given input.
     /// </summary>
-    void Produce(TChunk chunk, TInput input, ref TState state);
+    void Produce(TChunk chunk, TInput input, TState state);
 
     /// <summary>
     /// Creates a new state.

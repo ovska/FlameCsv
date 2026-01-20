@@ -18,7 +18,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool parallel,
+        Multithread parallel,
         PoisonPagePlacement placement
     )
     {
@@ -43,9 +43,11 @@ public class CsvTextWriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            if (parallel)
+            if (parallel != Multithread.None)
             {
-                builder.AsParallel().WriteUnordered(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                builder
+                    .AsParallel(GetParallelOptions(parallel))
+                    .Write(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -54,9 +56,9 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         }
         else
         {
-            if (parallel)
+            if (parallel != Multithread.None)
             {
-                builder.AsParallel().WriteUnordered(TestDataGenerator.Objects.Value, options);
+                builder.AsParallel(GetParallelOptions(parallel)).Write(TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -102,7 +104,7 @@ public class CsvTextWriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool parallel,
+        Multithread parallel,
         PoisonPagePlacement placement
     )
     {
@@ -125,19 +127,19 @@ public class CsvTextWriterTests : CsvWriterTestsBase
             out ArrayPoolBufferWriter<byte>? bufferWriter
         );
 
-        if (parallel)
+        if (parallel != Multithread.None)
         {
             if (sourceGen)
             {
                 await builder
-                    .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteUnorderedAsync(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                    .AsParallel(GetParallelOptions(parallel))
+                    .WriteAsync(ObjCharTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
                 await builder
-                    .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteUnorderedAsync(TestDataGenerator.Objects.Value, options);
+                    .AsParallel(GetParallelOptions(parallel))
+                    .WriteAsync(TestDataGenerator.Objects.Value, options);
             }
         }
         else

@@ -11,7 +11,7 @@ namespace FlameCsv.Tests.Writing;
 public class CsvUtf8WriterTests : CsvWriterTestsBase
 {
     public static IEnumerable<
-        TheoryDataRow<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, bool, PoisonPagePlacement>
+        TheoryDataRow<CsvNewline, bool, CsvFieldQuoting, bool, int, bool, Multithread, PoisonPagePlacement>
     > SyncArgs
     {
         get => Args().Where(data => !data.Data.Item6); // can't sync write into pipewriter
@@ -25,7 +25,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool parallel,
+        Multithread parallel,
         PoisonPagePlacement placement
     )
     {
@@ -48,11 +48,11 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            if (parallel)
+            if (parallel != Multithread.None)
             {
                 builder
-                    .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteUnordered(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                    .AsParallel(GetParallelOptions(parallel))
+                    .Write(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -61,11 +61,9 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         }
         else
         {
-            if (parallel)
+            if (parallel != Multithread.None)
             {
-                builder
-                    .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteUnordered(TestDataGenerator.Objects.Value, options);
+                builder.AsParallel(GetParallelOptions(parallel)).Write(TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -84,7 +82,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         bool sourceGen,
         int bufferSize,
         bool outputType,
-        bool parallel,
+        Multithread parallel,
         PoisonPagePlacement placement
     )
     {
@@ -107,11 +105,11 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         if (sourceGen)
         {
-            if (parallel)
+            if (parallel != Multithread.None)
             {
                 await builder
-                    .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteUnorderedAsync(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
+                    .AsParallel(GetParallelOptions(parallel))
+                    .WriteAsync(ObjByteTypeMap.Default, TestDataGenerator.Objects.Value, options);
             }
             else
             {
@@ -125,11 +123,11 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         }
         else
         {
-            if (parallel)
+            if (parallel != Multithread.None)
             {
                 await builder
-                    .AsParallel(TestContext.Current.CancellationToken)
-                    .WriteUnorderedAsync(TestDataGenerator.Objects.Value, options);
+                    .AsParallel(GetParallelOptions(parallel))
+                    .WriteAsync(TestDataGenerator.Objects.Value, options);
             }
             else
             {

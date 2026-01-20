@@ -11,9 +11,15 @@ public readonly record struct CsvParallelOptions
     public const int DefaultChunkSize = 128;
 
     private readonly int? _chunkSize;
+    private readonly int? _maxQueuedChunks;
     private readonly int? _maxDegreeOfParallelism;
 
-    // TODO: ordered processing option
+    /// <summary>
+    /// Whether order does not need to be preserved.
+    /// Set this to <c>true</c> to improve performance when exact record order is not required.<br/>
+    /// The default is <c>false</c>, which will preserve record order at the cost of more waiting.
+    /// </summary>
+    public bool Unordered { get; init; }
 
     /// <summary>
     /// Size of chunks to use when processing data in parallel.<br/>
@@ -44,9 +50,28 @@ public readonly record struct CsvParallelOptions
     public CancellationToken CancellationToken { get; init; }
 
     /// <summary>
-    /// Maximum degree of parallelism to use when processing CSV data in parallel.<br/>
-    /// When reading, the default is <c>4</c> or the number of processors on the machine, whichever is smaller.<br/>
-    /// When writing, defaults to the number of processors on the machine, or the one picked by TPL.
+    /// The number of chunks that can be in-flight at any given time (see <see cref="ChunkSize"/>).
+    /// Defaults to <see cref="Environment.ProcessorCount"/>.
+    /// </summary>
+    /// <remarks>
+    /// This value is essentially the capacity of the bounded <see cref="System.Threading.Channels.Channel{T}"/> used internally.
+    /// </remarks>
+    public int? MaxQueuedChunks
+    {
+        get => _maxQueuedChunks;
+        init
+        {
+            if (value.HasValue)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value.Value, nameof(MaxQueuedChunks));
+            }
+
+            _maxQueuedChunks = value;
+        }
+    }
+
+    /// <summary>
+    /// Maximum degree of parallelism to use when processing CSV data in parallel.
     /// </summary>
     public int? MaxDegreeOfParallelism
     {
@@ -84,7 +109,9 @@ public readonly record struct CsvParallelOptions
     /// <summary>
     /// Creates a <see cref="CsvParallelOptions"/> from a <see cref="ParallelOptions"/>,
     /// </summary>
-    /// <param name="options"></param>
+    /// <remarks>
+    /// Sets the <see cref="CancellationToken"/> and <see cref="MaxDegreeOfParallelism"/> properties.
+    /// </remarks>
     public static explicit operator CsvParallelOptions(ParallelOptions options) =>
         new()
         {

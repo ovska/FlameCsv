@@ -80,6 +80,13 @@ public enum Escaping
     QuoteNull = 2,
 }
 
+public enum Multithread
+{
+    None = 0,
+    Unordered = 1,
+    Ordered = 2,
+}
+
 public enum Header
 {
     Yes,

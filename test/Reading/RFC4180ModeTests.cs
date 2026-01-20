@@ -71,14 +71,14 @@ public class RFC4180ModeTests
 
         var fromParallel = Csv.From(apbw.WrittenMemory)
             .AsParallel(TestContext.Current.CancellationToken)
-            .ReadUnordered<(string, string, string)>(options)
+            .Read<(string, string, string)>(options)
             .SelectMany(chunk => chunk);
         Assert.Equal(expected, fromParallel);
 
         fromParallel = (
             await Csv.From(apbw.WrittenMemory)
                 .AsParallel(TestContext.Current.CancellationToken)
-                .ReadUnorderedAsync<(string, string, string)>(options)
+                .ReadAsync<(string, string, string)>(options)
                 .ToListAsync(cancellationToken: TestContext.Current.CancellationToken)
         ).SelectMany(chunk => chunk);
         Assert.Equal(expected, fromParallel);

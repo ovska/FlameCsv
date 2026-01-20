@@ -27,7 +27,7 @@ public class ParallelReaderTests
 
         var results = Csv.From(ms)
             .AsParallel()
-            .ReadUnordered<ValueTuple<string>>(new() { HasHeader = false })
+            .Read<ValueTuple<string>>(new() { HasHeader = false })
             .SelectMany(t => t)
             .Select(t => t.Item1)
             .ToList();
@@ -42,15 +42,13 @@ public class ParallelReaderTests
 
         List<Obj> list = [];
 
-        foreach (var span in Csv.From(data).AsParallel().ReadUnordered(ObjCharTypeMap.Default))
+        foreach (var span in Csv.From(data).AsParallel().Read(ObjCharTypeMap.Default))
         {
             foreach (var item in span)
             {
                 list.Add(item);
             }
         }
-
-        list.Sort();
 
         Assert.Equal(Csv.From(data).Read<Obj>(), list, EqualityComparer<Obj>.Default);
     }
@@ -65,7 +63,7 @@ public class ParallelReaderTests
         await foreach (
             var obj in Csv.From(data)
                 .AsParallel()
-                .ReadUnorderedAsync<Obj>(ObjCharTypeMap.Default)
+                .ReadAsync<Obj>(ObjCharTypeMap.Default)
                 .WithCancellation(TestContext.Current.CancellationToken)
         )
         {
@@ -88,7 +86,7 @@ public class ParallelReaderTests
 
         await Csv.From(data)
             .AsParallel()
-            .ForEachUnorderedAsync(
+            .ForEachAsync(
                 ObjCharTypeMap.Default,
                 (values, ct) =>
                 {
@@ -130,7 +128,7 @@ public class ParallelReaderTests
 
         var ex = Assert.Throws<CsvParseException>(() =>
         {
-            foreach (var c in builder.ReadUnordered<Foo>())
+            foreach (var c in builder.Read<Foo>())
             {
                 AssertChunk(c);
             }
@@ -139,13 +137,13 @@ public class ParallelReaderTests
 
         ex = Assert.Throws<CsvParseException>(() =>
         {
-            builder.ForEachUnordered<Foo>(AssertChunk);
+            builder.ForEach<Foo>(AssertChunk);
         });
         AssertEx();
 
         ex = await Assert.ThrowsAsync<CsvParseException>(async () =>
         {
-            await foreach (var c in builder.ReadUnorderedAsync<Foo>().WithTestContext())
+            await foreach (var c in builder.ReadAsync<Foo>().WithTestContext())
             {
                 AssertChunk(c);
             }
@@ -154,7 +152,7 @@ public class ParallelReaderTests
 
         ex = await Assert.ThrowsAsync<CsvParseException>(async () =>
         {
-            await builder.ForEachUnorderedAsync<Foo>(
+            await builder.ForEachAsync<Foo>(
                 (c, _) =>
                 {
                     AssertChunk(c);

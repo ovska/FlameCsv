@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using FlameCsv.Extensions;
@@ -10,12 +9,12 @@ namespace FlameCsv;
 internal static partial class CsvParallel
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
-    internal static async Task ForEachAsync<T, TElement, TProducer, TState>(
+    internal static async Task RunAsync<T, TElement, TProducer, TState>(
         object source,
         TProducer producer,
         IConsumer<TState> consumer,
         CancellationTokenSource cts,
-        int? maxDegreeOfParallelism,
+        CsvParallelOptions options,
         bool isAsync
     )
         where T : allows ref struct
@@ -40,13 +39,9 @@ internal static partial class CsvParallel
         }
 
         Exception? exception = null;
-        ConcurrentStack<TState> unconsumedStates = [];
-
-        int channelCapacity = Environment.ProcessorCount;
-        channelCapacity = Math.Min(maxDegreeOfParallelism ?? channelCapacity, channelCapacity);
 
         Channel<TState> channel = Channel.CreateBounded<TState>(
-            new BoundedChannelOptions(channelCapacity)
+            new BoundedChannelOptions(capacity: options.MaxQueuedChunks ?? Environment.ProcessorCount)
             {
                 SingleReader = true,
                 SingleWriter = false,
@@ -55,12 +50,11 @@ internal static partial class CsvParallel
         );
         ChannelReader<TState> reader = channel.Reader;
         ChannelWriter<TState> writer = channel.Writer;
+        IScheduler<TState> scheduler = options.Unordered
+            ? new UnorderedScheduler<TState>(writer)
+            : new OrderedScheduler<TState>(writer);
 
-        ParallelOptions tplOptions = new()
-        {
-            MaxDegreeOfParallelism = maxDegreeOfParallelism ?? -1,
-            CancellationToken = cts.Token,
-        };
+        ParallelOptions tplOptions = (ParallelOptions)options;
 
         Task producerTask = source is IAsyncEnumerable<TElement> asyncSource
             ? Parallel.ForEachAsync(asyncSource, tplOptions, ProducerCallback)
@@ -80,9 +74,9 @@ internal static partial class CsvParallel
         try
         {
             // flush remaining states
-            while (exception is null && unconsumedStates.TryPop(out TState? remaining))
+            if (exception is null)
             {
-                await writer.WriteAsync(remaining, cts.Token).ConfigureAwait(false);
+                await scheduler.FinalizeAsync(cts.Token).ConfigureAwait(false);
             }
 
             writer.TryComplete(exception);
@@ -90,10 +84,7 @@ internal static partial class CsvParallel
         }
         finally
         {
-            while (unconsumedStates.TryPop(out TState? remaining))
-            {
-                remaining.Dispose();
-            }
+            scheduler.Dispose();
         }
 
         exception?.Rethrow();
@@ -108,7 +99,7 @@ internal static partial class CsvParallel
                     if (cts.IsCancellationRequested)
                         return;
 
-                    consumer.Consume(in state, exception);
+                    consumer.Consume(state, exception);
                 }
             }
             catch (Exception e)
@@ -141,24 +132,26 @@ internal static partial class CsvParallel
 
             try
             {
-                if (!unconsumedStates.TryPop(out TState? state))
+                if (!scheduler.TryGetUnconsumedState(out TState? state))
                 {
                     state = producer.CreateState();
                 }
+
+                int index = 0;
 
                 while (enumerator.MoveNext())
                 {
                     if (state.ShouldConsume)
                     {
-                        await writer.WriteAsync(state, innerToken).ConfigureAwait(false);
+                        await scheduler.ScheduleAsync(state, chunk.Order, index++, innerToken).ConfigureAwait(false);
                         state = producer.CreateState();
                     }
 
-                    producer.Produce(chunk, enumerator.Current, ref state);
+                    producer.Produce(chunk, enumerator.Current, state);
                 }
 
-                // state was left unfinalized
-                unconsumedStates.Push(state);
+                // state was left unfinalized, schedule it as last
+                await scheduler.ScheduleAsync(state, chunk.Order, -1, innerToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

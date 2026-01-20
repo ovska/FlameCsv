@@ -100,7 +100,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
             {
                 await Csv.FromFile(_fixture.FilePath)
                     .AsParallel()
-                    .ForEachUnorderedAsync<Obj>(
+                    .ForEachAsync<Obj>(
                         (record, ct) =>
                         {
                             lock (results)
@@ -119,7 +119,7 @@ public class FileReadingTests : IClassFixture<FileReadingTests.TestFileFixture>
             {
                 Csv.FromFile(_fixture.FilePath)
                     .AsParallel()
-                    .ForEachUnordered<Obj>(record =>
+                    .ForEach<Obj>(record =>
                     {
                         lock (results)
                         {

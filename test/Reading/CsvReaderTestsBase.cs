@@ -37,13 +37,13 @@ public abstract class CsvReaderTestsBase
         int,
         Escaping,
         bool,
-        bool,
+        Multithread,
         Tokenizer,
         PoisonPagePlacement
     > ObjectData { get; } =
     [
         .. from tuple in BaseData
-        from parallel in GlobalData.Booleans
+        from parallel in GlobalData.Enum<Multithread>()
         select (tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, parallel, tuple.Item6, tuple.Item7),
     ];
 }
@@ -70,7 +70,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
-        bool parallel,
+        Multithread parallel,
         Tokenizer tokenizer,
         PoisonPagePlacement placement
     )
@@ -86,13 +86,11 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         {
             IEnumerable<Obj> enumerable;
 
-            if (parallel)
+            if (parallel != Multithread.None)
             {
-                var parallelBuilder = Csv.From(in sequence).AsParallel(GetParallelOptions());
+                var parallelBuilder = Csv.From(in sequence).AsParallel(GetParallelOptions(parallel));
                 enumerable = (
-                    sourceGen
-                        ? parallelBuilder.ReadUnordered<Obj>(TypeMap, options)
-                        : parallelBuilder.ReadUnordered<Obj>(options)
+                    sourceGen ? parallelBuilder.Read<Obj>(TypeMap, options) : parallelBuilder.Read<Obj>(options)
                 ).SelectMany(s => s);
             }
             else
@@ -145,7 +143,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         int bufferSize,
         Escaping escaping,
         bool sourceGen,
-        bool parallel,
+        Multithread parallel,
         Tokenizer tokenizer,
         PoisonPagePlacement placement
     )
@@ -165,7 +163,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
             IAsyncEnumerable<Obj> source;
 
-            if (parallel)
+            if (parallel != Multithread.None)
             {
                 source = ParallelCore();
 
@@ -174,10 +172,10 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 #endif
                 IAsyncEnumerable<Obj> ParallelCore()
                 {
-                    var parallelBuilder = builder.AsParallel(GetParallelOptions());
+                    var parallelBuilder = builder.AsParallel(GetParallelOptions(parallel));
                     var enumerable = sourceGen
-                        ? parallelBuilder.ReadUnorderedAsync<Obj>(TypeMap, options)
-                        : parallelBuilder.ReadUnorderedAsync<Obj>(options);
+                        ? parallelBuilder.ReadAsync<Obj>(TypeMap, options)
+                        : parallelBuilder.ReadAsync<Obj>(options);
 
 #if NET10_0_OR_GREATER
                     return enumerable.SelectMany(s => s);
@@ -238,11 +236,15 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         }
     }
 
-    protected static async Task Validate(IAsyncEnumerable<Obj> enumerable, Escaping escaping, bool parallel = false)
+    protected static async Task Validate(
+        IAsyncEnumerable<Obj> enumerable,
+        Escaping escaping,
+        Multithread parallel = Multithread.None
+    )
     {
         int i = 0;
 
-        if (parallel)
+        if (parallel is Multithread.Unordered)
         {
 #if NET10_0_OR_GREATER
             enumerable = enumerable.Order();
@@ -376,9 +378,13 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         return true;
     }
 
-    private static CsvParallelOptions GetParallelOptions()
+    private static CsvParallelOptions GetParallelOptions(Multithread multithread)
     {
-        return new CsvParallelOptions { CancellationToken = TestContext.Current.CancellationToken };
+        return new CsvParallelOptions
+        {
+            CancellationToken = TestContext.Current.CancellationToken,
+            Unordered = multithread is Multithread.Unordered,
+        };
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_simdTokenizer")]

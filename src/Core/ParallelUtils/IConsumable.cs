@@ -13,6 +13,6 @@ internal interface IConsumable : IDisposable
 
 internal interface IConsumer<TState>
 {
-    void Consume(in TState state, Exception? ex);
+    void Consume(TState state, Exception? ex);
     ValueTask ConsumeAsync(TState state, Exception? ex, CancellationToken cancellationToken);
 }

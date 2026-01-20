@@ -200,7 +200,6 @@ internal static partial class CsvParallel
             }
             finally
             {
-                // no need to dispose _current here; the pooling is only valid for the lifetime of the operation
                 _pipelineCts.Dispose();
                 _enumeratorCts.Dispose();
             }
@@ -214,7 +213,7 @@ file sealed class EnumerationConsumer<T>(
     CancellationToken cancellationToken
 ) : IConsumer<SlimList<T>>
 {
-    public void Consume(in SlimList<T> state, Exception? ex)
+    public void Consume(SlimList<T> state, Exception? ex)
     {
         if (ex is null)
         {
@@ -250,6 +249,7 @@ file static class Extensions
                 return CancellationTokenSource.CreateLinkedTokenSource(first, third);
             }
 
+            Check.True(third.CanBeCanceled, "The third token must be cancellable.");
             return CancellationTokenSource.CreateLinkedTokenSource(first, second, third);
         }
     }

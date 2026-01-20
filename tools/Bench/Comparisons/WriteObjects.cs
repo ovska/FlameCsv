@@ -53,11 +53,11 @@ public class WriteObjects
     {
         if (Async)
         {
-            await Csv.To(_destination).AsParallel().WriteUnorderedAsync(EntryTypeMap.Default, Data);
+            await Csv.To(_destination).AsParallel().WriteAsync(EntryTypeMap.Default, Data);
         }
         else
         {
-            Csv.To(_destination).AsParallel().WriteUnordered(EntryTypeMap.Default, Data);
+            Csv.To(_destination).AsParallel().Write(EntryTypeMap.Default, Data);
         }
     }
 
@@ -66,11 +66,11 @@ public class WriteObjects
     {
         if (Async)
         {
-            await Csv.To(_destination).AsParallel().WriteUnorderedAsync(Data);
+            await Csv.To(_destination).AsParallel().WriteAsync(Data);
         }
         else
         {
-            Csv.To(_destination).AsParallel().WriteUnordered(Data);
+            Csv.To(_destination).AsParallel().Write(Data);
         }
     }
 
