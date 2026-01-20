@@ -47,6 +47,8 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <inheritdoc/>
     public override bool IsDisposed => _state >= State.Disposed;
 
+    internal bool IsReaderCompleted => _state == State.ReaderCompleted;
+
     /// <inheritdoc cref="CsvReader{T}(CsvOptions{T},ICsvBufferReader{T},in CsvIOOptions)"/>
     public CsvReader(CsvOptions<T> options, ReadOnlyMemory<T> csv, in CsvIOOptions ioOptions = default)
         : this(options, CsvBufferReader.Create(csv), in ioOptions) { }
@@ -74,16 +76,15 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     /// <summary>
     /// Attempts to read the next CSV record from the buffered data or read-ahead buffer.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal bool TryReadLine(out RecordView record)
-    {
-        return _recordBuffer.TryPop(out record) || TryFillBuffer(out record);
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool TryFillBuffer(out RecordView record)
+    internal bool TryReadRecord(out RecordView record)
     {
         ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
+
+        if (_recordBuffer.TryPop(out record))
+        {
+            return true;
+        }
 
         ResetBufferAndAdvanceReader();
 
@@ -221,6 +222,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     internal bool TryAdvanceReader()
     {
         ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
+        Check.LessThan((int)_state, (int)State.ReaderCompleted, "Don't call after reader has completed");
 
         if (_state < State.ReaderCompleted)
         {
@@ -238,6 +240,7 @@ public sealed partial class CsvReader<T> : RecordOwner<T>, IDisposable, IAsyncDi
     {
         ObjectDisposedException.ThrowIf(_state >= State.Disposed, this);
         cancellationToken.ThrowIfCancellationRequested();
+        Check.LessThan((int)_state, (int)State.ReaderCompleted, "Don't call after reader has completed");
 
         if (_state < State.ReaderCompleted)
         {

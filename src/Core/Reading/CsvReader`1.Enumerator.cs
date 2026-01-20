@@ -133,29 +133,23 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private bool MoveNextSlow()
         {
-            if (_reader.TryFillBuffer(out _view))
+            while (true)
             {
-                goto ConstructValue;
-            }
-
-            while (_reader.TryAdvanceReader())
-            {
-                if (_reader.TryReadLine(out _view))
+                if (_reader.TryReadRecord(out _view))
                 {
-                    goto ConstructValue;
+                    _data = ref MemoryMarshal.GetReference(_reader._buffer.Span);
+                    return true;
                 }
-            }
 
-            if (!_reader.TryReadLine(out _view))
-            {
-                _data = ref Unsafe.NullRef<T>();
-                _view = default;
-                return false;
-            }
+                if (_reader.IsReaderCompleted)
+                {
+                    _data = ref Unsafe.NullRef<T>();
+                    _view = default;
+                    return false;
+                }
 
-            ConstructValue:
-            _data = ref MemoryMarshal.GetReference(_reader._buffer.Span);
-            return true;
+                _reader.TryAdvanceReader();
+            }
         }
 
         /// <summary>
@@ -223,20 +217,21 @@ partial class CsvReader<T>
         [MethodImpl(MethodImplOptions.NoInlining)]
         private async ValueTask<bool> MoveNextSlowAsync()
         {
-            if (_reader.TryFillBuffer(out _view))
+            while (true)
             {
-                return true;
-            }
-
-            while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
-            {
-                if (_reader.TryReadLine(out _view))
+                if (_reader.TryReadRecord(out _view))
                 {
                     return true;
                 }
-            }
 
-            return _reader.TryReadLine(out _view);
+                if (_reader.IsReaderCompleted)
+                {
+                    _view = default;
+                    return false;
+                }
+
+                await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false);
+            }
         }
 
         /// <inheritdoc cref="Enumerator.Dispose"/>

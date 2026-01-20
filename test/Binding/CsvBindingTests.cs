@@ -15,7 +15,7 @@ internal static class ConstantRecord
         string data = string.Join(",", values);
         var reader = new CsvReader<char>(CsvOptions<char>.Default, data.AsMemory());
         Assert.True(reader.TryAdvanceReader());
-        Assert.True(reader.TryReadLine(out var view));
+        Assert.True(reader.TryReadRecord(out var view));
         record = new CsvRecordRef<char>(reader, view);
         return reader;
     }

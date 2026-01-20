@@ -61,19 +61,6 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
         _callback = options.RecordCallback;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TrySkipOrMoveNext(RecordView view)
-    {
-        bool result = false;
-
-        if (_callback is null || !TrySkipRecord(view))
-        {
-            result = MoveNextCore(view);
-        }
-
-        return result;
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TrySkipRecord(RecordView view)
     {
@@ -142,50 +129,46 @@ public abstract class CsvEnumeratorBase<T> : IDisposable, IAsyncDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private protected bool MoveNextSlow()
     {
-        RecordView view;
-
-        while (_reader.TryReadLine(out view))
+        while (true)
         {
-            if (TrySkipOrMoveNext(view))
+            while (_reader.TryReadRecord(out RecordView view))
             {
-                return true;
-            }
-        }
-
-        while (_reader.TryAdvanceReader())
-        {
-            while (_reader.TryReadLine(out view))
-            {
-                if (TrySkipOrMoveNext(view))
+                if ((_callback is null || !TrySkipRecord(view)) && MoveNextCore(view))
+                {
                     return true;
+                }
             }
-        }
 
-        return _reader.TryReadLine(out view) && TrySkipOrMoveNext(view);
+            if (_reader.IsReaderCompleted)
+            {
+                return false;
+            }
+
+            _reader.TryAdvanceReader();
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))] // TODO PERF: profile
     private protected async ValueTask<bool> MoveNextSlowAsync()
     {
-        RecordView view;
-
-        while (_reader.TryReadLine(out view))
+        while (true)
         {
-            if (TrySkipOrMoveNext(view))
-                return true;
-        }
-
-        while (await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false))
-        {
-            while (_reader.TryReadLine(out view))
+            while (_reader.TryReadRecord(out RecordView view))
             {
-                if (TrySkipOrMoveNext(view))
+                if ((_callback is null || !TrySkipRecord(view)) && MoveNextCore(view))
+                {
                     return true;
+                }
             }
-        }
 
-        return _reader.TryReadLine(out view) && TrySkipOrMoveNext(view);
+            if (_reader.IsReaderCompleted)
+            {
+                return false;
+            }
+
+            await _reader.TryAdvanceReaderAsync(_cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
