@@ -6,7 +6,7 @@ namespace FlameCsv;
 public readonly record struct CsvParallelOptions
 {
     /// <summary>
-    /// The default chunk size used when reading or writing in parallel.
+    /// The default chunk size (record count) for reading or writing in parallel.
     /// </summary>
     public const int DefaultChunkSize = 128;
 
@@ -24,7 +24,7 @@ public readonly record struct CsvParallelOptions
     /// <summary>
     /// Size of chunks to use when processing data in parallel.<br/>
     /// When reading CSV, this many records are parsed before they are yielded to the consumer.<br/>
-    /// Less critical when writing, the records are batched but the writers are still flushed based on their buffer saturation.
+    /// When writing CSV, the batch size for records to write in parallel.
     /// </summary>
     public int? ChunkSize
     {
@@ -87,6 +87,11 @@ public readonly record struct CsvParallelOptions
         }
     }
 
+    /// <summary>
+    /// The <see cref="TaskScheduler"/> to use for parallel operations, passed to TPL methods.
+    /// </summary>
+    public TaskScheduler? TaskScheduler { get; init; }
+
     internal int EffectiveChunkSize => ChunkSize ?? DefaultChunkSize;
 
     /// <summary>
@@ -116,6 +121,7 @@ public readonly record struct CsvParallelOptions
         new()
         {
             CancellationToken = options.CancellationToken,
+            TaskScheduler = options.TaskScheduler,
             MaxDegreeOfParallelism = options.MaxDegreeOfParallelism == -1 ? null : options.MaxDegreeOfParallelism,
         };
 }

@@ -8,11 +8,11 @@ namespace FlameCsv;
 internal static partial class CsvParallel
 {
     internal sealed class ParallelEnumerable<T>(
-        Action<IConsumer<SlimList<T>>, CancellationToken> runParallel,
-        CancellationToken userToken
+        Func<IConsumer<SlimList<T>>, CancellationToken, Task> runParallel,
+        CsvParallelOptions parallelOptions
     ) : IEnumerable<ArraySegment<T>>
     {
-        public IEnumerator<ArraySegment<T>> GetEnumerator() => new ParallelEnumerator<T>(runParallel, userToken);
+        public IEnumerator<ArraySegment<T>> GetEnumerator() => new ParallelEnumerator<T>(runParallel, parallelOptions);
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
@@ -30,13 +30,17 @@ internal static partial class CsvParallel
         private bool _done;
 
         public ParallelEnumerator(
-            Action<IConsumer<SlimList<T>>, CancellationToken> parallelForEach,
-            CancellationToken userToken
+            Func<IConsumer<SlimList<T>>, CancellationToken, Task> parallelForEach,
+            CsvParallelOptions parallelOptions
         )
         {
             _enumeratorCts = new CancellationTokenSource();
 
-            _pipelineCts = CancellationTokenSource.CreateLinkedTokenSource(userToken, _enumeratorCts.Token);
+            _pipelineCts = CancellationTokenSource.CreateLinkedTokenSource(
+                parallelOptions.CancellationToken,
+                _enumeratorCts.Token
+            );
+
             _pipelineToken = _pipelineCts.Token;
 
             // the managers don't need to be disposed on exception as the pooling is only valid for the lifetime of the operation
@@ -44,12 +48,12 @@ internal static partial class CsvParallel
 
             EnumerationConsumer<T> consumer = new(_blockingCollection, null!, _pipelineToken);
 
-            _parallelTask = Task.Run(
-                () =>
+            _parallelTask = Task.Factory.StartNew(
+                async () =>
                 {
                     try
                     {
-                        parallelForEach(consumer, _pipelineToken);
+                        await parallelForEach(consumer, _pipelineToken).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -57,7 +61,9 @@ internal static partial class CsvParallel
                         _blockingCollection.CompleteAdding();
                     }
                 },
-                CancellationToken.None
+                CancellationToken.None,
+                TaskCreationOptions.LongRunning,
+                parallelOptions.TaskScheduler ?? TaskScheduler.Default
             );
         }
 
@@ -73,9 +79,10 @@ internal static partial class CsvParallel
         {
             // If we haven't observed a terminal state yet, assume
             // the consumer is quitting early -> signal our side.
-            if (!Volatile.Read(ref _done) && !_enumeratorCts.IsCancellationRequested)
+            if (!Volatile.Read(ref _done))
             {
-                _enumeratorCts.Cancel();
+                // another thread might have canceled, but successive cancels are no-ops
+                _enumeratorCts.Cancel(throwOnFirstException: false);
             }
 
             try
@@ -88,7 +95,6 @@ internal static partial class CsvParallel
             }
             finally
             {
-                // no need to dispose _current here; the pooling is only valid for the lifetime of the operation
                 _blockingCollection.Dispose();
                 _pipelineCts.Dispose();
                 _enumeratorCts.Dispose();

@@ -42,7 +42,9 @@ static partial class Csv
         /// <summary>
         /// Configures the builder to read CSV data in parallel.
         /// </summary>
-        /// <param name="parallelOptions">Options to use for parallel reading</param>
+        /// <param name="parallelOptions">
+        /// Options to use for parallel reading. You can pass a cancellation token to implicitly convert it to <see cref="CsvParallelOptions"/>.
+        /// </param>
         public IParallelReadBuilder<T> AsParallel(CsvParallelOptions parallelOptions = default)
         {
             return new ReadParallelBuilder<T, TSelf>((TSelf)this, parallelOptions);

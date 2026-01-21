@@ -17,7 +17,7 @@ The benchmarks use varied sample CSV datasets which can be downloaded from the r
 - Memory allocations are on the right hand side of the bars in the charts.
 - "Reflection" and "SourceGen" refer to FlameCsv's type binding method.
 - Some libraries lack async support for certain operations; these are absent in the charts.
-- "MT" means the benchmark uses multithreading (parallel) APIs. As FlameCsv's parallel operations are unordered, other libraries are configured not to preserve order whenever possible
+- "MT" means the benchmark uses multithreading (parallel) APIs. Unordered multithreading is used where possible to get the best performance.
 
 ## Synchronous
 

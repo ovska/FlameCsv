@@ -26,7 +26,7 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
 - **High Performance**
   - SIMD parsers tuned for each platform (AVX2, AVX512, ARM64)
   - Near-zero allocations
-  - Parallel APIs to read/write records unordered with multiple threads
+  - Parallel APIs to read/write records ordered or unordered with multiple threads
   - Low-level APIs to handle raw CSV field spans directly
 - **Deep Customization**
   - Attribute configuration for header names, constructors, field order, etc.

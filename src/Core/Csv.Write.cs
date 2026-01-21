@@ -37,14 +37,14 @@ static partial class Csv
         TSelf WithIOOptions(in CsvIOOptions ioOptions);
 
         /// <summary>
-        /// Creates a sink for parallel writing.
+        /// Creates a sink for parallel writing. The sink is not thread-safe.
         /// </summary>
         /// <param name="flushAction">Action to use to write the data to the underlying destination</param>
         /// <returns>An instance that should be disposed once the writing has fully completed</returns>
         IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>> flushAction);
 
         /// <summary>
-        /// Creates a sink for asynchronous parallel writing.
+        /// Creates a sink for asynchronous parallel writing. The sink is not thread-safe.
         /// </summary>
         /// <param name="flushAction"> Action to use to write the data to the underlying destination</param>
         /// <returns>An instance that should be disposed once the writing has fully completed</returns>
@@ -55,7 +55,9 @@ static partial class Csv
         /// <summary>
         /// Configures the builder to write CSV data in parallel.
         /// </summary>
-        /// <param name="parallelOptions">Options to use for parallel writing</param>
+        /// <param name="parallelOptions">
+        /// Options to use for parallel writing. You can pass a cancellation token to implicitly convert it to <see cref="CsvParallelOptions"/>.
+        /// </param>
         public IParallelWriteBuilder<T> AsParallel(CsvParallelOptions parallelOptions = default)
         {
             return new ParallelWriteWrapper<T, TSelf>(this, parallelOptions);

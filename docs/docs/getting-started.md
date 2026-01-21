@@ -29,7 +29,7 @@ await foreach (User user in Csv.FromFile("users.csv").ReadAsync<User>(cancellati
 // Processing records in parallel
 await Csv.From(x)
     .AsParallel(cancellationToken)
-    .ForEachUnorderedAsync<Obj>(
+    .ForEachAsync<Obj>(
         async (ArraySegment<Obj> records, CancellationToken ct) =>
         {
             await ProcessBatch(records, ct);

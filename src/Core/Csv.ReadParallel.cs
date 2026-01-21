@@ -295,14 +295,16 @@ file static class Util
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
 
         return new CsvParallel.ParallelEnumerable<TValue>(
-            (consume, innerToken) =>
+            async (consume, innerToken) =>
             {
                 innerToken.ThrowIfCancellationRequested();
 
+#pragma warning disable RCS1261 // Resource can be disposed asynchronously
                 using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
+#pragma warning restore RCS1261 // Resource can be disposed asynchronously
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
 
-                CsvParallel
+                await CsvParallel
                     .RunAsync<CsvRecordRef<T>, Chunk<T>, ValueProducer<T, TValue>, SlimList<TValue>>(
                         reader.AsEnumerable(),
                         producer,
@@ -311,10 +313,9 @@ file static class Util
                         parallelOptions,
                         isAsync: false
                     )
-                    .GetAwaiter()
-                    .GetResult();
+                    .ConfigureAwait(false);
             },
-            parallelOptions.CancellationToken
+            parallelOptions
         );
     }
 

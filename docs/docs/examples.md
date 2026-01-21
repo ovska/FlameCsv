@@ -315,14 +315,11 @@ Parallel operations have higher memory use and overhead, but can provide signifi
 parsing and formatting the records is the bottleneck (see [benchmarks](benchmarks.md)).
 
 When reading in parallel, you can:
-- Use `ReadUnordered/Async` to get an enumerable to loop over the parsed record batches sequentially as `ArraySegment<TValue>`.
-- Use `ForEachUnordered/Async` to process the parsed record batches in parallel using a callback. The callback may be invoked concurrently from multiple threads.
+- Use `Read(Async)` to get an enumerable to loop over the parsed record batches sequentially as `ArraySegment<TValue>`.
+- Use `ForEach(Async)` to process the parsed record batches in parallel using a callback. The callback may be invoked concurrently from multiple threads.
 
-To write records in parallel, use `WriteUnordered/Async`. The formatting step is done in parallel, and the data is flushed to the output sequentially
+To write records in parallel, use `Write(Async)`. The formatting step is done in parallel, and the data is flushed to the output sequentially
 as it arrives.
-
-> [!WARNING]
-> Parallel operations are inherently **unordered**, and record batches may be written or read out of order.
 
 ```cs
 // processing multiple batches in parallel
@@ -332,6 +329,7 @@ await Csv.From(stream)
         {
             CancellationToken = cancellationToken,
             ChunkSize = 256,
+            Unordered = true, // get extra perf at the cost of no record order guarantee
             MaxDegreeOfParallelism = null, // let library decide
         })
     .ForEachUnorderedAsync(
