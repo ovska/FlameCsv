@@ -101,7 +101,8 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
         using var output = writer.AsStream();
 
         Csv.IWriteBuilder<byte> builder = outputType
-            ? Csv.To(PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)), pool)
+            ? Csv.To(PipeWriter.Create(output, new(pool: pool._bytePool, minimumBufferSize: bufferSize)))
+                .WithIOOptions(new() { BufferPool = pool })
             : Csv.To(output, new() { BufferSize = bufferSize, BufferPool = pool });
 
         if (sourceGen)

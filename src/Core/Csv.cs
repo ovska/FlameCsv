@@ -156,14 +156,12 @@ public static partial class Csv
     /// Creates a writer builder from the given CSV data.
     /// </summary>
     /// <param name="pipeWriter">PipeWriter to write the CSV data to</param>
-    /// <param name="bufferPool">Buffer pool to get temporary buffers from, defaults to <see cref="MemoryPool{T}.Shared"/></param>
     /// <remarks>
     /// PipeWriter does not support synchronous flushing.
     /// Only buffer pool is configurable via <see cref="CsvIOOptions"/>, buffer sizes should be configured to the pipe itself.
     /// </remarks>
     /// <returns>Builder to create a CSV writing pipeline from</returns>
-    public static IWriteBuilder<byte> To(PipeWriter pipeWriter, IBufferPool? bufferPool = null) =>
-        new WritePipeBuilder(pipeWriter, bufferPool);
+    public static IWriteBuilder<byte> To(PipeWriter pipeWriter) => new WritePipeBuilder(pipeWriter, null);
 
     /// <summary>
     /// Creates a writer builder from the given CSV data.
@@ -171,7 +169,8 @@ public static partial class Csv
     /// <param name="bufferWriter">Buffer writer to write the CSV data to</param>
     /// <remarks>
     /// As buffer writer does not support flushing, all data is written directly to the writer.
-    /// As such, async doesn't provide any benefit over with this type.
+    /// As such, async doesn't provide any benefit over with this type.<br/>
+    /// Only buffer pool is configurable via <see cref="CsvIOOptions"/>.
     /// </remarks>
     /// <returns>Builder to create a CSV writing pipeline from</returns>
     [OverloadResolutionPriority(-1)] // ensure PipeWriter overload is preferred
