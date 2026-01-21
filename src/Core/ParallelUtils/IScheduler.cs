@@ -5,6 +5,9 @@ namespace FlameCsv.ParallelUtils;
 internal interface IScheduler<TState> : IDisposable
     where TState : IDisposable
 {
+    /// <summary>
+    /// Attempts to get a yet unconsumed state.
+    /// </summary>
     bool TryGetUnconsumedState([NotNullWhen(true)] out TState? state);
 
     /// <summary>
@@ -12,12 +15,11 @@ internal interface IScheduler<TState> : IDisposable
     /// </summary>
     /// <param name="state">The state to schedule.</param>
     /// <param name="order">Order of the chunk.</param>
-    /// <param name="index">Index of the state within the current chunk, or -1 if this is the last item for this chunk.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    ValueTask ScheduleAsync(TState state, int order, int index, CancellationToken cancellationToken);
+    /// <param name="isLast">Indicates if this is the last item for this chunk.</param>
+    ValueTask ScheduleAsync(TState state, int order, bool isLast = false);
 
     /// <summary>
     /// Finalizes the scheduler, writing any remaining states to the writer
     /// </summary>
-    ValueTask FinalizeAsync(CancellationToken cancellationToken);
+    ValueTask FinalizeAsync();
 }

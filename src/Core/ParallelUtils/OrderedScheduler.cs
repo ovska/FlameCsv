@@ -4,24 +4,38 @@ using System.Threading.Channels;
 
 namespace FlameCsv.ParallelUtils;
 
-internal sealed class OrderedScheduler<TState>(ChannelWriter<TState> writer) : IScheduler<TState>
+internal sealed class OrderedScheduler<TState> : IScheduler<TState>
     where TState : IDisposable
 {
-    private readonly ConcurrentDictionary<int, SemaphoreSlim> _orderSemaphores = new()
+    private readonly ConcurrentDictionary<int, ScheduleOrder> _orderTasks = [];
+    private readonly ChannelWriter<TState> _writer;
+    private readonly CancellationToken _cancellationToken;
+
+    public OrderedScheduler(ChannelWriter<TState> writer, CancellationToken cancellationToken)
     {
-        [0] = new SemaphoreSlim(initialCount: 1, maxCount: 1),
-    };
+        _writer = writer;
+        _cancellationToken = cancellationToken;
+    }
 
     public void Dispose()
     {
-        foreach (SemaphoreSlim semaphore in _orderSemaphores.Values)
+        // clean up any remaining registrations on exceptions
+        foreach (var kvp in _orderTasks)
         {
-            semaphore.Dispose();
+            kvp.Value.Registration.Dispose();
         }
     }
 
-    public ValueTask FinalizeAsync(CancellationToken cancellationToken)
+    public ValueTask FinalizeAsync()
     {
+#if DEBUG || FUZZ || FULL_TEST_SUITE
+        var ode = new ObjectDisposedException(GetType().FullName);
+        foreach (var kvp in _orderTasks)
+        {
+            kvp.Value.Source.TrySetException(ode);
+        }
+#endif
+        // no remaining states to flush in ordered scheduler
         return ValueTask.CompletedTask;
     }
 
@@ -32,35 +46,61 @@ internal sealed class OrderedScheduler<TState>(ChannelWriter<TState> writer) : I
         return false;
     }
 
-    public async ValueTask ScheduleAsync(TState state, int order, int index, CancellationToken cancellationToken)
+    public ValueTask ScheduleAsync(TState state, int order, bool isLast = false)
     {
-        SemaphoreSlim current = GetOrCreateSemaphore(order);
+        ScheduleOrder current = GetOrCreate(order);
 
-        await current.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-        try
+        if (current.Source.Task.IsCompletedSuccessfully && !isLast)
         {
-            await writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
+            return _writer.WriteAsync(state, _cancellationToken);
         }
-        finally
+
+        return ScheduleAsyncAwaited(current, state, order, isLast);
+    }
+
+    private async ValueTask ScheduleAsyncAwaited(ScheduleOrder current, TState state, int order, bool isLast)
+    {
+        await current.Source.Task.ConfigureAwait(false);
+        await _writer.WriteAsync(state, _cancellationToken).ConfigureAwait(false);
+
+        if (isLast)
         {
-            if (index < 0)
-            {
-                SemaphoreSlim next = GetOrCreateSemaphore(order + 1);
-                next.Release();
-            }
-            else
-            {
-                current.Release();
-            }
+            // allow next item to proceed
+            GetOrCreate(order + 1).Source.SetResult();
+
+            // clean up current
+            current.Registration.Dispose();
+            _orderTasks.TryRemove(order, out _);
         }
     }
 
-    private SemaphoreSlim GetOrCreateSemaphore(int order)
+    private ScheduleOrder GetOrCreate(int order)
     {
-        return _orderSemaphores.GetOrAdd(
+        return _orderTasks.GetOrAdd(
             order,
-            static order => new SemaphoreSlim(initialCount: order == 0 ? 1 : 0, maxCount: 1)
+            static (order, @this) =>
+            {
+                TaskCompletionSource tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                CancellationTokenRegistration registration;
+
+                if (order == 0)
+                {
+                    registration = default;
+                    tcs.SetResult();
+                }
+                else
+                {
+                    registration = @this._cancellationToken.UnsafeRegister(
+                        static state => ((TaskCompletionSource)state!).TrySetCanceled(),
+                        tcs
+                    );
+                }
+
+                return new ScheduleOrder(tcs, registration);
+            },
+            this
         );
     }
 }
+
+internal readonly record struct ScheduleOrder(TaskCompletionSource Source, CancellationTokenRegistration Registration);

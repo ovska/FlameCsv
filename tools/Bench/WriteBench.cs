@@ -195,13 +195,13 @@ public partial class WriteBench
     // [Benchmark]
     public void Parallel()
     {
-        Csv.To(TextWriter.Null).AsParallel().WriteUnordered(ObjTypeMap.Default, _data);
+        Csv.To(TextWriter.Null).AsParallel().Write(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]
     public Task ParallelAsync()
     {
-        return Csv.To(TextWriter.Null).AsParallel().WriteUnorderedAsync(ObjTypeMap.Default, _data);
+        return Csv.To(TextWriter.Null).AsParallel().WriteAsync(ObjTypeMap.Default, _data);
     }
 
     // [Benchmark]

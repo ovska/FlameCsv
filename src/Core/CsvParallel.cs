@@ -51,8 +51,8 @@ internal static partial class CsvParallel
         ChannelReader<TState> reader = channel.Reader;
         ChannelWriter<TState> writer = channel.Writer;
         IScheduler<TState> scheduler = options.Unordered
-            ? new UnorderedScheduler<TState>(writer)
-            : new OrderedScheduler<TState>(writer);
+            ? new UnorderedScheduler<TState>(writer, cts.Token)
+            : new OrderedScheduler<TState>(writer, cts.Token);
 
         ParallelOptions tplOptions = (ParallelOptions)options;
 
@@ -76,7 +76,7 @@ internal static partial class CsvParallel
             // flush remaining states
             if (exception is null)
             {
-                await scheduler.FinalizeAsync(cts.Token).ConfigureAwait(false);
+                await scheduler.FinalizeAsync().ConfigureAwait(false);
             }
 
             writer.TryComplete(exception);
@@ -137,13 +137,11 @@ internal static partial class CsvParallel
                     state = producer.CreateState();
                 }
 
-                int index = 0;
-
                 while (enumerator.MoveNext())
                 {
                     if (state.ShouldConsume)
                     {
-                        await scheduler.ScheduleAsync(state, chunk.Order, index++, innerToken).ConfigureAwait(false);
+                        await scheduler.ScheduleAsync(state, chunk.Order).ConfigureAwait(false);
                         state = producer.CreateState();
                     }
 
@@ -151,7 +149,7 @@ internal static partial class CsvParallel
                 }
 
                 // state was left unfinalized, schedule it as last
-                await scheduler.ScheduleAsync(state, chunk.Order, -1, innerToken).ConfigureAwait(false);
+                await scheduler.ScheduleAsync(state, chunk.Order, isLast: true).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

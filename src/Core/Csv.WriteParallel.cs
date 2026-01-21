@@ -182,6 +182,8 @@ file static class Util
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
+        parallelOptions.CancellationToken.ThrowIfCancellationRequested();
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
         using (builder.CreateParallelWriter(out Action<ReadOnlySpan<T>> sink))
@@ -214,6 +216,8 @@ file static class Util
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
+        parallelOptions.CancellationToken.ThrowIfCancellationRequested();
+
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
         await using (builder.CreateAsyncParallelWriter(out Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> sink))

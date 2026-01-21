@@ -4,7 +4,8 @@ using System.Threading.Channels;
 
 namespace FlameCsv.ParallelUtils;
 
-internal sealed class UnorderedScheduler<TState>(ChannelWriter<TState> writer) : IScheduler<TState>
+internal sealed class UnorderedScheduler<TState>(ChannelWriter<TState> writer, CancellationToken cancellationToken)
+    : IScheduler<TState>
     where TState : IDisposable
 {
     private readonly ConcurrentStack<TState> _unconsumedStates = [];
@@ -17,18 +18,19 @@ internal sealed class UnorderedScheduler<TState>(ChannelWriter<TState> writer) :
         }
     }
 
-    public async ValueTask FinalizeAsync(CancellationToken cancellationToken)
+    public async ValueTask FinalizeAsync()
     {
+        // write incomplete states
         while (!cancellationToken.IsCancellationRequested && _unconsumedStates.TryPop(out TState? state))
         {
             await writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    public ValueTask ScheduleAsync(TState state, int order, int index, CancellationToken cancellationToken)
+    public ValueTask ScheduleAsync(TState state, int order, bool isLast = false)
     {
         // -1 = last chunk, this state is not ready to be consumed yet
-        if (index < 0)
+        if (isLast)
         {
             _unconsumedStates.Push(state);
             return ValueTask.CompletedTask;

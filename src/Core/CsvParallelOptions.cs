@@ -43,10 +43,6 @@ public readonly record struct CsvParallelOptions
     /// <summary>
     /// Token to cancel the read or write operation.
     /// </summary>
-    /// <remarks>
-    /// Cancellation will not guarantee that an <see cref="OperationCanceledException"/> is thrown, only
-    /// that the operation will halt as soon as possible.
-    /// </remarks>
     public CancellationToken CancellationToken { get; init; }
 
     /// <summary>
@@ -54,7 +50,7 @@ public readonly record struct CsvParallelOptions
     /// Defaults to <see cref="Environment.ProcessorCount"/>.
     /// </summary>
     /// <remarks>
-    /// This value is essentially the capacity of the bounded <see cref="System.Threading.Channels.Channel{T}"/> used internally.
+    /// This value controls capacity of the bounded <see cref="System.Threading.Channels.Channel{T}"/> used internally.
     /// </remarks>
     public int? MaxQueuedChunks
     {
@@ -71,8 +67,12 @@ public readonly record struct CsvParallelOptions
     }
 
     /// <summary>
-    /// Maximum degree of parallelism to use when processing CSV data in parallel.
+    /// Maximum degree of parallelism to use. This value (or <c>-1</c> for if <c>null</c>) is passed to TPL methods.
     /// </summary>
+    /// <remarks>
+    /// This value controls how many producers (<see cref="Reading.IMaterializer{T, TResult}"/> or <see cref="Writing.IDematerializer{T, TValue}"/>)
+    /// can be active at any given time.
+    /// </remarks>
     public int? MaxDegreeOfParallelism
     {
         get => _maxDegreeOfParallelism;

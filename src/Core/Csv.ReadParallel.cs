@@ -297,6 +297,8 @@ file static class Util
         return new CsvParallel.ParallelEnumerable<TValue>(
             (consume, innerToken) =>
             {
+                innerToken.ThrowIfCancellationRequested();
+
                 using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
 
@@ -328,6 +330,8 @@ file static class Util
         return new CsvParallel.ParallelAsyncEnumerable<TValue>(
             async (consumeAsync, innerToken) =>
             {
+                innerToken.ThrowIfCancellationRequested();
+
                 var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: true);
 
                 await using (reader.ConfigureAwait(false))
@@ -358,6 +362,7 @@ file static class Util
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
+        parallelOptions.CancellationToken.ThrowIfCancellationRequested();
 
         using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
@@ -383,6 +388,7 @@ file static class Util
         where T : unmanaged, IBinaryInteger<T>
     {
         CsvParallelOptions parallelOptions = builder.ParallelOptions;
+        parallelOptions.CancellationToken.ThrowIfCancellationRequested();
 
         var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: true);
 
