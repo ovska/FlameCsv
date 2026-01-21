@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Buffers;
+using System.Globalization;
 using System.IO.Pipelines;
 using System.Text;
 using CommunityToolkit.HighPerformance;
@@ -71,7 +72,7 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             }
         }
 
-        Validate(writer, newline.IsCRLF(), header, quoting);
+        Validate(writer, newline.IsCRLF(), header, quoting, parallel);
     }
 
     [Theory, MemberData(nameof(Args))]
@@ -139,10 +140,31 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
             }
         }
 
-        Validate(writer, newline.IsCRLF(), header, quoting);
+        Validate(writer, newline.IsCRLF(), header, quoting, parallel);
     }
 
-    private static void Validate(ArrayPoolBufferWriter<byte> result, bool crlf, bool header, CsvFieldQuoting quoting)
+    [Fact]
+    public static void Should_Write_To_BufferWriter()
+    {
+        using var pool = new ReturnTrackingBufferPool();
+        var options = new CsvOptions<byte>
+        {
+            Quote = '\'',
+            Formats = { { typeof(DateTime), "O" }, { typeof(DateTimeOffset), "O" } },
+        };
+
+        using var apbw = new ArrayPoolBufferWriter<byte>(8192);
+        Csv.To((IBufferWriter<byte>)apbw).Write(TestDataGenerator.Objects.Value, options);
+        Validate(apbw, options.Newline.IsCRLF(), options.HasHeader, options.FieldQuoting, Multithread.None);
+    }
+
+    private static void Validate(
+        ArrayPoolBufferWriter<byte> result,
+        bool crlf,
+        bool header,
+        CsvFieldQuoting quoting,
+        Multithread parallel
+    )
     {
         ArraySegment<byte> written = result.DangerousGetArray();
         var ms = new MemoryStream(written.Array!, written.Offset, written.Count, writable: false);
@@ -165,7 +187,11 @@ public class CsvUtf8WriterTests : CsvWriterTestsBase
 
         List<Obj> actual = new(1024);
         actual.AddRange(reader.GetRecords<Obj>());
-        actual.Sort();
+
+        if (parallel is Multithread.Unordered)
+        {
+            actual.Sort();
+        }
 
         Assert.Equal(TestDataGenerator.Objects.Value, actual);
     }

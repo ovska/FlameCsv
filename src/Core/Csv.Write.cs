@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
@@ -545,6 +546,52 @@ static partial class Csv
         )
         {
             return Util.ParallelFrom(GetFileStream(isAsync: true), out flushAction);
+        }
+    }
+
+    private sealed class WriteBWBuilder<T> : IWriteBuilder<T>
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        private readonly IBufferWriter<T> _writer;
+
+        public WriteBWBuilder(IBufferWriter<T> writer, in CsvIOOptions ioOptions = default)
+        {
+            ArgumentNullException.ThrowIfNull(writer);
+            _writer = writer;
+            IOOptions = ioOptions;
+        }
+
+        public CsvIOOptions IOOptions { get; }
+
+        public IAsyncDisposable? CreateAsyncParallelWriter(
+            out Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> flushAction
+        )
+        {
+            flushAction = (data, ct) =>
+            {
+                if (ct.IsCancellationRequested)
+                    return ValueTask.FromCanceled(ct);
+
+                _writer.Write(data.Span);
+                return ValueTask.CompletedTask;
+            };
+            return null;
+        }
+
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>> flushAction)
+        {
+            flushAction = span => _writer.Write(span);
+            return null;
+        }
+
+        public ICsvBufferWriter<T> CreateWriter(bool isAsync)
+        {
+            return new BufferWriterWrapper<T>(_writer, IOOptions.BufferPool);
+        }
+
+        public IWriteBuilder<T> WithIOOptions(in CsvIOOptions ioOptions)
+        {
+            return new WriteBWBuilder<T>(_writer, in ioOptions);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.IO.Pipelines;
+using System.Runtime.CompilerServices;
 using System.Text;
 using FlameCsv.IO;
 using FlameCsv.Utilities;
@@ -163,6 +164,19 @@ public static partial class Csv
     /// <returns>Builder to create a CSV writing pipeline from</returns>
     public static IWriteBuilder<byte> To(PipeWriter pipeWriter, IBufferPool? bufferPool = null) =>
         new WritePipeBuilder(pipeWriter, bufferPool);
+
+    /// <summary>
+    /// Creates a writer builder from the given CSV data.
+    /// </summary>
+    /// <param name="bufferWriter">Buffer writer to write the CSV data to</param>
+    /// <remarks>
+    /// As buffer writer does not support flushing, all data is written directly to the writer.
+    /// As such, async doesn't provide any benefit over with this type.
+    /// </remarks>
+    /// <returns>Builder to create a CSV writing pipeline from</returns>
+    [OverloadResolutionPriority(-1)] // ensure PipeWriter overload is preferred
+    public static IWriteBuilder<T> To<T>(IBufferWriter<T> bufferWriter)
+        where T : unmanaged, IBinaryInteger<T> => new WriteBWBuilder<T>(bufferWriter, default);
 
     /// <summary>
     /// Creates a writer builder to write CSV data to a file.
