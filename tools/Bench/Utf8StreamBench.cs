@@ -108,9 +108,9 @@ public class Utf8StreamWriteBench
             writer.Advance(count);
             written += count;
 
-            if (writer.NeedsFlush)
+            if (writer.NeedsDrain)
             {
-                writer.Flush();
+                writer.Drain();
             }
         }
 
@@ -133,9 +133,9 @@ public class Utf8StreamWriteBench
             writer.Advance(count);
             written += count;
 
-            if (writer.NeedsFlush)
+            if (writer.NeedsDrain)
             {
-                writer.Flush();
+                writer.Drain();
             }
         }
 

@@ -31,7 +31,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
         Initialize();
         _ = _writer.GetSpan(written);
         _writer.Advance(written);
-        Assert.Equal(_writer.NeedsFlush, expected);
+        Assert.Equal(_writer.NeedsDrain, expected);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed class PipeBufferWriterTests : IAsyncDisposable
     public void Should_Throw_On_Synchronous_Flush()
     {
         Initialize();
-        Assert.Throws<NotSupportedException>(() => _writer.Flush());
+        Assert.Throws<NotSupportedException>(() => _writer.Drain());
     }
 
     [MemberNotNull(nameof(_writer))]

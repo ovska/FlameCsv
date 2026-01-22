@@ -43,9 +43,9 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
     public Span<char> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
     // advance already copies
-    public bool NeedsFlush => false;
+    public bool NeedsDrain => false;
 
-    public void Flush()
+    public void Drain()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
     }
@@ -55,7 +55,7 @@ internal sealed class StringBuilderBufferWriter : ICsvBufferWriter<char>
         DisposeCore();
     }
 
-    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    public ValueTask DrainAsync(CancellationToken cancellationToken = default)
     {
         if (_disposed)
             return Throw.ObjectDisposedAsync(this);

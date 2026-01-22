@@ -211,7 +211,7 @@ static partial class Csv
 
         public IReadBuilder<T> WithIOOptions(in CsvIOOptions ioOptions)
         {
-            return new ReadMemoryBuilder<T>(_memory, in _ioOptions);
+            return new ReadMemoryBuilder<T>(_memory, in ioOptions);
         }
     }
 

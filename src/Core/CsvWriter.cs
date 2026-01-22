@@ -42,9 +42,9 @@ public static partial class CsvWriter
 
             do
             {
-                if (writer.Writer.NeedsFlush)
+                if (writer.Writer.NeedsDrain)
                 {
-                    writer.Writer.Flush();
+                    writer.Writer.Drain();
                 }
 
                 dematerializer.Write(writer, enumerator.Current);
@@ -99,9 +99,9 @@ public static partial class CsvWriter
 
             do
             {
-                if (writer.Writer.NeedsFlush)
+                if (writer.Writer.NeedsDrain)
                 {
-                    await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                    await writer.Writer.DrainAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 dematerializer.Write(writer, enumerator.Current);
@@ -151,9 +151,9 @@ public static partial class CsvWriter
 
                 do
                 {
-                    if (writer.Writer.NeedsFlush)
+                    if (writer.Writer.NeedsDrain)
                     {
-                        await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                        await writer.Writer.DrainAsync(cancellationToken).ConfigureAwait(false);
                     }
 
                     dematerializer.Write(writer, enumerator.Current);

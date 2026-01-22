@@ -323,8 +323,8 @@ public partial class WriteBench
 
         for (int i = 0; i < _data.Length; i++)
         {
-            if (writer.Writer.NeedsFlush)
-                writer.Writer.Flush();
+            if (writer.Writer.NeedsDrain)
+                writer.Writer.Drain();
 
             Obj obj = _data[i];
             writer.FormatValue(obj.Index);

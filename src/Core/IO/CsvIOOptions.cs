@@ -111,15 +111,13 @@ public readonly record struct CsvIOOptions
     public bool LeaveOpen { get; init; }
 
     /// <summary>
-    /// Disable direct buffer reading optimization when reading <see cref="MemoryStream"/> or
+    /// Disables direct buffer reading optimization when reading <see cref="MemoryStream"/> or
     /// <see cref="StringReader"/> with an exposable buffer.<br/>
+    /// Disables custom UTF8-specialisations that are used instead of a <see cref="StreamReader"/>
+    /// and <see cref="StreamWriter"/> when working with streams with UTF8 encoding.<br/>
     /// The default is <c>false</c>.
     /// </summary>
-    /// <remarks>
-    /// An internal optimization reads directly from the internal buffer from a set of known types.
-    /// If this behavior is undesired, set this to <c>true</c>.
-    /// </remarks>
-    public bool NoDirectBufferAccess { get; init; }
+    public bool DisableOptimizations { get; init; }
 
     /// <summary>
     /// Gets or sets the buffer pool used for renting buffers.<br/>
@@ -130,10 +128,9 @@ public readonly record struct CsvIOOptions
     internal IBufferPool EffectiveBufferPool => BufferPool ?? DefaultBufferPool.Instance;
 
     /// <summary>
-    /// Returns <c>true</c> if a custom buffer size is set, i.e., <see cref="BufferSize"/> is not equal to
-    /// <see cref="DefaultBufferSize"/>.
+    /// Returns <c>true</c> if a custom buffer size is set.
     /// </summary>
-    internal bool HasCustomBufferSize => (_bufferSize ?? DefaultBufferSize) != DefaultBufferSize;
+    internal bool HasCustomBufferSize => _bufferSize.HasValue;
 
     /// <summary>
     /// Returns a copy of the options with file I/O specific settings applied:

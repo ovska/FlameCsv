@@ -17,17 +17,24 @@ internal sealed class TextBufferWriter : CsvBufferWriter<char>
         _leaveOpen = options.LeaveOpen;
     }
 
-    protected override void FlushCore(ReadOnlyMemory<char> memory)
+    protected override void DrainCore(ReadOnlyMemory<char> memory)
     {
         _writer.Write(memory.Span);
+    }
+
+    protected override ValueTask DrainAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
+    {
+        return new ValueTask(_writer.WriteAsync(memory, cancellationToken));
+    }
+
+    protected override void FlushCore()
+    {
         _writer.Flush();
     }
 
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-    protected override async ValueTask FlushAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
+    protected override ValueTask FlushAsyncCore(CancellationToken cancellationToken)
     {
-        await _writer.WriteAsync(memory, cancellationToken).ConfigureAwait(false);
-        await _writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return new ValueTask(_writer.FlushAsync(cancellationToken));
     }
 
     protected override void DisposeCore()

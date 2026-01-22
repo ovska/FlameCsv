@@ -40,17 +40,21 @@ static partial class Csv
         /// <summary>
         /// Creates a sink for parallel writing. The sink is not thread-safe.
         /// </summary>
-        /// <param name="flushAction">Action to use to write the data to the underlying destination</param>
+        /// <param name="drainAction">
+        /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final flush.
+        /// </param>
         /// <returns>An instance that should be disposed once the writing has fully completed</returns>
-        IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>> flushAction);
+        IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>, bool> drainAction);
 
         /// <summary>
         /// Creates a sink for asynchronous parallel writing. The sink is not thread-safe.
         /// </summary>
-        /// <param name="flushAction"> Action to use to write the data to the underlying destination</param>
+        /// <param name="drainAction">
+        /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final flush.
+        /// </param>
         /// <returns>An instance that should be disposed once the writing has fully completed</returns>
         IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> drainAction
         );
 
         /// <summary>
@@ -278,7 +282,7 @@ static partial class Csv
 
             Check.NotNull(_stream);
 
-            if (_encoding is null || _encoding.CodePage == Encoding.UTF8.CodePage)
+            if (!_ioOptions.DisableOptimizations && (_encoding is null || _encoding.CodePage == Encoding.UTF8.CodePage))
             {
                 // Match StreamWriter behavior:
                 // - Write preamble if encoding is explicit and has one
@@ -298,13 +302,13 @@ static partial class Csv
             return new WriteTextBuilder(_writer, _stream, _encoding, in ioOptions);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>, bool> flushAction)
         {
             return Util.ParallelFrom(CreateWriter(), out flushAction);
         }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<char>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> flushAction
         )
         {
             return Util.ParallelFrom(CreateWriter(), out flushAction);
@@ -358,16 +362,16 @@ static partial class Csv
             return new WritePipeBuilder(_pipeWriter, ioOptions.BufferPool);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> flushAction)
         {
             throw new NotSupportedException("Synchronous writing to PipeWriter is not supported.");
         }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> flushAction
         )
         {
-            flushAction = async (data, ct) => await _pipeWriter.WriteAsync(data, ct).ConfigureAwait(false);
+            flushAction = async (data, _, ct) => await _pipeWriter.WriteAsync(data, ct).ConfigureAwait(false);
             return null;
         }
     }
@@ -414,13 +418,13 @@ static partial class Csv
             return new WriteStreamBuilder(_stream, in ioOptions);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>, bool> flushAction)
         {
             return Util.ParallelFrom(CreateWriter(), out flushAction);
         }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<char>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> flushAction
         )
         {
             return Util.ParallelFrom(CreateWriter(), out flushAction);
@@ -428,13 +432,13 @@ static partial class Csv
 
         private StreamWriter CreateWriter() => new(_stream, Encoding.UTF8, _ioOptions.BufferSize, _ioOptions.LeaveOpen);
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> flushAction)
         {
             return Util.ParallelFrom(_stream, out flushAction);
         }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> flushAction
         )
         {
             return Util.ParallelFrom(_stream, out flushAction);
@@ -463,7 +467,10 @@ static partial class Csv
 
             try
             {
-                if (_encoding is null || _encoding.CodePage == Encoding.UTF8.CodePage)
+                if (
+                    !_ioOptions.DisableOptimizations
+                    && (_encoding is null || _encoding.CodePage == Encoding.UTF8.CodePage)
+                )
                 {
                     return new Utf8StreamWriter(stream, in _ioOptions, writePreamble: _encoding?.Preamble.Length > 0);
                 }
@@ -524,25 +531,25 @@ static partial class Csv
             );
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>, bool> flushAction)
         {
             return Util.ParallelFrom(GetStreamWriter(isAsync: false), out flushAction);
         }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<char>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> flushAction
         )
         {
             return Util.ParallelFrom(GetStreamWriter(isAsync: true), out flushAction);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> flushAction)
         {
             return Util.ParallelFrom(GetFileStream(isAsync: false), out flushAction);
         }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> flushAction
         )
         {
             return Util.ParallelFrom(GetFileStream(isAsync: true), out flushAction);
@@ -564,10 +571,10 @@ static partial class Csv
         public CsvIOOptions IOOptions { get; }
 
         public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> flushAction
+            out Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> flushAction
         )
         {
-            flushAction = (data, ct) =>
+            flushAction = (data, _, ct) =>
             {
                 if (ct.IsCancellationRequested)
                     return ValueTask.FromCanceled(ct);
@@ -578,9 +585,9 @@ static partial class Csv
             return null;
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>> flushAction)
+        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>, bool> flushAction)
         {
-            flushAction = span => _writer.Write(span);
+            flushAction = (span, _) => _writer.Write(span);
             return null;
         }
 
@@ -598,12 +605,16 @@ static partial class Csv
 
 file static class Util
 {
-    public static IDisposable? ParallelFrom(Stream stream, out Action<ReadOnlySpan<byte>> flushAction)
+    public static IDisposable? ParallelFrom(Stream stream, out Action<ReadOnlySpan<byte>, bool> flushAction)
     {
-        flushAction = span =>
+        flushAction = (span, flush) =>
         {
             stream.Write(span);
-            stream.Flush();
+
+            if (flush)
+            {
+                stream.Flush();
+            }
         };
 
         return stream;
@@ -611,24 +622,32 @@ file static class Util
 
     public static IAsyncDisposable? ParallelFrom(
         Stream stream,
-        out Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> flushAction
+        out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> flushAction
     )
     {
-        flushAction = async (data, ct) =>
+        flushAction = async (data, flush, ct) =>
         {
             await stream.WriteAsync(data, ct).ConfigureAwait(false);
-            await stream.FlushAsync(ct).ConfigureAwait(false);
+
+            if (flush)
+            {
+                await stream.FlushAsync(ct).ConfigureAwait(false);
+            }
         };
 
         return stream;
     }
 
-    public static IDisposable? ParallelFrom(TextWriter writer, out Action<ReadOnlySpan<char>> flushAction)
+    public static IDisposable? ParallelFrom(TextWriter writer, out Action<ReadOnlySpan<char>, bool> flushAction)
     {
-        flushAction = span =>
+        flushAction = (span, flush) =>
         {
             writer.Write(span);
-            writer.Flush();
+
+            if (flush)
+            {
+                writer.Flush();
+            }
         };
 
         return writer;
@@ -636,13 +655,17 @@ file static class Util
 
     public static IAsyncDisposable? ParallelFrom(
         TextWriter writer,
-        out Func<ReadOnlyMemory<char>, CancellationToken, ValueTask> flushAction
+        out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> flushAction
     )
     {
-        flushAction = async (data, ct) =>
+        flushAction = async (data, flush, ct) =>
         {
             await writer.WriteAsync(data, ct).ConfigureAwait(false);
-            await writer.FlushAsync(ct).ConfigureAwait(false);
+
+            if (flush)
+            {
+                await writer.FlushAsync(ct).ConfigureAwait(false);
+            }
         };
 
         return writer;

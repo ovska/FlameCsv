@@ -19,7 +19,7 @@ public static class WriterEdgeCaseTests
             writer.WriteText("\"test\"");
             writer.WriteDelimiter();
             writer.WriteText("\"test");
-            writer.Writer.Flush();
+            writer.Writer.Drain();
         }
 
         Assert.Equal("\"test\"\"\",\"\"\"test\"\"\",\"\"\"test\"", Encoding.UTF8.GetString(ms.ToArray()));

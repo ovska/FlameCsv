@@ -22,7 +22,7 @@ public class Utf8StreamWriterTests
         var span = writer.GetSpan(testData.Length);
         testData.AsSpan().CopyTo(span);
         writer.Advance(testData.Length);
-        writer.Flush();
+        writer.Drain();
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -44,7 +44,7 @@ public class Utf8StreamWriterTests
         var span = writer.GetSpan(testData.Length);
         testData.AsSpan().CopyTo(span);
         writer.Advance(testData.Length);
-        await writer.FlushAsync(TestContext.Current.CancellationToken);
+        await writer.DrainAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -67,7 +67,7 @@ public class Utf8StreamWriterTests
         var span = writer.GetSpan(testData.Length);
         testData.AsSpan().CopyTo(span);
         writer.Advance(testData.Length);
-        writer.Flush();
+        writer.Drain();
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -91,7 +91,7 @@ public class Utf8StreamWriterTests
         var span = writer.GetSpan(testData.Length);
         testData.AsSpan().CopyTo(span);
         writer.Advance(testData.Length);
-        writer.Flush();
+        writer.Drain();
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -114,7 +114,7 @@ public class Utf8StreamWriterTests
         var memory = writer.GetMemory(testData.Length);
         testData.AsSpan().CopyTo(memory.Span);
         writer.Advance(testData.Length);
-        await writer.FlushAsync(TestContext.Current.CancellationToken);
+        await writer.DrainAsync(TestContext.Current.CancellationToken);
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -139,7 +139,7 @@ public class Utf8StreamWriterTests
         var span = writer.GetSpan(testData.Length);
         testData.AsSpan().CopyTo(span);
         writer.Advance(testData.Length);
-        writer.Flush();
+        writer.Drain();
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -193,14 +193,14 @@ public class Utf8StreamWriterTests
         var memory = writer.GetMemory(data1.Length);
         data1.AsSpan().CopyTo(memory.Span);
         writer.Advance(data1.Length);
-        await writer.FlushAsync(TestContext.Current.CancellationToken);
+        await writer.DrainAsync(TestContext.Current.CancellationToken);
 
         // Write 2
         const string data2 = "Second with UTF-8: 日本語";
         memory = writer.GetMemory(data2.Length);
         data2.AsSpan().CopyTo(memory.Span);
         writer.Advance(data2.Length);
-        await writer.FlushAsync(TestContext.Current.CancellationToken);
+        await writer.DrainAsync(TestContext.Current.CancellationToken);
 
         // Write 3
         const string data3 = "Third with emoji: 🚀";
@@ -208,7 +208,7 @@ public class Utf8StreamWriterTests
         data3.AsSpan().CopyTo(span);
         writer.Advance(data3.Length);
         // ReSharper disable once MethodHasAsyncOverload
-        writer.Flush();
+        writer.Drain();
 
         // Assert
         var result = Encoding.UTF8.GetString(ms.ToArray());
@@ -221,34 +221,41 @@ public class Utf8StreamWriterTests
     public async Task WriteAsync_StreamThrowsException_PropagatesException()
     {
         // Arrange
-        var failingStream = new FailingStream();
         var options = new CsvIOOptions { BufferSize = 32, LeaveOpen = true };
-        var writer = new Utf8StreamWriter(failingStream, options);
 
         const string testData = "Test data";
 
+        Utf8StreamWriter? first = null;
+        Utf8StreamWriter? second = null;
+
         // Act & Assert
-        Assert.Throws<IOException>(() =>
+        var ex1 = Assert.Throws<IOException>(() =>
         {
-            var span = writer.GetSpan(testData.Length);
+            using var failingStream = new FailingStream();
+            first = new Utf8StreamWriter(failingStream, options);
+            var span = first.GetSpan(testData.Length);
             testData.AsSpan().CopyTo(span);
-            writer.Advance(testData.Length);
+            first.Advance(testData.Length);
 
             failingStream.FailOnNextWrite = true;
-            writer.Flush();
+            first.Advance(1);
+            first.Drain();
         });
+        first?.Complete(ex1);
 
-        await Assert.ThrowsAsync<IOException>(async () =>
+        var ex2 = await Assert.ThrowsAsync<IOException>(async () =>
         {
-            var span = writer.GetSpan(testData.Length);
+            using var failingStream = new FailingStream();
+            second = new Utf8StreamWriter(failingStream, options);
+            var span = second.GetSpan(testData.Length);
             testData.AsSpan().CopyTo(span);
-            writer.Advance(testData.Length);
+            second.Advance(testData.Length);
 
             failingStream.FailOnNextWrite = true;
-            await writer.FlushAsync(TestContext.Current.CancellationToken);
+            second.Advance(1);
+            await second.DrainAsync(TestContext.Current.CancellationToken);
         });
-
-        await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
+        second?.Complete(ex2);
     }
 
     [Theory, InlineData(true), InlineData(false)]
@@ -275,12 +282,12 @@ public class Utf8StreamWriterTests
 
         if (isAsync)
         {
-            await writer.FlushAsync(TestContext.Current.CancellationToken);
+            await writer.DrainAsync(TestContext.Current.CancellationToken);
             await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
         }
         else
         {
-            writer.Flush();
+            writer.Drain();
             writer.Complete(null);
         }
 
@@ -302,12 +309,28 @@ public class Utf8StreamWriterTests
             base.Write(buffer);
         }
 
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            if (FailOnNextWrite)
+                throw new IOException("Simulated write failure");
+
+            base.Write(buffer, offset, count);
+        }
+
         public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
         {
             if (FailOnNextWrite)
                 throw new IOException("Simulated write failure");
 
             return base.WriteAsync(buffer, cancellationToken);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            if (FailOnNextWrite)
+                throw new IOException("Simulated write failure");
+
+            return base.WriteAsync(buffer, offset, count, cancellationToken);
         }
     }
 }

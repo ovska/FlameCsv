@@ -20,7 +20,7 @@ public class StringBuilderBufferWriterTests
         "defg".AsSpan().CopyTo(memory.Span);
         writer.Advance(4);
 
-        writer.Flush();
+        writer.Drain();
         Assert.Equal("abcdefg", builder.ToString());
 
         writer.Complete(null);
@@ -56,9 +56,9 @@ public class StringBuilderBufferWriterTests
         var builder = new StringBuilder();
         var writer = new StringBuilderBufferWriter(builder, null);
 
-        Assert.False(writer.NeedsFlush);
-        writer.Flush();
-        await writer.FlushAsync(TestContext.Current.CancellationToken);
+        Assert.False(writer.NeedsDrain);
+        writer.Drain();
+        await writer.DrainAsync(TestContext.Current.CancellationToken);
         Assert.Empty(builder.ToString());
 
         await writer.CompleteAsync(null, TestContext.Current.CancellationToken);
@@ -71,9 +71,9 @@ public class StringBuilderBufferWriterTests
         writer.Complete(null);
 
         Assert.Throws<ObjectDisposedException>(() => writer.Advance(0));
-        Assert.Throws<ObjectDisposedException>(() => writer.Flush());
+        Assert.Throws<ObjectDisposedException>(() => writer.Drain());
         await Assert.ThrowsAsync<ObjectDisposedException>(async () =>
-            await writer.FlushAsync(TestContext.Current.CancellationToken)
+            await writer.DrainAsync(TestContext.Current.CancellationToken)
         );
     }
 }

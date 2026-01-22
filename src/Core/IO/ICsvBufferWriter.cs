@@ -21,36 +21,34 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T>
     public IBufferPool BufferPool { get; }
 
     /// <summary>
-    /// Whether the writer should be flushed to prevent resizing internal buffers.
+    /// Whether the writer should be drained to prevent resizing internal buffers.
     /// </summary>
-    bool NeedsFlush { get; }
+    bool NeedsDrain { get; }
 
     /// <summary>
-    /// Flushes the writer, ensuring that the written data is transported to the underlying target.
+    /// Drains the writer, ensuring that the buffered data is written to the underlying target.
+    /// <br/>May be a no-op if the writer does not buffer data.
     /// </summary>
-    void Flush();
+    void Drain();
 
     /// <summary>
-    /// Completes the reader, flushing unflushed data if <paramref name="exception"/> is <see langword="null"/>.
+    /// Completes the writer, draining unflushed data and flushing the underlying target if <paramref name="exception"/> is <see langword="null"/>.
     /// </summary>
-    /// <param name="exception">
-    /// Exception observed when writing the data. If not null, pending unflushed data does not get flushed.
-    /// </param>
+    /// <param name="exception">Exception observed when writing the data. If not null, pending data may not be flushed.</param>
     void Complete(Exception? exception);
 
     /// <summary>
-    /// Asynchronously flushes the writer, ensuring that the written data is transported to the underlying target.
+    /// Asynchronously drains the writer, ensuring that the buffered data is written to the underlying target.
+    /// <br/>May be a no-op if the writer does not buffer data.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the flush operation</param>
     /// <returns>A task representing the flush operation</returns>
-    ValueTask FlushAsync(CancellationToken cancellationToken = default);
+    ValueTask DrainAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Asynchronously completes the writer, flushing unflushed data if <paramref name="exception"/> is <see langword="null"/>.
+    /// Asynchronously completes the writer, draining unflushed data and flushing the underlying target if <paramref name="exception"/> is <see langword="null"/>.
     /// </summary>
-    /// <param name="exception">
-    /// Exception observed when writing the data. If not null, pending unflushed data does not get flushed.
-    /// </param>
+    /// <param name="exception">Exception observed when writing the data. If not null, pending data may not be flushed.</param>
     /// <param name="cancellationToken">Cancellation token to cancel the flushing operation if applicable</param>
     /// <returns>A task representing the completion operation</returns>
     ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default);

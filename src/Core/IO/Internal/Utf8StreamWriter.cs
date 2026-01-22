@@ -5,13 +5,15 @@ using FlameCsv.Extensions;
 
 namespace FlameCsv.IO.Internal;
 
+#pragma warning disable CA1835 // Prefer the 'Memory'-based overloads for 'ReadAsync' and 'WriteAsync'
+
 internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 {
     private static readonly byte[] _utf8Preamble = Encoding.UTF8.GetPreamble();
 
     private readonly Stream _stream;
     private readonly bool _leaveOpen;
-    private readonly IMemoryOwner<byte> _byteBuffer;
+    private readonly byte[] _bytes;
     private bool _writePreamble;
 
     public Utf8StreamWriter(Stream stream, in CsvIOOptions options, bool writePreamble = false)
@@ -20,11 +22,11 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
         Throw.IfNotWritable(stream);
         _stream = stream;
         _leaveOpen = options.LeaveOpen;
-        _byteBuffer = options.EffectiveBufferPool.Rent<byte>(options.BufferSize * 2);
         _writePreamble = writePreamble;
+        _bytes = ArrayPool<byte>.Shared.Rent(options.BufferSize * 2);
     }
 
-    protected override void FlushCore(ReadOnlyMemory<char> memory)
+    protected override void DrainCore(ReadOnlyMemory<char> memory)
     {
         if (_writePreamble)
         {
@@ -36,20 +38,16 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
         do
         {
-            ReadOnlyMemory<byte> bytes = Transcode(ref memory, out moreData);
+            int bytesWritten = Transcode(ref memory, out moreData);
 
-            if (bytes.IsEmpty)
+            if (bytesWritten != 0)
             {
-                continue;
+                _stream.Write(_bytes, 0, bytesWritten);
             }
-
-            _stream.Write(bytes.Span);
         } while (moreData);
-
-        _stream.Flush();
     }
 
-    protected override async ValueTask FlushAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
+    protected override async ValueTask DrainAsyncCore(ReadOnlyMemory<char> memory, CancellationToken cancellationToken)
     {
         if (_writePreamble)
         {
@@ -61,40 +59,43 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
         do
         {
-            ReadOnlyMemory<byte> bytes = Transcode(ref memory, out moreData);
+            int bytesWritten = Transcode(ref memory, out moreData);
 
-            if (bytes.IsEmpty)
+            if (bytesWritten != 0)
             {
-                continue;
+                await _stream.WriteAsync(_bytes, 0, bytesWritten, cancellationToken).ConfigureAwait(false);
             }
-
-            await _stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         } while (moreData);
-
-        await _stream.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private ReadOnlyMemory<byte> Transcode(ref ReadOnlyMemory<char> memory, out bool moreData)
+    protected override void FlushCore()
+    {
+        _stream.Flush();
+    }
+
+    protected override ValueTask FlushAsyncCore(CancellationToken cancellationToken)
+    {
+        return new ValueTask(_stream.FlushAsync(cancellationToken));
+    }
+
+    private int Transcode(ref ReadOnlyMemory<char> memory, out bool moreData)
     {
         moreData = false;
         ReadOnlySpan<char> chars = memory.Span;
 
         if (chars.IsEmpty)
         {
-            return ReadOnlyMemory<byte>.Empty;
+            return 0;
         }
 
         int totalRead = 0;
         int totalWritten = 0;
 
-        Memory<byte> rentedMemory = _byteBuffer.Memory;
-        Span<byte> rentedSpan = rentedMemory.Span;
-
         while (!chars.IsEmpty)
         {
             OperationStatus status = Utf8.FromUtf16(
                 chars,
-                rentedSpan.Slice(totalWritten),
+                _bytes.AsSpan(totalWritten),
                 out int charsRead,
                 out int bytesWritten,
                 replaceInvalidSequences: true,
@@ -119,12 +120,12 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
         }
 
         memory = memory.Slice(totalRead);
-        return rentedMemory.Slice(0, totalWritten);
+        return totalWritten;
     }
 
     protected override void DisposeCore()
     {
-        _byteBuffer.Dispose();
+        ArrayPool<byte>.Shared.Return(_bytes);
 
         if (!_leaveOpen)
             _stream.Dispose();
@@ -132,7 +133,7 @@ internal sealed class Utf8StreamWriter : CsvBufferWriter<char>
 
     protected override ValueTask DisposeCoreAsync()
     {
-        _byteBuffer.Dispose();
+        ArrayPool<byte>.Shared.Return(_bytes);
 
         return _leaveOpen ? default : _stream.DisposeAsync();
     }

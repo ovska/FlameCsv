@@ -46,7 +46,6 @@ public static partial class Csv
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <returns>Builder to create a CSV reading pipeline from</returns>
     /// <remarks>
-    /// Parallel reading from a StringBuilder is not yet supported.<br/>
     /// The <see cref="StringBuilder"/> must not be modified while the reader is in use.
     /// </remarks>
     public static IReadBuilder<char> From(StringBuilder csv, CsvIOOptions ioOptions = default) =>

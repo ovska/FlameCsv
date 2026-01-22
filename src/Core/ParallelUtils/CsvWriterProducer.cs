@@ -13,15 +13,15 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
 {
     private readonly CsvOptions<T> _options;
     private readonly IDematerializer<T, TValue> _dematerializer;
-    private readonly Action<ReadOnlySpan<T>>? _sink;
-    private readonly Func<ReadOnlyMemory<T>, CancellationToken, ValueTask>? _asyncSink;
+    private readonly Action<ReadOnlySpan<T>, bool>? _sink;
+    private readonly Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? _asyncSink;
     private readonly CsvIOOptions _ioOptions;
 
     public CsvWriterProducer(
         CsvOptions<T> options,
         CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
-        Action<ReadOnlySpan<T>> sink
+        Action<ReadOnlySpan<T>, bool> sink
     )
     {
         _options = options;
@@ -34,7 +34,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
         CsvOptions<T> options,
         CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
-        Func<ReadOnlyMemory<T>, CancellationToken, ValueTask> asyncSink
+        Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> asyncSink
     )
     {
         _options = options;
@@ -52,7 +52,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
             using var writer = CreateState();
             _dematerializer.WriteHeader(writer);
             writer.WriteNewline();
-            writer.Writer.Flush();
+            writer.Writer.Drain();
             writer.Writer.Complete(null);
         }
     }
@@ -64,7 +64,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
             using var writer = CreateState();
             _dematerializer.WriteHeader(writer);
             writer.WriteNewline();
-            await writer.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+            await writer.Writer.DrainAsync(cancellationToken).ConfigureAwait(false);
             await writer.Writer.CompleteAsync(null, cancellationToken).ConfigureAwait(false);
         }
     }
@@ -94,7 +94,7 @@ internal sealed class CsvWriterConsumer<T> : IConsumer<CsvFieldWriter<T>>
         {
             if (ex is null)
             {
-                state.Writer.Flush();
+                state.Writer.Drain();
             }
         }
         catch (Exception e)
@@ -115,7 +115,7 @@ internal sealed class CsvWriterConsumer<T> : IConsumer<CsvFieldWriter<T>>
         {
             if (ex is null)
             {
-                await state.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+                await state.Writer.DrainAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception e)

@@ -13,7 +13,7 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
     private int _unflushed;
     private bool _completed;
 
-    public bool NeedsFlush
+    public bool NeedsDrain
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _unflushed >= InternalFlushThreshold;
@@ -47,7 +47,7 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
         _unflushed += length;
     }
 
-    public async ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    public async ValueTask DrainAsync(CancellationToken cancellationToken = default)
     {
         if (_unflushed > 0 && !_completed)
         {
@@ -75,5 +75,5 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
 
     public void Complete(Exception? exception) => _pipeWriter.Complete(exception);
 
-    public void Flush() => throw new NotSupportedException("Synchronous flushing is not supported by PipeWriter.");
+    public void Drain() => throw new NotSupportedException("Synchronous flushing is not supported by PipeWriter.");
 }

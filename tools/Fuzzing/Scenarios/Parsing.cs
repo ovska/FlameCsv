@@ -12,7 +12,7 @@ public class Parsing : IScenario
 
             var readOptions = new CsvIOOptions
             {
-                NoDirectBufferAccess = true,
+                DisableOptimizations = true,
                 BufferPool = new BoundedBufferPool(placement),
             };
 
@@ -49,7 +49,7 @@ public class Parsing : IScenario
         {
             var readOptions = new CsvIOOptions
             {
-                NoDirectBufferAccess = true,
+                DisableOptimizations = true,
                 BufferPool = new BoundedBufferPool(placement),
             };
 

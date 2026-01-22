@@ -27,7 +27,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Whether to automatically check if the writer needs to be flushed after each record.<br/>
     /// The default value is <c>true</c>.
     /// </summary>
-    /// <seealso cref="ICsvBufferWriter{T}.NeedsFlush"/>
+    /// <seealso cref="ICsvBufferWriter{T}.NeedsDrain"/>
     public bool AutoFlush { get; set; }
 
     /// <summary>
@@ -207,8 +207,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         FieldIndex = 0;
         LineIndex++;
 
-        if (AutoFlush && FieldWriter.Writer.NeedsFlush)
-            FieldWriter.Writer.Flush();
+        if (AutoFlush && FieldWriter.Writer.NeedsDrain)
+            FieldWriter.Writer.Drain();
     }
 
     /// <summary>
@@ -228,8 +228,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         FieldIndex = 0;
         LineIndex++;
 
-        if (AutoFlush && FieldWriter.Writer.NeedsFlush)
-            return FieldWriter.Writer.FlushAsync(cancellationToken);
+        if (AutoFlush && FieldWriter.Writer.NeedsDrain)
+            return FieldWriter.Writer.DrainAsync(cancellationToken);
 
         return ValueTask.CompletedTask;
     }
@@ -514,7 +514,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public void Flush()
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
-        FieldWriter.Writer.Flush();
+        FieldWriter.Writer.Drain();
     }
 
     /// <summary>
@@ -526,7 +526,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        return IsCompleted ? Throw.ObjectDisposedAsync(this) : FieldWriter.Writer.FlushAsync(cancellationToken);
+        return IsCompleted ? Throw.ObjectDisposedAsync(this) : FieldWriter.Writer.DrainAsync(cancellationToken);
     }
 
     /// <summary>

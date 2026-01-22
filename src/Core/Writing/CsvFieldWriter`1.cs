@@ -390,7 +390,7 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
         _memoryOwner = null;
     }
 
-    bool ParallelUtils.IConsumable.ShouldConsume => Writer.NeedsFlush;
+    bool ParallelUtils.IConsumable.ShouldConsume => Writer.NeedsDrain;
 }
 
 file static class InvalidTokensWritten

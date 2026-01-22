@@ -7,7 +7,7 @@ internal sealed class BufferWriterWrapper<T>(IBufferWriter<T> writer, IBufferPoo
 {
     public IBufferPool BufferPool => pool ?? DefaultBufferPool.Instance;
 
-    public bool NeedsFlush => false;
+    public bool NeedsDrain => false;
 
     public void Advance(int count) => writer.Advance(count);
 
@@ -20,9 +20,9 @@ internal sealed class BufferWriterWrapper<T>(IBufferWriter<T> writer, IBufferPoo
             : ValueTask.CompletedTask;
     }
 
-    public void Flush() { }
+    public void Drain() { }
 
-    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    public ValueTask DrainAsync(CancellationToken cancellationToken = default)
     {
         return cancellationToken.IsCancellationRequested
             ? ValueTask.FromCanceled(cancellationToken)

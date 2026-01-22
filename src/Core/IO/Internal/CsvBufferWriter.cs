@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 
 namespace FlameCsv.IO.Internal;
 
+#pragma warning disable RCS1229 // Use async/await when necessary
+
 internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     where T : unmanaged
 {
@@ -20,7 +22,7 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         get => _buffer.Length - _unflushed;
     }
 
-    public bool NeedsFlush
+    public bool NeedsDrain
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _unflushed >= _flushThreshold;
@@ -42,31 +44,26 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Span<T> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Memory<T> GetMemory(int sizeHint = 0)
     {
-        ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
-
-        Memory<T> memory = _buffer.Slice(_unflushed);
-
-        if (memory.Length < sizeHint || memory.Length == 0)
+        if (sizeHint <= 0)
         {
-            return ResizeBuffer(sizeHint);
+            ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
+            sizeHint = 1;
         }
 
+        if (_buffer.Length - _unflushed < sizeHint)
+        {
+            _buffer = BufferPool.EnsureCapacity(
+                ref _memoryOwner,
+                minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
+                copyOnResize: true
+            );
+        }
+
+        Memory<T> memory = _buffer.Slice(_unflushed);
         Check.GreaterThanOrEqual(memory.Length, sizeHint);
         return memory;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private Memory<T> ResizeBuffer(int sizeHint)
-    {
-        _buffer = BufferPool.EnsureCapacity(
-            ref _memoryOwner,
-            minimumLength: _unflushed + Math.Max(sizeHint, _bufferSize),
-            copyOnResize: true
-        );
-        return _buffer.Slice(_unflushed);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -76,7 +73,17 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
         _unflushed += length;
     }
 
-    public ValueTask FlushAsync(CancellationToken cancellationToken = default)
+    public void Drain()
+    {
+        if (_unflushed <= 0)
+            return;
+
+        ReadOnlyMemory<T> memory = _buffer.Slice(0, _unflushed);
+        _unflushed = 0;
+        DrainCore(memory);
+    }
+
+    public ValueTask DrainAsync(CancellationToken cancellationToken = default)
     {
         if (_unflushed <= 0)
             return default;
@@ -86,29 +93,52 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
 
         ReadOnlyMemory<T> memory = _buffer.Slice(0, _unflushed);
         _unflushed = 0;
-        return FlushAsyncCore(memory, cancellationToken);
-    }
-
-    public void Flush()
-    {
-        if (_unflushed <= 0)
-            return;
-
-        ReadOnlyMemory<T> memory = _buffer.Slice(0, _unflushed);
-        _unflushed = 0;
-        FlushCore(memory);
+        return DrainAsyncCore(memory, cancellationToken);
     }
 
     /// <summary>
-    /// Flushes the buffer to the underlying stream.
+    /// Drains the buffer to the underlying stream.
     /// </summary>
-    /// <returns>
-    /// Number of characters flushed from the buffer.
-    /// </returns>
-    protected abstract void FlushCore(ReadOnlyMemory<T> memory);
+    protected abstract void DrainCore(ReadOnlyMemory<T> memory);
+
+    /// <summary>
+    /// Flushes the underlying stream.
+    /// </summary>
+    protected abstract void FlushCore();
+
+    /// <inheritdoc cref="DrainCore"/>
+    protected virtual ValueTask DrainAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled(cancellationToken);
+
+        try
+        {
+            DrainCore(memory);
+            return default;
+        }
+        catch (Exception ex)
+        {
+            return ValueTask.FromException(ex);
+        }
+    }
 
     /// <inheritdoc cref="FlushCore"/>
-    protected abstract ValueTask FlushAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken);
+    protected virtual ValueTask FlushAsyncCore(CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+            return ValueTask.FromCanceled(cancellationToken);
+
+        try
+        {
+            FlushCore();
+            return default;
+        }
+        catch (Exception ex)
+        {
+            return ValueTask.FromException(ex);
+        }
+    }
 
     public async ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
@@ -117,9 +147,10 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
 
         try
         {
-            if (exception is null && !cancellationToken.IsCancellationRequested)
+            if (exception is null && !cancellationToken.IsCancellationRequested && _unflushed > 0)
             {
-                await FlushAsync(cancellationToken).ConfigureAwait(false);
+                await DrainAsyncCore(_buffer.Slice(0, _unflushed), cancellationToken).ConfigureAwait(false);
+                await FlushAsyncCore(cancellationToken).ConfigureAwait(false);
             }
         }
         finally
@@ -139,9 +170,10 @@ internal abstract class CsvBufferWriter<T> : ICsvBufferWriter<T>
 
         try
         {
-            if (exception is null)
+            if (exception is null && _unflushed > 0)
             {
-                Flush();
+                DrainCore(_buffer.Slice(0, _unflushed));
+                FlushCore();
             }
         }
         finally

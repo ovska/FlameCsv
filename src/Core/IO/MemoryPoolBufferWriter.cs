@@ -1,4 +1,3 @@
-using FlameCsv.Extensions;
 using FlameCsv.IO.Internal;
 
 namespace FlameCsv.IO;
@@ -6,12 +5,12 @@ namespace FlameCsv.IO;
 internal sealed class MemoryPoolBufferWriter<T> : CsvBufferWriter<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Action<ReadOnlySpan<T>>? _onFlush;
-    private readonly Func<ReadOnlyMemory<T>, CancellationToken, ValueTask>? _onFlushAsync;
+    private readonly Action<ReadOnlySpan<T>, bool>? _onFlush;
+    private readonly Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? _onFlushAsync;
 
     public MemoryPoolBufferWriter(
-        Action<ReadOnlySpan<T>>? onFlush,
-        Func<ReadOnlyMemory<T>, CancellationToken, ValueTask>? onFlushAsync,
+        Action<ReadOnlySpan<T>, bool>? onFlush,
+        Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? onFlushAsync,
         in CsvIOOptions ioOptions
     )
         : base(in ioOptions)
@@ -27,23 +26,25 @@ internal sealed class MemoryPoolBufferWriter<T> : CsvBufferWriter<T>
         return default;
     }
 
-    protected override ValueTask FlushAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken)
+    protected override ValueTask DrainAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken)
     {
-        if (_onFlushAsync is null)
-        {
-            Throw.NotSupported("Async flush delegate was not provided in constructor");
-        }
-
-        return _onFlushAsync(memory, cancellationToken);
+        Check.NotNull(_onFlushAsync);
+        return _onFlushAsync(memory, false, cancellationToken);
     }
 
-    protected override void FlushCore(ReadOnlyMemory<T> memory)
+    protected override void DrainCore(ReadOnlyMemory<T> memory)
     {
-        if (_onFlush is null)
-        {
-            Throw.NotSupported("Flush delegate was not provided in constructor");
-        }
+        Check.NotNull(_onFlush);
+        _onFlush(memory.Span, false);
+    }
 
-        _onFlush(memory.Span);
+    protected override void FlushCore()
+    {
+        _onFlush!([], true);
+    }
+
+    protected override ValueTask FlushAsyncCore(CancellationToken cancellationToken)
+    {
+        return _onFlushAsync!(ReadOnlyMemory<T>.Empty, true, CancellationToken.None);
     }
 }

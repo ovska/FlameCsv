@@ -128,7 +128,7 @@ public static class CsvBufferReader
     /// <returns></returns>
     /// <remarks>
     /// If the stream is a <see cref="MemoryStream"/>, the buffer is accessed directly for zero-copy reads if possible;
-    /// see <see cref="CsvIOOptions.NoDirectBufferAccess"/>.
+    /// see <see cref="CsvIOOptions.DisableOptimizations"/>.
     /// </remarks>
     public static ICsvBufferReader<byte> Create(Stream stream, in CsvIOOptions options = default)
     {
@@ -136,7 +136,7 @@ public static class CsvBufferReader
         Throw.IfNotReadable(stream);
 
         if (
-            !options.NoDirectBufferAccess
+            !options.DisableOptimizations
             && stream is MemoryStream memoryStream
             && memoryStream.TryGetBuffer(out ArraySegment<byte> buffer)
         )
@@ -160,14 +160,14 @@ public static class CsvBufferReader
     /// <returns></returns>
     /// <remarks>
     /// If the stream is a <see cref="StringReader"/>, the internal string is accessed directly for zero-copy reads;
-    /// see <see cref="CsvIOOptions.NoDirectBufferAccess"/>.
+    /// see <see cref="CsvIOOptions.DisableOptimizations"/>.
     /// </remarks>
     public static ICsvBufferReader<char> Create(TextReader reader, in CsvIOOptions options = default)
     {
         ArgumentNullException.ThrowIfNull(reader);
 
         // zero-copy reads if the reader is a StringReader and hasn't been fully read yet
-        if (!options.NoDirectBufferAccess && reader.GetType() == typeof(StringReader))
+        if (!options.DisableOptimizations && reader.GetType() == typeof(StringReader))
         {
             var stringReader = (StringReader)reader;
             string? content = GetString(stringReader);
