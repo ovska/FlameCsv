@@ -81,7 +81,7 @@ static partial class Csv
         public CsvWriter<T> ToWriter(CsvOptions<T>? options = null)
         {
             return new CsvWriter<T>(
-                new CsvFieldWriter<T>(CreateWriter(isAsync: false), options ?? CsvOptions<T>.Default)
+                new CsvFieldWriter<T>(CreateWriter(isAsync: true), options ?? CsvOptions<T>.Default)
             );
         }
 
@@ -96,7 +96,7 @@ static partial class Csv
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public CsvFieldWriter<T> ToFieldWriter(CsvOptions<T>? options = null)
         {
-            return new CsvFieldWriter<T>(CreateWriter(isAsync: false), options ?? CsvOptions<T>.Default);
+            return new CsvFieldWriter<T>(CreateWriter(isAsync: true), options ?? CsvOptions<T>.Default);
         }
     }
 
@@ -390,7 +390,7 @@ static partial class Csv
 
         public IWriteBuilder<byte> WithIOOptions(in CsvIOOptions ioOptions)
         {
-            return new WritePipeBuilder(_pipeWriter, ioOptions.BufferPool);
+            return new WritePipeBuilder(_pipeWriter, ioOptions.EffectiveBufferPool);
         }
 
         public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> drainAction)

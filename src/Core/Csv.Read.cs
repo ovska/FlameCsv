@@ -61,7 +61,7 @@ static partial class Csv
         /// </returns>
         public CsvReader<T> ToReader(CsvOptions<T>? options = null)
         {
-            return new CsvReader<T>(options ?? CsvOptions<T>.Default, CreateReader(isAsync: false), IOOptions);
+            return new CsvReader<T>(options ?? CsvOptions<T>.Default, CreateReader(isAsync: true), IOOptions);
         }
     }
 
