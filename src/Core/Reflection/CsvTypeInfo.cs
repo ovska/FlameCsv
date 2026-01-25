@@ -27,10 +27,10 @@ internal class CsvTypeInfo
             static state =>
             {
                 var @this = (CsvTypeInfo)state;
-                Interlocked.Exchange(ref @this._customAttributes, null);
-                Interlocked.Exchange(ref @this._members, null);
-                Interlocked.Exchange(ref @this._ctorParams, null);
-                Interlocked.Exchange(ref @this._proxyOrSelf, null);
+                @this._customAttributes = null;
+                @this._members = null;
+                @this._ctorParams = null;
+                @this._proxyOrSelf = null;
             }
         );
     }

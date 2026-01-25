@@ -22,10 +22,7 @@ internal static class AssemblyAttributes
             if (ReferenceEquals(local, newInstance))
             {
                 // hot reload service needs a key for the weakref table, so pass the instance
-                HotReloadService.RegisterForHotReload(
-                    newInstance,
-                    static _ => Interlocked.Exchange(ref _attributes, null)
-                );
+                HotReloadService.RegisterForHotReload(newInstance, static _ => _attributes = null);
             }
         }
 
@@ -44,10 +41,9 @@ internal static class AssemblyAttributes
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
         {
             foreach (
-                CsvConfigurationAttribute attribute in assembly.GetCustomAttributes(
-                    typeof(CsvConfigurationAttribute),
-                    inherit: false
-                )
+                var attribute in assembly
+                    .GetCustomAttributes(typeof(CsvConfigurationAttribute), inherit: false)
+                    .Cast<CsvConfigurationAttribute>()
             )
             {
                 ref List<CsvConfigurationAttribute>? list = ref CollectionsMarshal.GetValueRefOrAddDefault(

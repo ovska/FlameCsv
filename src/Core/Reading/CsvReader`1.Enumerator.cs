@@ -10,6 +10,13 @@ namespace FlameCsv.Reading;
 
 partial class CsvReader<T>
 {
+    /// <inheritdoc cref="CsvReader{T}.ParseRecords"/>
+    public Enumerator GetEnumerator() => new(this);
+
+    /// <inheritdoc cref="CsvReader{T}.ParseRecordsAsync"/>
+    public AsyncEnumerator GetAsyncEnumerator(CancellationToken cancellationToken = default) =>
+        new(this, cancellationToken);
+
     /// <summary>
     /// Returns an enumerator that iterates through the CSV data.
     /// </summary>

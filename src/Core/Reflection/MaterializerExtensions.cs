@@ -66,7 +66,6 @@ internal static class MaterializerExtensions
             }
 
             factory = Interlocked.CompareExchange(ref ForType<T, TResult>.Cached, factory, null) ?? factory;
-
             HotReloadService.RegisterForHotReload(factory, static _ => ForType<T, TResult>.Cached = null);
         }
 

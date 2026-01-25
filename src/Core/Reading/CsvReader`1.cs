@@ -9,10 +9,12 @@ using JetBrains.Annotations;
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Reads CSV records from a <see cref="ReadOnlySequence{T}"/>.
+/// Reads CSV records.
 /// </summary>
 /// <remarks>
-/// Internal implementation detail, this type should probably not be used directly.
+/// This class is used internally by the library and doesn't expose high-level CSV reading functionality.
+/// Use <see cref="ParseRecords"/> and <see cref="ParseRecordsAsync(CancellationToken)"/> to enumerate
+/// the CSV records from ther reader.
 /// </remarks>
 [MustDisposeResource]
 [PublicAPI]

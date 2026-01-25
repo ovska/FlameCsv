@@ -63,14 +63,13 @@ internal sealed class Chunk<T> : RecordOwner<T>, IDisposable, IEnumerable<CsvRec
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, true))
-        {
-            return;
-        }
-
 #if DEBUG || FULL_TEST_SUITE
         GC.SuppressFinalize(this);
 #endif
+        if (_disposed)
+            return;
+
+        _disposed = true;
 
         _recordBuffer.Dispose();
         _owner.Dispose();

@@ -5,6 +5,7 @@ using FlameCsv.Enumeration;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
+using FlameCsv.Reading;
 
 namespace FlameCsv;
 
@@ -48,6 +49,19 @@ static partial class Csv
         public IParallelReadBuilder<T> AsParallel(CsvParallelOptions parallelOptions = default)
         {
             return new ReadParallelBuilder<T, TSelf>((TSelf)this, parallelOptions);
+        }
+
+        /// <summary>
+        /// Returns a reader instance that can be used to enumerate the raw CSV data.
+        /// The reader can be used directly in a <c>foreach</c> or <c>await foreach</c> loop.
+        /// </summary>
+        /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <returns>
+        /// A reader instance that reads CSV records from the data source.
+        /// </returns>
+        public CsvReader<T> ToReader(CsvOptions<T>? options = null)
+        {
+            return new CsvReader<T>(options ?? CsvOptions<T>.Default, CreateReader(isAsync: false), IOOptions);
         }
     }
 
