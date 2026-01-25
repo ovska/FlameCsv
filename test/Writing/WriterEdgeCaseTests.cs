@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using FlameCsv.IO.Internal;
 using FlameCsv.Tests.TestData;
 using FlameCsv.Writing;
 
@@ -12,7 +13,7 @@ public static class WriterEdgeCaseTests
     {
         var ms = new MemoryStream();
 
-        using (var writer = CsvFieldWriter.Create(ms, CsvOptions<byte>.Default))
+        using (var writer = new CsvFieldWriter<byte>(new StreamBufferWriter(ms, default), CsvOptions<byte>.Default))
         {
             writer.WriteText("test\"");
             writer.WriteDelimiter();
@@ -22,7 +23,12 @@ public static class WriterEdgeCaseTests
             writer.Writer.Drain();
         }
 
-        Assert.Equal("\"test\"\"\",\"\"\"test\"\"\",\"\"\"test\"", Encoding.UTF8.GetString(ms.ToArray()));
+        Assert.Equal(
+            """"
+            "test""","""test""","""test"
+            """",
+            Encoding.UTF8.GetString(ms.ToArray())
+        );
     }
 
     [Fact]

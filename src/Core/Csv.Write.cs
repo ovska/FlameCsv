@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.ComponentModel;
 using System.IO.Pipelines;
 using System.Text;
 using FlameCsv.Binding;
@@ -82,6 +83,20 @@ static partial class Csv
             return new CsvWriter<T>(
                 new CsvFieldWriter<T>(CreateWriter(isAsync: false), options ?? CsvOptions<T>.Default)
             );
+        }
+
+        /// <summary>
+        /// Returns a writer instance that can be used to write custom fields, multiple different types,
+        /// or multiple CSV documents into the same output.<br/>
+        /// After use, the writer should be disposed, or completed with <see cref="CsvWriter{T}.Complete"/> or
+        /// <see cref="CsvWriter{T}.CompleteAsync"/>.
+        /// </summary>
+        /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
+        /// <returns>Writer instance</returns>
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
+        public CsvFieldWriter<T> ToFieldWriter(CsvOptions<T>? options = null)
+        {
+            return new CsvFieldWriter<T>(CreateWriter(isAsync: false), options ?? CsvOptions<T>.Default);
         }
     }
 

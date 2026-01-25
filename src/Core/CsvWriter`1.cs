@@ -21,11 +21,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <summary>
     /// Options instance of this writer.
     /// </summary>
-    public CsvOptions<T> Options => FieldWriter.Options;
+    public CsvOptions<T> Options => _inner.Options;
 
     /// <summary>
-    /// Whether to automatically check if the writer needs to be flushed after each record.<br/>
-    /// The default value is <c>true</c>.
+    /// Whether to automatically check if the writer needs to be drained to the inner destination after each record.<br/>
+    /// The default value is <c>true</c>.<br/>
+    /// If you want async I/O, use <see cref="NextRecordAsync"/> instead.
     /// </summary>
     /// <seealso cref="ICsvBufferWriter{T}.NeedsDrain"/>
     public bool AutoFlush { get; set; }
@@ -55,12 +56,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     private readonly IDictionary<object, object> _dematerializerCache;
 
     /// <summary>
-    /// Previous cache key and value used to avoid re-reading the cache.
+    /// Previous dematerializer cache key and value used to avoid re-reading the cache.
     /// </summary>
     private object? _previousKey;
 
     /// <summary>
-    /// Previous cache value used to avoid re-reading the cache.
+    /// Previous dematerializer cache value used to avoid re-reading the cache.
     /// </summary>
     private object? _previousValue;
 
@@ -73,7 +74,8 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// 1-based index of the current line/record. Incremented after each newline.
     /// </summary>
     /// <remarks>
-    /// Newlines in quoted fields/strings are not counted, this property represents the logical CSV record index.
+    /// Newlines in quoted fields/strings are not counted, this property represents the logical CSV record index,
+    /// i.e. how many times <see cref="NextRecord"/> or <see cref="NextRecordAsync(CancellationToken)"/> has been called plus one.
     /// </remarks>
     public int LineIndex { get; private set; }
 
@@ -83,9 +85,18 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public bool IsCompleted { get; private set; }
 
     /// <summary>
-    /// Returns the underlying field writer.
+    /// The underlying writer instance.
     /// </summary>
-    public CsvFieldWriter<T> FieldWriter { get; }
+    public CsvFieldWriter<T> Writer
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(IsCompleted, this);
+            return _inner;
+        }
+    }
+
+    private readonly CsvFieldWriter<T> _inner;
 
     /// <summary>
     /// Initializes a new writer instance.
@@ -96,7 +107,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         if (inner.Writer is null)
             Throw.Argument_DefaultStruct(typeof(CsvFieldWriter<T>), nameof(inner));
 
-        FieldWriter = inner;
+        _inner = inner;
         LineIndex = 1;
 
         AutoFlush = true;
@@ -136,7 +147,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public void WriteField<TField>(TField? value)
     {
         WriteDelimiterIfNeeded();
-        FieldWriter.WriteField(Options.GetConverter<TField?>(), value);
+        _inner.WriteField(Options.GetConverter<TField?>(), value);
         FieldIndex++;
     }
 
@@ -150,7 +161,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(converter);
         WriteDelimiterIfNeeded();
-        FieldWriter.WriteField(converter, value);
+        _inner.WriteField(converter, value);
         FieldIndex++;
     }
 
@@ -163,7 +174,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public void WriteField(ReadOnlySpan<T> value, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
-        FieldWriter.WriteRaw(value, skipEscaping);
+        _inner.WriteRaw(value, skipEscaping);
         FieldIndex++;
     }
 
@@ -172,7 +183,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public void WriteField(ReadOnlySpan<char> chars, bool skipEscaping = false)
     {
         WriteDelimiterIfNeeded();
-        FieldWriter.WriteText(chars, skipEscaping);
+        _inner.WriteText(chars, skipEscaping);
         FieldIndex++;
     }
 
@@ -190,7 +201,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         foreach (var value in values)
         {
             WriteDelimiterIfNeeded();
-            FieldWriter.WriteText(value, skipEscaping);
+            _inner.WriteText(value, skipEscaping);
             FieldIndex++;
         }
     }
@@ -203,12 +214,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
 
-        FieldWriter.WriteNewline();
+        _inner.WriteNewline();
         FieldIndex = 0;
         LineIndex++;
 
-        if (AutoFlush && FieldWriter.Writer.NeedsDrain)
-            FieldWriter.Writer.Drain();
+        if (AutoFlush && _inner.Writer.NeedsDrain)
+            _inner.Writer.Drain();
     }
 
     /// <summary>
@@ -224,12 +235,12 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         if (cancellationToken.IsCancellationRequested)
             return ValueTask.FromCanceled(cancellationToken);
 
-        FieldWriter.WriteNewline();
+        _inner.WriteNewline();
         FieldIndex = 0;
         LineIndex++;
 
-        if (AutoFlush && FieldWriter.Writer.NeedsDrain)
-            return FieldWriter.Writer.DrainAsync(cancellationToken);
+        if (AutoFlush && _inner.Writer.NeedsDrain)
+            return _inner.Writer.DrainAsync(cancellationToken);
 
         return ValueTask.CompletedTask;
     }
@@ -250,7 +261,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         WriteDelimiterIfNeeded();
 
         var dematerializer = GetDematerializerAndIncrementFieldCount<TRecord>();
-        dematerializer.Write(FieldWriter, value);
+        dematerializer.Write(_inner, value);
 
         return dematerializer.FieldCount;
     }
@@ -273,7 +284,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         WriteDelimiterIfNeeded();
 
         var dematerializer = GetDematerializerAndIncrementFieldCount(typeMap);
-        dematerializer.Write(FieldWriter, value);
+        dematerializer.Write(_inner, value);
 
         return dematerializer.FieldCount;
     }
@@ -294,7 +305,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         if (Options.DialectEqualsForWriting(record.Options))
         {
             WriteDelimiterIfNeeded();
-            FieldWriter.WriteRaw(record.Raw, skipEscaping: true);
+            _inner.WriteRaw(record.Raw, skipEscaping: true);
             FieldIndex += record.FieldCount;
         }
         else
@@ -302,7 +313,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             foreach (var field in record)
             {
                 WriteDelimiterIfNeeded();
-                FieldWriter.WriteRaw(field);
+                _inner.WriteRaw(field);
                 FieldIndex++;
             }
         }
@@ -338,11 +349,11 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
 
             if (writeRaw)
             {
-                FieldWriter.WriteRaw(recordRef.GetRawSpan(index), skipEscaping: true);
+                _inner.WriteRaw(recordRef.GetRawSpan(index), skipEscaping: true);
             }
             else
             {
-                FieldWriter.WriteRaw(recordRef[index], skipEscaping: false);
+                _inner.WriteRaw(recordRef[index], skipEscaping: false);
             }
 
             FieldIndex++;
@@ -389,7 +400,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         foreach (var value in values)
         {
             WriteDelimiterIfNeeded();
-            FieldWriter.WriteText(value);
+            _inner.WriteText(value);
             FieldIndex++;
         }
 
@@ -411,7 +422,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         WriteDelimiterIfNeeded();
 
         var dematerializer = GetDematerializerAndIncrementFieldCount<TRecord>();
-        dematerializer.WriteHeader(FieldWriter);
+        dematerializer.WriteHeader(_inner);
 
         HeaderWritten = true;
         return dematerializer.FieldCount;
@@ -431,7 +442,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         WriteDelimiterIfNeeded();
 
         var dematerializer = GetDematerializerAndIncrementFieldCount(typeMap);
-        dematerializer.WriteHeader(FieldWriter);
+        dematerializer.WriteHeader(_inner);
 
         HeaderWritten = true;
         return dematerializer.FieldCount;
@@ -441,19 +452,23 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Completes the writer, flushing any remaining data if <paramref name="exception"/> is null.<br/>
     /// Multiple completions are no-ops.
     /// </summary>
+    /// <remarks>
+    /// The exception is not rethrown by this method, but passed to the inner writer.
+    /// </remarks>
     /// <param name="exception">
     /// Observed exception when writing the data.
     /// If not null, the final buffer is not flushed and the exception is rethrown.
     /// </param>
     public void Complete(Exception? exception = null)
     {
-        if (!IsCompleted)
-        {
-            IsCompleted = true;
-            HotReloadService.UnregisterForHotReload(this);
-            WriteTrailingNewlineIfNeeded(exception);
-            FieldWriter.Writer.Complete(exception);
-        }
+        if (IsCompleted)
+            return;
+
+        IsCompleted = true;
+        HotReloadService.UnregisterForHotReload(this);
+        WriteTrailingNewlineIfNeeded(exception);
+        _inner.Writer.Complete(exception);
+        _inner.Dispose();
     }
 
     /// <summary>
@@ -461,8 +476,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// Multiple completions are no-ops.
     /// </summary>
     /// <remarks>
-    /// Unlike completion of <see cref="ICsvBufferWriter{T}"/> and <see cref="System.IO.Pipelines.PipeWriter"/>,
-    /// this method rethrows <paramref name="exception"/> if it is not null.
+    /// The exception or possible cancellation exception are not rethrown by this method, but passed to the inner writer.
     /// </remarks>
     /// <param name="exception">
     /// Observed exception when writing the data, passed to the inner <see cref="ICsvBufferWriter{T}"/>.
@@ -471,23 +485,14 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// <param name="cancellationToken">Token to cancel the operation</param>
     public async ValueTask CompleteAsync(Exception? exception = null, CancellationToken cancellationToken = default)
     {
-        if (!IsCompleted)
-        {
-            IsCompleted = true;
-            HotReloadService.UnregisterForHotReload(this);
+        if (IsCompleted)
+            return;
 
-            exception ??= cancellationToken.GetExceptionIfCanceled();
-            WriteTrailingNewlineIfNeeded(exception);
-
-            try
-            {
-                await FieldWriter.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                exception?.Rethrow();
-            }
-        }
+        IsCompleted = true;
+        HotReloadService.UnregisterForHotReload(this);
+        WriteTrailingNewlineIfNeeded(exception ??= cancellationToken.GetExceptionIfCanceled());
+        await _inner.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
+        _inner.Dispose();
     }
 
     private void WriteTrailingNewlineIfNeeded(Exception? exception)
@@ -499,7 +504,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         )
         {
             // don't call NextRecord as it can trigger an unnecessary auto-flush
-            FieldWriter.WriteNewline();
+            _inner.WriteNewline();
             FieldIndex = 0;
             LineIndex++;
         }
@@ -514,7 +519,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public void Flush()
     {
         ObjectDisposedException.ThrowIf(IsCompleted, this);
-        FieldWriter.Writer.Drain();
+        _inner.Writer.Drain();
     }
 
     /// <summary>
@@ -526,7 +531,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     /// </exception>
     public ValueTask FlushAsync(CancellationToken cancellationToken = default)
     {
-        return IsCompleted ? Throw.ObjectDisposedAsync(this) : FieldWriter.Writer.DrainAsync(cancellationToken);
+        return IsCompleted ? Throw.ObjectDisposedAsync(this) : _inner.Writer.DrainAsync(cancellationToken);
     }
 
     /// <summary>
@@ -611,7 +616,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     private void WriteDelimiterIfNeeded()
     {
         if (FieldIndex > 0)
-            FieldWriter.WriteDelimiter();
+            _inner.WriteDelimiter();
     }
 
     /// <inheritdoc/>

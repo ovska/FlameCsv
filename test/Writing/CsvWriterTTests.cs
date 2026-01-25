@@ -499,13 +499,33 @@ public partial class CsvWriterTTests
     }
 
     [Fact]
-    public static async Task Should_Throw_On_Canceled()
+    public static async Task Should_Not_Flush_On_Canceled_Or_Errored()
     {
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+        await using var tw = new StringWriter();
+
+        await using (var writer = Csv.To(tw).ToWriter())
         {
-            var writer = GetWriter<char>(out _, null);
-            await writer.CompleteAsync(exception: null, new CancellationToken(true));
-        });
+            writer.WriteField("test");
+            writer.Complete(new Exception());
+        }
+
+        Assert.Equal(string.Empty, tw.ToString());
+
+        await using (var writer = Csv.To(tw).ToWriter())
+        {
+            writer.WriteField("test");
+            await writer.CompleteAsync(new Exception(), CancellationToken.None);
+        }
+
+        Assert.Equal(string.Empty, tw.ToString());
+
+        await using (var writer = Csv.To(tw).ToWriter())
+        {
+            writer.WriteField("test");
+            await writer.CompleteAsync(null, new CancellationToken(true));
+        }
+
+        Assert.Equal(string.Empty, tw.ToString());
     }
 
     [Fact]
