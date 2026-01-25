@@ -2,10 +2,10 @@ using System.Buffers;
 
 namespace FlameCsv.IO.Internal;
 
-internal sealed class BufferWriterWrapper<T>(IBufferWriter<T> writer, IBufferPool? pool) : ICsvBufferWriter<T>
+internal sealed class BufferWriterWrapper<T>(IBufferWriter<T> writer, IBufferPool pool) : ICsvBufferWriter<T>
     where T : unmanaged
 {
-    public IBufferPool BufferPool => pool ?? DefaultBufferPool.Instance;
+    public IBufferPool BufferPool => pool;
 
     public bool NeedsDrain => false;
 

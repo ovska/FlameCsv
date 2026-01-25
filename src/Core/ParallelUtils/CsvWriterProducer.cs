@@ -79,7 +79,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public CsvFieldWriter<T> CreateState()
     {
-        return new CsvFieldWriter<T>(new MemoryPoolBufferWriter<T>(_sink, _asyncSink, in _ioOptions), _options);
+        return new CsvFieldWriter<T>(new DelegateBufferWriter<T>(_sink, _asyncSink, in _ioOptions), _options);
     }
 }
 

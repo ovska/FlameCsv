@@ -27,7 +27,7 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T>
 
     /// <summary>
     /// Drains the writer, ensuring that the buffered data is written to the underlying target.
-    /// <br/>May be a no-op if the writer does not buffer data.
+    /// <br/>May be a no-op, for example when writing to a <see cref="System.Text.StringBuilder"/> or an inner <see cref="IBufferWriter{T}"/>.
     /// </summary>
     void Drain();
 
@@ -39,7 +39,7 @@ public interface ICsvBufferWriter<T> : IBufferWriter<T>
 
     /// <summary>
     /// Asynchronously drains the writer, ensuring that the buffered data is written to the underlying target.
-    /// <br/>May be a no-op if the writer does not buffer data.
+    /// <br/>May be a no-op, for example when writing to a <see cref="System.Text.StringBuilder"/> or an inner <see cref="IBufferWriter{T}"/>.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token to cancel the flush operation</param>
     /// <returns>A task representing the flush operation</returns>

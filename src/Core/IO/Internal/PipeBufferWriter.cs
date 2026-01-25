@@ -58,6 +58,8 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
         _unflushed = 0;
     }
 
+    public void Drain() => throw new NotSupportedException("Synchronous flushing is not supported by PipeWriter.");
+
     public async ValueTask CompleteAsync(Exception? exception, CancellationToken cancellationToken = default)
     {
         try
@@ -74,6 +76,4 @@ internal sealed class PipeBufferWriter : ICsvBufferWriter<byte>
     }
 
     public void Complete(Exception? exception) => _pipeWriter.Complete(exception);
-
-    public void Drain() => throw new NotSupportedException("Synchronous flushing is not supported by PipeWriter.");
 }

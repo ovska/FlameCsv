@@ -2,13 +2,13 @@ using FlameCsv.IO.Internal;
 
 namespace FlameCsv.IO;
 
-internal sealed class MemoryPoolBufferWriter<T> : CsvBufferWriter<T>
+internal sealed class DelegateBufferWriter<T> : CsvBufferWriter<T>
     where T : unmanaged, IBinaryInteger<T>
 {
     private readonly Action<ReadOnlySpan<T>, bool>? _onFlush;
     private readonly Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? _onFlushAsync;
 
-    public MemoryPoolBufferWriter(
+    public DelegateBufferWriter(
         Action<ReadOnlySpan<T>, bool>? onFlush,
         Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? onFlushAsync,
         in CsvIOOptions ioOptions
