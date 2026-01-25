@@ -117,7 +117,7 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
             if (array.ContainsAnyExcept(T.CreateTruncating(0xBEBEBEBE)))
             {
                 throw new InvalidOperationException(
-                    $"Use after free detected on array with length {array.Length}: {array.AsSpan().AsPrintableString()}"
+                    $"Use after free detected on array with length {array.Length}: {FlameCsv.Extensions.UtilityExtensions.AsPrintableString(array)}"
                 );
             }
         }
