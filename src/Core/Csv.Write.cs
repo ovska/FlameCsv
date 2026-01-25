@@ -5,6 +5,7 @@ using FlameCsv.Binding;
 using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
+using FlameCsv.Writing;
 
 namespace FlameCsv;
 
@@ -66,6 +67,21 @@ static partial class Csv
         public IParallelWriteBuilder<T> AsParallel(CsvParallelOptions parallelOptions = default)
         {
             return new ParallelWriteWrapper<T, TSelf>(this, parallelOptions);
+        }
+
+        /// <summary>
+        /// Returns a writer instance that can be used to write custom fields, multiple different types,
+        /// or multiple CSV documents into the same output.<br/>
+        /// After use, the writer should be disposed, or completed with <see cref="CsvWriter{T}.Complete"/> or
+        /// <see cref="CsvWriter{T}.CompleteAsync"/>.
+        /// </summary>
+        /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
+        /// <returns>Writer instance</returns>
+        public CsvWriter<T> ToWriter(CsvOptions<T>? options = null)
+        {
+            return new CsvWriter<T>(
+                new CsvFieldWriter<T>(CreateWriter(isAsync: false), options ?? CsvOptions<T>.Default)
+            );
         }
     }
 

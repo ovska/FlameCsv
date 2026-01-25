@@ -148,7 +148,7 @@ public partial class CsvWriterTTests
             })
         );
 
-        using (var w = CsvWriter.Create(Stream.Null))
+        using (var w = Csv.To(Stream.Null).ToWriter())
         {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await w.NextRecordAsync(new CancellationToken(true))
@@ -512,7 +512,7 @@ public partial class CsvWriterTTests
     public static async Task Should_Flush()
     {
         await using var tw = new StringWriter();
-        await using var writer = CsvWriter.Create(tw);
+        await using var writer = Csv.To(tw).ToWriter();
 
         writer.WriteField("test");
         writer.NextRecord();
@@ -607,14 +607,14 @@ public partial class CsvWriterTTests
         {
             var stringWriter = new StringWriter();
             getString = () => stringWriter.ToString();
-            return (CsvWriter<T>)(object)CsvWriter.Create(stringWriter, (CsvOptions<char>?)(object?)options);
+            return (CsvWriter<T>)(object)Csv.To(stringWriter).ToWriter((CsvOptions<char>?)(object?)options);
         }
 
         if (typeof(T) == typeof(byte))
         {
             var stream = new MemoryStream();
             getString = () => Encoding.UTF8.GetString(stream.ToArray());
-            return (CsvWriter<T>)(object)CsvWriter.Create(stream, (CsvOptions<byte>?)(object?)options);
+            return (CsvWriter<T>)(object)Csv.To(stream).ToWriter((CsvOptions<byte>?)(object?)options);
         }
 
         throw Token<T>.NotSupported;

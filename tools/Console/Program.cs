@@ -4,12 +4,12 @@
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Text;
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Converters.Formattable;
-using FlameCsv.Reading;
 using FlameCsv.Reading.Internal;
-using FlameCsv.Tests.TestData;
+using JetBrains.Profiler.Api;
 
 #pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
 
@@ -22,7 +22,24 @@ namespace FlameCsv.Console
 
         static void Main([NotNull] string[] args)
         {
-            var x = TestDataGenerator.Generate<char>(CsvNewline.CRLF, false, Escaping.QuoteNull);
+            byte[] data = Encoding.UTF8.GetBytes(
+                File.ReadAllText("/Users/sipi/Code/FlameCsv/tools/Bench/Comparisons/Data/SampleCSVFile_556kb.csv")
+                    .ReplaceLineEndings("\n")
+            );
+
+            for (int i = 0; i < 1_000; i++)
+            {
+                using var ms = new MemoryStream(data, 0, data.Length, writable: false, publiclyVisible: false);
+
+                foreach (var _ in Csv.From(ms).WithUtf8Encoding().Read<Entry>(_optionsC)) { }
+
+                if (i == 500)
+                {
+                    MeasureProfiler.StartCollectingData();
+                }
+            }
+
+            MeasureProfiler.StopCollectingData();
         }
 
 #pragma warning disable IL2026

@@ -33,7 +33,7 @@ public static class WriterEdgeCaseTests
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
 
             var sw = new StringWriter();
-            using (var writer = CsvWriter.Create(sw))
+            using (var writer = Csv.To(sw).ToWriter())
             {
                 writer.WriteField(1234.56);
             }
@@ -46,7 +46,7 @@ public static class WriterEdgeCaseTests
     public static void Should_Check_Escapes_Correctly()
     {
         var sw = new StringWriter();
-        using (var writer = CsvWriter.Create(sw))
+        using (var writer = Csv.To(sw).ToWriter())
         {
             writer.WriteField("test\"\",");
         }

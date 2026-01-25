@@ -4,11 +4,8 @@ using JetBrains.Annotations;
 
 namespace FlameCsv;
 
-/// <summary>
-/// Provides static methods for writing CSV data.
-/// </summary>
 [PublicAPI]
-public static partial class CsvWriter
+internal static class CsvWriter
 {
     internal static void WriteCore<T, TValue>(
         IEnumerable<TValue> values,

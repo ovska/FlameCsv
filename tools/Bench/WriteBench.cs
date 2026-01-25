@@ -125,7 +125,7 @@ public partial class WriteBench
     // [Benchmark]
     public void WriterObj()
     {
-        using var writer = CsvWriter.Create(TextWriter.Null);
+        using var writer = Csv.To(TextWriter.Null).ToWriter();
 
         writer.WriteHeader<Obj>();
 
@@ -136,7 +136,7 @@ public partial class WriteBench
     // [Benchmark]
     public void WriterObjTM()
     {
-        using var writer = CsvWriter.Create(TextWriter.Null);
+        using var writer = Csv.To(TextWriter.Null).ToWriter();
 
         writer.WriteHeader(ObjTypeMap.Default);
 
@@ -147,7 +147,7 @@ public partial class WriteBench
     // [Benchmark]
     public async Task Async_WriterObj()
     {
-        await using var writer = CsvWriter.Create(TextWriter.Null);
+        await using var writer = Csv.To(TextWriter.Null).ToWriter();
 
         writer.WriteHeader<Obj>();
         await writer.NextRecordAsync();
@@ -162,7 +162,7 @@ public partial class WriteBench
     // [Benchmark]
     public async Task Async_WriterObjTM()
     {
-        await using var writer = CsvWriter.Create(TextWriter.Null);
+        await using var writer = Csv.To(TextWriter.Null).ToWriter();
 
         writer.WriteHeader(ObjTypeMap.Default);
         await writer.NextRecordAsync();

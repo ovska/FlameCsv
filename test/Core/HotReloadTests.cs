@@ -45,7 +45,7 @@ public static partial class HotReloadTests
         cache.Add(new object(), new object());
 
         // writer
-        using var writer = CsvWriter.Create(TextWriter.Null);
+        using var writer = Csv.To(TextWriter.Null).ToWriter();
         writer.WriteRecord(new Obj());
         (ICollection writeCache, object? writeKey, object? writeValue) = GetWriterCache(writer);
         Assert.NotEmpty(writeCache);
