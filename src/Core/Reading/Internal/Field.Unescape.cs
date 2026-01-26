@@ -165,11 +165,12 @@ internal static partial class Field
         }
 
         nint bytesWritten = Unsafe.ByteOffset(in MemoryMarshal.GetReference(destination), in dst);
+        int elementsWritten = (int)(bytesWritten / Unsafe.SizeOf<T>());
 
         // If we've advanced past the last element (paired quotes at end), we're done.
         if (Unsafe.ByteOffset(in src, in srcEnd) == 0)
         {
-            return (int)(bytesWritten / Unsafe.SizeOf<T>());
+            return elementsWritten;
         }
 
         T last = src;
@@ -181,7 +182,7 @@ internal static partial class Field
         }
 
         dst = last;
-        return (int)(bytesWritten / Unsafe.SizeOf<T>()) + 1;
+        return elementsWritten + 1;
 
         Fail:
         if (acceptInvalid)

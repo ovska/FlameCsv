@@ -215,10 +215,11 @@ public partial class CsvOptions<T>
             return true;
         }
 
-        // trimming not used by writer
-        return Quote == other.Quote
+        // trimming affects how fields are read, e.g. writing a CsvRecord<T> into CsvWriter<T>
+        return Quote.GetValueOrDefault() == other.Quote.GetValueOrDefault()
             && Delimiter == other.Delimiter
             && Newline == other.Newline
+            && Trimming == other.Trimming
             && FieldQuoting == other.FieldQuoting;
     }
 }

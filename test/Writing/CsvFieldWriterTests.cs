@@ -102,13 +102,13 @@ public sealed class CsvFieldWriterTests : IAsyncDisposable
     {
         Initialize(CsvFieldQuoting.Always, bufferSize: 128);
 
-        // 126, raw value can be written but escaped is 130 long
-        var value = $"Test \"{new string('x', 114)}\" test";
-
-        _writer.WriteField(Formatter.Instance, value);
+        Span<char> dst = _writer.Writer.GetSpan();
+        int length = dst.Length;
+        dst.Fill('"');
+        _writer.EscapeAndAdvance(dst, length);
         await _writer.Writer.CompleteAsync(null, TestContext.Current.CancellationToken);
 
-        Assert.Equal($"\"Test \"\"{new string('x', 114)}\"\" test\"", Written);
+        Assert.Equal(new string('"', 2 + length * 2), Written);
     }
 
     [Theory, InlineData(-1), InlineData(int.MaxValue)]

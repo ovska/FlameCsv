@@ -32,7 +32,7 @@ public abstract class RecordOwner<T>
     internal readonly RecordBuffer _recordBuffer;
 
     internal readonly CsvFieldTrimming Trimming;
-    private readonly byte _quoteAndLeniency; // use byte field to ensure the struct is only 2 bytes
+    private readonly byte _quoteAndLeniency;
 
     internal T Quote
     {

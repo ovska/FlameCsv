@@ -3,6 +3,9 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using FlameCsv.IO;
+#if FULL_TEST_SUITE
+using FlameCsv.Extensions;
+#endif
 
 namespace FlameCsv.Tests;
 
@@ -58,12 +61,13 @@ file sealed class ReturnTrackingGuardedMemoryPool<T>(PoisonPagePlacement placeme
 file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
     where T : unmanaged, IBinaryInteger<T>
 {
+    private static T Sentinel => T.AllBitsSet;
 #if FULL_TEST_SUITE
+    private static T UseAfterFreeSentinel => T.CreateTruncating(0xBEBEBEBE);
     private readonly ConcurrentStack<T[]> _releasedValues = [];
 #else
     private static readonly ArrayPool<T> _arrayPool = ArrayPool<T>.Create();
 #endif
-    private static T Sentinel => T.AllBitsSet;
 
     public override int MaxBufferSize => Array.MaxLength;
 
@@ -96,7 +100,7 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
             }
 
 #if FULL_TEST_SUITE
-            array.AsSpan().Fill(T.CreateTruncating(0xBEBEBEBE)); // poison the array
+            array.AsSpan().Fill(UseAfterFreeSentinel); // poison the array
             _releasedValues.Push(array);
 #else
             _arrayPool.Return(segment.Array!);
@@ -112,14 +116,26 @@ file sealed class ReturnTrackingArrayMemoryPool<T> : ReturnTrackingMemoryPool<T>
     {
         base.Dispose(disposing);
 
+        List<T[]> corruptedArrays = [];
+
         while (_releasedValues.TryPop(out var array))
         {
-            if (array.ContainsAnyExcept(T.CreateTruncating(0xBEBEBEBE)))
+            if (array.ContainsAnyExcept(UseAfterFreeSentinel))
             {
-                throw new InvalidOperationException(
-                    $"Use after free detected on array with length {array.Length}: {FlameCsv.Extensions.UtilityExtensions.AsPrintableString(array)}"
-                );
+                corruptedArrays.Add(array);
             }
+        }
+
+        if (corruptedArrays.Count > 0)
+        {
+            System.Text.StringBuilder sb = new();
+            sb.AppendLine($"{corruptedArrays.Count} returned array(s) were modified after being returned. Lengths: ");
+            sb.AppendJoin(", ", corruptedArrays.Select(a => a.Length));
+            sb.AppendLine();
+            sb.AppendLine("Values:");
+            sb.AppendJoin('\n', corruptedArrays.Select(a => a.AsPrintableString()));
+
+            throw new InvalidOperationException(sb.ToString());
         }
     }
 #endif

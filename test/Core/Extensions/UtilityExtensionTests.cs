@@ -17,6 +17,8 @@ public static class UtilityExtensionTests
         Assert.Equal("Hex: [8182838D]", ((ReadOnlySpan<byte>)([129, 130, 131, 141])).AsPrintableString());
         Assert.Equal("<empty>", Span<char>.Empty.AsPrintableString());
         Assert.Equal("<empty>", Span<byte>.Empty.AsPrintableString());
+        Assert.Equal("Hello, world!", "Hello, world!".AsSpan().AsPrintableString());
+        Assert.Equal("Hello, world!", "Hello, world!"u8.AsPrintableString());
     }
 
     [Fact]

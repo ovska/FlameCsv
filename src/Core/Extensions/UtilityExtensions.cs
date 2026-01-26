@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Unicode;
 using FlameCsv.Utilities;
 
@@ -16,7 +17,7 @@ internal static class UtilityExtensions
     {
         // hoisting the check to a local allows JIT to "see" the constant and eliminate one jump instruction
         bool isWindows = Environment.NewLine == "\r\n";
-        return newline is CsvNewline.CRLF || (newline is CsvNewline.Platform && isWindows);
+        return newline is CsvNewline.CRLF || (isWindows && newline is CsvNewline.Platform);
     }
 
     public static void Rethrow(this Exception ex)
@@ -50,19 +51,22 @@ internal static class UtilityExtensions
             return $"Hex: [{Convert.ToHexString(MemoryMarshal.AsBytes(value))}]";
         }
 
-        ValueStringBuilder vsb = new(value.Length);
+        ValueStringBuilder vsb = RuntimeHelpers.TryEnsureSufficientExecutionStack()
+            ? new(stackalloc char[256])
+            : new(value.Length);
 
         foreach (T item in value)
         {
-            AppendSingle(ref vsb, (char)ushort.CreateTruncating(item));
-        }
+            char c = (char)ushort.CreateTruncating(item);
 
-        return vsb.ToString();
-
-        static void AppendSingle(ref ValueStringBuilder vsb, char c)
-        {
             switch (c)
             {
+                case '\\':
+                    vsb.Append(@"\\");
+                    break;
+                case >= ' ' and <= '~':
+                    vsb.Append(c);
+                    break;
                 case '\0':
                     vsb.Append(@"\0");
                     break;
@@ -81,17 +85,16 @@ internal static class UtilityExtensions
                 case '\v':
                     vsb.Append(@"\v");
                     break;
-                case '\\':
-                    vsb.Append(@"\\");
-                    break;
-                case < (char)32 or >= (char)127:
-                    vsb.Append($@"\u{(uint)c:X4}");
+                case '\e':
+                    vsb.Append(@"\e");
                     break;
                 default:
-                    vsb.Append(c);
+                    vsb.Append($@"\u{(uint)c:X4}");
                     break;
             }
         }
+
+        return vsb.ToString();
     }
 
     public static T CreateInstance<T>([DAM(Messages.Ctors)] this Type type, params object?[] parameters)
