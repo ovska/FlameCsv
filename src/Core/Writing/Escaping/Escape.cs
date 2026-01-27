@@ -9,19 +9,14 @@ internal static class Escape
     /// Escapes <paramref name="source"/> into <paramref name="destination"/> by wrapping it in quotes and escaping
     /// possible escapes/quotes in the value.
     /// </summary>
-    /// <param name="quoteArg"></param>
+    /// <param name="quoteArg">Quote character</param>
     /// <param name="source">Data that needs escaping</param>
     /// <param name="destination">Destination buffer. Can be the same memory region as the source</param>
-    /// <param name="specialCount">Number of quotes/escapes in the source</param>
-    public static void Scalar<T>(
-        T quoteArg,
-        scoped ReadOnlySpan<T> source,
-        scoped Span<T> destination,
-        int specialCount
-    )
+    /// <param name="quoteCount">Number of quotes in the source</param>
+    public static void Scalar<T>(T quoteArg, scoped ReadOnlySpan<T> source, scoped Span<T> destination, int quoteCount)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Check.GreaterThanOrEqual(destination.Length, source.Length + specialCount + 2);
+        Check.GreaterThanOrEqual(destination.Length, source.Length + quoteCount + 2);
         Check.True(
             !source.Overlaps(destination, out int elementOffset) || elementOffset == 0,
             $"If src and dst overlap, they must have the same starting point in memory (was {elementOffset})"
@@ -31,14 +26,14 @@ internal static class Escape
 
         // Work backwards as the source and destination buffers might overlap
         nint srcRemaining = source.Length - 1;
-        nint dstRemaining = source.Length + specialCount + 1;
+        nint dstRemaining = source.Length + quoteCount + 1;
         ref T src = ref MemoryMarshal.GetReference(source);
         ref T dst = ref MemoryMarshal.GetReference(destination);
 
         Unsafe.Add(ref dst, dstRemaining) = quote;
         dstRemaining--;
 
-        if (specialCount == 0)
+        if (quoteCount == 0)
             goto End;
 
         int lastIndex = source.LastIndexOf(quote);
@@ -54,7 +49,7 @@ internal static class Escape
             Unsafe.Add(ref dst, dstRemaining) = quote;
             dstRemaining--;
 
-            if (--specialCount == 0)
+            if (--quoteCount == 0)
                 goto End;
         }
 
@@ -68,7 +63,7 @@ internal static class Escape
                 srcRemaining -= 1;
                 dstRemaining -= 2;
 
-                if (--specialCount == 0)
+                if (--quoteCount == 0)
                 {
                     goto End;
                 }
