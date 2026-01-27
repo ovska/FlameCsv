@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using FlameCsv.Exceptions;
 using FlameCsv.Extensions;
 using FlameCsv.Reading.Internal;
+using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv;
 
@@ -206,6 +207,32 @@ public partial class CsvOptions<T>
                 NeedsQuoting as SearchValues<char> ?? DialectHelper.InitNeedsQuoting<char>(_delimiter, _quote)
             );
         }
+    }
+
+    private IQuoter<T>? _quoter;
+
+    internal IQuoter<T> GetQuoter() => _quoter ??= InitializeQuoter();
+
+    private IQuoter<T> InitializeQuoter()
+    {
+        if (FieldQuoting is CsvFieldQuoting.Never)
+        {
+            return NoOpQuoter<T>.Instance;
+        }
+
+        if (Quote is null)
+        {
+            throw new CsvConfigurationException(
+                $"Quote must not be null when FieldQuoting is not 'Never' (was {FieldQuoting})."
+            );
+        }
+
+        return FieldQuoting switch
+        {
+            CsvFieldQuoting.Auto => new AutoQuoter<T>(this),
+            CsvFieldQuoting.Always => new AlwaysQuoter<T>(T.CreateTruncating(Quote.Value)),
+            _ => new Quoter<T>(this),
+        };
     }
 
     internal bool DialectEqualsForWriting([NotNullWhen(true)] CsvOptions<T> other)

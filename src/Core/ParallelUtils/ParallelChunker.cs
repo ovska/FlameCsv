@@ -1,5 +1,5 @@
 using System.Collections;
-using FlameCsv.Utilities;
+using System.Runtime.CompilerServices;
 
 namespace FlameCsv.ParallelUtils;
 
@@ -27,54 +27,38 @@ internal static class ParallelChunker
         };
     }
 
-    public static object ChunkUnknown<T>(object items, int chunkSize)
+    public static object ChunkUnknown<T>(object items, int chunkSize, CancellationToken cancellationToken)
     {
         if (items is IAsyncEnumerable<T> asyncItems)
         {
-            return ChunkAsync(asyncItems, chunkSize);
+            return ChunkAsync(asyncItems, chunkSize, cancellationToken);
         }
         return Chunk((IEnumerable<T>)items, chunkSize);
     }
 
-    public static IAsyncEnumerable<HasOrderEnumerable<T>> ChunkAsync<T>(IEnumerable<T> items, int chunkSize)
+    public static async IAsyncEnumerable<HasOrderEnumerable<T>> ChunkAsync<T>(
+        IAsyncEnumerable<T> items,
+        int chunkSize,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default
+    )
     {
-        ArgumentNullException.ThrowIfNull(items);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);
-        return new SyncToAsyncEnumerable<HasOrderEnumerable<T>>(Chunk(items, chunkSize));
-    }
+        int order = 0;
+        List<T> buffer = new(chunkSize);
 
-    public static IAsyncEnumerable<HasOrderEnumerable<T>> ChunkAsync<T>(IAsyncEnumerable<T> items, int chunkSize)
-    {
-        ArgumentNullException.ThrowIfNull(items);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunkSize);
-
-        if (items is IEnumerable<T> syncItems)
+        await foreach (var item in items.ConfigureAwait(false).WithCancellation(cancellationToken))
         {
-            return new SyncToAsyncEnumerable<HasOrderEnumerable<T>>(Chunk(syncItems, chunkSize));
-        }
+            buffer.Add(item);
 
-        return Core();
-
-        async IAsyncEnumerable<HasOrderEnumerable<T>> Core()
-        {
-            int order = 0;
-            List<T> buffer = new(chunkSize);
-
-            await foreach (var item in items.ConfigureAwait(false))
-            {
-                buffer.Add(item);
-
-                if (buffer.Count >= chunkSize)
-                {
-                    yield return new HasOrderEnumerable<T>(order++, buffer);
-                    buffer = new(chunkSize);
-                }
-            }
-
-            if (buffer.Count > 0)
+            if (buffer.Count >= chunkSize)
             {
                 yield return new HasOrderEnumerable<T>(order++, buffer);
+                buffer = new(chunkSize);
             }
+        }
+
+        if (buffer.Count > 0)
+        {
+            yield return new HasOrderEnumerable<T>(order++, buffer);
         }
     }
 

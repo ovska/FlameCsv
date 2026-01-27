@@ -69,12 +69,12 @@ public static class UnescapeTests
         }
     }
 
-    public static TheoryData<string, string, PoisonPagePlacement> Entries =>
-        [
-            .. from line in Data.ReplaceLineEndings("\n").Split('\n')
-            from placement in GlobalData.PoisonPlacement
-            select new TheoryDataRow<string, string, PoisonPagePlacement>(line, line.Replace("\"\"", "\""), placement),
-        ];
+    public static TheoryData<string, string, PoisonPagePlacement> Entries { get; } =
+    [
+        .. from line in Data.ReplaceLineEndings("\n").Split('\n')
+        from placement in GlobalData.PoisonPlacement
+        select new TheoryDataRow<string, string, PoisonPagePlacement>(line, line.Replace("\"\"", "\""), placement),
+    ];
 
     [Theory]
     [MemberData(nameof(Entries))]

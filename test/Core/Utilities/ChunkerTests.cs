@@ -266,62 +266,6 @@ public static class ChunkerTests
 
     #endregion
 
-    #region Async Sync Enumerable Tests
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    [InlineData(3)]
-    [InlineData(5)]
-    [InlineData(10)]
-    [InlineData(100)]
-    public static async Task ChunkAsync_SyncEnumerable_Array_VariousChunkSizes(int chunkSize)
-    {
-        var array = Enumerable.Range(0, 20).ToArray();
-        var chunks = await ParallelChunker.ChunkAsync(array, chunkSize).ToListAsync();
-
-        int expectedChunks = (array.Length + chunkSize - 1) / chunkSize;
-        Assert.Equal(expectedChunks, chunks.Count);
-
-        for (int i = 0; i < chunks.Count; i++)
-        {
-            Assert.Equal(i, chunks[i].Order);
-            var chunkList = chunks[i].ToList();
-
-            int expectedSize = Math.Min(chunkSize, array.Length - i * chunkSize);
-            Assert.Equal(expectedSize, chunkList.Count);
-
-            for (int j = 0; j < chunkList.Count; j++)
-            {
-                Assert.Equal(i * chunkSize + j, chunkList[j]);
-            }
-        }
-    }
-
-    [Fact]
-    public static async Task ChunkAsync_SyncEnumerable_Empty()
-    {
-        var array = Array.Empty<int>();
-        var chunks = await ParallelChunker.ChunkAsync(array, 10).ToListAsync();
-        Assert.Empty(chunks);
-    }
-
-    [Fact]
-    public static async Task ChunkAsync_SyncEnumerable_SingleElement()
-    {
-        var array = new[] { 42 };
-
-        foreach (var chunkSize in ChunkSizes.Take(3))
-        {
-            var chunks = await ParallelChunker.ChunkAsync(array, chunkSize).ToListAsync();
-            Assert.Single(chunks);
-            Assert.Equal(0, chunks[0].Order);
-            Assert.Equal([42], chunks[0].ToList());
-        }
-    }
-
-    #endregion
-
     #region Async Enumerable Tests
 
     [Theory]
@@ -336,7 +280,9 @@ public static class ChunkerTests
         // Use exact multiples to avoid bug in ChunkAsyncEnumerator
         int itemCount = chunkSize * 3;
         var asyncEnumerable = CreateAsyncEnumerable(Enumerable.Range(0, itemCount));
-        var chunks = await ParallelChunker.ChunkAsync(asyncEnumerable, chunkSize).ToListAsync();
+        var chunks = await ParallelChunker
+            .ChunkAsync(asyncEnumerable, chunkSize, TestContext.Current.CancellationToken)
+            .ToListAsync();
 
         int expectedChunks = itemCount / chunkSize;
         Assert.Equal(expectedChunks, chunks.Count);
@@ -359,7 +305,9 @@ public static class ChunkerTests
     public static async Task ChunkAsync_AsyncEnumerable_Empty()
     {
         var asyncEnumerable = CreateAsyncEnumerable(Enumerable.Empty<int>());
-        var chunks = await ParallelChunker.ChunkAsync(asyncEnumerable, 10).ToListAsync();
+        var chunks = await ParallelChunker
+            .ChunkAsync(asyncEnumerable, 10, TestContext.Current.CancellationToken)
+            .ToListAsync();
         Assert.Empty(chunks);
     }
 
@@ -370,7 +318,9 @@ public static class ChunkerTests
     public static async Task ChunkAsync_AsyncEnumerable_SingleElement(int chunkSize)
     {
         var asyncEnumerable = CreateAsyncEnumerable(new[] { 42 });
-        var chunks = await ParallelChunker.ChunkAsync(asyncEnumerable, chunkSize).ToListAsync();
+        var chunks = await ParallelChunker
+            .ChunkAsync(asyncEnumerable, chunkSize, TestContext.Current.CancellationToken)
+            .ToListAsync();
         Assert.Single(chunks);
         Assert.Equal(0, chunks[0].Order);
         Assert.Equal([42], chunks[0].ToList());
@@ -380,7 +330,9 @@ public static class ChunkerTests
     public static async Task ChunkAsync_AsyncEnumerable_ExactMultiple()
     {
         var asyncEnumerable = CreateAsyncEnumerable(Enumerable.Range(0, 10));
-        var chunks = await ParallelChunker.ChunkAsync(asyncEnumerable, 5).ToListAsync();
+        var chunks = await ParallelChunker
+            .ChunkAsync(asyncEnumerable, 5, TestContext.Current.CancellationToken)
+            .ToListAsync();
 
         Assert.Equal(2, chunks.Count);
         Assert.Equal(0, chunks[0].Order);
@@ -396,7 +348,11 @@ public static class ChunkerTests
         var asyncEnumerable = CreateAsyncEnumerable(Enumerable.Range(0, 1000));
 
         var chunks = new List<ParallelChunker.HasOrderEnumerable<int>>();
-        await foreach (var chunk in ParallelChunker.ChunkAsync(asyncEnumerable, 10).WithCancellation(cts.Token))
+        await foreach (
+            var chunk in ParallelChunker
+                .ChunkAsync(asyncEnumerable, 10, TestContext.Current.CancellationToken)
+                .WithCancellation(cts.Token)
+        )
         {
             chunks.Add(chunk);
             if (chunks.Count == 3)
@@ -414,7 +370,9 @@ public static class ChunkerTests
     {
         // Use exact multiple to avoid chunker bug
         var asyncEnumerable = CreateAsyncEnumerable(Enumerable.Range(0, 10000));
-        var chunks = await ParallelChunker.ChunkAsync(asyncEnumerable, 100).ToListAsync();
+        var chunks = await ParallelChunker
+            .ChunkAsync(asyncEnumerable, 100, TestContext.Current.CancellationToken)
+            .ToListAsync();
 
         Assert.Equal(100, chunks.Count);
 
@@ -451,27 +409,12 @@ public static class ChunkerTests
     }
 
     [Fact]
-    public static void ChunkAsync_SyncEnumerable_NullArray_ThrowsArgumentNullException()
-    {
-        IEnumerable<int>? array = null;
-        Assert.Throws<ArgumentNullException>(() => ParallelChunker.ChunkAsync(array!, 10));
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-100)]
-    public static void ChunkAsync_SyncEnumerable_InvalidChunkSize_ThrowsArgumentOutOfRangeException(int chunkSize)
-    {
-        var array = new[] { 1, 2, 3 };
-        Assert.Throws<ArgumentOutOfRangeException>(() => ParallelChunker.ChunkAsync(array, chunkSize));
-    }
-
-    [Fact]
     public static void ChunkAsync_AsyncEnumerable_NullEnumerable_ThrowsArgumentNullException()
     {
         IAsyncEnumerable<int>? asyncEnumerable = null;
-        Assert.Throws<ArgumentNullException>(() => ParallelChunker.ChunkAsync(asyncEnumerable!, 10));
+        Assert.Throws<ArgumentNullException>(() =>
+            ParallelChunker.ChunkAsync(asyncEnumerable!, 10, TestContext.Current.CancellationToken)
+        );
     }
 
     [Theory]
@@ -481,7 +424,9 @@ public static class ChunkerTests
     public static void ChunkAsync_AsyncEnumerable_InvalidChunkSize_ThrowsArgumentOutOfRangeException(int chunkSize)
     {
         var asyncEnumerable = CreateAsyncEnumerable(new[] { 1, 2, 3 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => ParallelChunker.ChunkAsync(asyncEnumerable, chunkSize));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ParallelChunker.ChunkAsync(asyncEnumerable, chunkSize, TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
@@ -526,7 +471,9 @@ public static class ChunkerTests
     {
         var strings = new[] { "a", "b", "c", "d", "e" };
         var asyncEnumerable = CreateAsyncEnumerable(strings);
-        var chunks = await ParallelChunker.ChunkAsync(asyncEnumerable, 2).ToListAsync();
+        var chunks = await ParallelChunker
+            .ChunkAsync(asyncEnumerable, 2, TestContext.Current.CancellationToken)
+            .ToListAsync();
 
         Assert.Equal(3, chunks.Count);
         Assert.Equal(["a", "b"], chunks[0].ToList());

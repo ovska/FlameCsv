@@ -231,7 +231,7 @@ file static class Util
                     CsvWriterProducer<T, TValue, ParallelChunker.HasOrderEnumerable<TValue>>,
                     CsvFieldWriter<T>
                 >(
-                    ParallelChunker.ChunkUnknown<TValue>(source, parallelOptions.EffectiveChunkSize),
+                    ParallelChunker.ChunkUnknown<TValue>(source, parallelOptions.EffectiveChunkSize, cts.Token),
                     new(options, builder.IOOptions, dematerializer, sink),
                     CsvWriterConsumer<T>.Instance,
                     cts,

@@ -58,7 +58,7 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
 
         _delimiter = T.CreateTruncating(options.Delimiter);
         _quote = T.CreateTruncating(options.Quote.GetValueOrDefault());
-        _quoter = Quoter.Create(options);
+        _quoter = options.GetQuoter();
         _newlineValue = Bithacks.InitializeCRLFRegister<T>(options.Newline.IsCRLF());
         _newlineLength = options.Newline.IsCRLF() ? 2 : 1;
         _defaultStringConverter =

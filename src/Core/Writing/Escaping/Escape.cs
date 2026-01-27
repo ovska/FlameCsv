@@ -36,9 +36,10 @@ internal static class Escape
         if (quoteCount == 0)
             goto End;
 
+        // we only do one LastIndexOf call, assuming that most fields have at most one quote we can just do two memcpys
         int lastIndex = source.LastIndexOf(quote);
 
-        // either not found, or it was the last token
+        // if this condition isn't true, quote was either not found, or it was the last token
         if ((uint)lastIndex < srcRemaining)
         {
             nint nonSpecialCount = srcRemaining - lastIndex + 1;
@@ -53,6 +54,7 @@ internal static class Escape
                 goto End;
         }
 
+        // read backwards until we find the last quote
         while (srcRemaining >= 0)
         {
             if (quote == Unsafe.Add(ref src, srcRemaining))
