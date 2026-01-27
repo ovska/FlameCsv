@@ -87,11 +87,6 @@ public readonly record struct CsvParallelOptions
         }
     }
 
-    /// <summary>
-    /// The <see cref="TaskScheduler"/> to use for parallel operations, passed to TPL methods.
-    /// </summary>
-    public TaskScheduler? TaskScheduler { get; init; }
-
     internal int EffectiveChunkSize => ChunkSize ?? DefaultChunkSize;
 
     /// <summary>
@@ -121,7 +116,6 @@ public readonly record struct CsvParallelOptions
         new()
         {
             CancellationToken = options.CancellationToken,
-            TaskScheduler = options.TaskScheduler,
             MaxDegreeOfParallelism = options.MaxDegreeOfParallelism == -1 ? null : options.MaxDegreeOfParallelism,
         };
 }

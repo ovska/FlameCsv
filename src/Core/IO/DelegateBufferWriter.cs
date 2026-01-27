@@ -5,18 +5,18 @@ namespace FlameCsv.IO;
 internal sealed class DelegateBufferWriter<T> : CsvBufferWriter<T>
     where T : unmanaged, IBinaryInteger<T>
 {
-    private readonly Action<ReadOnlySpan<T>, bool>? _onFlush;
-    private readonly Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? _onFlushAsync;
+    private readonly Csv.ParallelSink<T>? _sink;
+    private readonly Csv.AsyncParallelSink<T>? _asyncSink;
 
     public DelegateBufferWriter(
-        Action<ReadOnlySpan<T>, bool>? onFlush,
-        Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? onFlushAsync,
+        Csv.ParallelSink<T>? onFlush,
+        Csv.AsyncParallelSink<T>? onFlushAsync,
         in CsvIOOptions ioOptions
     )
         : base(in ioOptions)
     {
-        _onFlush = onFlush;
-        _onFlushAsync = onFlushAsync;
+        _sink = onFlush;
+        _asyncSink = onFlushAsync;
     }
 
     protected override void DisposeCore() { }
@@ -26,25 +26,27 @@ internal sealed class DelegateBufferWriter<T> : CsvBufferWriter<T>
         return default;
     }
 
-    protected override ValueTask DrainAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken)
-    {
-        Check.NotNull(_onFlushAsync);
-        return _onFlushAsync(memory, false, cancellationToken);
-    }
-
     protected override void DrainCore(ReadOnlyMemory<T> memory)
     {
-        Check.NotNull(_onFlush);
-        _onFlush(memory.Span, false);
+        Check.NotNull(_sink);
+        _sink(memory.Span, isFinalWrite: false);
     }
 
     protected override void FlushCore()
     {
-        _onFlush!([], true);
+        Check.NotNull(_sink);
+        _sink!([], isFinalWrite: true);
+    }
+
+    protected override ValueTask DrainAsyncCore(ReadOnlyMemory<T> memory, CancellationToken cancellationToken)
+    {
+        Check.NotNull(_asyncSink);
+        return _asyncSink(memory, isFinalWrite: false, cancellationToken);
     }
 
     protected override ValueTask FlushAsyncCore(CancellationToken cancellationToken)
     {
-        return _onFlushAsync!(ReadOnlyMemory<T>.Empty, true, CancellationToken.None);
+        Check.NotNull(_asyncSink);
+        return _asyncSink!(ReadOnlyMemory<T>.Empty, isFinalWrite: true, CancellationToken.None);
     }
 }

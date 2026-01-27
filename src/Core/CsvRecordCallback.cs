@@ -110,7 +110,7 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// <remarks>
     /// If the set to false while reading headered CSV, this record will be considered the header unless
     /// <see cref="SkipRecord"/> is also true, in which case it will be first unskipped record.<br/>
-    /// Modifying the value does nothing in parallel workloads, as the order of records is not guaranteed.
+    /// Modifying the value throws a <see cref="NotSupportedException"/> in parallel workloads.
     /// </remarks>
     public bool HeaderRead
     {

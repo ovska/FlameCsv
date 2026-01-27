@@ -18,16 +18,14 @@ static partial class Csv
 
         public CsvParallelOptions ParallelOptions => parallelOptions;
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> flushAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<T> sink)
         {
-            return inner.CreateAsyncParallelWriter(out flushAction);
+            return inner.CreateAsyncParallelWriter(out sink);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>, bool> flushAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<T> sink)
         {
-            return inner.CreateParallelWriter(out flushAction);
+            return inner.CreateParallelWriter(out sink);
         }
 
         public ICsvBufferWriter<T> CreateWriter(bool isAsync)
@@ -186,7 +184,7 @@ file static class Util
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
-        using (builder.CreateParallelWriter(out Action<ReadOnlySpan<T>, bool> sink))
+        using (builder.CreateParallelWriter(out Csv.ParallelSink<T> sink))
         {
             CsvParallel
                 .RunAsync<
@@ -220,9 +218,7 @@ file static class Util
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(parallelOptions.CancellationToken);
 
-        await using (
-            builder.CreateAsyncParallelWriter(out Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> sink)
-        )
+        await using (builder.CreateAsyncParallelWriter(out Csv.AsyncParallelSink<T> sink))
         {
             await CsvParallel
                 .RunAsync<

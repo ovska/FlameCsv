@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;
+using FlameCsv.Extensions;
 using FlameCsv.IO.Internal;
 using FlameCsv.Reading;
 
@@ -62,6 +63,7 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         }
         else
         {
+            _materializer = null;
             _headerRead = new ManualResetEventSlim();
         }
     }
@@ -86,27 +88,17 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
 
     public void Produce(Chunk<T> chunk, CsvRecordRef<T> input, SlimList<TValue> state)
     {
-        if (TryProduceDirect(chunk, input, out TValue? result))
+        if (TryProduce(chunk, input, out TValue? result))
         {
             state.Add(result);
         }
     }
 
-    public bool TryProduceDirect(Chunk<T> chunk, CsvRecordRef<T> input, [MaybeNullWhen(false)] out TValue value)
+    public bool TryProduce(Chunk<T> chunk, CsvRecordRef<T> input, [MaybeNullWhen(false)] out TValue value)
     {
-        if (Options.RecordCallback is { } callback)
+        if (Options.RecordCallback is { } callback && SkipRecord(input, callback))
         {
-            bool skip = false;
-            bool headerRead = !_headers.IsDefaultOrEmpty;
-            CsvRecordCallbackArgs<T> args = new(input, _headers, ref skip, ref headerRead);
-
-            callback(in args);
-
-            if (skip)
-            {
-                value = default;
-                return false;
-            }
+            goto Skip;
         }
 
         if (_materializer is null)
@@ -114,20 +106,20 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
             Check.True(Options.HasHeader, "Options must be configured to read with a header");
             Check.NotNull(_headerRead, "Header read event must be initialized");
 
+            // header not read yet, initialize if this is the first chunk, otherwise; wait
             if (chunk.Order == 0)
             {
                 _headers = CsvHeader.Parse(input);
                 _materializer = _materializerFactory(_headers, Options);
-                _headerRead.Set();
-                value = default;
-                return false;
+                _headerRead.Set(); // allow waiting threads to proceed
+                goto Skip;
             }
             else
             {
                 // some other thread is still creating the materializer
                 Check.True(_cancellationToken.CanBeCanceled, "CT must be cancelable to avoid deadlocks");
-                _headerRead.Wait(_cancellationToken);
-                Check.NotNull(_materializer, "Materializer must be initialized after header is read");
+                _headerRead.Wait(Timeout.Infinite, _cancellationToken);
+                Check.NotNull(_materializer, "Materializer must have been initialized after header is read");
             }
         }
 
@@ -157,12 +149,33 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
                 if (handler.Invoke(args))
                 {
                     // exception handled; try again
-                    value = default;
-                    return false;
+                    goto Skip;
                 }
             }
 
             throw;
         }
+
+        Skip:
+        value = default;
+        return false;
+    }
+
+    private bool SkipRecord(CsvRecordRef<T> input, CsvRecordCallback<T> callback)
+    {
+        ReadOnlySpan<string> header = _headers.AsSpan();
+
+        bool skip = false;
+        bool headerRead = !header.IsEmpty;
+        CsvRecordCallbackArgs<T> args = new(input, header, ref skip, ref headerRead);
+
+        callback(in args);
+
+        if (headerRead == header.IsEmpty)
+        {
+            Throw.NotSupported("Header cannot be reset in parallel processing.");
+        }
+
+        return skip;
     }
 }

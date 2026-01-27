@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading.Channels;
 using FlameCsv.ParallelUtils;
 
@@ -19,7 +20,8 @@ internal static partial class CsvParallel
 
     private sealed class ParallelEnumerator<T> : IEnumerator<ArraySegment<T>>
     {
-        private readonly BlockingCollection<SlimList<T>> _blockingCollection;
+        private readonly ConcurrentQueue<SlimList<T>> _queue;
+        private readonly SemaphoreSlim _semaphore;
         private SlimList<T>? _current;
 
         /// <summary>Token to cancel the background tasks if enumeration ends early (e.g. via <c>break</c>)</summary>
@@ -44,30 +46,41 @@ internal static partial class CsvParallel
                 _enumeratorCts.Token
             );
 
-            // the managers don't need to be disposed on exception as the pooling is only valid for the lifetime of the operation
-            _blockingCollection = [];
+            _queue = new ConcurrentQueue<SlimList<T>>();
+            _semaphore = new SemaphoreSlim(0);
 
-            EnumerationConsumer<T> consumer = new(_blockingCollection, null!, _pipelineCts.Token);
+            TaskCompletionSource parallelTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _parallelTask = parallelTcs.Task;
 
-            _parallelTask = Task
-                .Factory.StartNew(
-                    async () =>
-                    {
-                        try
-                        {
-                            await parallelForEach(consumer, _pipelineCts.Token).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            Interlocked.Exchange(ref _done, true);
-                            _blockingCollection.CompleteAdding();
-                        }
-                    },
-                    CancellationToken.None,
-                    TaskCreationOptions.LongRunning,
-                    parallelOptions.TaskScheduler ?? TaskScheduler.Default
-                )
-                .Unwrap();
+            Thread producerThread = new Thread(() =>
+            {
+                try
+                {
+                    parallelForEach(new Consumer(_queue, _semaphore, _pipelineCts.Token), _pipelineCts.Token)
+                        .GetAwaiter()
+                        .GetResult();
+                    parallelTcs.TrySetResult();
+                }
+                catch (OperationCanceledException ex)
+                {
+                    parallelTcs.TrySetCanceled(ex.CancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    parallelTcs.TrySetException(ex);
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref _done, true);
+                    _semaphore.Release();
+                }
+            })
+            {
+                IsBackground = true,
+                Priority = ThreadPriority.Normal,
+            };
+
+            producerThread.Start();
         }
 
         public ArraySegment<T> Current => _current!.AsArraySegment();
@@ -75,7 +88,22 @@ internal static partial class CsvParallel
 
         public bool MoveNext()
         {
-            return _blockingCollection.TryTake(out _current, Timeout.Infinite, _pipelineCts.Token);
+            if (_queue.TryDequeue(out _current))
+                return true;
+
+            while (true)
+            {
+                _semaphore.Wait(_pipelineCts.Token);
+
+                if (_queue.TryDequeue(out _current))
+                    return true;
+
+                if (Volatile.Read(ref _done))
+                {
+                    _current = null;
+                    return false;
+                }
+            }
         }
 
         public void Dispose()
@@ -99,13 +127,45 @@ internal static partial class CsvParallel
             }
             finally
             {
-                _blockingCollection.Dispose();
+                _semaphore.Dispose();
                 _pipelineCts.Dispose();
                 _enumeratorCts.Dispose();
             }
         }
 
         public void Reset() => throw new NotSupportedException();
+
+        private sealed class Consumer : IConsumer<SlimList<T>>
+        {
+            private readonly ConcurrentQueue<SlimList<T>> _queue;
+            private readonly SemaphoreSlim _semaphore;
+            private readonly CancellationToken _cancellationToken;
+
+            public Consumer(
+                ConcurrentQueue<SlimList<T>> queue,
+                SemaphoreSlim semaphore,
+                CancellationToken cancellationToken
+            )
+            {
+                _queue = queue;
+                _semaphore = semaphore;
+                _cancellationToken = cancellationToken;
+            }
+
+            public void Consume(SlimList<T> state, Exception? ex)
+            {
+                if (ex is null && !_cancellationToken.IsCancellationRequested)
+                {
+                    _queue.Enqueue(state);
+                    _semaphore.Release();
+                }
+            }
+
+            public ValueTask ConsumeAsync(SlimList<T> state, Exception? ex, CancellationToken cancellationToken)
+            {
+                return ValueTask.FromException(new UnreachableException());
+            }
+        }
     }
 
     internal sealed class ParallelAsyncEnumerable<T>(
@@ -158,14 +218,13 @@ internal static partial class CsvParallel
                 }
             );
 
-            EnumerationConsumer<T> consumer = new(null!, _channel.Writer, _pipelineCts.Token);
-
             _parallelTask = Task.Run(
                 async () =>
                 {
                     try
                     {
-                        await parallelForEachAsync(consumer, _pipelineCts.Token).ConfigureAwait(false);
+                        await parallelForEachAsync(new Consumer(_channel.Writer), _pipelineCts.Token)
+                            .ConfigureAwait(false);
                     }
                     finally
                     {
@@ -228,28 +287,21 @@ internal static partial class CsvParallel
                 _enumeratorCts.Dispose();
             }
         }
-    }
-}
 
-file sealed class EnumerationConsumer<T>(
-    BlockingCollection<SlimList<T>> collection,
-    ChannelWriter<SlimList<T>> channel,
-    CancellationToken cancellationToken
-) : IConsumer<SlimList<T>>
-{
-    public void Consume(SlimList<T> state, Exception? ex)
-    {
-        if (ex is null)
+        private sealed class Consumer(ChannelWriter<SlimList<T>> channel) : IConsumer<SlimList<T>>
         {
-            collection.Add(state, cancellationToken);
-        }
-    }
+            public void Consume(SlimList<T> state, Exception? ex)
+            {
+                throw new UnreachableException();
+            }
 
-    public ValueTask ConsumeAsync(SlimList<T> state, Exception? ex, CancellationToken cancellationToken)
-    {
-        return ex is null ? channel.WriteAsync(state, cancellationToken)
-            : cancellationToken.IsCancellationRequested ? ValueTask.FromCanceled(cancellationToken)
-            : ValueTask.CompletedTask;
+            public ValueTask ConsumeAsync(SlimList<T> state, Exception? ex, CancellationToken cancellationToken)
+            {
+                return ex is null ? channel.WriteAsync(state, cancellationToken)
+                    : cancellationToken.IsCancellationRequested ? ValueTask.FromCanceled(cancellationToken)
+                    : ValueTask.CompletedTask;
+            }
+        }
     }
 }
 

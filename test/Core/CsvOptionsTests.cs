@@ -409,6 +409,25 @@ public class CsvOptionsTests
     }
 
     [Fact]
+    public void Should_Throw_On_Reset_Headers_In_Parallel()
+    {
+        const string data = "A,B,C\r\n1,2,3\r\n4,5,6\r\n";
+
+        static void Callback(ref readonly CsvRecordCallbackArgs<char> args)
+        {
+            if (args.LineNumber == 2)
+            {
+                Assert.True(args.HeaderRead);
+                args.HeaderRead = false;
+            }
+        }
+
+        var options = new CsvOptions<char> { HasHeader = true, RecordCallback = Callback };
+
+        Assert.Throws<NotSupportedException>(() => Csv.From(data).AsParallel().Read<Skippable>(options).ToList());
+    }
+
+    [Fact]
     public void Should_Skip_Rows()
     {
         const string data = "sep=,\r\n" + "A,B,C\r\n" + "1,2,3\r\n" + "#4,5,6\r\n" + "7,8,9\r\n";

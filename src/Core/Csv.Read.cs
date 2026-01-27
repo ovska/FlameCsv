@@ -61,6 +61,7 @@ static partial class Csv
         /// </returns>
         public CsvReader<T> ToReader(CsvOptions<T>? options = null)
         {
+            // isAsync=false causes much more problems in async processing than the other way around
             return new CsvReader<T>(options ?? CsvOptions<T>.Default, CreateReader(isAsync: true), IOOptions);
         }
     }

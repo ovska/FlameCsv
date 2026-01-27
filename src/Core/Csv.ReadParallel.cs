@@ -1,5 +1,6 @@
 using System.Threading.Channels;
 using FlameCsv.Binding;
+using FlameCsv.Extensions;
 using FlameCsv.IO;
 using FlameCsv.IO.Internal;
 using FlameCsv.ParallelUtils;
@@ -199,8 +200,8 @@ static partial class Csv
         }
 
         /// <summary>
-        /// Reads CSV records in parallel, binding them using reflection, and writes them to the given channel.<br/>
-        /// <strong>This method never preserves order of the records.</strong>
+        /// Reads CSV records in parallel, binding them using reflection, and writes them to the given channel.
+        /// Does not support ordered processing.
         /// </summary>
         /// <remarks>
         /// Cancellation token can be passed to <c>AsParallel()</c>.
@@ -208,6 +209,7 @@ static partial class Csv
         /// <param name="channelWriter">Channel to write the values to</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
         /// <returns>A task that completes when all values have been written to the channel</returns>
+        /// <exception cref="NotSupportedException">When <see cref="CsvParallelOptions.Unordered"/> is <see langword="false"/></exception>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
         public Task ToChannelAsync<[DAM(Messages.ReflectionBound)] TValue>(
             ChannelWriter<TValue> channelWriter,
@@ -215,16 +217,23 @@ static partial class Csv
         )
         {
             ArgumentNullException.ThrowIfNull(channelWriter);
+            CsvParallelOptions parallelOptions = ParallelOptions;
+
+            if (!parallelOptions.Unordered)
+            {
+                Throw.NotSupported("ToChannelAsync does not support ordered processing.");
+            }
+
             return CsvParallel.WriteToChannel(
                 channelWriter,
                 this,
-                ValueProducer<T, TValue>.Create(options, ParallelOptions)
+                ValueProducer<T, TValue>.Create(options, parallelOptions)
             );
         }
 
         /// <summary>
-        /// Reads CSV records in parallel, binding them using the given type map, and writes them to the given channel.<br/>
-        /// <strong>This method never preserves order of the records.</strong>
+        /// Reads CSV records in parallel, binding them using the given type map, and writes them to the given channel.
+        /// Does not support ordered processing.
         /// </summary>
         /// <remarks>
         /// Cancellation token can be passed to <c>AsParallel()</c>.
@@ -232,6 +241,7 @@ static partial class Csv
         /// <param name="channelWriter">Channel to write the values to</param>
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <exception cref="NotSupportedException">When <see cref="CsvParallelOptions.Unordered"/> is <see langword="false"/></exception>
         public Task ToChannelAsync<TValue>(
             ChannelWriter<TValue> channelWriter,
             CsvTypeMap<T, TValue> typeMap,
@@ -240,10 +250,18 @@ static partial class Csv
         {
             ArgumentNullException.ThrowIfNull(channelWriter);
             ArgumentNullException.ThrowIfNull(typeMap);
+
+            CsvParallelOptions parallelOptions = ParallelOptions;
+
+            if (!parallelOptions.Unordered)
+            {
+                Throw.NotSupported("ToChannelAsync does not support ordered processing.");
+            }
+
             return CsvParallel.WriteToChannel(
                 channelWriter,
                 this,
-                ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions)
+                ValueProducer<T, TValue>.Create(typeMap, options, parallelOptions)
             );
         }
     }
@@ -285,6 +303,11 @@ static partial class Csv
 
 file static class Util
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Roslynator",
+        "RCS1261:Resource can be disposed asynchronously",
+        Justification = "Ensure synchronous I/O is used as user explicitly requested so."
+    )]
     public static IEnumerable<ArraySegment<TValue>> AsEnumerableCore<T, TValue>(
         CsvOptions<T>? options,
         Csv.IParallelReadBuilder<T> builder,
@@ -299,9 +322,7 @@ file static class Util
             {
                 innerToken.ThrowIfCancellationRequested();
 
-#pragma warning disable RCS1261 // Resource can be disposed asynchronously
                 using var reader = builder.CreateParallelReader(options ?? CsvOptions<T>.Default, isAsync: false);
-#pragma warning restore RCS1261 // Resource can be disposed asynchronously
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(innerToken);
 
                 await CsvParallel

@@ -189,7 +189,7 @@ internal static partial class CsvParallel
                     {
                         foreach (CsvRecordRef<T> record in chunk)
                         {
-                            if (producer.TryProduceDirect(chunk, record, out TValue? value))
+                            if (producer.TryProduce(chunk, record, out TValue? value))
                             {
                                 await channelWriter.WriteAsync(value, innerToken).ConfigureAwait(false);
                             }

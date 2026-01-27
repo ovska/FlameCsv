@@ -32,25 +32,33 @@ public class ParallelReaderTests
     }
 
     [Fact]
-    public void Should_Read_2()
+    public async Task Should_Throw_On_Ordered_ToChannel()
     {
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
-        List<Obj> list = [];
-
-        foreach (var span in Csv.From(data).AsParallel().Read(ObjCharTypeMap.Default))
+        await Assert.ThrowsAsync<NotSupportedException>(async () =>
         {
-            foreach (var item in span)
-            {
-                list.Add(item);
-            }
-        }
-
-        Assert.Equal(Csv.From(data).Read<Obj>(), list, EqualityComparer<Obj>.Default);
+            Channel<Foo> channel = Channel.CreateUnbounded<Foo>();
+            await Csv.From(data)
+                .AsParallel(new() { Unordered = false, CancellationToken = TestContext.Current.CancellationToken })
+                .ToChannelAsync(channel.Writer);
+        });
     }
 
     [Fact]
-    public async Task Should_Read_Async()
+    public void Should_Read_Sync()
+    {
+        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
+
+        Assert.Equal(
+            Csv.From(data).Read<Obj>(),
+            Csv.From(data).AsParallel().Read(ObjCharTypeMap.Default).SelectMany(s => s),
+            EqualityComparer<Obj>.Default
+        );
+    }
+
+    [Fact]
+    public async Task Should_Read()
     {
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
@@ -58,14 +66,13 @@ public class ParallelReaderTests
 
         await foreach (
             var obj in Csv.From(data)
-                .AsParallel()
+                .AsParallel(new() { CancellationToken = TestContext.Current.CancellationToken, Unordered = true })
                 .ReadAsync<Obj>(ObjCharTypeMap.Default)
-                .WithCancellation(TestContext.Current.CancellationToken)
         )
         {
-            foreach (var item in obj)
+            lock (list)
             {
-                list.Add(item);
+                list.AddRange(obj);
             }
         }
 
@@ -74,7 +81,7 @@ public class ParallelReaderTests
     }
 
     [Fact]
-    public async Task Should_Read_Async_2()
+    public async Task Should_ForEach()
     {
         string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
 
@@ -94,7 +101,29 @@ public class ParallelReaderTests
                 }
             );
 
-        List<Obj> list = bag.OrderBy(o => o.Id).ToList();
+        Assert.Equal(Csv.From(data).Read<Obj>(), bag.OrderBy(o => o.Id), EqualityComparer<Obj>.Default);
+    }
+
+    [Fact]
+    public async Task Should_Read_To_Channel()
+    {
+        string data = TestDataGenerator.GenerateText(CsvNewline.CRLF, true, false);
+
+        Channel<Obj> channel = Channel.CreateUnbounded<Obj>(new() { SingleReader = true });
+        List<Obj> list = [];
+
+        Task task = Csv.From(data)
+            .AsParallel(new() { Unordered = true, CancellationToken = TestContext.Current.CancellationToken })
+            .ToChannelAsync(channel.Writer);
+
+        await foreach (var item in channel.Reader.ReadAllAsync(TestContext.Current.CancellationToken))
+        {
+            list.Add(item);
+        }
+
+        await task;
+
+        list.Sort();
 
         Assert.Equal(Csv.From(data).Read<Obj>(), list, EqualityComparer<Obj>.Default);
     }
@@ -120,7 +149,8 @@ public class ParallelReaderTests
             }
         }
 
-        var builder = Csv.From(apbw.WrittenMemory).AsParallel(TestContext.Current.CancellationToken);
+        var builder = Csv.From(apbw.WrittenMemory)
+            .AsParallel(new() { CancellationToken = TestContext.Current.CancellationToken, Unordered = true });
 
         var ex = Assert.Throws<CsvParseException>(() =>
         {

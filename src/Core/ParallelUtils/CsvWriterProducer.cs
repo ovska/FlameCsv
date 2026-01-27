@@ -13,15 +13,15 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
 {
     private readonly CsvOptions<T> _options;
     private readonly IDematerializer<T, TValue> _dematerializer;
-    private readonly Action<ReadOnlySpan<T>, bool>? _sink;
-    private readonly Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask>? _asyncSink;
+    private readonly Csv.ParallelSink<T>? _sink;
+    private readonly Csv.AsyncParallelSink<T>? _asyncSink;
     private readonly CsvIOOptions _ioOptions;
 
     public CsvWriterProducer(
         CsvOptions<T> options,
         CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
-        Action<ReadOnlySpan<T>, bool> sink
+        Csv.ParallelSink<T> sink
     )
     {
         _options = options;
@@ -34,7 +34,7 @@ internal readonly struct CsvWriterProducer<T, TValue, TChunk> : IProducer<TValue
         CsvOptions<T> options,
         CsvIOOptions ioOptions,
         IDematerializer<T, TValue> dematerializer,
-        Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> asyncSink
+        Csv.AsyncParallelSink<T> asyncSink
     )
     {
         _options = options;

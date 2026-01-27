@@ -13,6 +13,29 @@ namespace FlameCsv;
 static partial class Csv
 {
     /// <summary>
+    /// Delegate for writing data for parallel workloads.<br/>
+    /// This delegate is called sequentially, and does not need to be thread-safe.
+    /// </summary>
+    /// <param name="data">Data to write to the underlying destination. May be empty</param>
+    /// <param name="isFinalWrite">Whether this is the final write</param>
+    public delegate void ParallelSink<T>(ReadOnlySpan<T> data, bool isFinalWrite)
+        where T : unmanaged, IBinaryInteger<T>;
+
+    /// <summary>
+    /// Delegate for writing data asynchronously for parallel workloads.<br/>
+    /// This delegate is called sequentially, and does not need to be thread-safe.
+    /// </summary>
+    /// <param name="data">Data to write to the underlying destination. May be empty</param>
+    /// <param name="isFinalWrite">Whether this is the final write</param>
+    /// <param name="cancellationToken">Cancellation token to observe</param>
+    public delegate ValueTask AsyncParallelSink<T>(
+        ReadOnlyMemory<T> data,
+        bool isFinalWrite,
+        CancellationToken cancellationToken
+    )
+        where T : unmanaged, IBinaryInteger<T>;
+
+    /// <summary>
     /// Base builder to create a CSV writing pipeline from.
     /// </summary>
     public interface IWriteBuilderBase<T, TSelf>
@@ -42,22 +65,20 @@ static partial class Csv
         /// <summary>
         /// Creates a sink for parallel writing. The sink is not thread-safe.
         /// </summary>
-        /// <param name="drainAction">
-        /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final flush.
+        /// <param name="sink">
+        /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final call.
         /// </param>
         /// <returns>An optional instance that should be disposed once the writing has fully completed</returns>
-        IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>, bool> drainAction);
+        IDisposable? CreateParallelWriter(out ParallelSink<T> sink);
 
         /// <summary>
         /// Creates a sink for asynchronous parallel writing. The sink is not thread-safe.
         /// </summary>
-        /// <param name="drainAction">
-        /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final flush.
+        /// <param name="sink">
+        /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final call.
         /// </param>
         /// <returns>An optional instance that should be disposed once the writing has fully completed</returns>
-        IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> drainAction
-        );
+        IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<T> sink);
 
         /// <summary>
         /// Configures the builder to write CSV data in parallel.
@@ -80,22 +101,19 @@ static partial class Csv
         /// <returns>Writer instance</returns>
         public CsvWriter<T> ToWriter(CsvOptions<T>? options = null)
         {
-            return new CsvWriter<T>(
-                new CsvFieldWriter<T>(CreateWriter(isAsync: true), options ?? CsvOptions<T>.Default)
-            );
+            return new CsvWriter<T>(ToFieldWriter(options));
         }
 
         /// <summary>
-        /// Returns a writer instance that can be used to write custom fields, multiple different types,
-        /// or multiple CSV documents into the same output.<br/>
-        /// After use, the writer should be disposed, or completed with <see cref="CsvWriter{T}.Complete"/> or
-        /// <see cref="CsvWriter{T}.CompleteAsync"/>.
+        /// Returns a writer instance that can be used to write low-level CSV structure.
+        /// After use, the writer should be disposed.
         /// </summary>
         /// <param name="options">Options instance. If null, <see cref="CsvOptions{T}.Default"/> is used</param>
         /// <returns>Writer instance</returns>
         [EditorBrowsable(EditorBrowsableState.Advanced)]
         public CsvFieldWriter<T> ToFieldWriter(CsvOptions<T>? options = null)
         {
+            // isAsync=false causes much more problems in async processing than the other way around
             return new CsvFieldWriter<T>(CreateWriter(isAsync: true), options ?? CsvOptions<T>.Default);
         }
     }
@@ -333,16 +351,14 @@ static partial class Csv
             return new WriteTextBuilder(_writer, _stream, _encoding, in ioOptions);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<char> sink)
         {
-            return Util.ParallelFrom(CreateWriter(), out drainAction);
+            return Util.ParallelFrom(CreateWriter(), out sink);
         }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<char> sink)
         {
-            return Util.ParallelFrom(CreateWriter(), out drainAction);
+            return Util.ParallelFrom(CreateWriter(), out sink);
         }
 
         private TextWriter CreateWriter()
@@ -393,16 +409,14 @@ static partial class Csv
             return new WritePipeBuilder(_pipeWriter, ioOptions.EffectiveBufferPool);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<byte> sink)
         {
             throw new NotSupportedException("Synchronous writing to PipeWriter is not supported.");
         }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<byte> sink)
         {
-            drainAction = async (data, _, ct) => await _pipeWriter.WriteAsync(data, ct).ConfigureAwait(false);
+            sink = async (data, _, ct) => await _pipeWriter.WriteAsync(data, ct).ConfigureAwait(false);
             return null;
         }
     }
@@ -449,30 +463,26 @@ static partial class Csv
             return new WriteStreamBuilder(_stream, in ioOptions);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<char> sink)
         {
-            return Util.ParallelFrom(CreateWriter(), out drainAction);
+            return Util.ParallelFrom(CreateWriter(), out sink);
         }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<char> sink)
         {
-            return Util.ParallelFrom(CreateWriter(), out drainAction);
+            return Util.ParallelFrom(CreateWriter(), out sink);
         }
 
         private StreamWriter CreateWriter() => new(_stream, Encoding.UTF8, _ioOptions.BufferSize, _ioOptions.LeaveOpen);
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<byte> sink)
         {
-            return Util.ParallelFrom(_stream, out drainAction);
+            return Util.ParallelFrom(_stream, out sink);
         }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<byte> sink)
         {
-            return Util.ParallelFrom(_stream, out drainAction);
+            return Util.ParallelFrom(_stream, out sink);
         }
     }
 
@@ -562,28 +572,24 @@ static partial class Csv
             );
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<char>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<char> sink)
         {
-            return Util.ParallelFrom(GetStreamWriter(isAsync: false), out drainAction);
+            return Util.ParallelFrom(GetStreamWriter(isAsync: false), out sink);
         }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<char> sink)
         {
-            return Util.ParallelFrom(GetStreamWriter(isAsync: true), out drainAction);
+            return Util.ParallelFrom(GetStreamWriter(isAsync: true), out sink);
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<byte>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<byte> sink)
         {
-            return Util.ParallelFrom(GetFileStream(isAsync: false), out drainAction);
+            return Util.ParallelFrom(GetFileStream(isAsync: false), out sink);
         }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<byte> sink)
         {
-            return Util.ParallelFrom(GetFileStream(isAsync: true), out drainAction);
+            return Util.ParallelFrom(GetFileStream(isAsync: true), out sink);
         }
     }
 
@@ -601,11 +607,9 @@ static partial class Csv
 
         public CsvIOOptions IOOptions { get; }
 
-        public IAsyncDisposable? CreateAsyncParallelWriter(
-            out Func<ReadOnlyMemory<T>, bool, CancellationToken, ValueTask> drainAction
-        )
+        public IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<T> sink)
         {
-            drainAction = (data, _, ct) =>
+            sink = (data, _, ct) =>
             {
                 if (ct.IsCancellationRequested)
                     return ValueTask.FromCanceled(ct);
@@ -616,9 +620,9 @@ static partial class Csv
             return null;
         }
 
-        public IDisposable? CreateParallelWriter(out Action<ReadOnlySpan<T>, bool> drainAction)
+        public IDisposable? CreateParallelWriter(out ParallelSink<T> sink)
         {
-            drainAction = (span, _) => _writer.Write(span);
+            sink = (span, _) => _writer.Write(span);
             return null;
         }
 
@@ -636,12 +640,14 @@ static partial class Csv
 
 file static class Util
 {
-    public static IDisposable? ParallelFrom(Stream stream, out Action<ReadOnlySpan<byte>, bool> drainAction)
+    public static IDisposable? ParallelFrom(Stream stream, out Csv.ParallelSink<byte> sink)
     {
-        drainAction = (span, flush) =>
+        sink = (span, flush) =>
         {
-            stream.Write(span);
-
+            if (!span.IsEmpty)
+            {
+                stream.Write(span);
+            }
             if (flush)
             {
                 stream.Flush();
@@ -651,15 +657,14 @@ file static class Util
         return stream;
     }
 
-    public static IAsyncDisposable? ParallelFrom(
-        Stream stream,
-        out Func<ReadOnlyMemory<byte>, bool, CancellationToken, ValueTask> drainAction
-    )
+    public static IAsyncDisposable? ParallelFrom(Stream stream, out Csv.AsyncParallelSink<byte> sink)
     {
-        drainAction = async (data, flush, ct) =>
+        sink = async (data, flush, ct) =>
         {
-            await stream.WriteAsync(data, ct).ConfigureAwait(false);
-
+            if (!data.IsEmpty)
+            {
+                await stream.WriteAsync(data, ct).ConfigureAwait(false);
+            }
             if (flush)
             {
                 await stream.FlushAsync(ct).ConfigureAwait(false);
@@ -669,12 +674,14 @@ file static class Util
         return stream;
     }
 
-    public static IDisposable? ParallelFrom(TextWriter writer, out Action<ReadOnlySpan<char>, bool> drainAction)
+    public static IDisposable? ParallelFrom(TextWriter writer, out Csv.ParallelSink<char> sink)
     {
-        drainAction = (span, flush) =>
+        sink = (span, flush) =>
         {
-            writer.Write(span);
-
+            if (!span.IsEmpty)
+            {
+                writer.Write(span);
+            }
             if (flush)
             {
                 writer.Flush();
@@ -684,15 +691,14 @@ file static class Util
         return writer;
     }
 
-    public static IAsyncDisposable? ParallelFrom(
-        TextWriter writer,
-        out Func<ReadOnlyMemory<char>, bool, CancellationToken, ValueTask> drainAction
-    )
+    public static IAsyncDisposable? ParallelFrom(TextWriter writer, out Csv.AsyncParallelSink<char> sink)
     {
-        drainAction = async (data, flush, ct) =>
+        sink = async (data, flush, ct) =>
         {
-            await writer.WriteAsync(data, ct).ConfigureAwait(false);
-
+            if (!data.IsEmpty)
+            {
+                await writer.WriteAsync(data, ct).ConfigureAwait(false);
+            }
             if (flush)
             {
                 await writer.FlushAsync(ct).ConfigureAwait(false);
