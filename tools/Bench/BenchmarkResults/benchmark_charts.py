@@ -179,12 +179,12 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
 
     # Calculate throughput (and apply divisor for display units)
     filtered['Throughput'] = (throughput_value / filtered['MeanSeconds']) / throughput_divisor
-    
+
     # Check if there are parallel versions
     filtered['_is_parallel'] = filtered['Method'].str.contains('_Parallel')
     has_parallel = filtered['_is_parallel'].any()
     has_non_parallel = (~filtered['_is_parallel']).any()
-    
+
     # Sort: non-parallel first (by throughput desc), then parallel (by throughput desc)
     # For horizontal bar chart, we want highest at top, so ascending=True reverses it
     if has_parallel and has_non_parallel:
@@ -202,12 +202,16 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
         grid_color = '#E0E0E0'
         bg_color = (0, 0, 0, 0.1)  # translucent black
         fig_facecolor = (0, 0, 0, 0.1)
+        annotation_bg = (1, 1, 1, 0.08)
+        annotation_bg_highlight = (0.55, 1.0, 0.65, 0.35)  # soft green for minima
     else:  # light mode
         text_color = 'black'
         edge_color = 'black'
         grid_color = 'gray'
         bg_color = (1, 1, 1, 0.1)  # translucent white
         fig_facecolor = (1, 1, 1, 0.1)
+        annotation_bg = (0, 0, 0, 0.05)
+        annotation_bg_highlight = (0.5, 0.85, 0.6, 0.45)  # soft green for minima
 
     fig, ax = plt.subplots(figsize=(10, 6), facecolor=fig_facecolor)
     ax.set_facecolor(bg_color)
@@ -217,20 +221,19 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     y_positions = []
     throughputs = []
     bar_data = []  # (display_name, throughput, color, hatch, is_separator)
-    
+
     # Track where to insert separator
     separator_inserted = False
     parallel_count = filtered['_is_parallel'].sum() if has_parallel and has_non_parallel else 0
-    
+
     for i, (idx, row) in enumerate(filtered.iterrows()):
         # Insert separator between parallel and non-parallel groups
         if has_parallel and has_non_parallel and not separator_inserted and i == parallel_count:
             bar_data.append(('', 0, 'none', None, True, np.nan))  # separator
             separator_inserted = True
-        
+
         method = row['Method']
         is_parallel = '_Parallel' in method
-        is_hardcoded = False
 
         # Build display name with proper formatting
         base_method = method.replace('_Parallel', '')
@@ -244,38 +247,33 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
                 variant = base_method.replace('Flame_', '')
 
             if variant == 'SrcGen':
-                display_name = 'Flame SourceGen'
+                display_name = 'FlameCsv SourceGen'
             elif variant == 'Reflection':
-                display_name = 'Flame Reflection'
+                display_name = 'FlameCsv Reflection'
             else:
-                display_name = f'Flame {variant}'
+                display_name = f'FlameCsv {variant}'
             color_key = 'FlameCsv'
         # Handle _Hardcoded suffix for other libraries
         elif '_Hardcoded' in base_method:
             clean_name = base_method.replace('_Hardcoded', '')
-            display_name = f'{clean_name} (hardcoded)'
+            display_name = clean_name
             color_key = clean_name
-            is_hardcoded = True
+        elif base_method == 'FlameCsv' and 'Reading objects' in title:
+            display_name = 'FlameCsv Reflection'
+            color_key = 'FlameCsv'
         else:
             display_name = base_method
             color_key = base_method
 
-        # Add parallel suffix
-        if is_parallel:
-            display_name += ' (MT)'
-
         color = LIBRARY_COLORS.get(color_key, '#95A5A6')
-        
+
         # Adjust color for parallel versions
         if is_parallel:
             color = adjust_color_lightness(color, 0.9)
 
         hatch = None
         if is_parallel:
-            hatch = '///'
-
-        if is_hardcoded:
-            hatch = (hatch or '') + 'oo'
+            hatch = 'oo'
 
         alloc_mb = row.get('AllocatedMB', np.nan)
         bar_data.append((display_name, row['Throughput'], color, hatch, False, alloc_mb))
@@ -295,11 +293,15 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
             bar = ax.barh(i, throughput, 
                           color=color, hatch=hatch, edgecolor=edge_color, linewidth=1)
         bars.append(bar)
-    
+
     # Add horizontal line at separator position
     if separator_y is not None:
         ax.axhline(y=separator_y, color=text_color, linestyle='--', linewidth=0.8, alpha=0.5)
-    
+        # Label parallel section to the left of the separator line
+        ax.text(-0.02, separator_y, 'Parallel', transform=ax.get_yaxis_transform(),
+                ha='right', va='center', fontsize=10, fontweight='bold',
+                color=text_color, clip_on=False)
+
     # Set y-tick positions and labels
     ax.set_yticks(range(len(bar_data)))
     ax.set_yticklabels(labels)
@@ -326,7 +328,7 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
 
     # Get max throughput for positioning
     max_throughput = max(t for _, t, _, _, is_sep, _ in bar_data if not is_sep)
-    
+
     # Add value labels (throughput right after bar)
     for i, (display_name, throughput, color, hatch, is_separator, alloc_mb) in enumerate(bar_data):
         if not is_separator:
@@ -335,6 +337,9 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
 
     # Add memory labels outside the chart on the right
     # Use axes transform to place text at fixed position relative to axes
+    alloc_values = [alloc_mb for _, _, _, _, is_sep, alloc_mb in bar_data if not is_sep and not pd.isna(alloc_mb)]
+    min_alloc = min(alloc_values) if alloc_values else None
+
     for i, (display_name, throughput, color, hatch, is_separator, alloc_mb) in enumerate(bar_data):
         if not is_separator and not pd.isna(alloc_mb):
             if alloc_mb >= 1:
@@ -343,9 +348,16 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
                 mem_str = f"{alloc_mb * 1024:.0f} KB"
             else:
                 mem_str = f"{alloc_mb * 1024 * 1024:.0f} B"
+
+            is_min_alloc = min_alloc is not None and np.isclose(alloc_mb, min_alloc)
+            highlight_bg = annotation_bg_highlight if is_min_alloc else annotation_bg
+            font_weight = 'bold' if is_min_alloc else 'normal'
+
             # Position outside chart area, right-aligned to a fixed column
             ax.annotate(mem_str, xy=(1.12, i), xycoords=('axes fraction', 'data'),
-                       va='center', ha='right', fontsize=9, color=text_color, alpha=0.7,
+                       va='center', ha='right', fontsize=9, fontweight=font_weight,
+                       color=text_color, alpha=0.9,
+                       bbox=dict(boxstyle='round,pad=0.25', facecolor=highlight_bg, edgecolor='none'),
                        annotation_clip=False)
 
     plt.tight_layout()
@@ -376,11 +388,19 @@ def main():
             
             # Parse results from the benchmark file
             df = parse_benchmark_results(filepath, list(parameters.keys()))
+
+            # Exclude Sep hardcoded variants from ReadObjects charts
+            if config["filepath"].endswith("ReadObjects-report.csv"):
+                sep_hardcoded = df['Method'].str.contains('Sep', regex=False) & df['Method'].str.contains('Hardcoded', regex=False)
+                df = df[~sep_hardcoded]
             
             # Always load memory data from Neon (has complete data)
             neon_filepath = f"Neon/{config['filepath']}"
             if Path(neon_filepath).exists() and benchmark_dir != 'Neon':
                 neon_df = parse_benchmark_results(neon_filepath, list(parameters.keys()))
+                if config["filepath"].endswith("ReadObjects-report.csv"):
+                    sep_hardcoded_neon = neon_df['Method'].str.contains('Sep', regex=False) & neon_df['Method'].str.contains('Hardcoded', regex=False)
+                    neon_df = neon_df[~sep_hardcoded_neon]
                 # Merge memory data from Neon into main df
                 # Create a key from Method + parameters for matching
                 param_cols = list(parameters.keys())

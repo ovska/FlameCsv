@@ -300,21 +300,21 @@ public class CsvReaderTests
         });
     }
 
-#if FULL_TEST_SUITE
-    [Fact] // slow test, run only in CI
+    [Fact]
     public void Should_Throw_On_Too_Long_Record()
     {
-        using var mo = MemoryOwner<byte>.Allocate(Field.MaxFieldEnd + 1);
-        mo.Span.Clear();
-        mo.Span[65536] = (byte)',';
-        mo.Span[65536 * 2] = (byte)',';
-        mo.Span[^1] = (byte)'\n';
+#if !FULL_TEST_SUITE
+        Assert.Skip("Slow test, run only in CI");
+#endif
+        byte[] array = new byte[FlameCsv.Reading.Internal.Field.MaxFieldEnd + 1];
+        array[65536] = (byte)',';
+        array[65536 * 2] = (byte)',';
+        array[^1] = (byte)'\n';
         var options = new CsvOptions<byte> { Newline = CsvNewline.LF };
 
         Assert.Throws<InvalidDataException>(() =>
         {
-            foreach (var _ in Csv.From(mo.Memory).Enumerate(options)) { }
+            foreach (var _ in Csv.From(array).Enumerate(options)) { }
         });
     }
-#endif
 }

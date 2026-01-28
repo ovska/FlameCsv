@@ -8,16 +8,16 @@ This page contains benchmarks comparing the performance of FlameCsv with other p
 
 The benchmarks use varied sample CSV datasets which can be downloaded from the repository. There are both x86 (AVX-2) and ARM64 (Neon) benchmarks, done on a desktop Ryzen machine and Mac Studio, respectively. x86 AVX-512 will be added if I can get my hands on a suitable CPU.
 
-- Benchmark code: [tools/Bench/Comparisons](https://github.com/ovska/FlameCsv/tree/9bb294dd0f17b55685631f636230535d94b1a660/tools/Bench/Comparisons)
-- Data used: [tools/Bench/Comparisons/Data](https://github.com/ovska/FlameCsv/tree/9bb294dd0f17b55685631f636230535d94b1a660/tools/Bench/Comparisons/Data)
-- Raw benchmark results: [tools/Bench/BenchmarkResults](https://github.com/ovska/FlameCsv/tree/46fe9995d8d395579fb0fa332eca588ef89cb495/tools/Bench/BenchmarkResults)
+- Benchmark code: [tools/Bench/Comparisons](https://github.com/ovska/FlameCsv/tree/8577302baee80fad83fb07336175f46eabae653e/tools/Bench/Comparisons)
+- Data used: [tools/Bench/Comparisons/Data](https://github.com/ovska/FlameCsv/tree/8577302baee80fad83fb07336175f46eabae653e/tools/Bench/Comparisons/Data)
+- Raw benchmark results: [tools/Bench/BenchmarkResults](https://github.com/ovska/FlameCsv/tree/8577302baee80fad83fb07336175f46eabae653e/tools/Bench/BenchmarkResults)
 
 ## Details
 
 - Memory allocations are on the right hand side of the bars in the charts.
+- Parallel (multithreaded) versions are included when available, separated in the charts. Unordered processing is used where possible to get the best performance.
 - "Reflection" and "SourceGen" refer to FlameCsv's type binding method.
 - Some libraries lack async support for certain operations; these are absent in the charts.
-- "MT" means the benchmark uses multithreading (parallel) APIs. Unordered multithreading is used where possible to get the best performance.
 
 ## Synchronous
 
@@ -25,7 +25,8 @@ The benchmarks use varied sample CSV datasets which can be downloaded from the r
 
 This benchmark enumerates 20,000 records (10 fields per record) from a stream wrapping a `byte[]`.
 
-Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmarks have compile-time field indexes when reading, others use field lookups by name.
+- RecordParser uses hardcoded field indexes and manual parsing
+- Sep uses manual parsing
 
 # [Apple M4 Max 16c](#tab/rsa)
 
@@ -43,7 +44,7 @@ Sep and RecordParser don't support automatic type binding. "Hardcoded" benchmark
 
 This benchmark writes the same 20,000 records from an array into a stream.
 
-Sep and RecordParser write objects manually, other libraries support automatic type binding.
+- Sep and RecordParser write objects manually
 
 # [Apple M4 Max 16c](#tab/wsa)
 
@@ -97,7 +98,6 @@ Some of the fields require unescaping. Libraries that support accessing fields a
 ### Sum the value of one column
 
 This benchmark parses a double from a single column of the 65,536 record dataset and sums the results.
-csFastFloat is used to parse the values to highlight the differences between CSV libraries better than double.Parse.
 
 The raw `byte[]` is passed to the libraries whenever possible. There is no async variant for this benchmark,
 as the enumeration-benchmark above should already cover the differences.
@@ -120,7 +120,7 @@ RecordParser doesn't support async, so it is absent from these results.
 
 ### Read objects
 
-Sep doesn't support async parallel reading.
+Sep doesn't support asynchronous parallel.
 
 # [Apple M4 Max 16c](#tab/raa)
 
