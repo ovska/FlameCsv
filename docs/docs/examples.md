@@ -153,10 +153,13 @@ foreach (ref readonly CsvRecord<char> record in Csv.From(csv).Enumerate())
 For advanced performance-critical scenarios, you can create a @"FlameCsv.Reading.CsvReader`1".
 This is the type that is used internally to tokenize the CSV data. @"FlameCsv.Reading.CsvReader`1.ParseRecords" and @"FlameCsv.Reading.CsvReader`1.ParseRecordsAsync(System.Threading.CancellationToken)" can be used to read the tokenized CSV (field and record spans).
 
+The @"FlameCsv.Reading.CsvRecordRef`1" type is a `ref struct` wrapper around the raw field spans and the reader's state.
+You can access individual fields, or the raw unescaped spans directly with `GetRawSpan`.
+
 # [UTF-16](#tab/utf16)
 
 ```cs
-foreach (CsvRecordRef<char> record in new CsvReader<char>(CsvOptions<char>, textReader).ParseRecords())
+foreach (CsvRecordRef<char> record in Csv.From(textReader).ToReader())
 {
     for (int i = 0; i < record.FieldCount; i++)
     {
@@ -169,7 +172,7 @@ foreach (CsvRecordRef<char> record in new CsvReader<char>(CsvOptions<char>, text
 # [UTF-8](#tab/utf8)
 
 ```cs
-foreach (CsvRecordRef<byte> record in new CsvReader<byte>(CsvOptions<byte>, stream).ParseRecords())
+foreach (CsvRecordRef<byte> record in Csv.From(stream).ToReader())
 {
     for (int i = 0; i < record.FieldCount; i++)
     {
@@ -196,7 +199,7 @@ The @"FlameCsv.Csv" class provides methods to write .NET objects as CSV records.
 - @"System.Text.StringBuilder"
 - @"System.IO.Pipelines.PipeWriter"
 
-You can write both @"System.Collections.Generic.IEnumerable`1" and @"System.Collections.Generic.IAsyncEnumerable`1" data.
+You can write records using both @"System.Collections.Generic.IEnumerable`1" and @"System.Collections.Generic.IAsyncEnumerable`1".
 
 ```cs
 User[] users =

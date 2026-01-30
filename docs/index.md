@@ -4,11 +4,11 @@ _layout: landing
 
 # Introduction
 
-🔥 FlameCsv 🔥 is a fully-featured high performance CSV library for .NET with a simple API, deep customization options, and built-in support for UTF8, nativeAOT, and more.
+🔥 FlameCsv 🔥 is a fully-featured high performance CSV library for .NET with a simple API, deep customization, and built-in support for UTF8, nativeAOT, and more.
 
-FlameCsv can be thought to be the System.Text.Json of CSV libraries. It is designed to be fast, easy to use, and extensible, while supporting low-level operations for advanced use-cases. FlameCsv is extremely fast and the most memory-efficient .NET CSV library in the world.
+FlameCsv can be thought of as a CSV-equivalent of `System.Text.Json`. It is designed to simple to use, extensible, and performant, while supporting low-level operations for advanced use-cases. FlameCsv is the most memory-efficient .NET CSV library available.
 
-FlameCsv can process millions of CSV records per second on consumer hardware, and write arbitrarily large datasets with near-zero allocations. See the @"benchmarks" for more details.
+FlameCsv can process millions of CSV records per second on consumer hardware, and write arbitrarily large datasets with near-zero allocations. See the @"benchmarks?text=benchmarks" for more details.
 
 The library has thousands of unit tests and has been fuzz-tested.
 
@@ -21,12 +21,12 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
   - Fluent API to read/write CSV from/to almost any source/destination
   - Built-in support for common CLR types and interfaces like I(Utf8)SpanParsable
   - Full feature parity with sync and async APIs
-  - UTF-8/ASCII support to read/write bytes directly from a stream without additional transcoding
+  - Read or write UTF-8 bytes directly without a TextReader or TextWriter
   - Hot reload support for internal caches
 - **High Performance**
   - SIMD parsers tuned for each platform (AVX2, AVX512, ARM64)
-  - Near-zero allocations
-  - Parallel APIs to read/write records ordered or unordered with multiple threads
+  - Near-zero allocations irrespective of dataset size
+  - Parallel APIs to read/write records in parallel
   - Low-level APIs to handle raw CSV field spans directly
 - **Deep Customization**
   - Attribute configuration for header names, constructors, field order, etc.
@@ -36,6 +36,8 @@ See @"getting-started", view the @"examples", or deep dive into the @"FlameCsv?t
   - Library is fully annotated for NativeAOT and trimming
   - Source generated type maps for reflection-free reading and writing
   - Source generated enum converters with up to 10x better performance than Enum.TryParse/TryFormat
+
+All of this without sacrificing ease of use.
 
 # Example
 
