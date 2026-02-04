@@ -7,12 +7,9 @@
   <h1 align="center">FlameCsv</h1>
   <p align="center">High-performance RFC 4180-compliant CSV library for .NET 9/10 with trimming/AOT support</p>
   <p align="center" style="text-decoration:none">
-    <a href="https://www.nuget.org/packages/FlameCsv/" target="_blank" style="text-decoration:none">
-      <img src="https://img.shields.io/nuget/v/FlameCsv" alt="NuGet version" style="text-decoration:none"/>
-    </a>
-    <a href="https://ovska.github.io/FlameCsv/index.html" target="_blank" style="text-decoration:none">
-      <img src="https://img.shields.io/badge/docs-github_pages-blue" alt="Build status" style="text-decoration:none"/>
-    </a>
+    <a href="https://www.nuget.org/packages/FlameCsv/" target="_blank" style="text-decoration:none"><img src="https://img.shields.io/nuget/v/FlameCsv" alt="NuGet version" style="text-decoration:none"/></a>
+    &nbsp;
+    <a href="https://ovska.github.io/FlameCsv/index.html" target="_blank" style="text-decoration:none"><img src="https://img.shields.io/badge/docs-github_pages-blue" alt="Build status" style="text-decoration:none"/></a>
   </p>
 </p>
 
@@ -91,7 +88,7 @@ foreach (CsvRecord<char> record in Csv.From(data).Enumerate(options))
         Name:      record.GetField<string>(1),
         LastLogin: record.GetField<DateTime>(2),
         Age:       record.FieldCount >= 3 ? record.GetField<int?>(3) : null);
-    
+
     // or get them once and reuse
     int nameIndex = record.Header["Name"];
 }
@@ -129,3 +126,15 @@ using (CsvWriter<char> writer = CsvWriter.Create(TextWriter.Null))
 # Benchmarks
 
 See detailed benchmarks in the [documentation page](https://ovska.github.io/FlameCsv/docs/benchmarks.html).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/data/charts/x86/reading_objects_from_csv_sync_dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/data/charts/x86/reading_objects_from_csv_sync_light.svg">
+  <img src="docs/data/charts/x86/reading_objects_from_csv_sync_light.svg" alt="Reading benchmark results">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/data/charts/x86/writing_objects_to_csv_sync_dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/data/charts/x86/writing_objects_to_csv_sync_light.svg">
+  <img src="docs/data/charts/x86/writing_objects_to_csv_sync_light.svg" alt="Writing benchmark results">
+</picture>

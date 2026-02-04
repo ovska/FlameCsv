@@ -300,7 +300,7 @@ partial class UserTypeMapChar : global::FlameCsv.Binding.CsvTypeMap<char, global
         public required global::FlameCsv.CsvConverter<char, string> @s__Converter_Name { get; init; }
 
         [global::System.Runtime.CompilerServices.SkipLocalsInit]
-        public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<char> writer, global::User obj)
+        public void Write(global::FlameCsv.Writing.CsvFieldWriter<char> writer, global::User obj)
         {
             writer.WriteField(@s__Converter_Id, obj.Id);
             writer.WriteDelimiter();
@@ -312,7 +312,7 @@ partial class UserTypeMapChar : global::FlameCsv.Binding.CsvTypeMap<char, global
         }
 
         [global::System.Runtime.CompilerServices.SkipLocalsInit]
-        public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<char> writer)
+        public void WriteHeader(global::FlameCsv.Writing.CsvFieldWriter<char> writer)
         {
             writer.WriteRaw("Id");
             writer.WriteDelimiter();
@@ -553,7 +553,7 @@ partial class UserTypeMapByte : global::FlameCsv.Binding.CsvTypeMap<byte, global
         public required global::FlameCsv.CsvConverter<byte, string> @s__Converter_Name { get; init; }
 
         [global::System.Runtime.CompilerServices.SkipLocalsInit]
-        public void Write(ref readonly global::FlameCsv.Writing.CsvFieldWriter<byte> writer, global::User obj)
+        public void Write(global::FlameCsv.Writing.CsvFieldWriter<byte> writer, global::User obj)
         {
             writer.WriteField(@s__Converter_Id, obj.Id);
             writer.WriteDelimiter();
@@ -565,7 +565,7 @@ partial class UserTypeMapByte : global::FlameCsv.Binding.CsvTypeMap<byte, global
         }
 
         [global::System.Runtime.CompilerServices.SkipLocalsInit]
-        public void WriteHeader(ref readonly global::FlameCsv.Writing.CsvFieldWriter<byte> writer)
+        public void WriteHeader(global::FlameCsv.Writing.CsvFieldWriter<byte> writer)
         {
             writer.WriteRaw("Id"u8);
             writer.WriteDelimiter();

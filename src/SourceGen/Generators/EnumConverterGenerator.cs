@@ -340,7 +340,7 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
             }
         }
 
-        foreach (ref readonly NestedType nestedType in model.WrappingTypes)
+        foreach (var nestedType in model.WrappingTypes)
         {
             writer.WriteLine($"}} // {nestedType.Name}");
         }

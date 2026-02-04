@@ -1,4 +1,5 @@
 ﻿using FlameCsv.Extensions;
+using FlameCsv.IO;
 using FlameCsv.Writing;
 using JetBrains.Annotations;
 
@@ -17,15 +18,17 @@ internal static class CsvWriter
     {
         Exception? exception = null;
 
-        using CsvFieldWriter<T> writer = new(builder.CreateWriter(isAsync: false), options);
+        ICsvBufferWriter<T> bufferWriter = builder.CreateWriter(isAsync: false);
 
         try
         {
-            WriteHeaderIfNeeded(dematerializer, in writer);
+            using CsvFieldWriter<T> writer = new(bufferWriter, options);
+
+            WriteHeaderIfNeeded(dematerializer, writer);
 
             if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
             {
-                EnsureTrailingNewline(in writer);
+                EnsureTrailingNewline(writer);
                 return;
             }
 
@@ -33,7 +36,7 @@ internal static class CsvWriter
 
             if (!enumerator.MoveNext())
             {
-                EnsureTrailingNewline(in writer);
+                EnsureTrailingNewline(writer);
                 return;
             }
 
@@ -55,7 +58,7 @@ internal static class CsvWriter
         }
         finally
         {
-            writer.Writer.Complete(exception);
+            bufferWriter.Complete(exception);
         }
 
         exception?.Rethrow();
@@ -72,17 +75,19 @@ internal static class CsvWriter
     {
         Exception? exception = null;
 
-        using CsvFieldWriter<T> writer = new(builder.CreateWriter(isAsync: true), options);
+        ICsvBufferWriter<T> bufferWriter = builder.CreateWriter(isAsync: true);
 
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            WriteHeaderIfNeeded(dematerializer, in writer);
+            using CsvFieldWriter<T> writer = new(bufferWriter, options);
+
+            WriteHeaderIfNeeded(dematerializer, writer);
 
             if (values.TryGetNonEnumeratedCount(out int count) && count == 0)
             {
-                EnsureTrailingNewline(in writer);
+                EnsureTrailingNewline(writer);
                 return;
             }
 
@@ -90,7 +95,7 @@ internal static class CsvWriter
 
             if (!enumerator.MoveNext())
             {
-                EnsureTrailingNewline(in writer);
+                EnsureTrailingNewline(writer);
                 return;
             }
 
@@ -113,7 +118,7 @@ internal static class CsvWriter
         finally
         {
             exception ??= cancellationToken.GetExceptionIfCanceled();
-            await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
+            await bufferWriter.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
 
         exception?.Rethrow();
@@ -129,12 +134,15 @@ internal static class CsvWriter
         where T : unmanaged, IBinaryInteger<T>
     {
         Exception? exception = null;
-
-        using CsvFieldWriter<T> writer = new(builder.CreateWriter(isAsync: true), options);
+        ICsvBufferWriter<T> bufferWriter = builder.CreateWriter(isAsync: true);
 
         try
         {
-            WriteHeaderIfNeeded(dematerializer, in writer);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            using CsvFieldWriter<T> writer = new(bufferWriter, options);
+
+            WriteHeaderIfNeeded(dematerializer, writer);
 
             IAsyncEnumerator<TValue> enumerator = values.GetAsyncEnumerator(cancellationToken);
 
@@ -142,7 +150,7 @@ internal static class CsvWriter
             {
                 if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
                 {
-                    EnsureTrailingNewline(in writer);
+                    EnsureTrailingNewline(writer);
                     return;
                 }
 
@@ -166,7 +174,7 @@ internal static class CsvWriter
         finally
         {
             exception ??= cancellationToken.GetExceptionIfCanceled();
-            await writer.Writer.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
+            await bufferWriter.CompleteAsync(exception, cancellationToken).ConfigureAwait(false);
         }
 
         exception?.Rethrow();
@@ -177,7 +185,7 @@ internal static class CsvWriter
     /// </summary>
     private static void WriteHeaderIfNeeded<T, TValue>(
         IDematerializer<T, TValue> dematerializer,
-        ref readonly CsvFieldWriter<T> writer
+        CsvFieldWriter<T> writer
     )
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -191,7 +199,7 @@ internal static class CsvWriter
     /// <summary>
     /// If a header record hasn't been written, writes a single newline.
     /// </summary>
-    private static void EnsureTrailingNewline<T>(ref readonly CsvFieldWriter<T> writer)
+    private static void EnsureTrailingNewline<T>(CsvFieldWriter<T> writer)
         where T : unmanaged, IBinaryInteger<T>
     {
         if (!writer.Options.HasHeader)
