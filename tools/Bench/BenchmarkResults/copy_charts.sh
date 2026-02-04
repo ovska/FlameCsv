@@ -9,6 +9,7 @@ DOCS_CHARTS="$REPO_ROOT/docs/data/charts"
 # Create target directories
 mkdir -p "$DOCS_CHARTS/x86"
 mkdir -p "$DOCS_CHARTS/arm"
+mkdir -p "$DOCS_CHARTS/enums"
 
 # Copy AVX2 charts to x86
 echo "Copying AVX2 charts to docs/data/charts/x86..."
@@ -18,7 +19,12 @@ cp "$SCRIPT_DIR/AVX2/"*.svg "$DOCS_CHARTS/x86/" 2>/dev/null && echo "  Done" || 
 echo "Copying Neon charts to docs/data/charts/arm..."
 cp "$SCRIPT_DIR/Neon/"*.svg "$DOCS_CHARTS/arm/" 2>/dev/null && echo "  Done" || echo "  No SVG files found in Neon"
 
+# Copy enum charts
+echo "Copying enum charts to docs/data/charts/enums..."
+cp "$SCRIPT_DIR/Enums/"*.svg "$DOCS_CHARTS/enums/" 2>/dev/null && echo "  Done" || echo "  No SVG files found in Enums"
+
 echo ""
 echo "Charts copied to:"
 echo "  $DOCS_CHARTS/x86/"
 echo "  $DOCS_CHARTS/arm/"
+echo "  $DOCS_CHARTS/enums/"

@@ -217,9 +217,6 @@ def create_throughput_chart(df, param_filters, output_file, throughput_value=100
     ax.set_facecolor(bg_color)
 
     # Build y-positions and labels, inserting separator if needed
-    y_labels = []
-    y_positions = []
-    throughputs = []
     bar_data = []  # (display_name, throughput, color, hatch, is_separator)
 
     # Track where to insert separator

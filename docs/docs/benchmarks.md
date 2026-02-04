@@ -182,25 +182,39 @@ The async version of this benchmark uses a stream that always yields on async ca
 ## Enums
 
 FlameCsv provides a [source generator](source-generator.md#enum-converter-generator) for enum converters that generates
-highly optimized read/write operations specific to the enum. The comparisons below are performance relative to
-`Enum.TryParse` or `Enum.TryFormat`.
+highly optimized read/write operations specific to the enum.
 
 Generating the enum converter at compile-time allows the enum to be analyzed, and specific optimizations to be made
 regarding different values and names.
-The generated converter especially excels at small enums that start from 0 without any gaps, and have only ASCII
-characters in their name. More complex configurations such as flags and non-ASCII display names are supported as well.
+The generated converter especially excels at parsing numeric values from small enums that start from 0 without any gaps,
+or names that are ASCII-only.
+More complex configurations such as flags and non-ASCII display names are supported as well.
 
-The benchmarks below are for the `System.TypeCode`-enum, either in UTF8 (`byte`) or UTF16 (`char`).
-You can find the generated code for the enum under [Source Generator](source-generator.md#enum-converter-generator).
+The benchmarks below are for the `System.TypeCode`-enum, in UTF8 (`byte`) and UTF16 (`char`).
 Benchmarked on AMD Ryzen 7 3700X.
 
 ### Parsing
 
-The chart shows relative throughput of parsing enums using the reflection-based converter in FlameCsv,
-and the source-generated converter (`Enum.TryParse` is the baseline at 100%). Higher is better.
+The compares the throughput of `Enum.TryParse`, FlameCsv's reflection-based converter,
+and the source-generated converter. Higher is better.
 
-<img src="../data/charts/parse_light.svg" alt="Enum parsing performance chart" class="chart-light" />
-<img src="../data/charts/parse_dark.svg" alt="Enum parsing performance chart" class="chart-dark" />
+# [UTF16](#tab/p16)
+
+<img src="../data/charts/enums/parse_enum_names_utf16_light.svg" alt="Parse enum names from UTF16" class="chart-light" />
+<img src="../data/charts/enums/parse_enum_names_utf16_dark.svg" alt="Parse enum names from UTF16" class="chart-dark" />
+<br>
+<img src="../data/charts/enums/parse_enum_numbers_utf16_light.svg" alt="Parse enum numbers from UTF16" class="chart-light" />
+<img src="../data/charts/enums/parse_enum_numbers_utf16_dark.svg" alt="Parse enum numbers from UTF16" class="chart-dark" />
+
+# [UTF8](#tab/p8)
+
+<img src="../data/charts/enums/parse_enum_names_utf8_light.svg" alt="Parse enum names from UTF8" class="chart-light" />
+<img src="../data/charts/enums/parse_enum_names_utf8_dark.svg" alt="Parse enum names from UTF8" class="chart-dark" />
+<br>
+<img src="../data/charts/enums/parse_enum_numbers_utf8_light.svg" alt="Parse enum numbers from UTF8" class="chart-light" />
+<img src="../data/charts/enums/parse_enum_numbers_utf8_dark.svg" alt="Parse enum numbers from UTF8" class="chart-dark" />
+
+---
 
 <details>
 <summary><strong>Click to view benchmark summary</strong></summary>
@@ -249,11 +263,26 @@ and the source-generated converter (`Enum.TryParse` is the baseline at 100%). Hi
 
 ### Formatting
 
-The chart shows relative throughput of formatting enums using the reflection-based converter in FlameCsv,
-and the source-generated converter (`Enum.TryFormat` is the baseline at 100%). Higher is better.
+The chart compares the throughput of `Enum.TryFormat`, FlameCsv's reflection-based converter,
+and the source-generated converter. Higher is better.
 
-<img src="../data/charts/format_light.svg" alt="Enum formatting performance chart" class="chart-light" />
-<img src="../data/charts/format_dark.svg" alt="Enum formatting performance chart" class="chart-dark" />
+# [UTF16](#tab/f16)
+
+<img src="../data/charts/enums/format_enum_names_utf16_light.svg" alt="Format enum names to UTF16" class="chart-light" />
+<img src="../data/charts/enums/format_enum_names_utf16_dark.svg" alt="Format enum names to UTF16" class="chart-dark" />
+<br>
+<img src="../data/charts/enums/format_enum_values_utf16_light.svg" alt="Format enum values to UTF16" class="chart-light" />
+<img src="../data/charts/enums/format_enum_values_utf16_dark.svg" alt="Format enum values to UTF16" class="chart-dark" />
+
+# [UTF8](#tab/f8)
+
+<img src="../data/charts/enums/format_enum_names_utf8_light.svg" alt="Format enum names to UTF8" class="chart-light" />
+<img src="../data/charts/enums/format_enum_names_utf8_dark.svg" alt="Format enum names to UTF8" class="chart-dark" />
+<br>
+<img src="../data/charts/enums/format_enum_values_utf8_light.svg" alt="Format enum values to UTF8" class="chart-light" />
+<img src="../data/charts/enums/format_enum_values_utf8_dark.svg" alt="Format enum values to UTF8" class="chart-dark" />
+
+---
 
 <details>
 <summary><strong>Click to view benchmark summary</strong></summary>
@@ -288,7 +317,7 @@ converter in FlameCsv, and the source-generated converter.
 
 ## Why not NCsvPerf
 
-While NCsvPerf benchmarks are commonly used for CSV library comparisons, it has several limitations:
+While NCsvPerf benchmarks are commonly used for CSV library parsing comparisons, it has several limitations:
 
 1. String Conversion: All fields are converted to strings, which:
    - Creates unnecessary transcoding and GC overhead

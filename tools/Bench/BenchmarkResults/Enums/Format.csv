@@ -1,0 +1,13 @@
+Method,Numeric,Bytes,Mean
+TryFormat,False,False,715.8
+Reflection,False,False,275.2
+SourceGen,False,False,188.4
+TryFormat,False,True,1296.3
+Reflection,False,True,285.8
+SourceGen,False,True,173.6
+TryFormat,True,False,285.0
+Reflection,True,False,298.5
+SourceGen,True,False,151.6
+TryFormat,True,True,861.6
+Reflection,True,True,298.9
+SourceGen,True,True,156.2
