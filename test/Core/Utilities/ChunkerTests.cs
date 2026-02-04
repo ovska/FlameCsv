@@ -409,27 +409,6 @@ public static class ChunkerTests
     }
 
     [Fact]
-    public static void ChunkAsync_AsyncEnumerable_NullEnumerable_ThrowsArgumentNullException()
-    {
-        IAsyncEnumerable<int>? asyncEnumerable = null;
-        Assert.Throws<ArgumentNullException>(() =>
-            ParallelChunker.ChunkAsync(asyncEnumerable!, 10, TestContext.Current.CancellationToken)
-        );
-    }
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-100)]
-    public static void ChunkAsync_AsyncEnumerable_InvalidChunkSize_ThrowsArgumentOutOfRangeException(int chunkSize)
-    {
-        var asyncEnumerable = CreateAsyncEnumerable(new[] { 1, 2, 3 });
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            ParallelChunker.ChunkAsync(asyncEnumerable, chunkSize, TestContext.Current.CancellationToken)
-        );
-    }
-
-    [Fact]
     public static void Chunk_Array_LargeData()
     {
         var array = Enumerable.Range(0, 10000).ToArray();

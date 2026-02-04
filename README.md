@@ -10,13 +10,13 @@
     <a href="https://www.nuget.org/packages/FlameCsv/" target="_blank" style="text-decoration:none">
       <img src="https://img.shields.io/nuget/v/FlameCsv" alt="NuGet version" style="text-decoration:none"/>
     </a>
+    <a href="https://ovska.github.io/FlameCsv/index.html" target="_blank" style="text-decoration:none">
+      <img src="https://img.shields.io/badge/docs-github_pages-blue" alt="Build status" style="text-decoration:none"/>
+    </a>
   </p>
 </p>
 
----
-
-- [Download on nuget](https://www.nuget.org/packages/FlameCsv/)
-- [See the documentation](https://ovska.github.io/FlameCsv/)
+<br>
 
 # Features
 - **TL;DR:** Blazingly fast, trimmable and easy-to-use feature-rich CSV library

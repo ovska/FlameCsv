@@ -21,14 +21,14 @@ internal sealed class AutoQuoter<T> : IQuoter<T>
     public QuotingResult NeedsQuoting(ReadOnlySpan<T> field)
     {
         int index = field.IndexOfAny(_needsQuoting);
-        return index >= 0 ? new QuotingResult(true, field.Slice(0, index).Count(Quote)) : default;
+        return index >= 0 ? new QuotingResult(true, field.Slice(index).Count(Quote)) : default;
     }
 
     public QuotingResult NeedsQuoting(ReadOnlySpan<char> field)
     {
         int index = field.IndexOfAny(_needsQuotingChar);
         return index >= 0
-            ? new QuotingResult(true, field.Slice(0, index).Count((char)ushort.CreateTruncating(Quote)))
+            ? new QuotingResult(true, field.Slice(index).Count((char)ushort.CreateTruncating(Quote)))
             : default;
     }
 }

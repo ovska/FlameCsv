@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.Unicode;
 using FlameCsv.Utilities;
 
