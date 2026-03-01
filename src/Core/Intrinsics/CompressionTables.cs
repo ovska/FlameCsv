@@ -5,7 +5,8 @@
 /// (c) Daniel Lemire, Geoff Langdale, animetosho<br/>
 /// MIT and Apache 2.0 Licenses.
 /// </summary>
-internal static unsafe class CompressionTables
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+internal static class CompressionTables
 {
     // @formatter:off
     /// <summary>

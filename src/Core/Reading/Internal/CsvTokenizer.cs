@@ -54,8 +54,8 @@ internal abstract class CsvTokenizer<T>
     /// </summary>
     /// <param name="destination">Buffer for the packed field bits</param>
     /// <param name="startIndex">Start index in the data</param>
-    /// <param name="start">Pointer to the start of the data</param>
-    /// <param name="end">Pointer to the end of the safe read range</param>
+    /// <param name="start">Pre-pinned pointer to the start of the data</param>
+    /// <param name="end">Pre-pinned pointer to the end of the safe read range</param>
     /// <returns>Number of fields read</returns>
     protected abstract unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end);
 

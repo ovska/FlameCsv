@@ -119,7 +119,7 @@ public abstract class DefaultConverterTests<T>
 
         ExecuteLocal(true);
         ExecuteLocal(false);
-        ExecuteLocal(default(string?));
+        ExecuteLocal("foo");
         ExecuteLocal(DayOfWeek.Monday);
         ExecuteLocal(new int?());
         ExecuteLocal(new DayOfWeek?());

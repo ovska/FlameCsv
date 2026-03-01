@@ -1,4 +1,5 @@
 using System.Text;
+using FlameCsv.Reading.Internal;
 using FlameCsv.Writing.Escaping;
 
 namespace FlameCsv.Benchmark;
@@ -46,9 +47,9 @@ public class EscapeBench
 
         foreach (var r in Csv.FromFile("Comparisons/Data/SampleCSVFile_556kb_4x.csv").ToReader())
         {
-            for (int i = 0; i < r.FieldCount; i++)
+            for (int i = 0; i < r._fields.Length; i++)
             {
-                if (r.GetMetadata(i).NeedsUnescaping)
+                if ((Field.NeedsUnescapingMask & r._fields[i]) != 0)
                 {
                     string value = r[i].ToString();
                     int count = value.Count('"');

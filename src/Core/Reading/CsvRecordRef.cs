@@ -8,7 +8,7 @@ using JetBrains.Annotations;
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Internal implementation detail. This type should be used with care.
+/// Metadata of a CSV record's fields and a thin wrapper around the data. This type should be used with care.
 /// </summary>
 [SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -28,7 +28,16 @@ public readonly ref struct CsvRecordRef<T>
     internal CsvRecordRef(RecordOwner<T> owner, ref T data, RecordView view)
     {
         Check.False(owner.IsDisposed, "Cannot create CsvRecordRef from disposed reader.");
-        view.AssertInvariants(owner._recordBuffer);
+
+        Check.True(
+            view.Start >= 0 && view.Length > 0,
+            $"RecordView must have positive start and length: Start={view.Start}, Length={view.Length}"
+        );
+
+        Check.True(
+            (view.Start + view.Length) < owner._recordBuffer._fields.Length,
+            $"RecordView end position out of bounds: Start={view.Start}, Length={view.Length}, Fields={owner._recordBuffer._fields.Length}"
+        );
 
         _data = ref data;
         _owner = owner;
@@ -287,22 +296,6 @@ public readonly ref struct CsvRecordRef<T>
     }
 
     /// <summary>
-    /// Returns metadata about the field at <paramref name="index"/>.
-    /// </summary>
-    /// <param name="index">Zero-based index of the field to get.</param>
-    /// <returns>
-    /// The raw length of the field, whether it has quotes, and whether it needs unescaping.
-    /// </returns>
-    public CsvFieldMetadata GetMetadata(int index)
-    {
-        Check.False(_owner.IsDisposed, $"CsvRecordRef's owner is disposed ({_owner})");
-
-        uint current = _fields[index];
-        uint previous = Unsafe.Add(ref MemoryMarshal.GetReference(_fields), index - 1);
-        return new CsvFieldMetadata(current, Field.NextStart(previous));
-    }
-
-    /// <summary>
     /// Returns a diagnostic string representation of the current instance.
     /// </summary>
     /// <remarks>
@@ -322,7 +315,7 @@ public readonly ref struct CsvRecordRef<T>
 
         if (typeof(T) == typeof(byte))
         {
-            return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Raw))}\" }}";
+            return $"{{ CsvRecordRef<byte>[{FieldCount}]: \"{Encoding.UTF8.GetString(MemoryMarshal.AsBytes(Raw))}\" }}";
         }
 
         return $"{{ CsvRecordRef<{Token<T>.Name}>[{FieldCount}]: \"{Raw.ToString()}\" }}";

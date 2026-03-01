@@ -16,7 +16,7 @@ BenchmarkRunner.Run(
     [
         /**/
         typeof(ReadObjects),
-        typeof(WriteObjects),
+        // typeof(WriteObjects),
         // typeof(EnumerateBench),
         // typeof(PeekFields),
     ],
@@ -28,7 +28,7 @@ BenchmarkRunner.Run(
 
 file class Config : ManualConfig
 {
-    const int Iters = 16;
+    const int Iters = 8;
 
     public Config()
     {
