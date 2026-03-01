@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
+using System.Text;
 using FlameCsv.Converters.Enums;
 using FlameCsv.Exceptions;
 using FlameCsv.Utilities;
@@ -23,13 +24,9 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         }
     }
 
-    public static bool HasFlagsAttribute =>
-        _hasFlagsAttribute ??= typeof(TEnum).GetCustomAttribute<FlagsAttribute>() is not null;
+    public static bool HasFlagsAttribute { get; } = typeof(TEnum).GetCustomAttribute<FlagsAttribute>() is not null;
 
     public static TEnum AllFlags => _allFlags ??= InitFlags();
-
-    // ReSharper disable once StaticMemberInGenericType
-    private protected static bool? _hasFlagsAttribute;
 
     /// <summary>
     /// Returns <c>true</c> if the specified enum type and format are supported.
@@ -50,15 +47,14 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
             vsb.Append(typeof(TEnum).Name);
             vsb.Append('.');
             vsb.Append(Name);
-            vsb.Append(" (");
+            vsb.Append(" = ");
             vsb.AppendFormatted(Value, "D");
-            vsb.Append(')');
 
             if (!string.IsNullOrEmpty(ExplicitName))
             {
-                vsb.Append(" = \"");
+                vsb.Append(" (");
                 vsb.Append(ExplicitName);
-                vsb.Append('"');
+                vsb.Append(')');
             }
 
             return vsb.ToString();
@@ -76,7 +72,7 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
             throw new NotSupportedException($"{typeof(TEnum).FullName} is not a flags enum.");
         }
 
-        var allFlags = default(TEnum);
+        TEnum allFlags = default;
 
         foreach (var value in Enum.GetValues<TEnum>())
         {
@@ -100,7 +96,8 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
         var builder = ImmutableArray.CreateBuilder<EnumMember>(values.Length);
 
         HashSet<string> uniqueNames = [];
-        List<EnumMember> duplicates = [];
+        List<EnumMember>? duplicates = [];
+        List<EnumMember>? invalidNames = [];
 
         foreach (var f in typeof(TEnum).GetFields(BindingFlags.Public | BindingFlags.Static))
         {
@@ -121,7 +118,7 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
             if (index == -1)
                 continue;
 
-            var enumMember = new EnumMember(value, names[index], f.GetCustomAttribute<EnumMemberAttribute>()?.Value);
+            EnumMember enumMember = new(value, names[index], f.GetCustomAttribute<EnumMemberAttribute>()?.Value);
 
             if (
                 !uniqueNames.Add(enumMember.Name)
@@ -132,7 +129,7 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
                 )
             )
             {
-                duplicates.Add(enumMember);
+                (duplicates ??= []).Add(enumMember);
             }
 
             if (
@@ -144,6 +141,7 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
                 )
             )
             {
+                (invalidNames ??= []).Add(enumMember);
                 throw new CsvConfigurationException(
                     $"Enum member name '{enumMember.ExplicitName}' for {typeof(TEnum).FullName} cannot be empty or start with a digit or '-' character."
                 );
@@ -152,12 +150,26 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
             builder.Add(enumMember);
         }
 
-        if (duplicates.Count > 0)
+        if (duplicates.Count > 0 || invalidNames.Count > 0)
         {
+            StringBuilder sb = new($"Invalid enum configuration for {typeof(TEnum).FullName}: ");
             duplicates.Sort((x, y) => Comparer<TEnum>.Default.Compare(x.Value, y.Value));
-            throw new CsvConfigurationException(
-                $"Duplicate enum names configured for {typeof(TEnum).FullName}: {string.Join(", ", duplicates)}"
-            );
+
+            if (duplicates.Count > 0)
+            {
+                sb.Append("Duplicate enum names: ");
+                sb.AppendJoin(", ", duplicates);
+                sb.Append(". ");
+            }
+
+            if (invalidNames.Count > 0)
+            {
+                sb.Append("Invalid enum names (cannot be empty, or start with a digit or '-' character): ");
+                sb.AppendJoin(", ", invalidNames);
+                sb.Append('.');
+            }
+
+            throw new CsvConfigurationException(sb.ToString());
         }
 
         return builder.ToImmutable();
@@ -165,21 +177,7 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
     protected static char GetFormatChar(string? format)
     {
-        if (string.IsNullOrEmpty(format))
-        {
-            return 'g';
-        }
-
-        if (
-            format.Length == 1
-            && char.IsAsciiLetter(format[0])
-            && char.ToLowerInvariant(format[0]) is char c and ('g' or 'd' or 'x' or 'f')
-        )
-        {
-            return c;
-        }
-
-        throw new FormatException($"Invalid enum format string: {format}");
+        return EnumFormat.Get(format) ?? throw new FormatException($"Invalid enum format string: {format}");
     }
 
     public static void EnsureValidFlagsSeparator(char flagsSeparator)
@@ -193,12 +191,30 @@ internal abstract class EnumMemberCache<[DAM(DynamicallyAccessedMemberTypes.Publ
 
         foreach (var member in ValuesAndNames)
         {
-            if (member.Name.Contains(flagsSeparator) || (member.ExplicitName?.Contains(flagsSeparator) == true))
+            if (member.Name.Contains(flagsSeparator) || (member.ExplicitName?.Contains(flagsSeparator) is true))
             {
                 throw new CsvConfigurationException(
                     $"Enum {typeof(TEnum).FullName}.{member.Name} name contains the flags-separator character '{flagsSeparator}'."
                 );
             }
         }
+    }
+}
+
+internal static class EnumFormat
+{
+    public static char? Get(string? format)
+    {
+        if (string.IsNullOrEmpty(format))
+        {
+            return 'g';
+        }
+
+        if (format.Length == 1 && char.ToLowerInvariant(format[0]) is char c and ('g' or 'd' or 'x' or 'f'))
+        {
+            return c;
+        }
+
+        return null;
     }
 }

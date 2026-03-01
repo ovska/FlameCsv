@@ -37,22 +37,20 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum>
             'd' => _namesNumeric ??= InitNames(ToNumber),
             _ => null,
         };
+
+        static string ToString(EnumMember member) => member.ExplicitName ?? member.Name;
+        static string ToNumber(EnumMember member) => member.Value.ToString("D");
     }
 
     public static FrozenDictionary<string, TEnum>.AlternateLookup<ReadOnlySpan<char>> GetReadValues(bool ignoreCase)
     {
-        return (
-            ignoreCase switch
-            {
-                false => _valuesOrdinal ??= InitValues(false),
-                true => _valuesIgnoreCase ??= InitValues(true),
-            }
-        ).GetAlternateLookup<ReadOnlySpan<char>>();
+        ref FrozenDictionary<string, TEnum>? dict = ref (ignoreCase ? ref _valuesIgnoreCase : ref _valuesOrdinal);
+        return (dict ??= InitValues(ignoreCase)).GetAlternateLookup<ReadOnlySpan<char>>();
     }
 
     private static FrozenDictionary<TEnum, string> InitNames(Func<EnumMember, string> selector)
     {
-        Dictionary<TEnum, string> dict = [];
+        Dictionary<TEnum, string> dict = new(ValuesAndNames.Length);
 
         foreach (var entry in ValuesAndNames)
         {
@@ -81,10 +79,6 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum>
         return valuesByName.ToFrozenDictionary(comparer);
     }
 
-    private static string ToNumber(EnumMember member) => member.Value.ToString("D");
-
-    private static string ToString(EnumMember member) => member.ExplicitName ?? member.Name;
-
     public static bool IsDefinedCore(TEnum value)
     {
         if (HasFlagsAttribute)
@@ -92,6 +86,11 @@ internal sealed class EnumCacheText<TEnum> : EnumMemberCache<TEnum>
             return (value.ToBitmask() & ~AllFlags.ToBitmask()) == 0;
         }
 
-        return GetWriteValues("D")?.ContainsKey(value) ?? Enum.IsDefined(value);
+        if ((_namesNumeric ?? GetWriteValues("D")) is { } valuesByKey)
+        {
+            return valuesByKey.ContainsKey(value);
+        }
+
+        return Enum.IsDefined(value);
     }
 }

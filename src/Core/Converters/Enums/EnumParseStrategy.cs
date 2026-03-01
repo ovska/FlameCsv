@@ -12,11 +12,6 @@ public abstract class EnumParseStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>
     where TEnum : struct, Enum
 {
-    /// <summary>
-    /// Returns a singleton strategy that always fails to parse an enum value.
-    /// </summary>
-    public static EnumParseStrategy<T, TEnum> None => field ??= new NoneImpl();
-
     /// <inheritdoc cref="CsvConverter{T,TValue}.TryParse"/>
     /// <returns>
     /// Status of the parsing operation. <see cref="OperationStatus.Done"/> if the parsing was successful;
@@ -24,13 +19,4 @@ public abstract class EnumParseStrategy<T, TEnum>
     /// </returns>
     /// <remarks>The source buffer is never empty.</remarks>
     public abstract bool TryParse(ReadOnlySpan<T> source, out TEnum value);
-
-    private sealed class NoneImpl : EnumParseStrategy<T, TEnum>
-    {
-        public override bool TryParse(ReadOnlySpan<T> source, out TEnum value)
-        {
-            value = default;
-            return false;
-        }
-    }
 }

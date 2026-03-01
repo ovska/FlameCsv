@@ -20,8 +20,10 @@ public partial class CsvOptions<T>
         get => _enumFormat;
         set
         {
-            // validate
-            _ = Enum.TryFormat(default(CsvFieldQuoting), default, out _, value);
+            if (Reflection.EnumFormat.Get(value) is null)
+            {
+                Throw.Argument(nameof(value), "Unsupported enum format.");
+            }
             this.SetValue(ref _enumFormat, value);
         }
     }

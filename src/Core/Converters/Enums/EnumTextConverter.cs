@@ -54,6 +54,7 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
         if (status is OperationStatus.DestinationTooSmall)
             return false;
 
+        // invalidData = strategy cannot format unknown value, fallback to enum
         return Enum.TryFormat(value, destination, out charsWritten, _format);
     }
 
@@ -94,7 +95,7 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
                 return _allowUndefinedValues || EnumCacheText<TEnum>.IsDefinedCore(value);
             }
 
-            if (_values.Dictionary is not null && _values.TryGetValue(source, out value))
+            if (_values.TryGetValue(source, out value))
             {
                 return true;
             }
@@ -110,16 +111,12 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
 
         public override OperationStatus TryFormat(Span<char> destination, TEnum value, out int charsWritten)
         {
-            if (_names is not null && _names.TryGetValue(value, out string? name))
+            if (_names?.TryGetValue(value, out string? name) is true)
             {
-                if (name.TryCopyTo(destination))
-                {
-                    charsWritten = name.Length;
-                    return OperationStatus.Done;
-                }
-
-                charsWritten = 0;
-                return OperationStatus.DestinationTooSmall;
+                charsWritten = name.Length;
+                return name.AsSpan().TryCopyTo(destination)
+                    ? OperationStatus.Done
+                    : OperationStatus.DestinationTooSmall;
             }
 
             charsWritten = 0;

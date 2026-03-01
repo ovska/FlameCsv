@@ -53,22 +53,20 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
             'd' => _namesNumeric ??= InitNames(ToNumber),
             _ => null,
         };
+
+        static byte[] ToString(EnumMember member) => Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
+        static byte[] ToNumber(EnumMember member) => Encoding.UTF8.GetBytes(member.Value.ToString("D"));
     }
 
     public static FrozenDictionary<StringLike, TEnum>.AlternateLookup<ReadOnlySpan<byte>> GetReadValues(bool ignoreCase)
     {
-        return (
-            ignoreCase switch
-            {
-                false => _valuesOrdinal ??= InitValues(false),
-                true => _valuesIgnoreCase ??= InitValues(true),
-            }
-        ).GetAlternateLookup<ReadOnlySpan<byte>>();
+        ref FrozenDictionary<StringLike, TEnum>? dict = ref (ignoreCase ? ref _valuesIgnoreCase : ref _valuesOrdinal);
+        return (dict ??= InitValues(ignoreCase)).GetAlternateLookup<ReadOnlySpan<byte>>();
     }
 
     private static FrozenDictionary<TEnum, byte[]> InitNames(Func<EnumMember, byte[]> selector)
     {
-        Dictionary<TEnum, byte[]> dict = [];
+        Dictionary<TEnum, byte[]> dict = new(ValuesAndNames.Length);
 
         foreach (var entry in ValuesAndNames)
         {
@@ -107,10 +105,6 @@ internal sealed class EnumCacheUtf8<TEnum> : EnumMemberCache<TEnum>
 
         return valuesByName.ToFrozenDictionary(nameComparer);
     }
-
-    private static byte[] ToNumber(EnumMember member) => Encoding.UTF8.GetBytes(member.Value.ToString("D"));
-
-    private static byte[] ToString(EnumMember member) => Encoding.UTF8.GetBytes(member.ExplicitName ?? member.Name);
 
     public static bool IsDefinedCore(TEnum value)
     {

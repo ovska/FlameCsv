@@ -423,7 +423,11 @@ internal partial class EnumConverterGenerator : IIncrementalGenerator
 
         foreach (var value in model.Values)
         {
-            if (value.Name.Length >= 16 || value.ExplicitName?.Length >= 16 || value.Value.ToString(CultureInfo.InvariantCulture).Length >= 16)
+            if (
+                value.Name.Length >= 16
+                || value.ExplicitName?.Length >= 16
+                || value.Value.ToString(CultureInfo.InvariantCulture).Length >= 16
+            )
             {
                 writer.WriteLine("using __Vector128 = global::System.Runtime.Intrinsics.Vector128;");
                 return;

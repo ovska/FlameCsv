@@ -139,7 +139,7 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
                 return _allowUndefinedValues || EnumCacheUtf8<TEnum>.IsDefinedCore(value);
             }
 
-            if (_values.Dictionary is not null && _values.TryGetValue(source, out value))
+            if (_values.TryGetValue(source, out value))
             {
                 return true;
             }
@@ -155,16 +155,12 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
 
         public override OperationStatus TryFormat(Span<byte> destination, TEnum value, out int charsWritten)
         {
-            if (_names is not null && _names.TryGetValue(value, out byte[]? name))
+            if (_names?.TryGetValue(value, out byte[]? name) is true)
             {
-                if (name.AsSpan().TryCopyTo(destination))
-                {
-                    charsWritten = name.Length;
-                    return OperationStatus.Done;
-                }
-
-                charsWritten = 0;
-                return OperationStatus.DestinationTooSmall;
+                charsWritten = name.Length;
+                return name.AsSpan().TryCopyTo(destination)
+                    ? OperationStatus.Done
+                    : OperationStatus.DestinationTooSmall;
             }
 
             charsWritten = 0;
