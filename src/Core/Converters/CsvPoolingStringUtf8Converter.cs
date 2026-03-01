@@ -13,6 +13,9 @@ namespace FlameCsv.Converters;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class CsvPoolingStringUtf8Converter : CsvConverter<byte, string>
 {
+    /// <inheritdoc />
+    protected internal override bool CanFormatNull => true;
+
     /// <summary>
     /// Singleton instance of the <see cref="CsvPoolingStringUtf8Converter"/> using the shared string pool.
     /// </summary>

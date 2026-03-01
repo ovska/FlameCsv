@@ -12,6 +12,9 @@ namespace FlameCsv.Converters;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class CsvPoolingStringTextConverter : CsvConverter<char, string>
 {
+    /// <inheritdoc />
+    protected internal override bool CanFormatNull => true;
+
     /// <summary>
     /// Singleton instance of the <see cref="CsvPoolingStringTextConverter"/> using the shared string pool.
     /// </summary>
@@ -46,6 +49,12 @@ public sealed class CsvPoolingStringTextConverter : CsvConverter<char, string>
     /// <inheritdoc />
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
+        if (value is null)
+        {
+            charsWritten = 0;
+            return true;
+        }
+
         // use String.TryCopyTo to avoid conversion to span
         if (value.TryCopyTo(destination))
         {

@@ -4,10 +4,19 @@ namespace FlameCsv.Converters;
 
 internal sealed class StringTextConverter : CsvConverter<char, string>
 {
+    /// <inheritdoc />
+    protected internal override bool CanFormatNull => true;
+
     public static StringTextConverter Instance { get; } = new();
 
     public override bool TryFormat(Span<char> destination, string value, out int charsWritten)
     {
+        if (value is null)
+        {
+            charsWritten = 0;
+            return true;
+        }
+
         // use String.TryCopyTo to avoid conversion to span
         if (value.TryCopyTo(destination))
         {
