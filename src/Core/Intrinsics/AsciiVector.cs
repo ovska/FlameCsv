@@ -173,17 +173,16 @@ internal static class AsciiVector
         if (!AdvSimd.IsSupported)
             return vec.ExtractMostSignificantBits();
 
-        Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<byte> w = MoveMaskWeight;
 
         Vector128<sbyte> t0 = AdvSimd.And(vec, w).AsSByte();
-        Vector128<sbyte> t1 = AdvSimd.And(vec, w).AsSByte();
 
         // vpadd across the two halves, then fold twice
-        Vector128<sbyte> s = AdvSimd.Arm64.AddPairwise(t0, t1);
+        Vector128<sbyte> s = AdvSimd.Arm64.AddPairwise(t0, t0);
         s = AdvSimd.Arm64.AddPairwise(s, s);
         s = AdvSimd.Arm64.AddPairwise(s, s);
 
-        // low 32 bits now hold the mask
+        // low 16 bits now hold the mask
         uint result = s.AsUInt16().ToScalar();
         Check.Equal(result, vec.ExtractMostSignificantBits());
         return result;
@@ -196,7 +195,7 @@ internal static class AsciiVector
         if (!AdvSimd.Arm64.IsSupported)
             return vec.ExtractMostSignificantBits();
 
-        Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<byte> w = MoveMaskWeight;
 
         Vector128<byte> lo = vec.GetLower();
         Vector128<byte> hi = vec.GetUpper();
@@ -236,7 +235,7 @@ internal static class AsciiVector
             );
         }
 
-        Vector128<byte> w = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<byte> w = MoveMaskWeight;
 
         Vector128<byte> c0 = ctrl.GetLower();
         Vector128<byte> c1 = ctrl.GetUpper();
@@ -296,7 +295,7 @@ internal static class AsciiVector
         if (!AdvSimd.Arm64.IsSupported)
             return vec.ExtractMostSignificantBits();
 
-        Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<byte> weight = MoveMaskWeight;
 
         Vector256<byte> lo = vec.GetLower();
         Vector256<byte> hi = vec.GetUpper();
@@ -347,7 +346,7 @@ internal static class AsciiVector
         Vector128<sbyte> m1 = AdvSimd.ExtractNarrowingSaturateUpper(m0, n3);
 
         // Apply weight and pairwise add
-        Vector128<byte> weight = Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
+        Vector128<byte> weight = MoveMaskWeight;
         Vector128<sbyte> t = AdvSimd.And(m1, weight.AsSByte());
 
         t = AdvSimd.Arm64.AddPairwise(t, t);
@@ -379,4 +378,7 @@ internal static class AsciiVector
         value.StoreUnsafe(ref tmp.elem0, elementOffset: (nuint)amount);
         return Vector512.LoadUnsafe(ref tmp.elem0);
     }
+
+    private static Vector128<byte> MoveMaskWeight =>
+        Vector128.Create(1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128);
 }

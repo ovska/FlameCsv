@@ -69,11 +69,11 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
         Vector256<byte> vecQuote = TQuote.Value ? Vector256.Create(_quote) : default;
         Vector256<byte> vecLF = Vector256.Create((byte)'\n');
         Vector256<byte> vecCR = TCRLF.Value ? Vector256.Create((byte)'\r') : default;
-        Vector256<long> addCnst = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
+
+        Vector256<long> laneFixup = Vector256.Create(0L, 0x0808080808080808, 0x1010101010101010, 0x1818181818181818);
+        Vector256<uint> iterationLength = Vector256.Create((uint)Vector256<byte>.Count);
 
         const int fixupScalar = unchecked((int)0x8000007F);
-
-        Vector256<uint> iterationLength = Vector256.Create((uint)Vector256<byte>.Count);
 
         uint quotesConsumed = 0;
         uint crCarry = 0;
@@ -182,9 +182,9 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             ref byte popCounts = ref Unsafe.AsRef(in CompressionTables.PopCountMult2[0]);
 
             // add the lane offset constant to the shuffle mask
-            Vector256<byte> shufmaskBytes = shufmask.AsByte() + addCnst.AsByte();
+            Vector256<byte> shufmaskBytes = shufmask.AsByte() + laneFixup.AsByte();
 
-            // get the offset for the upper lane
+            // get the offset for the upper lane (match count in the lower half)
             uint lowerCountOffset = (uint)BitOperations.PopCount(maskControl & 0xFFFF);
 
             byte pop1 = Unsafe.Add(ref popCounts, (byte)mask1);
@@ -237,12 +237,12 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             // clear extra sign-extended bits between the EOL flags and indices
             Vector256<uint> fixedTaggedVector = (taggedIndexVector & fixup).AsUInt32();
 
-            Unsafe.SkipInit(out Vector256<uint> crlfShift);
+            Unsafe.SkipInit(out Vector256<uint> crlfMSB);
 
             if (TCRLF.Value)
             {
-                // this must be done on the fixed value, otherwise LF's read with CRLF mode get messed up
-                crlfShift = ((fixedTaggedVector.AsUInt32() >> 30) & Vector256<uint>.One);
+                // this must be done on the fixed value, otherwise pure LF's read with CRLF mode get messed up
+                crlfMSB = fixedTaggedVector << 1;
             }
 
             // add the base offset to the "tzcnts"
@@ -251,23 +251,32 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             if (TCRLF.Value)
             {
                 // subtract 1 from CRLF matches
-                result -= crlfShift;
+                result -= (crlfMSB >> 31);
             }
 
             result.StoreUnsafe(ref dst);
 
+            // we had too many matches to be fully compressed by the shuffle, handle the tail
             if (controlCount > (uint)Vector256<int>.Count)
             {
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
-                maskControl = Bmi1.ResetLowestSetBit(maskControl);
+                // remove the first 8 matches
+                if (Bmi1.IsSupported && Bmi2.IsSupported)
+                {
+                    maskControl &= ~Bmi2.ParallelBitDeposit(0xFFu, maskControl);
+                }
+                else
+                {
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                    maskControl &= maskControl - 1;
+                }
 
-                Check.Positive(maskControl, "There should be bits left in maskControl.");
+                Check.OverZero(maskControl, "There should be bits left in maskControl.");
                 Check.Equal(
                     (uint)BitOperations.PopCount(maskControl),
                     controlCount - (uint)Vector256<int>.Count,
