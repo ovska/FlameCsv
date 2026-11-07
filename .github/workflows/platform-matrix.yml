@@ -1,0 +1,166 @@
+name: Platform Matrix
+
+# Runs the test suites on every tokenizer and instruction set combination the library has code paths for.
+# Each job first verifies that the process actually uses the intended tokenizer (see PlatformMatrixTests),
+# as runtime settings can be ignored and runner hardware varies.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # no hardware intrinsics: scalar tokenizer and all scalar fallbacks
+          - name: Scalar
+            os: ubuntu-latest
+            platform: scalar
+            runtime-env: DOTNET_EnableHWIntrinsic=0
+
+          # 128-bit generic SIMD tokenizer; the same code path as WASM, 32-bit ARM and x86 without AVX2
+          - name: Generic SIMD (SSE)
+            os: ubuntu-latest
+            platform: simd128
+            runtime-env: DOTNET_EnableAVX=0
+
+          - name: AVX2
+            os: ubuntu-latest
+            platform: avx2
+            runtime-env: DOTNET_EnableAVX512=0
+
+          # AVX-512 without VBMI2 (e.g. Skylake-X and Cascade Lake): AVX2 tokenizer with AVX-512 loads.
+          # Requires a runner with AVX-512; runner hardware varies, re-run the job if the platform check fails.
+          - name: AVX2 with AVX-512 loads
+            os: ubuntu-latest
+            platform: avx2-avx512bw
+            runtime-env: DOTNET_EnableAVX512v2=0
+
+          # Requires a runner with AVX-512 VBMI2; re-run the job if the platform check fails.
+          - name: AVX-512
+            os: ubuntu-latest
+            platform: avx512
+            runtime-env: ""
+
+          - name: ARM64 (AdvSimd)
+            os: ubuntu-24.04-arm
+            platform: arm64
+            runtime-env: ""
+
+          # 32-bit process, catches pointer size and overflow issues
+          - name: x86 (32-bit)
+            os: windows-latest
+            platform: x86
+            runtime-env: ""
+
+    env:
+      COMPlus_legacyCorruptedStateExceptionsPolicy: 1
+      DOTNET_NOLOGO: 1
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        if: matrix.platform != 'x86'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Setup .NET (x86)
+        if: matrix.platform == 'x86'
+        shell: pwsh
+        run: |
+          $installDir = Join-Path $env:RUNNER_TEMP "dotnet-x86"
+          Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+          ./dotnet-install.ps1 -Channel 10.0 -Architecture x86 -InstallDir $installDir
+          "DOTNET_ROOT=$installDir" >> $env:GITHUB_ENV
+          "DOTNET_ROOT(x86)=$installDir" >> $env:GITHUB_ENV
+          $installDir >> $env:GITHUB_PATH
+
+      - name: Show runner and .NET info
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            lscpu
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            powershell -NoProfile -Command "Get-CimInstance Win32_Processor | Format-List Name, NumberOfCores"
+          fi
+          dotnet --info
+
+      # tests with poison-page buffers create many memory mappings; the Linux default (65530) can run out
+      - name: Raise memory map limit
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w vm.max_map_count=1048576
+
+      - name: Find test projects
+        shell: bash
+        run: echo "TEST_PROJECTS=$(find test -name '*Tests*.csproj' | sort | tr '\n' ' ')" >> "$GITHUB_ENV"
+
+      - name: Build test projects
+        shell: bash
+        run: |
+          for project in $TEST_PROJECTS; do
+            echo "::group::Build $project"
+            dotnet build --configuration Release "-p:DefineConstants=FULL_TEST_SUITE%3b\$(DefineConstants)" "$project"
+            echo "::endgroup::"
+          done
+
+      - name: Verify platform
+        shell: bash
+        env:
+          FLAMECSV_EXPECTED_PLATFORM: ${{ matrix.platform }}
+          RUNTIME_ENV: ${{ matrix.runtime-env }}
+        run: |
+          # shellcheck disable=SC2163 # RUNTIME_ENV is a KEY=VALUE pair
+          if [ -n "$RUNTIME_ENV" ]; then export "$RUNTIME_ENV"; fi
+
+          dotnet test test/Core/FlameCsv.Tests.csproj --configuration Release --no-build --nologo \
+            "-p:DefineConstants=FULL_TEST_SUITE%3b\$(DefineConstants)" \
+            --filter "FullyQualifiedName~PlatformMatrixTests" \
+            --logger "console;verbosity=detailed" | tee platform-check.log
+
+          # the check prints this line only when it actually ran (not skipped, and matched by the filter)
+          if ! grep -q "Expected platform '$FLAMECSV_EXPECTED_PLATFORM'" platform-check.log; then
+            echo "::error::The platform check did not run; FLAMECSV_EXPECTED_PLATFORM did not reach the test process."
+            exit 1
+          fi
+
+      - name: Run tests
+        shell: bash
+        env:
+          FLAMECSV_EXPECTED_PLATFORM: ${{ matrix.platform }}
+          RUNTIME_ENV: ${{ matrix.runtime-env }}
+        run: |
+          # shellcheck disable=SC2163 # RUNTIME_ENV is a KEY=VALUE pair
+          if [ -n "$RUNTIME_ENV" ]; then export "$RUNTIME_ENV"; fi
+
+          fail=0
+          for project in $TEST_PROJECTS; do
+            echo "::group::Test $project"
+            if ! dotnet test --configuration Release --no-build --nologo --verbosity minimal \
+              --logger "console;verbosity=minimal" -p:StopTestsOnFail=false \
+              "-p:DefineConstants=FULL_TEST_SUITE%3b\$(DefineConstants)" "$project" \
+              --blame-hang --blame-hang-timeout 5m; then
+              echo "::error::Tests failed in $project (${{ matrix.name }})"
+              fail=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $fail
+
+      - name: Upload hang dumps
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hang-dumps-${{ matrix.platform }}
+          path: "**/TestResults/**/*.dmp"
+          if-no-files-found: ignore
