@@ -122,19 +122,19 @@ public sealed class CsvFieldWriter<T> : IDisposable, ParallelUtils.IConsumable
         if (
             // JIT folds struct typeof checks into a constant
             (
-                typeof(T) == typeof(bool)
-                || typeof(T) == typeof(int)
-                || typeof(T) == typeof(long)
-                || typeof(T) == typeof(short)
-                || typeof(T) == typeof(byte)
-                || typeof(T) == typeof(uint)
-                || typeof(T) == typeof(ulong)
-                || typeof(T) == typeof(ushort)
-                || typeof(T) == typeof(sbyte)
-                || typeof(T) == typeof(float)
-                || typeof(T) == typeof(double)
-                || typeof(T) == typeof(decimal)
-                || typeof(T) == typeof(Guid)
+                typeof(TValue) == typeof(bool)
+                || typeof(TValue) == typeof(int)
+                || typeof(TValue) == typeof(long)
+                || typeof(TValue) == typeof(short)
+                || typeof(TValue) == typeof(byte)
+                || typeof(TValue) == typeof(uint)
+                || typeof(TValue) == typeof(ulong)
+                || typeof(TValue) == typeof(ushort)
+                || typeof(TValue) == typeof(sbyte)
+                || typeof(TValue) == typeof(float)
+                || typeof(TValue) == typeof(double)
+                || typeof(TValue) == typeof(decimal)
+                || typeof(TValue) == typeof(Guid)
             ) && _usesDefaultOptions
         )
         {

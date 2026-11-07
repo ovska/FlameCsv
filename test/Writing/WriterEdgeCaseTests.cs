@@ -8,6 +8,80 @@ namespace FlameCsv.Tests.Writing;
 
 public static class WriterEdgeCaseTests
 {
+    [Flags]
+    public enum EscapeFlags
+    {
+        None = 0,
+        A = 1,
+        B = 2,
+    }
+
+    private sealed class Quoted;
+
+    private sealed class QuotedConverter<T> : CsvConverter<T, Quoted>
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        public override bool TryParse(ReadOnlySpan<T> source, out Quoted value) => throw new NotSupportedException();
+
+        public override bool TryFormat(Span<T> destination, Quoted value, out int charsWritten)
+        {
+            ReadOnlySpan<char> text = "x,\"y\"";
+
+            if (destination.Length < text.Length)
+            {
+                charsWritten = 0;
+                return false;
+            }
+
+            for (int i = 0; i < text.Length; i++)
+                destination[i] = T.CreateTruncating(text[i]);
+
+            charsWritten = text.Length;
+            return true;
+        }
+    }
+
+    [Fact]
+    public static void Should_Escape_Non_Primitive_Values_With_Default_Options()
+    {
+        // default options have a fast path that skips escaping for primitives; other values must still be escaped
+        foreach (bool utf8 in (bool[])[false, true])
+        {
+            string result;
+
+            if (utf8)
+            {
+                var ms = new MemoryStream();
+                using (var writer = new CsvFieldWriter<byte>(new StreamBufferWriter(ms, default), CsvOptions<byte>.Default))
+                {
+                    writer.WriteField(CsvOptions<byte>.Default.GetConverter<EscapeFlags>(), EscapeFlags.A | EscapeFlags.B);
+                    writer.WriteDelimiter();
+                    writer.WriteField(new QuotedConverter<byte>(), new Quoted());
+                    writer.WriteDelimiter();
+                    writer.WriteField(CsvOptions<byte>.Default.GetConverter<int>(), -1);
+                    writer.Writer.Drain();
+                }
+                result = Encoding.UTF8.GetString(ms.ToArray());
+            }
+            else
+            {
+                var sb = new StringBuilder();
+                using (var writer = new CsvFieldWriter<char>(new TextBufferWriter(new StringWriter(sb), default), CsvOptions<char>.Default))
+                {
+                    writer.WriteField(CsvOptions<char>.Default.GetConverter<EscapeFlags>(), EscapeFlags.A | EscapeFlags.B);
+                    writer.WriteDelimiter();
+                    writer.WriteField(new QuotedConverter<char>(), new Quoted());
+                    writer.WriteDelimiter();
+                    writer.WriteField(CsvOptions<char>.Default.GetConverter<int>(), -1);
+                    writer.Writer.Drain();
+                }
+                result = sb.ToString();
+            }
+
+            Assert.Equal("\"A, B\",\"x,\"\"y\"\"\",-1", result);
+        }
+    }
+
     [Fact]
     public static void Should_Handle_String_To_Bytes_With_Escapes()
     {
