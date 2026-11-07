@@ -475,7 +475,7 @@ partial class EnumConverterGenerator
 
             foreach (var single in entriesByLength)
             {
-                writer.Write("if (source.SequenceEqual(");
+                writer.Write($"if ({MemExt}.SequenceEqual(source, ");
                 writer.Write(single.Name.ToStringLiteral());
                 writer.WriteLine("u8))");
 

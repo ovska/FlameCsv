@@ -257,6 +257,68 @@ public class EnumGenTests(MetadataFixture fixture)
         Assert.NotEmpty(diagnostics);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Generated_Code_Should_Compile_Without_Usings(bool unsafeCode)
+    {
+        // no using directives: all generated references must be fully qualified
+        const string source = """
+            namespace Gen;
+
+            [System.Flags]
+            public enum Perms { None = 0, Read = 1, Write = 2, Execute = 4, All = 7 }
+
+            public enum Fancy
+            {
+                [System.Runtime.Serialization.EnumMember(Value = "first-value")] First,
+                [System.Runtime.Serialization.EnumMember(Value = "Ünïcode")] Second,
+                A, B, C, Dog, Cat, Cow,
+            }
+
+            public enum Few { X, Yy }
+
+            [FlameCsv.Attributes.CsvEnumConverter<char, System.TypeCode>] partial class TypeCodeChar;
+            [FlameCsv.Attributes.CsvEnumConverter<byte, System.TypeCode>] partial class TypeCodeByte;
+            [FlameCsv.Attributes.CsvEnumConverter<char, System.DayOfWeek>] partial class DayOfWeekChar;
+            [FlameCsv.Attributes.CsvEnumConverter<byte, System.DayOfWeek>] partial class DayOfWeekByte;
+            [FlameCsv.Attributes.CsvEnumConverter<char, Perms>] partial class PermsChar;
+            [FlameCsv.Attributes.CsvEnumConverter<byte, Perms>] partial class PermsByte;
+            [FlameCsv.Attributes.CsvEnumConverter<char, Fancy>] partial class FancyChar;
+            [FlameCsv.Attributes.CsvEnumConverter<byte, Fancy>] partial class FancyByte;
+            [FlameCsv.Attributes.CsvEnumConverter<char, Few>] partial class FewChar;
+            [FlameCsv.Attributes.CsvEnumConverter<byte, Few>] partial class FewByte;
+            """;
+
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            nameof(Generated_Code_Should_Compile_Without_Usings),
+            [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
+            [fixture.FlameCsvCore, .. ReferenceAssemblies.All],
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                allowUnsafe: unsafeCode,
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(new EnumConverterGenerator());
+        driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out Compilation output,
+            out ImmutableArray<Diagnostic> generatorDiagnostics,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Empty(generatorDiagnostics);
+        Assert.Equal(compilation.SyntaxTrees.Length + 10, output.SyntaxTrees.Count());
+        Assert.Empty(
+            output
+                .GetDiagnostics(TestContext.Current.CancellationToken)
+                .Where(d => d.Severity == DiagnosticSeverity.Error)
+                .Select(d => d.ToString())
+        );
+    }
+
     private EnumModel GetValidModel(string source, [CallerMemberName] string? assemblyName = null) =>
         GetValidModel(source, out _, assemblyName);
 
