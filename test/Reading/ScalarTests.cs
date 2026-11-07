@@ -19,7 +19,7 @@ public static class ScalarTests
             select (type, newline, escaping),
         ];
 
-    [Theory, MemberData(nameof(ParsingData))]
+    [Theory(SkipTestWithoutData = true), MemberData(nameof(ParsingData))]
     public static void Should_Parse_Identically(Type type, CsvNewline newline, Escaping escaping)
     {
         SkipIfNotSupported(type);
@@ -124,7 +124,7 @@ public static class ScalarTests
         Assert.Equal(expected, rb._fields.Skip(1).Take(count));
     }
 
-    [Theory, ClassData(typeof(Tokenizers.Types))]
+    [Theory(SkipTestWithoutData = true), ClassData(typeof(Tokenizers.Types))]
     public static void Should_Parse_Long_Field(Type type)
     {
         SkipIfNotSupported(type);
@@ -205,7 +205,7 @@ public static class ScalarTests
         }
     }
 
-    [Theory, ClassData(typeof(Tokenizers.Types))]
+    [Theory(SkipTestWithoutData = true), ClassData(typeof(Tokenizers.Types))]
     public static void Should_Bail_On_Disjoint_CRLF(Type type)
     {
         SkipIfNotSupported(type);
