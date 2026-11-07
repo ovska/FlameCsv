@@ -45,38 +45,36 @@ partial class TypeMapGenerator
         // converter is for T but member is T?, or the member is T? struct and we may need to wrap it in a NullableConverter
         bool wrapInNullable = @override?.WrapInNullable ?? member.Type.SpecialType == SpecialType.System_Nullable_T;
 
-        // uses a built-in conversion (SpanFormattable/Parsable)
-        bool builtinConversion = false;
+        // the converted value type; trims out the question mark for nullable types
+        string valueType =
+            member.Type.SpecialType == SpecialType.System_Nullable_T
+                ? member.Type.FullyQualifiedName[..^1]
+                : member.Type.FullyQualifiedName;
 
         if (wrapInNullable)
         {
             writer.Write("options.Aot.GetOrCreateNullable<");
-            writer.Write(member.Type.FullyQualifiedName.AsSpan()[..^1]); // trim out the nullability question mark
+            writer.Write(valueType);
             writer.Write(">(static options => ");
         }
 
         if (@override is null)
         {
-            builtinConversion = TryGetBuiltinConversion(token, member, out string? builtinMethodName);
-
-            if (builtinConversion)
+            if (member.Type.IsEnumOrNullableEnum)
             {
-                writer.Write($"options.Aot.GetOrCreate<{member.Type.FullyQualifiedName}>(static options => ");
+                writer.Write($"options.Aot.GetOrCreateEnum<{valueType}>()");
+            }
+            else if (TryGetBuiltinConversion(token, member, out string? builtinMethodName))
+            {
+                // uses a built-in conversion (SpanFormattable/Parsable)
+                writer.Write($"options.Aot.GetOrCreate<{valueType}>(static options => ");
                 writer.Write($"global::FlameCsv.Converters.ConverterCreationExtensions.{builtinMethodName}<");
-                writer.Write(member.Type.FullyQualifiedName);
-                writer.Write(">(options)");
+                writer.Write(valueType);
+                writer.Write(">(options))");
             }
             else
             {
-                writer.Write(
-                    member.Type.IsEnumOrNullableEnum ? "options.Aot.GetOrCreateEnum<" : "options.Aot.GetConverter<"
-                );
-
-                // need to trim out the question mark for nullable types
-                Range range = member.Type.SpecialType == SpecialType.System_Nullable_T ? (..^1) : (..);
-                writer.Write(member.Type.FullyQualifiedName.AsSpan()[range]);
-
-                writer.Write(">()");
+                writer.Write($"options.Aot.GetConverter<{valueType}>()");
             }
         }
         else
@@ -113,7 +111,7 @@ partial class TypeMapGenerator
             }
         }
 
-        if (wrapInNullable || builtinConversion)
+        if (wrapInNullable)
         {
             writer.Write(", identifier: ");
 
@@ -151,7 +149,12 @@ partial class TypeMapGenerator
             return false;
         }
 
-        if (token != "byte" || (status & BuiltinConvertable.Utf8Any) == 0)
+        // UTF-8 conversion needs both parsing and formatting, natively or by transcoding from UTF-16
+        if (
+            token != "byte"
+            || (status & (BuiltinConvertable.Utf8Parsable | BuiltinConvertable.Parsable)) == 0
+            || (status & (BuiltinConvertable.Utf8Formattable | BuiltinConvertable.Formattable)) == 0
+        )
         {
             methodName = null;
             return false;

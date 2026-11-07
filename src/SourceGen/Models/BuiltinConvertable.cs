@@ -36,6 +36,15 @@ internal static class BuiltinConvertableExtensions
     {
         bool isByte = symbols.TokenType.SpecialType == SpecialType.System_Byte;
 
+        // Nullable<T> is converted by wrapping a converter for T
+        if (
+            type is INamedTypeSymbol { TypeArguments: [var underlying] } named
+            && named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T
+        )
+        {
+            type = underlying;
+        }
+
         // ReSharper disable once SwitchStatementHandlesSomeKnownEnumValuesWithDefault
         switch (type.SpecialType)
         {
