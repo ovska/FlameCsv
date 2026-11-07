@@ -18,7 +18,7 @@ static partial class Csv
     /// </summary>
     /// <param name="data">Data to write to the underlying destination. May be empty</param>
     /// <param name="isFinalWrite">Whether this is the final write</param>
-    public delegate void ParallelSink<T>(ReadOnlySpan<T> data, bool isFinalWrite)
+    internal delegate void ParallelSink<T>(ReadOnlySpan<T> data, bool isFinalWrite)
         where T : unmanaged, IBinaryInteger<T>;
 
     /// <summary>
@@ -28,7 +28,7 @@ static partial class Csv
     /// <param name="data">Data to write to the underlying destination. May be empty</param>
     /// <param name="isFinalWrite">Whether this is the final write</param>
     /// <param name="cancellationToken">Cancellation token to observe</param>
-    public delegate ValueTask AsyncParallelSink<T>(
+    internal delegate ValueTask AsyncParallelSink<T>(
         ReadOnlyMemory<T> data,
         bool isFinalWrite,
         CancellationToken cancellationToken
@@ -69,7 +69,7 @@ static partial class Csv
         /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final call.
         /// </param>
         /// <returns>An optional instance that should be disposed once the writing has fully completed</returns>
-        IDisposable? CreateParallelWriter(out ParallelSink<T> sink);
+        internal IDisposable? CreateParallelWriter(out ParallelSink<T> sink);
 
         /// <summary>
         /// Creates a sink for asynchronous parallel writing. The sink is not thread-safe.
@@ -78,7 +78,7 @@ static partial class Csv
         /// Action to use to write the data to the underlying destination, with a boolean indicating whether this is the final call.
         /// </param>
         /// <returns>An optional instance that should be disposed once the writing has fully completed</returns>
-        IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<T> sink);
+        internal IAsyncDisposable? CreateAsyncParallelWriter(out AsyncParallelSink<T> sink);
 
         /// <summary>
         /// Configures the builder to write CSV data in parallel.
