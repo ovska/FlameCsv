@@ -24,22 +24,24 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 9.x
-        
+        dotnet-version: 10.x
+
+    # IncludeInternalsVisibleTo=false omits InternalsVisibleTo for the test projects, and embeds
+    # FastExpressionCompiler as source instead of a package dependency. It must be passed to every step.
     - name: Restore dependencies
-      run: dotnet restore
-      
+      run: dotnet restore src/Core/FlameCsv.Core.csproj -p:IncludeInternalsVisibleTo=false
+
     - name: Build
-      run: dotnet build src/Core/FlameCsv.Core.csproj --configuration Release --no-restore
+      run: dotnet build src/Core/FlameCsv.Core.csproj --configuration Release --no-restore -p:IncludeInternalsVisibleTo=false
       
     - name: Set version (if provided)
       if: ${{ github.event.inputs.version != '' }}
       run: |
-        dotnet pack src/Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs /p:Version=${{ github.event.inputs.version }}
+        dotnet pack src/Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs -p:IncludeInternalsVisibleTo=false /p:Version=${{ github.event.inputs.version }}
       
     - name: Create package (using project version)
       if: ${{ github.event.inputs.version == '' }}
-      run: dotnet pack src/Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs
+      run: dotnet pack src/Core/FlameCsv.Core.csproj --configuration Release --no-build --output nupkgs -p:IncludeInternalsVisibleTo=false
       
     - name: Publish to NuGet
       run: dotnet nuget push nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
