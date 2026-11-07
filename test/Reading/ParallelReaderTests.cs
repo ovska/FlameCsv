@@ -11,6 +11,15 @@ namespace FlameCsv.Tests.Reading;
 public class ParallelReaderTests
 {
     [Fact]
+    public void ForEach_Should_Validate_TypeMap()
+    {
+        var ex = Assert.Throws<ArgumentNullException>(() =>
+            Csv.From("a,b").AsParallel().ForEach<Obj>(typeMap: null!, action: _ => { })
+        );
+        Assert.Equal("typeMap", ex.ParamName);
+    }
+
+    [Fact]
     public void Should_Skip_Utf8_Preamble()
     {
         using MemoryStream ms = new();

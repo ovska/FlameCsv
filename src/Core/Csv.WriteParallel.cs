@@ -51,14 +51,14 @@ static partial class Csv
         where T : unmanaged, IBinaryInteger<T>
     {
         /// <summary>
-        /// Options to use for parallel reading; chunk size, degree of parallelism, and cancellation token.
+        /// Options to use for parallel writing; chunk size, degree of parallelism, and cancellation token.
         /// </summary>
         CsvParallelOptions ParallelOptions { get; }
 
         /// <summary>
         /// Configures the builder to use the given parallel options.
         /// </summary>
-        /// <param name="parallelOptions">Options to use for parallel reading</param>
+        /// <param name="parallelOptions">Options to use for parallel writing</param>
         IParallelWriteBuilder<T> WithParallelOptions(in CsvParallelOptions parallelOptions);
 
         /// <summary>

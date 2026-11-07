@@ -35,7 +35,6 @@ public static partial class Csv
     /// <param name="csv">CSV data</param>
     /// <param name="ioOptions">Options to configure the buffer size and other IO related options</param>
     /// <returns>Builder to create a CSV reading pipeline from</returns>
-    /// <remarks>Parallel reading from a sequence is not yet supported.</remarks>
     public static IReadBuilder<T> From<T>(in ReadOnlySequence<T> csv, CsvIOOptions ioOptions = default)
         where T : unmanaged, IBinaryInteger<T> => new ReadSequenceBuilder<T>(in csv, in ioOptions);
 

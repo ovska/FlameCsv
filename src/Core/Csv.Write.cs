@@ -52,7 +52,7 @@ static partial class Csv
         ICsvBufferWriter<T> CreateWriter(bool isAsync);
 
         /// <summary>
-        /// Options to configure I/O for the CSV reader, such as buffer size and memory pool.
+        /// Options to configure I/O for the CSV writer, such as buffer size and buffer pool.
         /// </summary>
         public CsvIOOptions IOOptions { get; }
 
@@ -142,7 +142,7 @@ static partial class Csv
         }
 
         /// <summary>
-        /// Writes CSV records to the target, binding them using reflection.
+        /// Writes CSV records to the target, binding them using the given type map.
         /// </summary>
         /// <param name="typeMap">Type map used to bind the CSV data</param>
         /// <param name="values">Values to write</param>

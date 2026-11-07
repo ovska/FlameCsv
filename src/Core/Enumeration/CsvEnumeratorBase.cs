@@ -8,7 +8,7 @@ using JetBrains.Annotations;
 namespace FlameCsv.Enumeration;
 
 /// <summary>
-/// Base class for synchronous enumerators.
+/// Base class for synchronous and asynchronous CSV enumerators.
 /// </summary>
 /// <typeparam name="T"></typeparam>
 [PublicAPI]
