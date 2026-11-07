@@ -18,7 +18,11 @@ public sealed class CsvBindingException : CsvConfigurationException
     /// <summary>
     /// Bindings that relate to the exception (if known).
     /// </summary>
-    public IEnumerable<CsvBinding>? Bindings { get; set; }
+    /// <remarks>
+    /// Each binding contains the CSV field index, the optional header name,
+    /// and a display name of the target (property, field, or parameter, or <c>"Ignored"</c> for ignored fields).
+    /// </remarks>
+    public IReadOnlyList<(int Index, string? Header, string Target)>? Bindings { get; set; }
 
     /// <summary>
     /// Headers that were used to bind the CSV.
@@ -43,21 +47,19 @@ public sealed class CsvBindingException : CsvConfigurationException
     /// <summary>
     /// Initializes a <see cref="CsvBindingException"/> for invalid bindings.
     /// </summary>
-    /// <param name="message"></param>
-    /// <param name="bindings"></param>
-    public CsvBindingException(string message, IEnumerable<CsvBinding> bindings)
+    internal CsvBindingException(string message, IEnumerable<CsvBinding> bindings)
         : base(message)
     {
-        Bindings = bindings;
+        Bindings = ToTuples(bindings);
     }
 
     /// <summary>
-    /// Throws an exception for conflicting bindings.
+    /// Initializes a <see cref="CsvBindingException"/> for conflicting bindings.
     /// </summary>
-    public CsvBindingException(CsvBinding first, CsvBinding second)
+    internal CsvBindingException(CsvBinding first, CsvBinding second)
         : base($"Conflicting bindings: {first} and {second}")
     {
-        Bindings = [first, second];
+        Bindings = ToTuples([first, second]);
     }
 
     /// <summary>
@@ -72,6 +74,11 @@ public sealed class CsvBindingException : CsvConfigurationException
     internal CsvBindingException(ParameterInfo parameter, IEnumerable<CsvBinding> parameterBindings)
         : base($"Constructor parameter '{parameter.Name}' had no matching binding and has no default value.")
     {
-        Bindings = parameterBindings.ToArray();
+        Bindings = ToTuples(parameterBindings);
+    }
+
+    private static (int Index, string? Header, string Target)[] ToTuples(IEnumerable<CsvBinding> bindings)
+    {
+        return [.. bindings.Select(static b => (b.Index, b.Header, b.DisplayName))];
     }
 }

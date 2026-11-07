@@ -11,9 +11,7 @@ namespace FlameCsv.Binding;
 /// <summary>
 /// Base class representing a binding of a member or parameter to a CSV field.
 /// </summary>
-[PublicAPI]
-[EditorBrowsable(EditorBrowsableState.Advanced)]
-public abstract class CsvBinding : IComparable<CsvBinding>
+internal abstract class CsvBinding : IComparable<CsvBinding>
 {
     /// <summary>
     /// The CSV field index of this binding.
@@ -47,6 +45,11 @@ public abstract class CsvBinding : IComparable<CsvBinding>
     /// <see langword="typeof"/> <see cref="CsvIgnored"/> if ignored field.
     /// </summary>
     protected abstract object Sentinel { get; }
+
+    /// <summary>
+    /// Display name of the binding target for debugging and exception messages.
+    /// </summary>
+    protected internal abstract string DisplayName { get; }
 
     private protected CsvBinding(int index, string? header)
     {

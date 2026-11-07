@@ -9,8 +9,7 @@ namespace FlameCsv.Binding;
 /// A binding between a CSV field and a property, field, or parameter.
 /// </summary>
 /// <typeparam name="T">Token type</typeparam>
-[EditorBrowsable(EditorBrowsableState.Advanced)]
-public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquatable<CsvBinding<T>>
+internal abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquatable<CsvBinding<T>>
 {
     private protected CsvBinding(int index, string? header)
         : base(index, header) { }
@@ -66,10 +65,6 @@ public abstract class CsvBinding<T> : CsvBinding, IEquatable<CsvBinding>, IEquat
     /// </summary>
     private protected abstract void PrintDetails(ref ValueStringBuilder vsb);
 
-    /// <summary>
-    /// Display name for debugging.
-    /// </summary>
-    protected internal abstract string DisplayName { get; }
 
     [RDC(Messages.ConverterFactories), RUF(Messages.ConverterFactories)]
     internal CsvConverter<TToken, TResult> ResolveConverter<TToken, TResult>(CsvOptions<TToken> options)
