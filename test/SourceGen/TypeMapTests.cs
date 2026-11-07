@@ -236,7 +236,7 @@ public class TypeMapTests(MetadataFixture fixture)
                         }
                         """)
                 ],
-                [Basic.Reference.Assemblies.Net90.References.SystemRuntime],
+                [ReferenceAssemblies.SystemRuntime],
                 new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
             var semanticModel = compilation.GetSemanticModel(compilation.SyntaxTrees.Single());

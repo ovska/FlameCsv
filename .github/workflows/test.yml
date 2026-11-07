@@ -29,10 +29,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        # net10 SDK; net9 runtime is needed to run the net9.0 test targets
-        dotnet-version: |
-          9.x
-          10.x
+        dotnet-version: 10.x
 
     - name: Find test projects
       shell: bash
