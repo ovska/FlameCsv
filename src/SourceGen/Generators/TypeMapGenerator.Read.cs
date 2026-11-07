@@ -159,7 +159,7 @@ partial class TypeMapGenerator
                 using (writer.WriteBlock())
                 {
                     writer.WriteLine(
-                        "global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expectedFieldCount, record);"
+                        "global::FlameCsv.Exceptions.CsvFieldCountException.ThrowForInvalidFieldCount(expectedFieldCount, record);"
                     );
                 }
 

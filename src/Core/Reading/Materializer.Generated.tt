@@ -122,7 +122,7 @@ internal sealed class Materializer<T, <#= generics #>> : Materializer<T, TResult
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != <#= current #>) CsvReadException.ThrowForInvalidFieldCount(<#= current #>, record);
+        if (record.FieldCount != <#= current #>) CsvFieldCountException.ThrowForInvalidFieldCount(<#= current #>, record);
 
         <#
         for (var i = 0; i < current; i++)

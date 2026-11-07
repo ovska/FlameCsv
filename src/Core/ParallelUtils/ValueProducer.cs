@@ -137,13 +137,13 @@ internal sealed class ValueProducer<T, TValue> : IProducer<CsvRecordRef<T>, Slim
         {
             Check.WrapAssertion(ref ex);
 
-            (ex as CsvReadExceptionBase)?.Enrich(input);
+            (ex as CsvReadException)?.Enrich(input);
             (ex as CsvParseException)?.WithHeader(_headers);
-            (ex as CsvReadException)?.ChunkOrder = chunk.Order;
+            (ex as CsvFieldCountException)?.ChunkOrder = chunk.Order;
 
             if (Options.ExceptionHandler is { } handler)
             {
-                int? expectedFieldCount = (ex as CsvReadException)?.ExpectedFieldCount;
+                int? expectedFieldCount = (ex as CsvFieldCountException)?.ExpectedFieldCount;
                 CsvExceptionHandlerArgs<T> args = new(in input, _headers, ex, expectedFieldCount);
 
                 if (handler.Invoke(args))

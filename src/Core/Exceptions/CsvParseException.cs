@@ -18,7 +18,7 @@ namespace FlameCsv.Exceptions;
 /// </remarks>
 [PublicAPI]
 public sealed class CsvParseException(string? message = null, Exception? innerException = null)
-    : CsvReadExceptionBase(message, innerException)
+    : CsvReadException(message, innerException)
 {
     /// <summary>
     /// Converter instance.

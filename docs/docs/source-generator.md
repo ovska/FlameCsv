@@ -219,7 +219,7 @@ partial class UserTypeMapChar : global::FlameCsv.Binding.CsvTypeMap<char, global
         {
             if (record.FieldCount != expectedFieldCount)
             {
-                global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expectedFieldCount, record);
+                global::FlameCsv.Exceptions.CsvFieldCountException.ThrowForInvalidFieldCount(expectedFieldCount, record);
             }
             int __index;
 
@@ -472,7 +472,7 @@ partial class UserTypeMapByte : global::FlameCsv.Binding.CsvTypeMap<byte, global
         {
             if (record.FieldCount != expectedFieldCount)
             {
-                global::FlameCsv.Exceptions.CsvReadException.ThrowForInvalidFieldCount(expectedFieldCount, record);
+                global::FlameCsv.Exceptions.CsvFieldCountException.ThrowForInvalidFieldCount(expectedFieldCount, record);
             }
             int __index;
 

@@ -1,79 +1,42 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using FlameCsv.Extensions;
 using FlameCsv.Reading;
-using FlameCsv.Utilities;
 
 namespace FlameCsv.Exceptions;
 
 /// <summary>
-/// Thrown for faulty but structurally valid CSV.
+/// Base class for exceptions thrown while reading CSV data.
 /// </summary>
 public class CsvReadException(string? message = null, Exception? innerException = null)
-    : CsvReadExceptionBase(message, innerException)
+    : Exception(message, innerException)
 {
     /// <summary>
-    /// The expected field count.
+    /// 1-based line index of where the invalid data was found, if available.
     /// </summary>
-    public required int ExpectedFieldCount { get; init; }
+    public int? Line { get; set; }
 
     /// <summary>
-    /// The actual field count.
+    /// Approximate 0-based index where the invalid data was found, if available.
     /// </summary>
-    public required int ActualFieldCount { get; init; }
+    public long? RecordPosition { get; set; }
 
     /// <summary>
-    /// 0-based parallel chunk index.
+    /// Raw value of the record as a <see cref="string"/>, if available.
     /// </summary>
-    internal int? ChunkOrder { get; set; }
+    public string? RecordValue { get; set; }
 
-    /// <inheritdoc/>
-    public override string Message
-    {
-        get
-        {
-            if (GetType() != typeof(CsvReadException) || !RuntimeHelpers.TryEnsureSufficientExecutionStack())
-            {
-                return base.Message;
-            }
-
-            using var vsb = new ValueStringBuilder(stackalloc char[256]);
-            vsb.Append(base.Message);
-            vsb.Append(" - ");
-            vsb.Append("Line: ");
-            vsb.AppendFormatted(Line ?? -1);
-            vsb.Append(", Position: ");
-            vsb.AppendFormatted(RecordPosition ?? -1);
-
-            if (ChunkOrder.HasValue)
-            {
-                vsb.Append(", Parallel chunk index: ");
-                vsb.AppendFormatted(ChunkOrder.Value);
-            }
-
-            return vsb.ToString();
-        }
-    }
-
-    /// <summary>
-    /// Throws an exception for a CSV record having an invalid number of fields.
-    /// </summary>
-    /// <remarks>
-    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
-    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
-    /// supported, and its behavior may change in a minor release.
-    /// </remarks>
-    /// <exception cref="CsvReadException"></exception>
-    [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowForInvalidFieldCount<T>(int expected, CsvRecordRef<T> record)
+    internal virtual void Enrich<T>(CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
-        throw new CsvReadException(
-            $"Expected {expected} fields, but the record had {record.FieldCount}: {record.Raw.AsPrintableString()}"
-        )
+        Line ??= record.LineNumber;
+        RecordPosition ??= record.Position;
+
+        try
         {
-            ExpectedFieldCount = expected,
-            ActualFieldCount = record.FieldCount,
-        };
+            RecordValue ??= record.Raw.AsPrintableString();
+        }
+        catch
+        {
+            // ignored
+        }
     }
 }
