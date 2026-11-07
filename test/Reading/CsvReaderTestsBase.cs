@@ -167,9 +167,6 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
             {
                 source = ParallelCore();
 
-#if !NET10_0_OR_GREATER
-                async
-#endif
                 IAsyncEnumerable<Obj> ParallelCore()
                 {
                     var parallelBuilder = builder.AsParallel(GetParallelOptions(parallel));
@@ -177,19 +174,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
                         ? parallelBuilder.ReadAsync<Obj>(TypeMap, options)
                         : parallelBuilder.ReadAsync<Obj>(options);
 
-#if NET10_0_OR_GREATER
                     return enumerable.SelectMany(s => s);
-#else
-                    await foreach (var segment in enumerable.WithTestContext())
-                    {
-                        await Task.Yield();
-
-                        foreach (var item in segment)
-                        {
-                            yield return item;
-                        }
-                    }
-#endif
                 }
             }
             else
@@ -246,13 +231,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
 
         if (parallel is Multithread.Unordered)
         {
-#if NET10_0_OR_GREATER
             enumerable = enumerable.Order();
-#else
-            List<Obj> list = await SyncAsyncEnumerable.ToListAsync(enumerable);
-            list.Sort();
-            enumerable = SyncAsyncEnumerable.Create(list);
-#endif
         }
 
         await foreach (var obj in enumerable.WithTestContext())

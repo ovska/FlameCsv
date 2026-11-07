@@ -1,7 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <!-- references the test data library, which targets only the current LTS -->
-        <TargetFrameworks>net10.0</TargetFrameworks>
         <OutputType>Exe</OutputType>
         <NoWarn>$(NoWarn);CS1591</NoWarn>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

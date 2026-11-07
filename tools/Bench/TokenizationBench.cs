@@ -150,7 +150,7 @@ public class TokenizationBench
     }
 #endif
 
-#if false && NET10_0_OR_GREATER
+#if false
     private readonly Avx512Tokenizer<byte, FalseConstant, TrueConstant> _avx512Byte = new(_dByteLF);
     private readonly Avx512Tokenizer<char, FalseConstant, TrueConstant> _avx512Char = new(_dCharLF);
     private readonly Avx512Tokenizer<byte, TrueConstant, TrueConstant> _avx512ByteCRLF = new(_dByteCRLF);

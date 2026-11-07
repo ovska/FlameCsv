@@ -18,10 +18,8 @@ internal static class Tokenizers
             supported.Add(Tokenizer.Simd);
         if (Avx2Tokenizer.IsSupported)
             supported.Add(Tokenizer.Avx2);
-#if NET10_0_OR_GREATER
         if (Avx512Tokenizer.IsSupported)
             supported.Add(Tokenizer.Avx512);
-#endif
         if (ArmTokenizer.IsSupported)
             supported.Add(Tokenizer.Arm);
         All = [.. supported];
@@ -38,9 +36,7 @@ internal static class Tokenizers
             {
                 Tokenizer.Simd => typeof(SimdTokenizer<,,>),
                 Tokenizer.Avx2 => typeof(Avx2Tokenizer<,,>),
-#if NET10_0_OR_GREATER
                 Tokenizer.Avx512 => typeof(Avx512Tokenizer<,,>),
-#endif
                 Tokenizer.Arm => typeof(ArmTokenizer<,,>),
                 _ => throw new ArgumentOutOfRangeException(nameof(tokenizer), "Unknown tokenizer type: " + tokenizer),
             },
@@ -53,9 +49,7 @@ internal static class Tokenizers
         {
             Tokenizer.Simd or Tokenizer.Platform => Vector128.IsHardwareAccelerated,
             Tokenizer.Avx2 => Avx2Tokenizer.IsSupported,
-#if NET10_0_OR_GREATER
             Tokenizer.Avx512 => Avx512Tokenizer.IsSupported,
-#endif
             Tokenizer.Arm => ArmTokenizer.IsSupported,
             Tokenizer.Scalar => true,
             _ => throw new ArgumentOutOfRangeException(nameof(tokenizer), "Unknown tokenizer type: " + tokenizer),
@@ -85,10 +79,8 @@ internal static class Tokenizers
             if (Avx2Tokenizer.IsSupported)
                 Add(typeof(Avx2Tokenizer<,,>));
 
-#if NET10_0_OR_GREATER
             if (Avx512Tokenizer.IsSupported)
                 Add(typeof(Avx512Tokenizer<,,>));
-#endif
 
             if (ArmTokenizer.IsSupported)
                 Add(typeof(ArmTokenizer<,,>));

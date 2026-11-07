@@ -68,9 +68,7 @@ public enum Tokenizer
     Simd,
     Arm,
     Avx2,
-#if NET10_0_OR_GREATER
     Avx512,
-#endif
 }
 
 public enum Escaping
