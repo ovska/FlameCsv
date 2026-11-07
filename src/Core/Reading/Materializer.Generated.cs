@@ -85,7 +85,7 @@ internal sealed class Materializer<T, T0, TResult> : Materializer<T, TResult> wh
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 1) CsvReadException.ThrowForInvalidFieldCount(1, record);
+        if (record.FieldCount != 1) CsvFieldCountException.ThrowForInvalidFieldCount(1, record);
 
         Unsafe.SkipInit(out T0 v0);
 
@@ -137,7 +137,7 @@ internal sealed class Materializer<T, T0, T1, TResult> : Materializer<T, TResult
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 2) CsvReadException.ThrowForInvalidFieldCount(2, record);
+        if (record.FieldCount != 2) CsvFieldCountException.ThrowForInvalidFieldCount(2, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1);
 
@@ -198,7 +198,7 @@ internal sealed class Materializer<T, T0, T1, T2, TResult> : Materializer<T, TRe
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 3) CsvReadException.ThrowForInvalidFieldCount(3, record);
+        if (record.FieldCount != 3) CsvFieldCountException.ThrowForInvalidFieldCount(3, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2);
 
@@ -268,7 +268,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, TResult> : Materializer<T,
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 4) CsvReadException.ThrowForInvalidFieldCount(4, record);
+        if (record.FieldCount != 4) CsvFieldCountException.ThrowForInvalidFieldCount(4, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3);
 
@@ -347,7 +347,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, TResult> : Materialize
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 5) CsvReadException.ThrowForInvalidFieldCount(5, record);
+        if (record.FieldCount != 5) CsvFieldCountException.ThrowForInvalidFieldCount(5, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4);
 
@@ -435,7 +435,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, TResult> : Materia
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 6) CsvReadException.ThrowForInvalidFieldCount(6, record);
+        if (record.FieldCount != 6) CsvFieldCountException.ThrowForInvalidFieldCount(6, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5);
 
@@ -532,7 +532,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, TResult> : Mat
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 7) CsvReadException.ThrowForInvalidFieldCount(7, record);
+        if (record.FieldCount != 7) CsvFieldCountException.ThrowForInvalidFieldCount(7, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6);
 
@@ -638,7 +638,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, TResult> :
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 8) CsvReadException.ThrowForInvalidFieldCount(8, record);
+        if (record.FieldCount != 8) CsvFieldCountException.ThrowForInvalidFieldCount(8, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7);
 
@@ -753,7 +753,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, TResul
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 9) CsvReadException.ThrowForInvalidFieldCount(9, record);
+        if (record.FieldCount != 9) CsvFieldCountException.ThrowForInvalidFieldCount(9, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8);
 
@@ -877,7 +877,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, TR
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 10) CsvReadException.ThrowForInvalidFieldCount(10, record);
+        if (record.FieldCount != 10) CsvFieldCountException.ThrowForInvalidFieldCount(10, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9);
 
@@ -1010,7 +1010,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 11) CsvReadException.ThrowForInvalidFieldCount(11, record);
+        if (record.FieldCount != 11) CsvFieldCountException.ThrowForInvalidFieldCount(11, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10);
 
@@ -1152,7 +1152,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 12) CsvReadException.ThrowForInvalidFieldCount(12, record);
+        if (record.FieldCount != 12) CsvFieldCountException.ThrowForInvalidFieldCount(12, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11);
 
@@ -1303,7 +1303,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 13) CsvReadException.ThrowForInvalidFieldCount(13, record);
+        if (record.FieldCount != 13) CsvFieldCountException.ThrowForInvalidFieldCount(13, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12);
 
@@ -1463,7 +1463,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 14) CsvReadException.ThrowForInvalidFieldCount(14, record);
+        if (record.FieldCount != 14) CsvFieldCountException.ThrowForInvalidFieldCount(14, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13);
 
@@ -1632,7 +1632,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 15) CsvReadException.ThrowForInvalidFieldCount(15, record);
+        if (record.FieldCount != 15) CsvFieldCountException.ThrowForInvalidFieldCount(15, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14);
 
@@ -1810,7 +1810,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 16) CsvReadException.ThrowForInvalidFieldCount(16, record);
+        if (record.FieldCount != 16) CsvFieldCountException.ThrowForInvalidFieldCount(16, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15);
 
@@ -1997,7 +1997,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 17) CsvReadException.ThrowForInvalidFieldCount(17, record);
+        if (record.FieldCount != 17) CsvFieldCountException.ThrowForInvalidFieldCount(17, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16);
 
@@ -2193,7 +2193,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 18) CsvReadException.ThrowForInvalidFieldCount(18, record);
+        if (record.FieldCount != 18) CsvFieldCountException.ThrowForInvalidFieldCount(18, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17);
 
@@ -2398,7 +2398,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 19) CsvReadException.ThrowForInvalidFieldCount(19, record);
+        if (record.FieldCount != 19) CsvFieldCountException.ThrowForInvalidFieldCount(19, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18);
 
@@ -2612,7 +2612,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 20) CsvReadException.ThrowForInvalidFieldCount(20, record);
+        if (record.FieldCount != 20) CsvFieldCountException.ThrowForInvalidFieldCount(20, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19);
 
@@ -2835,7 +2835,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 21) CsvReadException.ThrowForInvalidFieldCount(21, record);
+        if (record.FieldCount != 21) CsvFieldCountException.ThrowForInvalidFieldCount(21, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20);
 
@@ -3067,7 +3067,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 22) CsvReadException.ThrowForInvalidFieldCount(22, record);
+        if (record.FieldCount != 22) CsvFieldCountException.ThrowForInvalidFieldCount(22, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20); Unsafe.SkipInit(out T21 v21);
 
@@ -3308,7 +3308,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 23) CsvReadException.ThrowForInvalidFieldCount(23, record);
+        if (record.FieldCount != 23) CsvFieldCountException.ThrowForInvalidFieldCount(23, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20); Unsafe.SkipInit(out T21 v21); Unsafe.SkipInit(out T22 v22);
 
@@ -3558,7 +3558,7 @@ internal sealed class Materializer<T, T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T1
     [SkipLocalsInit]
     public override TResult Parse(CsvRecordRef<T> record)
     {
-        if (record.FieldCount != 24) CsvReadException.ThrowForInvalidFieldCount(24, record);
+        if (record.FieldCount != 24) CsvFieldCountException.ThrowForInvalidFieldCount(24, record);
 
         Unsafe.SkipInit(out T0 v0); Unsafe.SkipInit(out T1 v1); Unsafe.SkipInit(out T2 v2); Unsafe.SkipInit(out T3 v3); Unsafe.SkipInit(out T4 v4); Unsafe.SkipInit(out T5 v5); Unsafe.SkipInit(out T6 v6); Unsafe.SkipInit(out T7 v7); Unsafe.SkipInit(out T8 v8); Unsafe.SkipInit(out T9 v9); Unsafe.SkipInit(out T10 v10); Unsafe.SkipInit(out T11 v11); Unsafe.SkipInit(out T12 v12); Unsafe.SkipInit(out T13 v13); Unsafe.SkipInit(out T14 v14); Unsafe.SkipInit(out T15 v15); Unsafe.SkipInit(out T16 v16); Unsafe.SkipInit(out T17 v17); Unsafe.SkipInit(out T18 v18); Unsafe.SkipInit(out T19 v19); Unsafe.SkipInit(out T20 v20); Unsafe.SkipInit(out T21 v21); Unsafe.SkipInit(out T22 v22); Unsafe.SkipInit(out T23 v23);
 

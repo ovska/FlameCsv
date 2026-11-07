@@ -128,12 +128,12 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
         {
             Check.WrapAssertion(ref ex);
 
-            (ex as CsvReadExceptionBase)?.Enrich(record);
+            (ex as CsvReadException)?.Enrich(record);
             (ex as CsvParseException)?.WithHeader(Headers);
 
             if (_exceptionHandler is { } handler)
             {
-                int? expectedFieldCount = (ex as CsvReadException)?.ExpectedFieldCount;
+                int? expectedFieldCount = (ex as CsvFieldCountException)?.ExpectedFieldCount;
                 CsvExceptionHandlerArgs<T> args = new(in record, Headers, ex, expectedFieldCount);
 
                 if (handler.Invoke(args))

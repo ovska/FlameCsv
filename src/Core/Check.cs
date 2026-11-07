@@ -342,7 +342,7 @@ internal static class Check
     }
 
     /// <summary>
-    /// Wraps an assertion failure to a CsvReadExceptionBase.
+    /// Wraps an assertion failure to a CsvReadException.
     /// </summary>
     /// <param name="ex"></param>
     [Conditional("FUZZ"), Conditional("FULL_TEST_SUITE"), Conditional("DEBUG")]
@@ -350,7 +350,7 @@ internal static class Check
     {
         if (ex is UnreachableException)
         {
-            ex = new Exceptions.CsvReadExceptionBase("Assertion failed", ex);
+            ex = new Exceptions.CsvReadException("Assertion failed", ex);
         }
     }
 }

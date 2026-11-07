@@ -12,7 +12,7 @@ namespace FlameCsv.Exceptions;
 /// Initializes an exception representing invalid CSV format.
 /// </remarks>
 public sealed class CsvFormatException(string? message = null, Exception? innerException = null)
-    : CsvReadExceptionBase(message, innerException)
+    : CsvReadException(message, innerException)
 {
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
