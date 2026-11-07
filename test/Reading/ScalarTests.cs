@@ -60,7 +60,12 @@ public static class ScalarTests
     [Theory, MemberData(nameof(DenseFieldData))]
     public static void Should_Parse_Dense_Fields(bool useScalar, PoisonPagePlacement placement)
     {
-        using var owner = BoundedMemory.AllocateLoose<byte>(512 * 5 + 128, placement);
+        var (scalar, tokenizer) = CsvOptions<byte>.Default.GetTokenizers();
+
+        // the SIMD tokenizers leave the last Overscan elements for the scalar tokenizer; pad past them
+        int padding = Math.Max(128, tokenizer?.Overscan ?? 0);
+
+        using var owner = BoundedMemory.AllocateLoose<byte>(512 * 5 + padding, placement);
         Span<byte> data;
 
         using (var apbw = new ArrayPoolBufferWriter<byte>())
@@ -77,8 +82,8 @@ public static class ScalarTests
             }
 
             // fill with sentinel bytes
-            apbw.GetSpan(128).Slice(0, 128).Fill((byte)'^');
-            apbw.Advance(128);
+            apbw.GetSpan(padding).Slice(0, padding).Fill((byte)'^');
+            apbw.Advance(padding);
 
             if (placement is PoisonPagePlacement.After)
             {
@@ -95,7 +100,6 @@ public static class ScalarTests
 
         using var rb = new RecordBuffer();
 
-        var (scalar, tokenizer) = CsvOptions<byte>.Default.GetTokenizers();
         var dst = rb.GetUnreadBuffer(0, out int startIndex);
         int count;
 

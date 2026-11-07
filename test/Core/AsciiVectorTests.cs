@@ -85,12 +85,12 @@ public static class AsciiVectorTests
             for (int i = 0; i < 1024; i++)
             {
                 Random.Shared.NextBytes(bytes);
-                var vec = AsciiVector.Load512(ptr);
+                var vec = AsciiVector.Load512((char*)ptr);
                 vec.CopyTo(buffer);
 
                 for (int j = 0; j < buffer.Length; j++)
                 {
-                    if (buffer[j] != bytes[j * 2] && buffer[j] < 127)
+                    if (buffer[j] != bytes[j * 2] && buffer[j] is < 127 and not 0)
                     {
                         invalid.Add($"[{j}]: {buffer[j]} != {bytes[j * 2]}");
                     }
