@@ -17,6 +17,94 @@ public class TypeMapTests(MetadataFixture fixture)
     ];
 
     [Fact]
+    public void Generated_Code_Should_Compile_For_Builtin_And_Enum_Members()
+    {
+        // no using directives: all generated references must be fully qualified
+        const string source = """
+            namespace Gen;
+
+            public enum Color { Red, Green, Blue }
+
+            [System.Flags]
+            public enum Perms { None = 0, Read = 1, Write = 2 }
+
+            // UTF-16 parsable and formattable only
+            public readonly struct Code : System.ISpanParsable<Code>, System.ISpanFormattable
+            {
+                public static Code Parse(string s, System.IFormatProvider? p) => default;
+                public static bool TryParse(string? s, System.IFormatProvider? p, out Code r) { r = default; return true; }
+                public static Code Parse(System.ReadOnlySpan<char> s, System.IFormatProvider? p) => default;
+                public static bool TryParse(System.ReadOnlySpan<char> s, System.IFormatProvider? p, out Code r) { r = default; return true; }
+                public string ToString(string? f, System.IFormatProvider? p) => "";
+                public bool TryFormat(System.Span<char> d, out int w, System.ReadOnlySpan<char> f, System.IFormatProvider? p) { w = 0; return true; }
+            }
+
+            public class Rec
+            {
+                public int Id { get; set; }
+                public Color Color { get; set; }
+                public Color? MaybeColor { get; set; }
+                public Perms Perms { get; set; }
+                public System.DateOnly Date { get; set; }
+                public System.DateOnly? MaybeDate { get; set; }
+                public System.TimeOnly Time { get; set; }
+                public System.Int128 Big { get; set; }
+                public System.Half Half { get; set; }
+                public System.Numerics.BigInteger BigInt { get; set; }
+                public Code Code { get; set; }
+                public Code? MaybeCode { get; set; }
+            }
+
+            public class CtorRec(Color color, Color? maybeColor, System.DateOnly date, System.DateOnly? maybeDate, Code code)
+            {
+                public Color Color { get; } = color;
+                public Color? MaybeColor { get; } = maybeColor;
+                public System.DateOnly Date { get; } = date;
+                public System.DateOnly? MaybeDate { get; } = maybeDate;
+                public Code Code { get; } = code;
+            }
+
+            [FlameCsv.Attributes.CsvTypeMap<char, Rec>] partial class RecCharMap;
+            [FlameCsv.Attributes.CsvTypeMap<byte, Rec>] partial class RecByteMap;
+            [FlameCsv.Attributes.CsvTypeMap<char, CtorRec>] partial class CtorRecCharMap;
+            [FlameCsv.Attributes.CsvTypeMap<byte, CtorRec>] partial class CtorRecByteMap;
+            """;
+
+        CSharpCompilation compilation = CSharpCompilation.Create(
+            nameof(Generated_Code_Should_Compile_For_Builtin_And_Enum_Members),
+            [CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)],
+            [fixture.FlameCsvCore, .. ReferenceAssemblies.All],
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
+
+        GeneratorDriver driver = CSharpGeneratorDriver.Create(new TypeMapGenerator());
+        driver.RunGeneratorsAndUpdateCompilation(
+            compilation,
+            out Compilation output,
+            out ImmutableArray<Diagnostic> generatorDiagnostics,
+            TestContext.Current.CancellationToken
+        );
+
+        Assert.Empty(generatorDiagnostics);
+        Assert.Equal(compilation.SyntaxTrees.Length + 4, output.SyntaxTrees.Count());
+        Assert.Empty(
+            output
+                .GetDiagnostics(TestContext.Current.CancellationToken)
+                .Where(d => d.Severity == DiagnosticSeverity.Error)
+                .Select(d => d.ToString())
+        );
+
+        // enums never use the builtin span conversion, even when they implement the span interfaces
+        string byteMap = output.SyntaxTrees.Single(t => Path.GetFileName(t.FilePath) == "RecByteMap.G.cs").ToString();
+        Assert.Contains("options.Aot.GetOrCreateEnum<global::Gen.Color>()", byteMap);
+        Assert.Contains("options.Aot.GetOrCreateEnum<global::Gen.Perms>()", byteMap);
+        Assert.DoesNotContain("CreateUtf8Transcoded<global::Gen.Color>", byteMap);
+    }
+
+    [Fact]
     public void Test_Cacheability()
     {
         CSharpCompilation compilation = CSharpCompilation.Create(
