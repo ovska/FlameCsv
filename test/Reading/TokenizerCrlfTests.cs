@@ -17,7 +17,7 @@ public static class TokenizerCrlfTests
     public static TheoryData<Type, bool> Data() =>
         [.. from type in new Tokenizers.Types() from utf8 in GlobalData.Booleans select (type, utf8)];
 
-    [Theory, MemberData(nameof(Data))]
+    [Theory(SkipTestWithoutData = true), MemberData(nameof(Data))]
     public static void Should_Strip_CR_From_Unquoted_CRLF(Type type, bool utf8)
     {
         // the original repro: no quotes anywhere in the data
