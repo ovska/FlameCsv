@@ -137,7 +137,6 @@ public partial class CsvOptions<T>
                         ? new ArmTokenizer<T, FalseConstant, TrueConstant>(this)
                         : new ArmTokenizer<T, FalseConstant, FalseConstant>(this);
             }
-#if NET10_0_OR_GREATER
             else if (Avx512Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF
@@ -148,7 +147,6 @@ public partial class CsvOptions<T>
                         ? new Avx512Tokenizer<T, FalseConstant, TrueConstant>(this)
                         : new Avx512Tokenizer<T, FalseConstant, FalseConstant>(this);
             }
-#endif
             else if (Avx2Tokenizer.IsSupported)
             {
                 _simdTokenizer = isCRLF

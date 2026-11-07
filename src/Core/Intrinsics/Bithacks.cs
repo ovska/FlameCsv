@@ -285,20 +285,5 @@ internal static class Bithacks
             return (int)(Unsafe.ByteOffset(in start, in end) / Unsafe.SizeOf<T>());
         }
 
-#if !NET10_0_OR_GREATER
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAddressGreaterThanOrEqualTo<T>(ref readonly T left, ref readonly T right)
-            where T : unmanaged
-        {
-            return !Unsafe.IsAddressLessThan(in left, in right);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAddressLessThanOrEqualTo<T>(ref readonly T left, ref readonly T right)
-            where T : unmanaged
-        {
-            return !Unsafe.IsAddressGreaterThan(in left, in right);
-        }
-#endif
     }
 }

@@ -229,10 +229,8 @@ public static class ScalarTests
             supported = Vector128.IsHardwareAccelerated;
         else if (type == typeof(Avx2Tokenizer<,,>))
             supported = Avx2Tokenizer.IsSupported;
-#if NET10_0_OR_GREATER
         else if (type == typeof(Avx512Tokenizer<,,>))
             supported = Avx512Tokenizer.IsSupported;
-#endif
         else if (type == typeof(ArmTokenizer<,,>))
             supported = ArmTokenizer.IsSupported;
 
