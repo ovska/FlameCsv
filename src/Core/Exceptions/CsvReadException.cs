@@ -27,7 +27,7 @@ public class CsvReadException(string? message = null, Exception? innerException 
     internal virtual void Enrich<T>(CsvRecordRef<T> record)
         where T : unmanaged, IBinaryInteger<T>
     {
-        Line ??= record.LineNumber;
+        Line ??= record.Line;
         RecordPosition ??= record.Position;
 
         try

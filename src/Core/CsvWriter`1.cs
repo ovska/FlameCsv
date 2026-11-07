@@ -71,13 +71,13 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
     public int FieldIndex { get; private set; }
 
     /// <summary>
-    /// 1-based index of the current line/record. Incremented after each newline.
+    /// 1-based line number of the current record. Incremented after each newline.
     /// </summary>
     /// <remarks>
-    /// Newlines in quoted fields/strings are not counted, this property represents the logical CSV record index,
+    /// Newlines in quoted fields/strings are not counted, this property represents the logical CSV record number,
     /// i.e. how many times <see cref="NextRecord"/> or <see cref="NextRecordAsync(CancellationToken)"/> has been called plus one.
     /// </remarks>
-    public int LineIndex { get; private set; }
+    public int Line { get; private set; }
 
     /// <summary>
     /// Whether the writer has completed (disposed).
@@ -108,7 +108,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
             Throw.Argument_DefaultStruct(typeof(CsvFieldWriter<T>), nameof(inner));
 
         _inner = inner;
-        LineIndex = 1;
+        Line = 1;
 
         AutoFlush = true;
         EnsureTrailingNewline = true;
@@ -216,7 +216,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
 
         _inner.WriteNewline();
         FieldIndex = 0;
-        LineIndex++;
+        Line++;
 
         if (AutoFlush && _inner.Writer.NeedsDrain)
             _inner.Writer.Drain();
@@ -237,7 +237,7 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
 
         _inner.WriteNewline();
         FieldIndex = 0;
-        LineIndex++;
+        Line++;
 
         if (AutoFlush && _inner.Writer.NeedsDrain)
             return _inner.Writer.DrainAsync(cancellationToken);
@@ -500,13 +500,13 @@ public sealed class CsvWriter<T> : IDisposable, IAsyncDisposable
         if (
             exception is null
             && EnsureTrailingNewline
-            && (FieldIndex != 0 || LineIndex == 1) // write newline if current line was empty, or nothing was written yet
+            && (FieldIndex != 0 || Line == 1) // write newline if current line was empty, or nothing was written yet
         )
         {
             // don't call NextRecord as it can trigger an unnecessary auto-flush
             _inner.WriteNewline();
             FieldIndex = 0;
-            LineIndex++;
+            Line++;
         }
     }
 

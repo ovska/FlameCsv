@@ -44,7 +44,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     /// <remarks>
     /// Lines are counted as CSV records; newlines inside quoted fields are not counted.
     /// </remarks>
-    public int LineNumber
+    public int Line
     {
         get
         {
@@ -447,7 +447,7 @@ public readonly partial struct CsvRecord<T> : IEnumerable<ReadOnlySpan<T>>
     {
         private readonly CsvRecord<T> _record = record;
 
-        public int Line => _record.LineNumber;
+        public int Line => _record.Line;
         public long Position => _record.Position;
         public string[] Headers => _record._owner.Header?.Values.ToArray() ?? [];
 

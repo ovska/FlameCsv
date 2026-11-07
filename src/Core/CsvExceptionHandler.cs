@@ -51,8 +51,8 @@ public readonly ref struct CsvExceptionHandlerArgs<T>
     [UnscopedRef]
     public ref readonly CsvRecordRef<T> Record => ref _record;
 
-    /// <inheritdoc cref="CsvRecordRef{T}.LineNumber"/>
-    public int LineNumber => _record.LineNumber;
+    /// <inheritdoc cref="CsvRecordRef{T}.Line"/>
+    public int Line => _record.Line;
 
     /// <inheritdoc cref="CsvRecordRef{T}.Position"/>
     public long Position => _record.Position;
