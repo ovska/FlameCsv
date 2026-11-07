@@ -88,8 +88,8 @@ public readonly ref struct CsvRecordCallbackArgs<T>
     /// </summary>
     public CsvOptions<T> Options => _record._owner.Options;
 
-    /// <inheritdoc cref="CsvRecordRef{T}.LineNumber"/>
-    public int LineNumber => _record.LineNumber;
+    /// <inheritdoc cref="CsvRecordRef{T}.Line"/>
+    public int Line => _record.Line;
 
     /// <inheritdoc cref="CsvRecordRef{T}.Position"/>
     public long Position => _record.Position;

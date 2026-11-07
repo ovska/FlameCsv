@@ -309,7 +309,7 @@ public abstract class CsvReaderTestsBase<T> : CsvReaderTestsBase
         Obj Core(in CsvRecord<T> record)
         {
             index++;
-            Assert.Equal(hasHeader ? index + 1 : index, record.LineNumber);
+            Assert.Equal(hasHeader ? index + 1 : index, record.Line);
             Assert.Equal(tokenPosition, record.Position);
 
             int length = record._owner.Reader._recordBuffer.GetLengthWithNewline(record._view);

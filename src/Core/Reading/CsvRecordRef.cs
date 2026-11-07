@@ -69,7 +69,7 @@ public readonly ref struct CsvRecordRef<T>
     /// <remarks>
     /// Lines are counted as CSV records; newlines inside quoted fields are not counted.
     /// </remarks>
-    public int LineNumber
+    public int Line
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _owner._recordBuffer.LineNumber;
