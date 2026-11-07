@@ -13,8 +13,8 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
     private readonly string? _format;
-    private readonly EnumParseStrategy<char, TEnum> _parseStrategy;
-    private readonly EnumFormatStrategy<char, TEnum> _formatStrategy;
+    private readonly CsvEnumParseStrategy<char, TEnum> _parseStrategy;
+    private readonly CsvEnumFormatStrategy<char, TEnum> _formatStrategy;
 
     /// <summary>
     /// Creates a new enum converter.
@@ -70,7 +70,7 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
             && (_allowUndefinedValues || EnumCacheText<TEnum>.IsDefinedCore(value));
     }
 
-    private sealed class ParseStrategy : EnumParseStrategy<char, TEnum>
+    private sealed class ParseStrategy : CsvEnumParseStrategy<char, TEnum>
     {
         private readonly bool _allowUndefinedValues;
 
@@ -105,7 +105,7 @@ internal sealed class EnumTextConverter<TEnum> : CsvConverter<char, TEnum>
         }
     }
 
-    private sealed class FormatStrategy(string? format) : EnumFormatStrategy<char, TEnum>
+    private sealed class FormatStrategy(string? format) : CsvEnumFormatStrategy<char, TEnum>
     {
         private readonly FrozenDictionary<TEnum, string>? _names = EnumCacheText<TEnum>.GetWriteValues(format);
 

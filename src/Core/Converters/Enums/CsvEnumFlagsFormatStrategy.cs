@@ -6,17 +6,19 @@ namespace FlameCsv.Converters.Enums;
 
 /// <summary>
 /// Provides a wrapper for formatting flags-enums using an inner strategy.<br/>
-/// Fields are formatted with the <see cref="CsvOptions{T}.EnumFlagsSeparator"/> character and parsed using the inner strategy.
+/// Each flag is formatted using the inner strategy, and the flags are joined with the
+/// <see cref="CsvOptions{T}.EnumFlagsSeparator"/> character.
 /// </summary>
 /// <remarks>
-/// Falls back to writing a numeric value if the value contains a flag not defined in the enum type.
+/// Returns <see cref="OperationStatus.InvalidData"/> if the value contains a flag not defined in the enum type,
+/// in which case the converter falls back to writing a numeric value.
 /// <para>
 /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
 /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
 /// supported, and its behavior may change in a minor release.
 /// </para>
 /// </remarks>
-public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<T, TEnum>
+public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : CsvEnumFormatStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>
     where TEnum : struct, Enum
 {
@@ -47,12 +49,12 @@ public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<
 
     private readonly T _separator;
     private readonly ulong _undefinedFlags;
-    private readonly EnumFormatStrategy<T, TEnum> _inner;
+    private readonly CsvEnumFormatStrategy<T, TEnum> _inner;
 
     /// <summary>
     /// Initializes a new flags-format strategy.
     /// </summary>
-    protected CsvEnumFlagsFormatStrategy(CsvOptions<T> options, EnumFormatStrategy<T, TEnum> inner)
+    protected CsvEnumFlagsFormatStrategy(CsvOptions<T> options, CsvEnumFormatStrategy<T, TEnum> inner)
     {
         Check.True(EnumMemberCache<TEnum>.HasFlagsAttribute, $"Enum {typeof(TEnum)} is not a flags-enum");
 

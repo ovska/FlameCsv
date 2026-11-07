@@ -639,8 +639,8 @@ partial class TypeCodeCharConverter : global::FlameCsv.CsvConverter<char, global
     private static ReadOrdinalImpl OrdinalStrategy { get; } = new();
     private static ReadIgnoreCaseImpl IgnoreCaseStrategy { get; } = new();
 
-    private readonly global::FlameCsv.Converters.Enums.EnumParseStrategy<char, global::System.TypeCode> _parseStrategy;
-    private readonly global::FlameCsv.Converters.Enums.EnumFormatStrategy<char, global::System.TypeCode> _formatStrategy;
+    private readonly global::FlameCsv.Converters.Enums.CsvEnumParseStrategy<char, global::System.TypeCode> _parseStrategy;
+    private readonly global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<char, global::System.TypeCode> _formatStrategy;
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
     private readonly string? _format;
@@ -656,7 +656,7 @@ partial class TypeCodeCharConverter : global::FlameCsv.CsvConverter<char, global
         {
             null or "g" or "G" => WriteStringStrategy,
             "d" or "D" => WriteNumberStrategy,
-            "x" or "X" => global::FlameCsv.Converters.Enums.EnumFormatStrategy<char, global::System.TypeCode>.None, // always defer to Enum.TryFormat
+            "x" or "X" => global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<char, global::System.TypeCode>.None, // always defer to Enum.TryFormat
             "f" or "F" => throw new global::System.NotSupportedException("Flags-format not supported for non-flags enum TypeCode"),
             { } configuredFormat => throw new global::System.NotSupportedException("Invalid enum format specified: " + configuredFormat)
         };
@@ -760,7 +760,7 @@ partial class TypeCodeCharConverter : global::FlameCsv.CsvConverter<char, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy<char, global::System.TypeCode>
+    private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.CsvEnumParseStrategy<char, global::System.TypeCode>
     {
         public override bool TryParse(global::System.ReadOnlySpan<char> source, out global::System.TypeCode value)
         {
@@ -926,7 +926,7 @@ partial class TypeCodeCharConverter : global::FlameCsv.CsvConverter<char, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy<char, global::System.TypeCode>
+    private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.CsvEnumParseStrategy<char, global::System.TypeCode>
     {
         public override bool TryParse(global::System.ReadOnlySpan<char> source, out global::System.TypeCode value)
         {
@@ -1092,7 +1092,7 @@ partial class TypeCodeCharConverter : global::FlameCsv.CsvConverter<char, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy<char, global::System.TypeCode>
+    private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<char, global::System.TypeCode>
     {
         public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<char> destination, global::System.TypeCode value, out int charsWritten)
         {
@@ -1176,7 +1176,7 @@ partial class TypeCodeCharConverter : global::FlameCsv.CsvConverter<char, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy<char, global::System.TypeCode>
+    private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<char, global::System.TypeCode>
     {
         public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<char> destination, global::System.TypeCode value, out int charsWritten)
         {
@@ -1381,8 +1381,8 @@ partial class TypeCodeByteConverter : global::FlameCsv.CsvConverter<byte, global
     private static ReadOrdinalImpl OrdinalStrategy { get; } = new();
     private static ReadIgnoreCaseImpl IgnoreCaseStrategy { get; } = new();
 
-    private readonly global::FlameCsv.Converters.Enums.EnumParseStrategy<byte, global::System.TypeCode> _parseStrategy;
-    private readonly global::FlameCsv.Converters.Enums.EnumFormatStrategy<byte, global::System.TypeCode> _formatStrategy;
+    private readonly global::FlameCsv.Converters.Enums.CsvEnumParseStrategy<byte, global::System.TypeCode> _parseStrategy;
+    private readonly global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<byte, global::System.TypeCode> _formatStrategy;
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
     private readonly string? _format;
@@ -1398,7 +1398,7 @@ partial class TypeCodeByteConverter : global::FlameCsv.CsvConverter<byte, global
         {
             null or "g" or "G" => WriteStringStrategy,
             "d" or "D" => WriteNumberStrategy,
-            "x" or "X" => global::FlameCsv.Converters.Enums.EnumFormatStrategy<byte, global::System.TypeCode>.None, // always defer to Enum.TryFormat
+            "x" or "X" => global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<byte, global::System.TypeCode>.None, // always defer to Enum.TryFormat
             "f" or "F" => throw new global::System.NotSupportedException("Flags-format not supported for non-flags enum TypeCode"),
             { } configuredFormat => throw new global::System.NotSupportedException("Invalid enum format specified: " + configuredFormat)
         };
@@ -1544,7 +1544,7 @@ partial class TypeCodeByteConverter : global::FlameCsv.CsvConverter<byte, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy<byte, global::System.TypeCode>
+    private sealed class ReadOrdinalImpl : global::FlameCsv.Converters.Enums.CsvEnumParseStrategy<byte, global::System.TypeCode>
     {
         public override bool TryParse(global::System.ReadOnlySpan<byte> source, out global::System.TypeCode value)
         {
@@ -1710,7 +1710,7 @@ partial class TypeCodeByteConverter : global::FlameCsv.CsvConverter<byte, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.EnumParseStrategy<byte, global::System.TypeCode>
+    private sealed class ReadIgnoreCaseImpl : global::FlameCsv.Converters.Enums.CsvEnumParseStrategy<byte, global::System.TypeCode>
     {
         public override bool TryParse(global::System.ReadOnlySpan<byte> source, out global::System.TypeCode value)
         {
@@ -1890,7 +1890,7 @@ partial class TypeCodeByteConverter : global::FlameCsv.CsvConverter<byte, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy<byte, global::System.TypeCode>
+    private sealed class WriteNumberImpl : global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<byte, global::System.TypeCode>
     {
         public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<byte> destination, global::System.TypeCode value, out int charsWritten)
         {
@@ -1982,7 +1982,7 @@ partial class TypeCodeByteConverter : global::FlameCsv.CsvConverter<byte, global
     /// </summary>
     [global::System.CodeDom.Compiler.GeneratedCode("FlameCsv.SourceGen", "1.0.0")]
     [global::System.Runtime.CompilerServices.SkipLocalsInit]
-    private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.EnumFormatStrategy<byte, global::System.TypeCode>
+    private sealed class WriteStringImpl : global::FlameCsv.Converters.Enums.CsvEnumFormatStrategy<byte, global::System.TypeCode>
     {
         public override global::System.Buffers.OperationStatus TryFormat(global::System.Span<byte> destination, global::System.TypeCode value, out int charsWritten)
         {
