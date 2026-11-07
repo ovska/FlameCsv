@@ -14,7 +14,7 @@ public sealed class CsvTypeMapEnumerator<T, TValue> : CsvValueEnumeratorBase<T, 
     private readonly CsvTypeMap<T, TValue> _typeMap;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="CsvValueEnumerator{T, TValue}"/>.
+    /// Initializes a new instance of <see cref="CsvTypeMapEnumerator{T, TValue}"/>.
     /// </summary>
     /// <param name="options">Options to use for reading</param>
     /// <param name="typeMap">Type map used for binding</param>

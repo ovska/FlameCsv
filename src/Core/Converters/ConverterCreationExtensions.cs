@@ -19,7 +19,7 @@ namespace FlameCsv.Converters;
 public static class ConverterCreationExtensions
 {
     /// <summary>
-    /// Creates a converter for a type that implements <see cref="ISpanParsable{T}"/> and <see cref="ISpanFormattable"/>.
+    /// Creates a UTF-8 converter for a type that implements <see cref="IUtf8SpanParsable{T}"/> and <see cref="ISpanFormattable"/>.
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static CsvConverter<byte, TValue> CreateUtf8Parsable<TValue>(CsvOptions<byte> options)

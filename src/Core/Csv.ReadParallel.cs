@@ -49,7 +49,7 @@ static partial class Csv
         }
 
         /// <summary>
-        /// Reads CSV records in parallel and returns them as batches,, binding them using the given type map.
+        /// Reads CSV records in parallel and returns them as batches, binding them using the given type map.
         /// </summary>
         /// <param name="typeMap">Type map used to bind the CSV data</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
@@ -139,6 +139,7 @@ static partial class Csv
         /// </remarks>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
+        /// <returns>A task that completes when all records have been processed</returns>
         [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
         public Task ForEachAsync<[DAM(Messages.ReflectionBound)] TValue>(
             Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
@@ -169,6 +170,7 @@ static partial class Csv
             CsvOptions<T>? options = null
         )
         {
+            ArgumentNullException.ThrowIfNull(typeMap);
             ArgumentNullException.ThrowIfNull(action);
             Util.ForEachCore(options, this, action, ValueProducer<T, TValue>.Create(typeMap, options, ParallelOptions));
         }
@@ -182,7 +184,7 @@ static partial class Csv
         /// <param name="typeMap">Type map to use for binding</param>
         /// <param name="action">Action to invoke</param>
         /// <param name="options">Options to use, <see cref="CsvOptions{T}.Default"/> used by default</param>
-        /// <returns>A task that completes when all values have been written to the channel</returns>
+        /// <returns>A task that completes when all records have been processed</returns>
         public Task ForEachAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             Func<ArraySegment<TValue>, CancellationToken, ValueTask> action,
