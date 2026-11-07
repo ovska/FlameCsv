@@ -9,6 +9,11 @@ namespace FlameCsv.Converters;
 /// This converter uses a <see cref="StringPool"/> to manage string instances,
 /// which will lower raw parsing throughput but reduce memory usage when parsing many strings with the same values.
 /// </summary>
+/// <remarks>
+/// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+/// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+/// supported, and its behavior may change in a minor release.
+/// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class CsvPoolingStringTextConverter : CsvConverter<char, string>
 {

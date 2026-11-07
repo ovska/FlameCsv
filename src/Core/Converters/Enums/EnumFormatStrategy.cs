@@ -7,6 +7,11 @@ namespace FlameCsv.Converters.Enums;
 /// Provides a base class for formatting enum values.
 /// Used by the <see cref="Attributes.CsvEnumConverterAttribute{T,TEnum}"/> source generator.
 /// </summary>
+/// <remarks>
+/// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+/// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+/// supported, and its behavior may change in a minor release.
+/// </remarks>
 [PublicAPI]
 public abstract class EnumFormatStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>

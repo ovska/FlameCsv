@@ -10,6 +10,11 @@ namespace FlameCsv.Converters.Enums;
 /// </summary>
 /// <remarks>
 /// Falls back to writing a numeric value if the value contains a flag not defined in the enum type.
+/// <para>
+/// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+/// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+/// supported, and its behavior may change in a minor release.
+/// </para>
 /// </remarks>
 public abstract class CsvEnumFlagsFormatStrategy<T, TEnum> : EnumFormatStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>

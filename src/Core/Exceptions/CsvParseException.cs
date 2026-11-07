@@ -58,6 +58,11 @@ public sealed class CsvParseException(string? message = null, Exception? innerEx
     /// <summary>
     /// Throws an exception for a field that could not be parsed.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <param name="fieldIndex">Index of the field in the record</param>
     /// <param name="parsedType">Converted type</param>
     /// <param name="converter">Converter used</param>

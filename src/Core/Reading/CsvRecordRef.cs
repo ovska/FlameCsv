@@ -8,10 +8,14 @@ using JetBrains.Annotations;
 namespace FlameCsv.Reading;
 
 /// <summary>
-/// Metadata of a CSV record's fields and a thin wrapper around the data. This type should be used with care.
+/// Metadata of a CSV record's fields and a thin wrapper around the data.
 /// </summary>
+/// <remarks>
+/// This type is a <see langword="ref struct"/> that is only valid until the next record is read
+/// or the owning reader is disposed. It is yielded by <see cref="CsvReader{T}"/> and passed to
+/// <see cref="IMaterializer{T,TResult}"/>.
+/// </remarks>
 [SkipLocalsInit]
-[EditorBrowsable(EditorBrowsableState.Never)]
 [PublicAPI]
 public readonly ref struct CsvRecordRef<T>
     where T : unmanaged, IBinaryInteger<T>
@@ -129,6 +133,11 @@ public readonly ref struct CsvRecordRef<T>
     /// The returned span is only guaranteed to be valid until another field or the next record is read.<br/>
     /// This method does not perform any bounds checking on <paramref name="index"/>, and is only intended to be used
     /// by internal code and the source generator, or after validating <see cref="FieldCount"/>.
+    /// <para>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </para>
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -191,6 +200,11 @@ public readonly ref struct CsvRecordRef<T>
     /// <remarks>
     /// This method does not perform any bounds checking on <paramref name="indexes"/>, and is only intended to be used
     /// by internal code and the source generator, or after validating <see cref="FieldCount"/>.
+    /// <para>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </para>
     /// </remarks>
     /// <exception cref="Exceptions.CsvFormatException"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -224,6 +238,11 @@ public readonly ref struct CsvRecordRef<T>
     /// <summary>
     /// Validates quotes in all fields.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <exception cref="Exceptions.CsvFormatException"/>
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.NoInlining)]

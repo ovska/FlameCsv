@@ -21,6 +21,11 @@ public abstract class CsvTypeMap
     /// <summary>
     /// Throws an exception for header field being bound multiple times.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -35,6 +40,11 @@ public abstract class CsvTypeMap
     /// <summary>
     /// Throws an exception for header field that wasn't matched to any member or parameter.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -49,6 +59,11 @@ public abstract class CsvTypeMap
     /// <summary>
     /// Throws an exception for a required member or parameter that wasn't bound to any of the headers.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -64,6 +79,11 @@ public abstract class CsvTypeMap
     /// <summary>
     /// Throws an exception for header that couldn't be bound to any member of parameter.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <exception cref="CsvBindingException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     [EditorBrowsable(EditorBrowsableState.Never)]
