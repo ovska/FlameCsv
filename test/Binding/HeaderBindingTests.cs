@@ -1,3 +1,5 @@
+#pragma warning disable FLAMECSV001 // CsvTypeProxyAttribute is experimental
+
 using FlameCsv.Attributes;
 using FlameCsv.Binding;
 using FlameCsv.Exceptions;

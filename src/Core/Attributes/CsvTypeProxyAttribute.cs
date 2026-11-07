@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Diagnostics.CodeAnalysis;
+using JetBrains.Annotations;
 
 namespace FlameCsv.Attributes;
 
@@ -6,9 +7,12 @@ namespace FlameCsv.Attributes;
 /// Configures the type used when instantiating the target type.
 /// </summary>
 /// <remarks>
-/// This API is still only partially supported and experimental, and may change in future releases.
+/// This API is experimental: it is only partially supported, and may change or be removed in a future release
+/// without a major version bump. Using it produces the <c>FLAMECSV001</c> diagnostic, which must be suppressed
+/// to opt in.
 /// </remarks>
 [PublicAPI]
+[Experimental("FLAMECSV001")]
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface | AttributeTargets.Assembly,
     AllowMultiple = true, // type and assembly need AllMultiple = true
