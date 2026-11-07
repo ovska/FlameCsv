@@ -191,6 +191,14 @@ internal sealed class Avx512Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
 
             // add the base index to the iota to get the final field indexes
             Vector512<uint> result = fixedTaggedVector.AsUInt32() + indexVector;
+
+            if (TCRLF.Value)
+            {
+                // subtract 1 from CRLF matches (bit 30 set) so the field end excludes the CR, like the other paths do;
+                // this must be done on the fixed value, otherwise pure LF's read with CRLF mode get messed up
+                result -= (fixedTaggedVector.AsUInt32() << 1) >> 31;
+            }
+
             result.StoreUnsafe(ref dst);
 
             IncrementAndContinueRead:
