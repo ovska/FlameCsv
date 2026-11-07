@@ -13,14 +13,14 @@ namespace FlameCsv.Converters.Enums;
 /// supported, and its behavior may change in a minor release.
 /// </remarks>
 [PublicAPI]
-public abstract class EnumFormatStrategy<T, TEnum>
+public abstract class CsvEnumFormatStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>
     where TEnum : struct, Enum
 {
     /// <summary>
     /// Returns a singleton strategy that always fails to format an enum value.
     /// </summary>
-    public static EnumFormatStrategy<T, TEnum> None => field ??= new NoneImpl();
+    public static CsvEnumFormatStrategy<T, TEnum> None => field ??= new NoneImpl();
 
     /// <inheritdoc cref="CsvConverter{T,TValue}.TryFormat"/>
     /// <returns>
@@ -32,7 +32,7 @@ public abstract class EnumFormatStrategy<T, TEnum>
     /// <remarks>The destination buffer is never empty.</remarks>
     public abstract OperationStatus TryFormat(Span<T> destination, TEnum value, out int charsWritten);
 
-    private sealed class NoneImpl : EnumFormatStrategy<T, TEnum>
+    private sealed class NoneImpl : CsvEnumFormatStrategy<T, TEnum>
     {
         public override OperationStatus TryFormat(Span<T> destination, TEnum value, out int charsWritten)
         {

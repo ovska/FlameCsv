@@ -13,19 +13,19 @@ namespace FlameCsv.Converters.Enums;
 /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
 /// supported, and its behavior may change in a minor release.
 /// </remarks>
-public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, TEnum>
+public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : CsvEnumParseStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>
     where TEnum : struct, Enum
 {
     private readonly T _separator;
-    private readonly EnumParseStrategy<T, TEnum> _inner;
+    private readonly CsvEnumParseStrategy<T, TEnum> _inner;
     private readonly CsvFieldTrimming _trimming;
     private readonly bool _allowUndefinedValues;
 
     /// <summary>
     /// Initializes a new flags-parse strategy.
     /// </summary>
-    public CsvEnumFlagsParseStrategy(CsvOptions<T> options, EnumParseStrategy<T, TEnum> inner)
+    public CsvEnumFlagsParseStrategy(CsvOptions<T> options, CsvEnumParseStrategy<T, TEnum> inner)
     {
         Check.True(EnumMemberCache<TEnum>.HasFlagsAttribute, $"Enum {typeof(TEnum)} is not a flags-enum");
 

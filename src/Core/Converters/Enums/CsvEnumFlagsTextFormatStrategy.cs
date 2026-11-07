@@ -20,7 +20,7 @@ public sealed class CsvEnumFlagsTextFormatStrategy<TEnum> : CsvEnumFlagsFormatSt
     private static string? _zero;
 
     /// <inheritdoc />
-    public CsvEnumFlagsTextFormatStrategy(CsvOptions<char> options, EnumFormatStrategy<char, TEnum> inner)
+    public CsvEnumFlagsTextFormatStrategy(CsvOptions<char> options, CsvEnumFormatStrategy<char, TEnum> inner)
         : base(options, inner) { }
 
     /// <inheritdoc />

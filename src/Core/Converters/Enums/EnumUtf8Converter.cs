@@ -15,8 +15,8 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
     private readonly bool _allowUndefinedValues;
     private readonly bool _ignoreCase;
     private readonly string? _format;
-    private readonly EnumParseStrategy<byte, TEnum> _parseStrategy;
-    private readonly EnumFormatStrategy<byte, TEnum> _formatStrategy;
+    private readonly CsvEnumParseStrategy<byte, TEnum> _parseStrategy;
+    private readonly CsvEnumFormatStrategy<byte, TEnum> _formatStrategy;
 
     /// <summary>
     /// Initializes a new enum converter.
@@ -114,7 +114,7 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
         return false;
     }
 
-    private sealed class ParseStrategy : EnumParseStrategy<byte, TEnum>
+    private sealed class ParseStrategy : CsvEnumParseStrategy<byte, TEnum>
     {
         private readonly bool _allowUndefinedValues;
 
@@ -149,7 +149,7 @@ internal sealed class EnumUtf8Converter<TEnum> : CsvConverter<byte, TEnum>
         }
     }
 
-    private sealed class FormatStrategy(string? format) : EnumFormatStrategy<byte, TEnum>
+    private sealed class FormatStrategy(string? format) : CsvEnumFormatStrategy<byte, TEnum>
     {
         private readonly FrozenDictionary<TEnum, byte[]>? _names = EnumCacheUtf8<TEnum>.GetWriteValues(format);
 

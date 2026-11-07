@@ -21,7 +21,7 @@ public sealed class CsvEnumFlagsUtf8FormatStrategy<TEnum> : CsvEnumFlagsFormatSt
     private static byte[]? _zero;
 
     /// <inheritdoc />
-    public CsvEnumFlagsUtf8FormatStrategy(CsvOptions<byte> options, EnumFormatStrategy<byte, TEnum> inner)
+    public CsvEnumFlagsUtf8FormatStrategy(CsvOptions<byte> options, CsvEnumFormatStrategy<byte, TEnum> inner)
         : base(options, inner) { }
 
     /// <inheritdoc />
