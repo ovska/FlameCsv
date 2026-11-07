@@ -252,6 +252,8 @@ internal static partial class Field
                     if (quote == Unsafe.Add(ref src, 6)) { src = ref Unsafe.Add(ref src, 7); goto Found; }
                     if (quote == Unsafe.Add(ref src, 7)) { src = ref Unsafe.Add(ref src, 8); goto Found; }
                 }
+
+                src = ref Unsafe.Add(ref src, 8);
             }
             goto ReadTail;
 
