@@ -11,8 +11,11 @@ namespace FlameCsv.Reading.Internal;
 
 internal static class Avx2Tokenizer
 {
+    // BMI2 is part of the same ISA level as AVX2 on .NET 10, but require it explicitly as the tokenizer relies on it
     public static bool IsSupported =>
-        Avx2.IsSupported && RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64;
+        Avx2.IsSupported
+        && Bmi2.IsSupported
+        && RuntimeInformation.ProcessArchitecture is Architecture.X86 or Architecture.X64;
 }
 
 [SkipLocalsInit]
@@ -49,7 +52,11 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     protected override unsafe int TokenizeCore(Span<uint> destination, int startIndex, T* start, T* end)
     {
-        if (!Avx2.IsSupported || RuntimeInformation.ProcessArchitecture is not (Architecture.X86 or Architecture.X64))
+        if (
+            !Avx2.IsSupported
+            || !Bmi2.IsSupported
+            || RuntimeInformation.ProcessArchitecture is not (Architecture.X86 or Architecture.X64)
+        )
         {
             // ensure the method is trimmed on NAOT
             throw new PlatformNotSupportedException();
@@ -260,21 +267,7 @@ internal sealed class Avx2Tokenizer<T, TCRLF, TQuote> : CsvTokenizer<T>
             if (controlCount > (uint)Vector256<int>.Count)
             {
                 // remove the first 8 matches
-                if (Bmi1.IsSupported && Bmi2.IsSupported)
-                {
-                    maskControl &= ~Bmi2.ParallelBitDeposit(0xFFu, maskControl);
-                }
-                else
-                {
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                    maskControl &= maskControl - 1;
-                }
+                maskControl &= ~Bmi2.ParallelBitDeposit(0xFFu, maskControl);
 
                 Check.OverZero(maskControl, "There should be bits left in maskControl.");
                 Check.Equal(
