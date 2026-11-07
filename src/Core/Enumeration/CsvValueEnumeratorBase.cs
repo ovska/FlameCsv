@@ -82,7 +82,7 @@ public abstract class CsvValueEnumeratorBase<T, TValue>
     /// <param name="options">Options to use for reading</param>
     /// <param name="reader">Data source</param>
     /// <param name="cancellationToken">Token to cancel asynchronous enumeration</param>
-    protected CsvValueEnumeratorBase(
+    private protected CsvValueEnumeratorBase(
         CsvOptions<T> options,
         ICsvBufferReader<T> reader,
         CancellationToken cancellationToken
