@@ -7,6 +7,9 @@
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
         <IncludeSymbols>false</IncludeSymbols>
         <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+    <!-- Emit debug comments and diagnostics in generated code only in Debug builds -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
         <DefineConstants>$(DefineConstants);WRITER_DEBUG</DefineConstants>
     </PropertyGroup>
     <ItemGroup>
