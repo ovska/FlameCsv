@@ -118,7 +118,9 @@ internal class CsvTypeInfo
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TryGetTypeProxy([DAM(Messages.ReflectionBound)] [NotNullWhen(true)] out Type? typeProxy)
     {
+#pragma warning disable FLAMECSV001 // experimental API
         if (Type.IsValueType || GetFromAssemblyOrType<CsvTypeProxyAttribute>() is not { } attribute)
+#pragma warning restore FLAMECSV001
         {
             typeProxy = null;
             return false;

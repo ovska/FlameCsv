@@ -177,5 +177,7 @@ public interface IUser
 }
 ```
 
-> [!NOTE]
-> This feature is still under development and its behavior may change in future releases.
+> [!WARNING]
+> This feature is experimental: it is only partially supported, and may change or be removed in a future release
+> without a major version bump. Using the attribute produces the `FLAMECSV001` diagnostic, which you must suppress to opt in
+> (for example with `#pragma warning disable FLAMECSV001`, or `<NoWarn>$(NoWarn);FLAMECSV001</NoWarn>` in your project file).
