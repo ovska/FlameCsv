@@ -8,6 +8,11 @@ namespace FlameCsv.Converters.Enums;
 /// Provides a wrapper for parsing flags-enums using an inner strategy.<br/>
 /// Fields are split with the <see cref="CsvOptions{T}.EnumFlagsSeparator"/> character and parsed using the inner strategy.
 /// </summary>
+/// <remarks>
+/// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+/// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+/// supported, and its behavior may change in a minor release.
+/// </remarks>
 public sealed class CsvEnumFlagsParseStrategy<T, TEnum> : EnumParseStrategy<T, TEnum>
     where T : unmanaged, IBinaryInteger<T>
     where TEnum : struct, Enum

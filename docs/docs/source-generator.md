@@ -18,6 +18,15 @@ especially when reading UTF-8 (bytes). For more details, see the [benchmarks](be
 All source generators in FlameCsv are implemented as low-footprint incremental generators, and they include diagnostics
 for common pitfalls and configuration problems.
 
+### APIs used by generated code
+
+Generated code calls a small set of public APIs that exist only to support it, such as
+@"FlameCsv.Reading.CsvRecordRef`1.GetFieldUnsafe(System.Int32)", @"FlameCsv.CsvOptions`1.Aot",
+@"FlameCsv.Converters.ConverterCreationExtensions", and the enum format/parse strategies.
+These APIs are hidden from IntelliSense and documented as supporting generated code.
+Their compatibility is only guaranteed for the way generated code uses them: direct use from user code is not supported,
+and their behavior may change in a minor release.
+
 ## Type Map Generator
 
 FlameCsv includes a source generator that creates code for binding .NET types to/from CSV headers.

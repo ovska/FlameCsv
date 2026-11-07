@@ -58,6 +58,11 @@ public class CsvReadException(string? message = null, Exception? innerException 
     /// <summary>
     /// Throws an exception for a CSV record having an invalid number of fields.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     /// <exception cref="CsvReadException"></exception>
     [DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
     public static void ThrowForInvalidFieldCount<T>(int expected, CsvRecordRef<T> record)

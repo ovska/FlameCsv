@@ -17,6 +17,11 @@ partial class CsvOptions<T>
     /// This API is meant to be used by the source generator to produce trimming/AOT safe code.
     /// Because of this, <see cref="CsvConverterFactory{T}"/> is not supported.
     /// All non-default converters must be configured manually using the <see cref="Converters"/> property.
+    /// <para>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </para>
     /// </remarks>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public AotSafeConverters Aot => new(this);
@@ -24,6 +29,11 @@ partial class CsvOptions<T>
     /// <summary>
     /// Wrapper around <see cref="CsvOptions{T}.Converters"/> to provide AOT-safe access to converters.
     /// </summary>
+    /// <remarks>
+    /// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+    /// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+    /// supported, and its behavior may change in a minor release.
+    /// </remarks>
     [PublicAPI]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public readonly struct AotSafeConverters

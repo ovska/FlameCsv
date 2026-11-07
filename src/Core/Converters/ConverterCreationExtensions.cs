@@ -8,6 +8,11 @@ namespace FlameCsv.Converters;
 /// <summary>
 /// Provides extensions to create converters for the source generator.
 /// </summary>
+/// <remarks>
+/// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+/// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+/// supported, and its behavior may change in a minor release.
+/// </remarks>
 [PublicAPI]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [ExcludeFromCodeCoverage]

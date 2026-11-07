@@ -7,6 +7,11 @@ namespace FlameCsv.Converters.Enums;
 /// <summary>
 /// Internal implementation detail, used by the source generator.
 /// </summary>
+/// <remarks>
+/// This API supports code produced by the FlameCsv source generator and is not intended to be used directly.
+/// Its compatibility is only guaranteed for the way generated code uses it; direct use from user code is not
+/// supported, and its behavior may change in a minor release.
+/// </remarks>
 public sealed class CsvEnumFlagsUtf8FormatStrategy<TEnum> : CsvEnumFlagsFormatStrategy<byte, TEnum>
     where TEnum : struct, Enum
 {
