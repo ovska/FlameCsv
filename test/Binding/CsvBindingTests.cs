@@ -203,6 +203,22 @@ public static class CsvBindingTests
     }
 
     [Fact]
+    public static void Should_Expose_Bindings_In_Exception()
+    {
+        var ex = Assert.ThrowsAny<CsvBindingException>(() =>
+            new CsvBindingCollection<Class>(
+                [CsvBinding.For<Class>(0, x => x.Id), CsvBinding.For<Class>(1, x => x.Id)],
+                false,
+                false
+            )
+        );
+
+        Assert.NotNull(ex.Bindings);
+        Assert.Equal([0, 1], ex.Bindings.Select(b => b.Index).Order());
+        Assert.All(ex.Bindings, b => Assert.Equal("Id (Property)", b.Target));
+    }
+
+    [Fact]
     public static void Should_Validate()
     {
         Assert.Throws<CsvBindingException>(() => Binder.GetMaterializer<IgnoredAndRequired>(["value"]));

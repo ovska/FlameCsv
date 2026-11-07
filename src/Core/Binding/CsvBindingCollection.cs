@@ -11,9 +11,8 @@ namespace FlameCsv.Binding;
 /// Represents a validated collection of CSV fields bound to properties, fields, or constructor parameters.
 /// </summary>
 /// <typeparam name="TValue">Type represented by the CSV</typeparam>
-[PublicAPI]
 [DebuggerDisplay("CsvBindingCollection<{typeof(TValue).Name,nq}>[{_allBindings.Count}]")]
-public sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue>>
+internal sealed class CsvBindingCollection<TValue> : IEnumerable<CsvBinding<TValue>>
 {
     /// <summary>
     /// Returns <c>true</c> if the bindings are for writing CSV.

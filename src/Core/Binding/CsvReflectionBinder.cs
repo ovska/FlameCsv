@@ -14,6 +14,11 @@ namespace FlameCsv.Binding;
 /// </summary>
 public abstract class CsvReflectionBinder
 {
+    /// <summary>
+    /// Internal implementation detail.
+    /// </summary>
+    protected internal CsvReflectionBinder() { }
+
     [RDC(Messages.Reflection)]
     private protected static CsvBindingCollection<TValue> GetReadBindings<T, [DAM(Messages.ReflectionBound)] TValue>(
         CsvOptions<T> options,
