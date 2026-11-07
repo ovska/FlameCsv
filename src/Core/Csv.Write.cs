@@ -209,7 +209,7 @@ static partial class Csv
         }
 
         /// <summary>
-        /// Writes CSV records to the target, binding them using reflection.
+        /// Writes CSV records to the target, binding them using the given type map.
         /// </summary>
         /// <param name="typeMap">Type map used to bind the CSV data</param>
         /// <param name="values">Values to write</param>
@@ -219,8 +219,7 @@ static partial class Csv
         /// <remarks>
         /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
         /// </remarks>
-        [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task WriteAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             IEnumerable<TValue> values,
             CsvOptions<T>? options = null,
@@ -235,7 +234,7 @@ static partial class Csv
                 values,
                 this,
                 options,
-                options.TypeBinder.GetDematerializer<TValue>(),
+                typeMap.GetDematerializer(options),
                 cancellationToken
             );
         }

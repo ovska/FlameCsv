@@ -141,8 +141,7 @@ static partial class Csv
         /// <remarks>
         /// A header or newline (depending on configuration) is written even if <paramref name="values"/> is empty.
         /// </remarks>
-        [RUF(Messages.Reflection), RDC(Messages.DynamicCode)]
-        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task WriteAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             IEnumerable<TValue> values,
             CsvOptions<T>? options = null
@@ -155,7 +154,7 @@ static partial class Csv
         }
 
         /// <inheritdoc cref="WriteAsync{TValue}(IEnumerable{TValue}, CsvOptions{T}?)"/>
-        public Task WriteAsync<[DAM(Messages.ReflectionBound)] TValue>(
+        public Task WriteAsync<TValue>(
             CsvTypeMap<T, TValue> typeMap,
             IAsyncEnumerable<TValue> values,
             CsvOptions<T>? options = null
